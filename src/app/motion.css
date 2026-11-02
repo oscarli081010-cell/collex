@@ -1,0 +1,127 @@
+/* Motion tokens and transitions, adapted from transitions.dev */
+:root {
+  --duration-stagger: 40ms;
+  --duration-micro: 80ms;
+  --duration-quick: 150ms;
+  --duration-fast: 250ms;
+  --duration-medium: 350ms;
+  --duration-slow: 400ms;
+  --duration-very-slow: 500ms;
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: ease-in-out;
+  --distance-micro: 4px;
+  --distance-base: 8px;
+  --distance-medium: 12px;
+  --blur-small: 2px;
+  --blur-medium: 3px;
+
+  --dropdown-open-dur: 250ms;
+  --dropdown-close-dur: 150ms;
+  --dropdown-pre-scale: 0.97;
+  --dropdown-closing-scale: 0.99;
+  --dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --tabs-dur: 250ms;
+  --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Menu dropdown */
+.t-dropdown {
+  transform-origin: top left;
+  transform: scale(var(--dropdown-pre-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--dropdown-open-dur) var(--dropdown-ease),
+    opacity   var(--dropdown-open-dur) var(--dropdown-ease);
+  will-change: transform, opacity;
+}
+.t-dropdown[data-origin="top-right"]  { transform-origin: top right; }
+.t-dropdown[data-origin="top-center"] { transform-origin: top center; }
+.t-dropdown.is-open {
+  transform: scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+.t-dropdown.is-closing {
+  transform: scale(var(--dropdown-closing-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--dropdown-close-dur) var(--dropdown-ease),
+    opacity   var(--dropdown-close-dur) var(--dropdown-ease);
+}
+
+/* Sliding indicator (tabs sliding): width + transform written by JS */
+.t-pill {
+  position: absolute;
+  left: 0;
+  width: 0;
+  transform: translateX(0);
+  transition:
+    transform var(--tabs-dur) var(--tabs-ease),
+    width     var(--tabs-dur) var(--tabs-ease),
+    opacity   var(--tabs-dur) var(--tabs-ease);
+  will-change: transform, width;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Page enter: every route fades up with a soft blur */
+@keyframes t-page-in {
+  from { opacity: 0; transform: translateY(var(--distance-medium)); filter: blur(var(--blur-medium)); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+.t-page-enter { animation: t-page-in var(--duration-slow) var(--ease-smooth-out) backwards; }
+
+/* Month slide (page side-by-side): direction set by data-dir */
+@keyframes t-slide-from-right {
+  from { opacity: 0; transform: translateX(var(--distance-base)); filter: blur(var(--blur-medium)); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+@keyframes t-slide-from-left {
+  from { opacity: 0; transform: translateX(calc(var(--distance-base) * -1)); filter: blur(var(--blur-medium)); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+.t-slide[data-dir="next"] { animation: t-slide-from-right var(--duration-fast) var(--ease-smooth-out) both; }
+.t-slide[data-dir="prev"] { animation: t-slide-from-left var(--duration-fast) var(--ease-smooth-out) both; }
+
+/* Text swap: a label changing in place */
+@keyframes t-swap-in {
+  from { opacity: 0; transform: translateY(var(--distance-micro)); filter: blur(var(--blur-small)); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+.t-swap { display: inline-block; animation: t-swap-in var(--duration-fast) var(--ease-in-out) both; }
+
+/* Staggered rise for list items and revealed text */
+@keyframes t-rise {
+  from { opacity: 0; transform: translateY(var(--distance-medium)); filter: blur(var(--blur-medium)); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+.t-stagger > * {
+  animation: t-rise var(--duration-very-slow) var(--ease-smooth-out) both;
+  animation-delay: calc(var(--i, 0) * var(--duration-stagger) * 2);
+}
+.t-reveal { animation: t-rise var(--duration-slow) var(--ease-smooth-out) both; }
+
+/* Toast */
+@keyframes t-toast-in {
+  from { opacity: 0; transform: translate(-50%, 16px); filter: blur(var(--blur-small)); }
+  to   { opacity: 1; transform: translate(-50%, 0); filter: blur(0); }
+}
+@keyframes t-toast-out {
+  to { opacity: 0; transform: translate(-50%, 8px); filter: blur(var(--blur-small)); }
+}
+.t-toast {
+  position: fixed; left: 50%; bottom: 28px; z-index: 100;
+  background: var(--ink); color: #fff; font-size: 14px; font-weight: 500;
+  padding: 11px 16px; border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(21, 22, 26, 0.2);
+  animation: t-toast-in var(--duration-slow) var(--ease-smooth-out) both;
+}
+.t-toast.is-hiding { animation: t-toast-out var(--duration-medium) var(--ease-smooth-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .t-dropdown, .t-pill { transition: none !important; }
+  .t-page-enter, .t-slide, .t-swap, .t-stagger > *, .t-reveal, .t-toast { animation: none !important; }
+}

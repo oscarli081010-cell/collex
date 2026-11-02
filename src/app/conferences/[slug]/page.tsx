@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import TopBar from "@/components/TopBar";
-import Footer from "@/components/Footer";
 import { allPages, formatDate, formatRange, getConference, NA } from "@/lib/conferences";
+import ConferenceActions from "@/components/ConferenceActions";
+import ConferenceTabs from "@/components/ConferenceTabs";
 import s from "../../inner.module.css";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -33,8 +33,6 @@ export default async function ConferencePage({ params }: Props) {
   if (!c) notFound();
 
   return (
-    <>
-      <TopBar />
       <main id="top" className="container">
         <div className={s.cover}>
           <span>{c.isTemplate ? "Cover image N/A" : c.shortName}</span>
@@ -42,19 +40,14 @@ export default async function ConferencePage({ params }: Props) {
 
         <header className={s.confHead}>
           <div>
-            {c.isTemplate && <span className="badge accent">Example listing · every field is N/A until a conference is listed</span>}
+            {c.isTemplate && <span className="badge accent">Example listing · details show as N/A</span>}
             <h1 className={s.confTitle}>{c.name}</h1>
             <p className={s.confSub}>{formatRange(c)} · Hosted by {c.host} · {c.venue}</p>
           </div>
-          <div className={s.confActions}>
-            <a href="#apply" className="button secondary">Apply to chair</a>
-            <a href="#apply" className="button">Register a delegation</a>
-          </div>
+          <ConferenceActions c={c} />
         </header>
 
-        <nav className={s.tabs} aria-label="Sections">
-          <ul>{TABS.map(([id, label]) => <li key={id}><a href={`#${id}`}>{label}</a></li>)}</ul>
-        </nav>
+        <ConferenceTabs tabs={TABS} />
 
         <div className={s.confGrid}>
           <div className={s.main}>
@@ -161,7 +154,5 @@ export default async function ConferencePage({ params }: Props) {
           </aside>
         </div>
       </main>
-      <Footer />
-    </>
   );
 }

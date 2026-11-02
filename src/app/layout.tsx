@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Motion from "@/components/Motion";
+import TopBar from "@/components/TopBar";
+import Footer from "@/components/Footer";
 import "./globals.css";
+import "./motion.css";
 
 export const metadata: Metadata = {
   title: "Collex · The Sydney MUN calendar",
@@ -19,7 +22,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <Motion />
+        <TopBar />
         {children}
+        <Footer />
       </body>
     </html>
   );

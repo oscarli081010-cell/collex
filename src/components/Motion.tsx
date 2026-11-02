@@ -19,6 +19,7 @@ export default function Motion() {
 
     const lenis = new Lenis({ lerp: 0.1 });
     lenis.on("scroll", ScrollTrigger.update);
+    (window as unknown as { __lenis?: Lenis }).__lenis = lenis; // used by in-page tabs
     const tick = (t: number) => lenis.raf(t * 1000);
     gsap.ticker.add(tick);
     gsap.ticker.lagSmoothing(0);
@@ -40,6 +41,7 @@ export default function Motion() {
       ctx.revert();
       gsap.ticker.remove(tick);
       lenis.destroy();
+      delete (window as unknown as { __lenis?: Lenis }).__lenis;
       root.classList.remove("motion");
     };
   }, [pathname]);
