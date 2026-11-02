@@ -139,12 +139,12 @@ export default function Admin() {
           {tab === "Users" && (
             <div className={s.tableWrap}>
               <table className={s.table}>
-                <thead><tr><th>Name</th><th>Role</th><th>Joined</th><th className={s.right}>Access</th></tr></thead>
+                <thead><tr><th>Name</th><th>School</th><th>Joined</th><th className={s.right}>Access</th></tr></thead>
                 <tbody>
                   {users!.map((u) => (
                     <tr key={u.id}>
-                      <td><strong>{u.full_name || "No name"}</strong><small>{u.email}{u.school ? ` · ${u.school}` : ""}</small></td>
-                      <td>{u.role}</td>
+                      <td><strong>{u.full_name || "No name"}</strong><small>{u.email}</small></td>
+                      <td>{u.school || <span className="muted">Not set</span>}</td>
                       <td>{formatDate(u.created_at.slice(0, 10))}</td>
                       <td className={s.right}>
                         <div className={s.actions}>

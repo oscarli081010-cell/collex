@@ -1,25 +1,54 @@
 /* Calendar page */
-.calBar { display: flex; justify-content: center; margin-bottom: 28px; }
-.calGrid { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--line); }
-.weekdays, .days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; }
-.weekdays span { background: var(--surface); padding: 10px 12px; font-size: 12px; font-weight: 500; color: var(--muted); }
+.calBar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.calGrid { display: flex; flex-direction: column; gap: 8px; }
+.weekdays, .days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.weekdays span { padding: 0 12px; font-size: 12px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); }
 .day {
-  background: var(--panel); min-height: 116px; padding: 10px 12px;
-  display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-variant-numeric: tabular-nums;
+  position: relative; min-height: 118px; padding: 10px 12px; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 6px; font-size: 13px;
+  transition: border-color var(--duration-quick), box-shadow var(--duration-fast) var(--ease-smooth-out);
 }
-.day.weekend { background: var(--row-hover); }
-.day.blank { background: var(--bg); }
-.dayNum { color: var(--muted); }
-.day.today .dayNum {
-  display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
-  background: var(--accent); color: var(--on-accent); font-weight: 500;
+.day:not(.blank):hover { border-color: var(--line-strong); box-shadow: 0 6px 18px -10px rgba(var(--shadow-rgb), 0.25); }
+.day.weekend { background: var(--surface); border-color: transparent; }
+.day.blank { background: transparent; border: 1px dashed var(--line); }
+.day.blank .dayNum { color: var(--faint); opacity: 0.6; }
+.dayNum { font-family: var(--serif); font-size: 21px; line-height: 1; color: var(--ink); font-variant-numeric: lining-nums tabular-nums; }
+.day.busy { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+.day.today { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.day.today .dayNum { color: var(--accent); }
+.day.today::after {
+  content: "Today"; position: absolute; top: 12px; right: 12px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent);
 }
 .event {
   font-size: 12px; font-weight: 500; line-height: 1.25; border-radius: 6px;
-  background: var(--accent-soft); color: var(--accent); padding: 4px 6px;
+  background: var(--accent-soft); color: var(--accent); padding: 4px 7px;
+  border-left: 2px solid var(--accent);
   transition: background-color var(--duration-quick), color var(--duration-quick);
 }
 .event:hover { background: var(--accent); color: var(--on-accent); }
+
+/* Season strip in the calendar header: one column per month, bar height = conferences that month */
+.strip { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; }
+.stripMonth {
+  display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 6px 8px;
+  border: 0; border-radius: 10px; background: transparent; cursor: pointer; color: var(--muted);
+  transition: background-color var(--duration-quick), color var(--duration-quick);
+}
+.stripMonth:hover { background: var(--surface); color: var(--ink); }
+.stripMonth[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
+.stripBar { position: relative; height: 44px; border-radius: 6px; background: var(--surface); overflow: hidden; }
+.stripMonth:hover .stripBar { background: var(--surface-2); }
+.stripMonth[aria-pressed="true"] .stripBar { background: rgba(255, 255, 255, 0.12); }
+.stripBar::after {
+  content: ""; position: absolute; inset: auto 0 0; height: max(3px, calc(var(--h) * 100%));
+  background: var(--accent); border-radius: 6px; opacity: calc(0.35 + var(--h) * 0.65);
+  transition: height var(--duration-slow) var(--ease-smooth-out);
+}
+.stripMonth[aria-pressed="true"] .stripBar::after { background: var(--on-ink); }
+.stripName { font-size: 12.5px; font-weight: 500; text-align: center; }
+
 .agenda { margin-top: 72px; max-width: 860px; }
 .h2 { font-family: var(--serif); font-weight: 400; font-size: 32px; line-height: 1.1; margin-bottom: 20px; }
 
@@ -134,7 +163,15 @@
   .facts { position: static; order: -1; }
 }
 @media (max-width: 640px) {
-  .day { min-height: 56px; padding: 6px; }
+  .day { min-height: 56px; padding: 6px; border-radius: 8px; }
+  .dayNum { font-size: 15px; }
+  .day.today::after { display: none; }
+  .weekdays, .days { gap: 3px; }
+  .weekdays span { padding: 0 4px; font-size: 10.5px; }
+  .strip { gap: 2px; }
+  .stripMonth { padding: 6px 2px; }
+  .stripName { font-size: 10.5px; }
+  .stripBar { height: 32px; }
   .event { font-size: 0; padding: 0; height: 6px; }
   .people, .applyBand, .form { grid-template-columns: 1fr; }
   .applyOption { flex-direction: column; align-items: stretch; padding: 24px; }

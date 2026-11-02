@@ -5,10 +5,12 @@ import { useRef, useState } from "react";
 import { MONTHS, template, type Conference } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import ConferenceRow from "./ConferenceRow";
+import PageBand, { nextUp } from "./PageBand";
 import s from "./board.module.css";
 
 // Search and filter the listed conferences, grouped by month.
-export default function UpcomingBoard() {
+// With `band`, the search sits inside the page's headline panel (Conferences page).
+export default function UpcomingBoard({ band = false }: { band?: boolean }) {
   const conferences = useConferences();
   const [q, setQ] = useState("");
   const [level, setLevel] = useState("any");
@@ -29,8 +31,8 @@ export default function UpcomingBoard() {
   }
   const filterKey = `${q}|${level}`;
 
-  return (
-    <div>
+  const today = new Date().toISOString().slice(0, 10);
+  const toolbar = (
       <div className={s.toolbar} role="search">
         <label className={s.search}>
           <span className="sr-only">Search conferences</span>
@@ -60,6 +62,22 @@ export default function UpcomingBoard() {
           <option>Open</option>
         </select>
       </div>
+  );
+
+  return (
+    <div>
+      {band ? (
+        <PageBand
+          title="Conferences"
+          figures={[
+            { label: "Upcoming", value: String(conferences.filter((c) => !c.startDate || c.startDate >= today).length) },
+            { label: "Host schools", value: String(new Set(conferences.map((c) => c.host)).size) },
+            nextUp(conferences),
+          ]}
+        >
+          {toolbar}
+        </PageBand>
+      ) : toolbar}
 
       <div className={s.resultBar}>
         <span key={`${rows.length}-${filterKey}`} className="t-swap muted" aria-live="polite">

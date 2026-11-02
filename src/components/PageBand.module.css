@@ -1,0 +1,37 @@
+.band {
+  position: relative; overflow: hidden; isolation: isolate;
+  margin: clamp(28px, 4vw, 48px) 0 clamp(36px, 4vw, 56px);
+  padding: clamp(28px, 4vw, 48px);
+  border: 1px solid var(--line); border-radius: 20px; background: var(--panel);
+  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.04), 0 18px 48px -24px rgba(var(--shadow-rgb), 0.16);
+}
+/* A soft wash of the accent in one corner so the panel isn't a flat white box. */
+.band::before {
+  content: ""; position: absolute; z-index: -1; inset: -40% -10% auto auto; width: 70%; aspect-ratio: 1;
+  background: radial-gradient(closest-side, var(--accent-soft), transparent); opacity: 0.9; pointer-events: none;
+}
+
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px 48px; flex-wrap: wrap; }
+.title {
+  font-family: var(--serif); font-weight: 400; letter-spacing: -0.02em; line-height: 0.95;
+  font-size: clamp(52px, 7.4vw, 104px);
+}
+.title em { font-style: italic; color: var(--accent); }
+
+.figures { display: flex; gap: clamp(20px, 3vw, 44px); }
+.figures > div { display: flex; flex-direction: column-reverse; gap: 6px; min-width: 0; }
+.figures > div + div { padding-left: clamp(20px, 3vw, 44px); border-left: 1px solid var(--line); }
+.figures dt { font-size: 12.5px; color: var(--muted); }
+.figures dd {
+  font-family: var(--serif); font-size: clamp(28px, 3vw, 40px); line-height: 1; white-space: nowrap;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.figures small { display: block; margin-top: 6px; font-family: var(--sans); font-size: 13px; color: var(--muted); }
+
+.foot { margin-top: clamp(28px, 3.4vw, 40px); }
+
+@media (max-width: 720px) {
+  .figures { width: 100%; justify-content: space-between; gap: 12px; }
+  .figures > div + div { padding-left: 12px; }
+  .figures dd { font-size: 26px; white-space: normal; }
+}
