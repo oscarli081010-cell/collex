@@ -5,6 +5,7 @@ import { useState } from "react";
 import { NA } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
+import auth from "@/app/auth.module.css";
 import s from "@/app/inner.module.css";
 
 type F = { name: string; label: string; type: "text" | "date" | "email" | "url" | "select" | "textarea"; wide?: boolean; required?: boolean; hint?: string; options?: string[] };
@@ -90,50 +91,45 @@ export default function ListForm() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const steps = (
-    <aside className={`panel ${s.formAside}`}>
-      <h2 className={s.h2}>What happens next</h2>
-      <ol>
-        <li>You send the listing. It goes to the Collex team for review.</li>
-        <li>We check it, usually within two days.</li>
-        <li>Once approved, it gets its page and joins the calendar.</li>
-        <li>You&rsquo;ll see its status on your account page.</li>
-      </ol>
-    </aside>
-  );
-
-  if (!ready) return <div className={s.formGrid}><div className={`panel ${s.form}`} style={{ minHeight: 420 }} aria-busy="true" />{steps}</div>;
+  if (!ready) return <div className={`${auth.form} ${auth.skeleton}`} style={{ maxWidth: 600, height: 560 }} aria-busy="true" />;
 
   if (!session) {
     return (
-      <div className={s.formGrid}>
-        <div className={`panel t-reveal ${s.form} ${s.sent}`}>
-          <h2 className={s.h2}>Log in to list a conference</h2>
-          <p className="muted">Listings are tied to an account, so you can track and update yours.</p>
-          <div className={s.submitRow}>
-            <Link href="/login" className="button lg">Log in</Link>
-            <Link href="/signup" className="button secondary lg">Create an account</Link>
-          </div>
+      <div className={`t-reveal ${auth.form}`}>
+        <h1 className={auth.title}>List a conference</h1>
+        <p className="muted">Log in first. Your listing stays tied to your account, so you can track it.</p>
+        <div className={auth.row}>
+          <Link href="/login" className="button lg">Log in</Link>
+          <Link href="/signup" className="button secondary lg">Create an account</Link>
         </div>
-        {steps}
+      </div>
+    );
+  }
+
+  if (sent) {
+    return (
+      <div key="sent" role="status" className={`t-reveal ${auth.sent}`}>
+        <svg width="44" height="44" viewBox="0 0 40 40" aria-hidden="true" className={s.sentIcon}><circle cx="20" cy="20" r="19" fill="var(--accent-soft)" /><path d="M13 20.5l5 5 9-10" fill="none" stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" pathLength={1} /></svg>
+        <h1 className={auth.title}>Sent for review</h1>
+        <ol className={`t-stagger ${s.next}`}>
+          {["The Collex team checks it, usually within two days.", "Once approved, it gets its own page and joins the calendar.", "Its status shows on your account page the whole time."].map((t, i) => (
+            <li key={t} style={{ "--i": i } as React.CSSProperties}>{t}</li>
+          ))}
+        </ol>
+        <div className={auth.row}>
+          <Link href="/account" className="button">See its status</Link>
+          <button className="button secondary" onClick={() => setSent(false)}>List another</button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={s.formGrid}>
-      {sent ? (
-        <div key="sent" role="status" className={`panel t-reveal ${s.form} ${s.sent}`}>
-          <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className={s.sentIcon}><circle cx="20" cy="20" r="19" fill="var(--accent-soft)" /><path d="M13 20.5l5 5 9-10" fill="none" stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" pathLength={1} /></svg>
-          <h2 className={s.h2}>Sent for review</h2>
-          <p className="muted">We&rsquo;ll check it and publish it, usually within two days. Track it on your account page.</p>
-          <div className={s.submitRow}>
-            <Link href="/account" className="button">See its status</Link>
-            <button className="button secondary" onClick={() => setSent(false)}>List another</button>
-          </div>
+      <form key="form" className={`t-reveal ${s.listForm}`} onSubmit={submit} noValidate>
+        <div className={s.wide}>
+          <h1 className={auth.title}>List a conference</h1>
+          <p className="muted" style={{ marginTop: 12 }}>The Collex team reviews it before it goes live.</p>
         </div>
-      ) : (
-      <form key="form" className={`panel t-reveal ${s.form}`} onSubmit={submit} noValidate>
         {FIELDS.map((f) => {
           const id = `f-${f.name}`;
           const err = errors[f.name];
@@ -170,16 +166,11 @@ export default function ListForm() {
         })}
         <div className={`field ${s.wide}`}>
           {errors.form && <p key={errors.form} className={`t-reveal ${s.error}`}>{errors.form}</p>}
-          <div className={s.submitRow}>
-            <button type="submit" className="button lg" disabled={busy}>
-              <span key={String(busy)} className="t-swap">{busy ? "Sending…" : "Send for review"}</span>
-            </button>
-            <small className="muted">Fields marked <span className={s.req}>*</span> are needed. Everything else can be added later.</small>
-          </div>
+          <button type="submit" className={`button lg ${auth.submit}`} disabled={busy}>
+            <span key={String(busy)} className="t-swap">{busy ? "Sending…" : "Send for review"}</span>
+          </button>
+          <small className="muted" style={{ textAlign: "center" }}>Only fields marked <span className={s.req}>*</span> are needed. Add the rest later.</small>
         </div>
       </form>
-      )}
-      {steps}
-    </div>
   );
 }

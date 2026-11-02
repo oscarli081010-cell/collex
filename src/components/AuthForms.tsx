@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { applyTheme, THEMES, type Theme } from "@/lib/theme";
 import { useAuth } from "./AuthProvider";
+import CodeInput from "./CodeInput";
 import SchoolPicker from "./SchoolPicker";
 import { usePill } from "./usePill";
 import { useToast } from "./useToast";
@@ -81,6 +82,21 @@ function ThemePicker({ userId, initial, onSaved }: { userId: string; initial: Th
 
 function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"; onBack: () => void }) {
   const { say, node } = useToast();
+  const router = useRouter();
+  const [checking, setChecking] = useState(false);
+  const [wrong, setWrong] = useState(0);
+  // The same email carries a link and a 6-digit code; the code confirms the account without leaving this tab.
+  const verify = async (token: string) => {
+    if (!supabase) return;
+    setChecking(true);
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+    setChecking(false);
+    if (error) {
+      setWrong((n) => n + 1);
+      return say(/expired/i.test(error.message) ? "That code has expired. Send a new one." : "That code isn't right. Try again.");
+    }
+    router.push("/account");
+  };
   const resend = async () => {
     if (!supabase) return;
     const { error } = kind === "signup"
@@ -97,8 +113,14 @@ function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"
       <h1 className={s.title}>Check your email</h1>
       <p className="muted">
         We sent a link to <strong className={s.strong}>{email}</strong>.{" "}
-        {kind === "signup" ? "Open it to confirm your account." : "Open it to set a new password."}
+        {kind === "signup" ? "Open it, or type the 6-digit code from the email here." : "Open it to set a new password."}
       </p>
+      {kind === "signup" && (
+        <div className={s.code}>
+          <CodeInput onComplete={verify} errors={wrong} disabled={checking} />
+          <small key={String(checking)} className="t-swap muted">{checking ? "Checking…" : "The code works for an hour."}</small>
+        </div>
+      )}
       <div className={s.row}>
         <button className="button secondary" onClick={resend}>Send it again</button>
         <button className={s.textBtn} onClick={onBack}>Use a different email</button>
