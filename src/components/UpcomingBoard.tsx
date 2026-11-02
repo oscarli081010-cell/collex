@@ -2,24 +2,24 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { conferences, MONTHS, template, type Conference } from "@/lib/conferences";
+import { MONTHS, template, type Conference } from "@/lib/conferences";
+import { useConferences } from "./ConferencesContext";
 import ConferenceRow from "./ConferenceRow";
 import s from "./board.module.css";
 
 // Search and filter the listed conferences, grouped by month.
 export default function UpcomingBoard() {
+  const conferences = useConferences();
   const [q, setQ] = useState("");
   const [level, setLevel] = useState("any");
-  const [format, setFormat] = useState("any");
   const input = useRef<HTMLInputElement>(null);
 
-  const filtered = Boolean(q || level !== "any" || format !== "any");
-  const reset = () => { setQ(""); setLevel("any"); setFormat("any"); input.current?.focus(); };
+  const filtered = Boolean(q || level !== "any");
+  const reset = () => { setQ(""); setLevel("any"); input.current?.focus(); };
 
   const match = (c: Conference) =>
     (!q || `${c.name} ${c.host} ${c.venue}`.toLowerCase().includes(q.toLowerCase())) &&
-    (level === "any" || c.level === level) &&
-    (format === "any" || c.format === format);
+    (level === "any" || c.level === level);
 
   const rows = conferences.filter(match).sort((a, b) => (a.startDate ?? "").localeCompare(b.startDate ?? ""));
   const groups = new Map<string, Conference[]>();
@@ -27,7 +27,7 @@ export default function UpcomingBoard() {
     const key = c.startDate ? `${MONTHS[new Date(c.startDate).getMonth()]} ${c.startDate.slice(0, 4)}` : "Date to be announced";
     groups.set(key, [...(groups.get(key) ?? []), c]);
   }
-  const filterKey = `${q}|${level}|${format}`;
+  const filterKey = `${q}|${level}`;
 
   return (
     <div>
@@ -58,12 +58,6 @@ export default function UpcomingBoard() {
           <option>High school</option>
           <option>University</option>
           <option>Open</option>
-        </select>
-        <select className={`control ${format !== "any" ? s.active : ""}`} aria-label="Format" value={format} onChange={(e) => setFormat(e.target.value)}>
-          <option value="any">All formats</option>
-          <option>In person</option>
-          <option>Online</option>
-          <option>Hybrid</option>
         </select>
       </div>
 

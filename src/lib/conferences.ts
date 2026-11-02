@@ -1,7 +1,6 @@
-// Single source of conference data. Swap this for Supabase later; pages only use the exports below.
+// Conference shape, the demo page, and date helpers. Listings themselves come from Supabase (lib/data.ts).
 
 export type Level = "High school" | "University" | "Open";
-export type Format = "In person" | "Online" | "Hybrid";
 
 export type Committee = {
   name: string;
@@ -19,9 +18,7 @@ export type Conference = {
   startDate: string | null;
   endDate: string | null;
   venue: string;
-  suburb: string;
   level: Level | null;
-  format: Format | null;
   fee: string;
   delegates: string;
   overview: string;
@@ -30,7 +27,6 @@ export type Conference = {
   guides: { committee: string; released: string | null; url: string | null }[];
   secretariat: { role: string; name: string }[];
   contact: string;
-  website: string;
   /** Application form links; null until applications open. */
   delegationUrl?: string | null;
   chairUrl?: string | null;
@@ -48,9 +44,7 @@ export const template: Conference = {
   startDate: null,
   endDate: null,
   venue: NA,
-  suburb: NA,
   level: null,
-  format: null,
   fee: NA,
   delegates: NA,
   overview: NA,
@@ -62,15 +56,8 @@ export const template: Conference = {
     { label: "Position papers due", date: null },
     { label: "Conference day", date: null },
   ],
-  committees: [
-    { name: NA, topic: NA, level: NA, chairs: NA },
-    { name: NA, topic: NA, level: NA, chairs: NA },
-    { name: NA, topic: NA, level: NA, chairs: NA },
-  ],
-  guides: [
-    { committee: NA, released: null, url: null },
-    { committee: NA, released: null, url: null },
-  ],
+  committees: [],
+  guides: [],
   secretariat: [
     { role: "Secretary-General", name: NA },
     { role: "Deputy Secretary-General", name: NA },
@@ -78,14 +65,8 @@ export const template: Conference = {
     { role: "Head of Chairs", name: NA },
   ],
   contact: NA,
-  website: NA,
   isTemplate: true,
 };
-
-/** Real listings. Empty until the first conference is listed. */
-export const conferences: Conference[] = [];
-
-export const allPages: Conference[] = [template, ...conferences];
 
 export const SEASON_YEAR = 2027;
 
@@ -93,10 +74,6 @@ export const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
-
-export function getConference(slug: string) {
-  return allPages.find((c) => c.slug === slug);
-}
 
 export function formatDate(iso: string | null) {
   if (!iso) return NA;
@@ -112,14 +89,14 @@ export function formatRange(c: Conference) {
 }
 
 /** Listed conferences overlapping the weekend (Fri to Sun) around a date. */
-export function clashesNear(iso: string) {
+export function clashesNear(list: Conference[], iso: string) {
   const d = new Date(iso + "T00:00:00");
   const day = d.getDay();
   const fri = new Date(d);
   fri.setDate(d.getDate() - ((day + 2) % 7));
   const sun = new Date(fri);
   sun.setDate(fri.getDate() + 2);
-  return conferences.filter((c) => {
+  return list.filter((c) => {
     if (!c.startDate) return false;
     const s = new Date(c.startDate + "T00:00:00");
     const e = new Date((c.endDate ?? c.startDate) + "T00:00:00");
@@ -127,6 +104,6 @@ export function clashesNear(iso: string) {
   });
 }
 
-export function inMonth(month: number) {
-  return conferences.filter((c) => c.startDate && new Date(c.startDate).getMonth() === month);
-}
+/** Conferences running on a given day. */
+export const onDay = (list: Conference[], iso: string) =>
+  list.filter((c) => c.startDate && c.startDate <= iso && (c.endDate ?? c.startDate) >= iso);

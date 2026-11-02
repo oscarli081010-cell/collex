@@ -87,6 +87,39 @@ function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"
   );
 }
 
+const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Not approved", unpublished: "Taken down" };
+
+// The account's own submissions and where each one stands.
+function MyListings({ userId }: { userId: string }) {
+  const [rows, setRows] = useState<{ id: string; name: string; slug: string; status: string; review_note: string }[] | null>(null);
+  useEffect(() => {
+    supabase?.from("conferences").select("id, name, slug, status, review_note").eq("submitted_by", userId)
+      .order("created_at", { ascending: false }).then(({ data }) => setRows(data ?? []));
+  }, [userId]);
+
+  return (
+    <section className={`panel ${s.card}`} style={{ "--i": 3 } as React.CSSProperties}>
+      <div className={s.cardHead}>
+        <h2 className={s.cardTitle}>Your listings</h2>
+        <Link href="/list" className="link">List a conference</Link>
+      </div>
+      {rows === null ? <div className={s.skeleton} style={{ height: 56 }} /> : rows.length === 0 ? (
+        <p className="muted">Nothing listed yet.</p>
+      ) : (
+        <ul className={s.listings}>
+          {rows.map((r) => (
+            <li key={r.id}>
+              {r.status === "published" ? <Link href={`/conferences/${r.slug}`} className="link">{r.name}</Link> : <span>{r.name}</span>}
+              <span className={s.status} data-status={r.status}>{STATUS[r.status]}</span>
+              {r.status === "rejected" && r.review_note && <small className="muted">{r.review_note}</small>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export function SignupForm() {
   const [role, setRole] = useState<Role>("Delegate");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -301,6 +334,7 @@ export function AccountView() {
           <span key={String(busy === "password")} className="t-swap">{busy === "password" ? "Updating…" : "Update password"}</span>
         </button>
       </form>
+      <MyListings userId={session.user.id} />
       {node}
     </div>
   );

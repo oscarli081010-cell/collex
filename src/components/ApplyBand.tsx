@@ -8,8 +8,8 @@ import s from "@/app/inner.module.css";
 export default function ApplyBand({ c }: { c: Conference }) {
   const { say, node } = useToast();
   const options = [
-    { title: "Register a delegation", who: "For schools", url: c.delegationUrl, cta: "Register" },
-    { title: "Apply to chair", who: "For chairs", url: c.chairUrl, cta: "Apply" },
+    { title: "Register a delegation", url: c.delegationUrl, cta: "Register" },
+    { title: "Apply to chair", url: c.chairUrl, cta: "Apply" },
   ];
 
   return (
@@ -17,7 +17,6 @@ export default function ApplyBand({ c }: { c: Conference }) {
       {options.map((o) => (
         <div key={o.title} className={s.applyOption}>
           <div>
-            <span className={s.applyWho}>{o.who}</span>
             <h2 className={s.applyTitle}>{o.title}</h2>
             <span className={s.applyStatus} data-open={Boolean(o.url)}>
               {o.url ? "Applications open" : "Applications not open yet"}

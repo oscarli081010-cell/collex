@@ -41,7 +41,19 @@
 .sentIcon path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw var(--duration-very-slow) var(--ease-smooth-out) var(--duration-quick) forwards; }
 @keyframes draw { to { stroke-dashoffset: 0; } }
 
+/* Status pill shared with the admin page */
+.status { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 500; background: var(--surface); color: var(--muted); white-space: nowrap; }
+.status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.status[data-status="pending"] { background: #fdf3e2; color: #9a5b00; }
+.status[data-status="published"] { background: #e5f3ea; color: #23744a; }
+.status[data-status="rejected"] { background: #f8e3e4; color: #9b1c24; }
+
 /* Account */
+.cardHead { display: flex; justify-content: space-between; align-items: baseline; }
+.listings { display: flex; flex-direction: column; }
+.listings li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 12px 0; font-size: 15px; }
+.listings li + li { border-top: 1px solid var(--line); }
+.listings small { flex-basis: 100%; }
 .account { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 20px; }
 .accHead { display: flex; align-items: center; gap: 20px; margin-bottom: 12px; }
 .accHead > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }

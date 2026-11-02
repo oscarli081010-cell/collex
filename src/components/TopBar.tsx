@@ -10,7 +10,7 @@ export const NAV = [
   { href: "/", label: "Home" },
   { href: "/calendar", label: "Calendar" },
   { href: "/conferences", label: "Conferences" },
-  { href: "/conferences/template", label: "Standard page" },
+  { href: "/conferences/template", label: "Demo" },
 ];
 
 export default function TopBar() {
@@ -49,14 +49,15 @@ export default function TopBar() {
             </Link>
           ))}
         </nav>
-        <span className="topbarAuth" data-ready={ready}>
+        <div className="topbarRight" data-ready={ready}>
+          <Link href="/list" className="button secondary">List a conference</Link>
+          {profile?.is_admin && <Link href="/admin" className="button">Admin</Link>}
           {session ? (
             <Link href="/account" className="avatarLink" aria-label="Your account" title={who}>{initials}</Link>
           ) : (
-            <Link href="/login" className="loginLink">Log in</Link>
+            <Link href="/login" className="button">Log in</Link>
           )}
-        </span>
-        <Link href="/list" className="button topbarCta">List a conference</Link>
+        </div>
         <button
           className="menu-toggle"
           aria-expanded={open && !closing}
@@ -73,7 +74,12 @@ export default function TopBar() {
         aria-label="Main"
         inert={!open || closing}
       >
-        {[...NAV, { href: "/list", label: "List a conference" }, session ? { href: "/account", label: "Your account" } : { href: "/login", label: "Log in" }].map((n) => (
+        {[
+          ...NAV,
+          { href: "/list", label: "List a conference" },
+          ...(profile?.is_admin ? [{ href: "/admin", label: "Admin" }] : []),
+          session ? { href: "/account", label: "Your account" } : { href: "/login", label: "Log in" },
+        ].map((n) => (
           <Link key={n.href} href={n.href} aria-current={pathname === n.href ? "page" : undefined}>{n.label}</Link>
         ))}
       </nav>

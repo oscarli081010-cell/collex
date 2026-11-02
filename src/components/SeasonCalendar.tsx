@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { conferences, MONTHS, SEASON_YEAR } from "@/lib/conferences";
+import { MONTHS, onDay as runningOn, SEASON_YEAR } from "@/lib/conferences";
+import { useConferences } from "./ConferencesContext";
 import ConferenceRow from "./ConferenceRow";
 import MonthPicker, { type YM } from "./MonthPicker";
 import board from "./board.module.css";
@@ -20,8 +21,8 @@ export default function SeasonCalendar() {
   const days = new Date(y, m + 1, 0).getDate();
   const cells = 42; // always six rows, so the grid never jumps in height
   const todayIso = new Date().toISOString().slice(0, 10);
-  const onDay = (iso: string) =>
-    conferences.filter((c) => c.startDate && c.startDate <= iso && (c.endDate ?? c.startDate) >= iso);
+  const conferences = useConferences();
+  const onDay = (iso: string) => runningOn(conferences, iso);
   const listed = conferences.filter((c) => c.startDate?.startsWith(isoOf(y, m, 1).slice(0, 7)));
 
   return (

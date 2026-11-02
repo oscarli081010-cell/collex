@@ -3,6 +3,10 @@ import Motion from "@/components/Motion";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
 import AuthProvider from "@/components/AuthProvider";
+import ConferencesProvider from "@/components/ConferencesContext";
+import { getPublished } from "@/lib/data";
+
+export const revalidate = 60;
 import "./globals.css";
 import "./motion.css";
 
@@ -12,7 +16,8 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://collex.au"),
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const list = await getPublished();
   return (
     <html lang="en-AU">
       <head>
@@ -23,10 +28,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <AuthProvider>
-          <Motion />
-          <TopBar />
-          {children}
-          <Footer />
+          <ConferencesProvider list={list}>
+            <Motion />
+            <TopBar />
+            {children}
+            <Footer />
+          </ConferencesProvider>
         </AuthProvider>
       </body>
     </html>

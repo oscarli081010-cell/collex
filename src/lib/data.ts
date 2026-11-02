@@ -1,0 +1,49 @@
+import { supabase } from "./supabase";
+import { NA, template, type Conference } from "./conferences";
+
+// Server-side reads of published listings. Pages revalidate every minute, so an approval shows up quickly.
+
+type Row = {
+  slug: string; name: string; short_name: string; host: string; start_date: string | null; end_date: string | null;
+  venue: string; level: Conference["level"]; fee: string; delegates: string; overview: string; contact: string;
+  delegation_url: string | null; chair_url: string | null;
+  key_dates: Conference["keyDates"]; committees: Conference["committees"]; guides: Conference["guides"];
+  secretariat: Conference["secretariat"];
+};
+
+const or = (v: string | null | undefined) => (v && v.trim() ? v : NA);
+
+export const fromRow = (r: Row): Conference => ({
+  slug: r.slug,
+  name: r.name,
+  shortName: r.short_name || r.name,
+  host: r.host,
+  startDate: r.start_date,
+  endDate: r.end_date,
+  venue: or(r.venue),
+  level: r.level,
+  fee: or(r.fee),
+  delegates: or(r.delegates),
+  overview: or(r.overview),
+  keyDates: r.key_dates?.length ? r.key_dates : template.keyDates,
+  committees: r.committees ?? [],
+  guides: r.guides ?? [],
+  secretariat: r.secretariat?.length ? r.secretariat : template.secretariat,
+  contact: or(r.contact),
+  delegationUrl: r.delegation_url,
+  chairUrl: r.chair_url,
+});
+
+export async function getPublished(): Promise<Conference[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("conferences").select("*").eq("status", "published").order("start_date");
+  if (error) { console.error("Loading conferences failed:", error.message); return []; }
+  return (data as Row[]).map(fromRow);
+}
+
+export async function getBySlug(slug: string): Promise<Conference | null> {
+  if (slug === template.slug) return template;
+  if (!supabase) return null;
+  const { data } = await supabase.from("conferences").select("*").eq("status", "published").eq("slug", slug).maybeSingle();
+  return data ? fromRow(data as Row) : null;
+}

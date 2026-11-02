@@ -1,14 +1,10 @@
 import Link from "next/link";
 import UpcomingBoard from "@/components/UpcomingBoard";
 import MiniCalendar from "@/components/MiniCalendar";
-import { conferences, NA, formatRange } from "@/lib/conferences";
+import NextCard from "@/components/NextCard";
 import styles from "./home.module.css";
 
 export default function Home() {
-  const next = [...conferences]
-    .filter((c) => c.startDate && c.startDate >= new Date().toISOString().slice(0, 10))
-    .sort((a, b) => a.startDate!.localeCompare(b.startDate!))[0];
-
   return (
     <main id="top">
       <section className={`container ${styles.hero}`}>
@@ -16,7 +12,7 @@ export default function Home() {
           <h1 className={`serif ${styles.title}`}>
             Sydney Model UN, <em>in one place.</em>
           </h1>
-          <p className={styles.lead}>Every conference on the circuit, with one page each to apply.</p>
+          <p className={styles.lead}>From the first gavel to the final resolution, <span className={styles.aura}>the whole Sydney circuit lives here.</span></p>
           <div className={styles.heroActions}>
             <a href="#upcoming" className="button lg">See what&rsquo;s on</a>
             <Link href="/list" className="button secondary lg">List a conference</Link>
@@ -24,11 +20,7 @@ export default function Home() {
         </div>
         <div className={styles.heroPic}>
           <span className={styles.heroImg} role="img" aria-label="The UN General Assembly hall" />
-          <Link href={next ? `/conferences/${next.slug}` : "/calendar"} className={styles.nextCard}>
-            <span className={styles.nextLabel}>Next conference</span>
-            <span className={`serif ${styles.nextName}`}>{next ? next.name : NA}</span>
-            <span className="muted">{next ? formatRange(next) : "Dates to be announced"}</span>
-          </Link>
+          <NextCard />
         </div>
         <a href="#upcoming" className={styles.scrollCue}>
           Upcoming

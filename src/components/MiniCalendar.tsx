@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { clashesNear, conferences, SEASON_YEAR } from "@/lib/conferences";
+import { clashesNear, onDay, SEASON_YEAR } from "@/lib/conferences";
+import { useConferences } from "./ConferencesContext";
 import MonthPicker, { type YM } from "./MonthPicker";
 import s from "./board.module.css";
 
@@ -18,10 +19,10 @@ export default function MiniCalendar() {
 
   const lead = (new Date(view.y, view.m, 1).getDay() + 6) % 7;
   const days = new Date(view.y, view.m + 1, 0).getDate();
-  const busy = (day: string) =>
-    conferences.some((c) => c.startDate && c.startDate <= day && (c.endDate ?? c.startDate) >= day);
+  const conferences = useConferences();
+  const busy = (day: string) => onDay(conferences, day).length > 0;
 
-  const clashes = picked ? clashesNear(picked) : [];
+  const clashes = picked ? clashesNear(conferences, picked) : [];
   const pickedLabel = picked
     ? new Date(picked + "T00:00:00").toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
     : "";
