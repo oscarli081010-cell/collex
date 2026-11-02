@@ -50,6 +50,7 @@ export default function ListForm() {
     else if (!/^\S+@\S+\.\S+$/.test(v("contact"))) out.contact = "That email doesn't look right.";
     if (v("start_date") && v("end_date") && v("end_date") < v("start_date")) out.end_date = "The last day is before the first day.";
     for (const k of ["delegation_url", "chair_url"]) if (v(k) && !isUrl(v(k))) out[k] = "Use a full link starting with https://";
+    if (!v("publish")) out.publish = "Tick the box to confirm before sending.";
     return out;
   };
 
@@ -112,7 +113,7 @@ export default function ListForm() {
         <svg width="44" height="44" viewBox="0 0 40 40" aria-hidden="true" className={s.sentIcon}><circle cx="20" cy="20" r="19" fill="var(--accent-soft)" /><path d="M13 20.5l5 5 9-10" fill="none" stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" pathLength={1} /></svg>
         <h1 className={auth.title}>Sent for review</h1>
         <ol className={`t-stagger ${s.next}`}>
-          {["The Collex team checks it, usually within two days.", "Once approved, it gets its own page and joins the calendar.", "Its status shows on your account page the whole time."].map((t, i) => (
+          {["The Collex team reviews it.", "Once approved, it gets its own page and joins the calendar.", "Its status shows on your account page the whole time."].map((t, i) => (
             <li key={t} style={{ "--i": i } as React.CSSProperties}>{t}</li>
           ))}
         </ol>
@@ -165,6 +166,11 @@ export default function ListForm() {
           );
         })}
         <div className={`field ${s.wide}`}>
+          <label className={`check ${errors.publish ? "invalid" : ""}`} style={{ marginBottom: 8 }}>
+            <input type="checkbox" name="publish" aria-invalid={Boolean(errors.publish)} aria-describedby={errors.publish ? "publish-err" : undefined} onChange={() => errors.publish && setErrors(({ publish: _, ...rest }) => rest)} />
+            <span>I help run this conference or have its organisers&rsquo; permission, and I agree these details, including the contact email, will be public once approved. See the <Link href="/terms" target="_blank">Terms of use</Link>.</span>
+          </label>
+          {errors.publish && <p key="publish" id="publish-err" className={`t-reveal ${s.error}`}>{errors.publish}</p>}
           {errors.form && <p key={errors.form} className={`t-reveal ${s.error}`}>{errors.form}</p>}
           <button type="submit" className={`button lg ${auth.submit}`} disabled={busy}>
             <span key={String(busy)} className="t-swap">{busy ? "Sending…" : "Send for review"}</span>

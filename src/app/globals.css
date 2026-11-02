@@ -7,7 +7,7 @@
   --surface-2: #ebe7df;
   --ink: #15161a;
   --muted: #6b6e76;
-  --faint: #9a9ca3;
+  --faint: #6f7279;
   --accent: #213a73;
   --accent-soft: #e8ecf5;
   --on-accent: #ffffff;
@@ -24,8 +24,8 @@
   --warn: #9a5b00;
   --warn-soft: #fdf3e2;
 
-  --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
-  --sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --serif: var(--font-serif), "Iowan Old Style", Georgia, serif;
+  --sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 
   --margin: clamp(20px, 4vw, 56px);
   --max: 1280px;
@@ -46,7 +46,7 @@
   --line-strong: #3d4048;
   --ink: #ecebe7;
   --muted: #a3a5ac;
-  --faint: #70737b;
+  --faint: #8b8e96;
   --accent: #9fb5ec;
   --accent-soft: #212a42;
   --on-accent: #0f1424;
@@ -74,7 +74,7 @@
     --line-strong: #3d4048;
     --ink: #ecebe7;
     --muted: #a3a5ac;
-    --faint: #70737b;
+    --faint: #8b8e96;
     --accent: #9fb5ec;
     --accent-soft: #212a42;
     --on-accent: #0f1424;
@@ -243,3 +243,18 @@ select.control {
     background: var(--panel); border: 1px solid var(--line-strong); font-size: 14px; cursor: pointer;
   }
 }
+
+/* Skip link: hidden until a keyboard user tabs to it, then jumps past the top bar. */
+.skip {
+  position: fixed; top: 12px; left: 12px; z-index: 100;
+  padding: 10px 16px; border-radius: 8px; background: var(--ink); color: var(--on-ink);
+  font-size: 14px; font-weight: 500; transform: translateY(-160%);
+  transition: transform var(--duration-fast) var(--ease-smooth-out);
+}
+.skip:focus-visible { transform: none; }
+
+/* Consent checkbox: a native box in the accent colour, with its sentence beside it. */
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; line-height: 1.5; color: var(--muted); cursor: pointer; }
+.check input { flex: none; width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--accent); cursor: pointer; }
+.check a { color: var(--accent); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+.check.invalid { color: var(--danger); }

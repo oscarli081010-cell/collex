@@ -35,11 +35,12 @@ function Field({ label, children, error, hint }: { label: string; children: Reac
   );
 }
 
-function Password({ name, autoComplete, onChange }: { name: string; autoComplete: string; onChange?: () => void }) {
+// aria-label keeps the Show button's text out of the field's name, since the surrounding <label> also wraps the button.
+function Password({ name, autoComplete, onChange, label = "Password" }: { name: string; autoComplete: string; onChange?: () => void; label?: string }) {
   const [show, setShow] = useState(false);
   return (
     <span className={s.pw}>
-      <input name={name} type={show ? "text" : "password"} className="control" autoComplete={autoComplete} minLength={8} onChange={onChange} />
+      <input name={name} type={show ? "text" : "password"} className="control" aria-label={label} autoComplete={autoComplete} minLength={8} onChange={onChange} />
       <button type="button" className={s.pwToggle} onClick={() => setShow(!show)} aria-label={show ? "Hide password" : "Show password"}>
         <span key={String(show)} className="t-swap">{show ? "Hide" : "Show"}</span>
       </button>
@@ -178,6 +179,7 @@ export function SignupForm() {
     if (!v("name")) found.name = "Add your name.";
     if (!/^\S+@\S+\.\S+$/.test(v("email"))) found.email = "Add a valid email.";
     if (String(f.get("password") ?? "").length < 8) found.password = "Use at least 8 characters.";
+    if (!f.get("agree")) found.agree = "Tick the box to agree before creating an account.";
     setErrors(found);
     if (Object.keys(found).length) return;
 
@@ -204,6 +206,13 @@ export function SignupForm() {
       <Field label="School or University" hint="Optional"><SchoolPicker /></Field>
       <Field label="Email" error={errors.email}><input name="email" type="email" className="control" autoComplete="email" onChange={clear("email")} /></Field>
       <Field label="Password" error={errors.password} hint="At least 8 characters"><Password name="password" autoComplete="new-password" onChange={clear("password")} /></Field>
+      <div>
+        <label className={`check ${errors.agree ? "invalid" : ""}`}>
+          <input type="checkbox" name="agree" aria-invalid={Boolean(errors.agree)} aria-describedby={errors.agree ? "agree-err" : undefined} onChange={clear("agree")} />
+          <span>I agree to the <Link href="/terms" target="_blank">Terms of use</Link> and <Link href="/privacy" target="_blank">Privacy policy</Link>. If I&rsquo;m under 18, a parent or guardian has said yes.</span>
+        </label>
+        {errors.agree && <small key="e" id="agree-err" className={`t-reveal ${s.error}`} style={{ display: "block", marginTop: 6, fontSize: 12.5 }}>{errors.agree}</small>}
+      </div>
       {errors.form && <p key={errors.form} className={`t-reveal ${s.formError}`}>{errors.form}</p>}
       <button className={`button lg ${s.submit}`} disabled={busy || !supabase}>
         <span key={String(busy)} className="t-swap">{busy ? "Creating account…" : "Create account"}</span>
@@ -372,7 +381,7 @@ export function AccountView() {
 
       <form ref={pwRef} className={`panel ${s.card} ${recovering ? s.highlight : ""}`} onSubmit={savePassword} style={{ "--i": 2 } as React.CSSProperties}>
         <h2 className={s.cardTitle}>Password</h2>
-        <label className="field"><span>New password</span><Password name="password" autoComplete="new-password" /></label>
+        <label className="field"><span>New password</span><Password name="password" label="New password" autoComplete="new-password" /></label>
         <button className="button secondary" disabled={busy === "password"}>
           <span key={String(busy === "password")} className="t-swap">{busy === "password" ? "Updating…" : "Update password"}</span>
         </button>

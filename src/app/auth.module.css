@@ -78,3 +78,11 @@
   .accHead { flex-wrap: wrap; }
   .avatar { width: 52px; height: 52px; font-size: 18px; }
 }
+
+/* 404 */
+.lost { align-items: center; text-align: center; max-width: 480px; }
+.lost .row { justify-content: center; }
+.code {
+  font-size: clamp(120px, 18vw, 200px); line-height: 0.85; letter-spacing: -0.03em;
+  color: transparent; -webkit-text-stroke: 1.5px var(--line-strong);
+}

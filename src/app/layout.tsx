@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Inter, Instrument_Serif } from "next/font/google";
 import Motion from "@/components/Motion";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
@@ -11,24 +12,25 @@ export const revalidate = 60;
 import "./globals.css";
 import "./motion.css";
 
+// Fonts are downloaded at build time and served from collex.au, so visitors never contact Google.
+const sans = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-sans", display: "swap" });
+const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-serif", display: "swap" });
+
 export const metadata: Metadata = {
   title: "Collex · The Sydney MUN calendar",
-  description: "Every Model United Nations conference in Sydney, on one calendar, with one standard page each.",
+  description: "A calendar of Model United Nations conferences in Sydney, each with its own page.",
   metadataBase: new URL("https://collex.au"),
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const list = await getPublished();
   return (
-    <html lang="en-AU" data-theme="light" suppressHydrationWarning>
+    <html lang="en-AU" data-theme="light" className={`${sans.variable} ${serif.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
       </head>
       <body>
+        <a href="#top" className="skip">Skip to content</a>
         <AuthProvider>
           <ConferencesProvider list={list}>
             <Motion />

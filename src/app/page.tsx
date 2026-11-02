@@ -12,14 +12,14 @@ export default function Home() {
           <h1 className={`serif ${styles.title}`}>
             Sydney Model UN, <em>in one place.</em>
           </h1>
-          <p className={styles.lead}>From the first gavel to the final resolution, <span className={styles.aura}>the whole Sydney circuit lives here.</span></p>
+          <p className={styles.lead}>Upcoming conferences, dates and links, <span className={styles.aura}>on one calendar.</span></p>
           <div className={styles.heroActions}>
             <a href="#upcoming" className="button lg">See what&rsquo;s on</a>
             <Link href="/list" className="button secondary lg">List a conference</Link>
           </div>
         </div>
         <div className={styles.heroPic}>
-          <span className={styles.heroImg} role="img" aria-label="The UN General Assembly hall" />
+          <span className={styles.heroImg} role="img" aria-label="The United Nations General Assembly Hall in New York" />
           <NextCard />
         </div>
         <a href="#upcoming" className={styles.scrollCue}>

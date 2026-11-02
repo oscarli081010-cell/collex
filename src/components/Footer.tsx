@@ -9,7 +9,7 @@ export default function Footer() {
       <div className={`container ${styles.inner}`}>
         <div className={styles.brand}>
           <Link href="/" className="wordmark">Collex</Link>
-          <p className="muted">The shared calendar for the Sydney Model UN circuit.</p>
+          <p className="muted">A calendar for the Sydney Model UN circuit. Independent, and not affiliated with the United Nations.</p>
         </div>
         <nav className={styles.cols} aria-label="Footer">
           <ul>
@@ -27,13 +27,22 @@ export default function Footer() {
           <ul>
             <li className={styles.head}>Contact</li>
             <li><a href={`mailto:${CONTACT}`}>{CONTACT}</a></li>
-            <li className="muted">Sydney, NSW</li>
+            <li className="muted">Sydney, NSW, Australia</li>
+          </ul>
+          <ul>
+            <li className={styles.head}>Legal</li>
+            <li><Link href="/privacy">Privacy</Link></li>
+            <li><Link href="/terms">Terms</Link></li>
+            <li><Link href="/cookies">Cookies</Link></li>
           </ul>
         </nav>
       </div>
       <div className={`container ${styles.legal}`}>
         <span>© {new Date().getFullYear()} Collex</span>
-        <span>Photo: UN General Assembly hall, Basil D Soufi, <a href="https://creativecommons.org/licenses/by-sa/3.0" className="link">CC BY-SA 3.0</a></span>
+        <span>
+          Photo: <a href="https://commons.wikimedia.org/wiki/File:United_Nations_General_Assembly_Hall_(3).jpg" className="link">&ldquo;United Nations General Assembly Hall (3)&rdquo;</a> by Basil D Soufi,
+          via Wikimedia Commons, <a href="https://creativecommons.org/licenses/by-sa/3.0/" className="link">CC BY-SA 3.0</a>, resized and cropped
+        </span>
       </div>
     </footer>
   );
