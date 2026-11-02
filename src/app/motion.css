@@ -114,9 +114,9 @@
 }
 .t-toast {
   position: fixed; left: 50%; bottom: 28px; z-index: 100;
-  background: var(--ink); color: #fff; font-size: 14px; font-weight: 500;
+  background: var(--ink); color: var(--on-ink); font-size: 14px; font-weight: 500;
   padding: 11px 16px; border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(21, 22, 26, 0.2);
+  box-shadow: 0 10px 30px rgba(var(--shadow-rgb), 0.2);
   animation: t-toast-in var(--duration-slow) var(--ease-smooth-out) both;
 }
 .t-toast.is-hiding { animation: t-toast-out var(--duration-medium) var(--ease-smooth-out) both; }

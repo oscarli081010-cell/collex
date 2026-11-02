@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ROLES, supabase, type Role } from "@/lib/supabase";
+import { applyTheme, THEMES, type Theme } from "@/lib/theme";
 import { useAuth } from "./AuthProvider";
 import { usePill } from "./usePill";
 import { useToast } from "./useToast";
@@ -53,6 +54,39 @@ export function RolePicker({ value, onChange }: { value: Role; onChange: (r: Rol
       <span ref={pill} className={`t-pill ${s.segPill}`} aria-hidden="true" />
       {ROLES.map((r) => (
         <button key={r} type="button" role="radio" aria-checked={value === r} onClick={() => onChange(r)}>{r}</button>
+      ))}
+    </div>
+  );
+}
+
+const THEME_ICONS: Record<Theme, React.ReactNode> = {
+  light: <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>,
+  dark: <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.8A5.8 5.8 0 016.2 2.5a5.8 5.8 0 107.3 7.3z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>,
+  system: <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M5.5 14h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>,
+};
+
+// Light / Dark / System, same sliding control as the role picker. Applies instantly and saves to the account.
+function ThemePicker({ userId, initial, onSaved }: { userId: string; initial: Theme; onSaved: (ok: boolean) => void }) {
+  const [value, setValue] = useState<Theme>(initial);
+  const box = useRef<HTMLDivElement>(null);
+  const pill = usePill(box, '[aria-checked="true"]', value);
+  useEffect(() => setValue(initial), [initial]);
+
+  const pick = async (t: Theme) => {
+    if (t === value) return;
+    setValue(t);
+    applyTheme(t);
+    const { error } = await supabase!.from("profiles").update({ theme: t }).eq("id", userId);
+    onSaved(!error);
+  };
+
+  return (
+    <div ref={box} className={s.seg} role="radiogroup" aria-label="Appearance">
+      <span ref={pill} className={`t-pill ${s.segPill}`} aria-hidden="true" />
+      {THEMES.map((t) => (
+        <button key={t} type="button" role="radio" aria-checked={value === t} onClick={() => pick(t)} className={s.segIcon}>
+          {THEME_ICONS[t]}{t[0].toUpperCase() + t.slice(1)}
+        </button>
       ))}
     </div>
   );
@@ -316,6 +350,14 @@ export function AccountView() {
       {recovering && (
         <p className={s.notice} style={{ "--i": 1 } as React.CSSProperties}>Set a new password below to finish resetting it.</p>
       )}
+
+      <section className={`panel ${s.card}`} style={{ "--i": 1 } as React.CSSProperties}>
+        <div>
+          <h2 className={s.cardTitle}>Appearance</h2>
+          <p className="muted">System follows your device&rsquo;s light or dark setting.</p>
+        </div>
+        <ThemePicker userId={session.user.id} initial={profile?.theme ?? "light"} onSaved={(ok) => { if (!ok) say("Couldn't save that. It still applies on this device."); }} />
+      </section>
 
       <form className={`panel ${s.card}`} onSubmit={saveProfile} style={{ "--i": 1 } as React.CSSProperties}>
         <h2 className={s.cardTitle}>Profile</h2>

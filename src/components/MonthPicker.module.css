@@ -28,7 +28,7 @@
   position: absolute; top: calc(100% + 8px); left: 50%; margin-left: -132px; z-index: 50;
   width: 264px; padding: 12px;
   background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-  box-shadow: 0 18px 44px rgba(21, 22, 26, 0.12);
+  box-shadow: 0 18px 44px rgba(var(--shadow-rgb), 0.12);
 }
 .yearRow { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .year { font-weight: 500; font-variant-numeric: tabular-nums; }
@@ -45,4 +45,4 @@
 }
 .month:hover { background: var(--surface); }
 .month:active { transform: scale(0.95); }
-.month[aria-current="true"] { background: var(--ink); color: #fff; }
+.month[aria-current="true"] { background: var(--ink); color: var(--on-ink); }

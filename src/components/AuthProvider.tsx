@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase, type Profile } from "@/lib/supabase";
+import { applyTheme } from "@/lib/theme";
 
 type Auth = {
   ready: boolean;
@@ -23,9 +24,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   const load = useCallback(async (s: Session | null) => {
     setSession(s);
-    if (!s || !supabase) { setProfile(null); return; }
-    const { data } = await supabase.from("profiles").select("id, email, full_name, school, role, is_admin").eq("id", s.user.id).maybeSingle();
+    if (!s || !supabase) { setProfile(null); applyTheme("light"); return; } // visitors and signed-out users see light
+    const { data } = await supabase.from("profiles").select("id, email, full_name, school, role, is_admin, theme").eq("id", s.user.id).maybeSingle();
     setProfile(data as Profile | null);
+    if (data?.theme) applyTheme(data.theme); // follow the account's choice on any device
   }, []);
 
   useEffect(() => {

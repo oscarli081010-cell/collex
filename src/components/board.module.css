@@ -35,7 +35,7 @@
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   transition: border-color var(--duration-fast), box-shadow var(--duration-slow) var(--ease-smooth-out), transform var(--duration-slow) var(--ease-smooth-out);
 }
-.row:hover { border-color: var(--line-strong); box-shadow: 0 10px 28px rgba(21, 22, 26, 0.07); transform: translateY(-2px); }
+.row:hover { border-color: var(--line-strong); box-shadow: 0 10px 28px rgba(var(--shadow-rgb), 0.07); transform: translateY(-2px); }
 .row:active { transform: translateY(0) scale(0.995); }
 .row:hover .go { transform: translateX(4px); color: var(--ink); }
 .dateBlock {
@@ -77,15 +77,15 @@
 .calWeekend { color: var(--muted); }
 .calDay:hover { background: var(--surface); color: var(--ink); }
 .calDay:active { transform: scale(0.9); }
-.calDay[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.calDay[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
 .calBusy::after {
   content: ""; position: absolute; left: 50%; bottom: 4px; width: 4px; height: 4px; margin-left: -2px;
   border-radius: 50%; background: var(--accent);
 }
 .calResult { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 14px; min-height: 96px; }
 .calResultHead { display: flex; align-items: center; gap: 8px; font-weight: 500; margin-bottom: 2px; }
-.dotClear, .dotBusy { width: 8px; height: 8px; border-radius: 50%; background: #2f8f5b; flex: none; }
-.dotBusy { background: #c2410c; }
+.dotClear, .dotBusy { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
+.dotBusy { background: var(--warn); }
 .calClear {
   margin-top: 10px; border: 0; background: transparent; padding: 0; cursor: pointer;
   font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px;

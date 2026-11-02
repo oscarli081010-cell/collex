@@ -9,8 +9,8 @@
   transition: color var(--duration-fast) var(--ease-smooth-out);
 }
 .tabs button[aria-selected="true"] { color: var(--ink); font-weight: 500; }
-.tabPill { top: 4px; bottom: 4px; border-radius: 8px; background: var(--panel); box-shadow: 0 1px 3px rgba(21, 22, 26, 0.1); }
-.count { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 11.5px; font-weight: 600; display: inline-grid; place-items: center; }
+.tabPill { top: 4px; bottom: 4px; border-radius: 8px; background: var(--panel); box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.1); }
+.count { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 11.5px; font-weight: 600; display: inline-grid; place-items: center; }
 
 .stack { display: flex; flex-direction: column; gap: 16px; }
 .actions { display: inline-flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
@@ -30,9 +30,9 @@
 .rejectWrap > div { overflow: hidden; }
 .reject { display: flex; gap: 8px; padding-top: 4px; }
 .reject .control { flex: 1; }
-.danger { border-color: #b4232c !important; color: #b4232c !important; }
-.dangerSolid { background: #b4232c; border-color: #b4232c; }
-.dangerSolid:hover { background: #961c24; border-color: #961c24; }
+.danger { border-color: var(--danger) !important; color: var(--danger) !important; }
+.dangerSolid { background: var(--danger); border-color: var(--danger); color: var(--on-ink); }
+.dangerSolid:hover { background: var(--danger-hover); border-color: var(--danger-hover); }
 
 /* Tables */
 .tableWrap { border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto; background: var(--panel); }
@@ -42,7 +42,7 @@
 .table td strong { display: block; font-weight: 500; }
 .table td small { color: var(--muted); font-size: 12.5px; }
 .table tbody tr { transition: background-color var(--duration-quick); }
-.table tbody tr:hover { background: #fdfcf9; }
+.table tbody tr:hover { background: var(--row-hover); }
 .right { text-align: right !important; }
 
 /* Audit log */
@@ -52,9 +52,9 @@
 .log time { color: var(--muted); font-variant-numeric: tabular-nums; }
 .log small { grid-column: 2; }
 .action { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--surface); font-size: 12.5px; font-weight: 500; margin: 0 2px; }
-.action[data-action="approved"], .action[data-action="made admin"] { background: #e5f3ea; color: #23744a; }
-.action[data-action="rejected"], .action[data-action="deleted"], .action[data-action="removed admin"], .action[data-action="unpublished"] { background: #f8e3e4; color: #9b1c24; }
-.action[data-action="submitted"] { background: #fdf3e2; color: #9a5b00; }
+.action[data-action="approved"], .action[data-action="made admin"] { background: var(--ok-soft); color: var(--ok); }
+.action[data-action="rejected"], .action[data-action="deleted"], .action[data-action="removed admin"], .action[data-action="unpublished"] { background: var(--danger-soft); color: var(--danger); }
+.action[data-action="submitted"] { background: var(--warn-soft); color: var(--warn); }
 
 .empty {
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 64px 24px;

@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import AuthProvider from "@/components/AuthProvider";
 import ConferencesProvider from "@/components/ConferencesContext";
 import { getPublished } from "@/lib/data";
+import { themeBootScript } from "@/lib/theme";
 
 export const revalidate = 60;
 import "./globals.css";
@@ -19,8 +20,9 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const list = await getPublished();
   return (
-    <html lang="en-AU">
+    <html lang="en-AU" data-theme="light" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
