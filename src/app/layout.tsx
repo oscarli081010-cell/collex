@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Motion from "@/components/Motion";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
+import AuthProvider from "@/components/AuthProvider";
 import "./globals.css";
 import "./motion.css";
 
@@ -21,10 +22,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <Motion />
-        <TopBar />
-        {children}
-        <Footer />
+        <AuthProvider>
+          <Motion />
+          <TopBar />
+          {children}
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

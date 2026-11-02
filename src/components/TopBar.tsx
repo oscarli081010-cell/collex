@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { usePill } from "./usePill";
+import { useAuth } from "./AuthProvider";
 
 export const NAV = [
   { href: "/", label: "Home" },
@@ -14,6 +15,9 @@ export const NAV = [
 
 export default function TopBar() {
   const pathname = usePathname();
+  const { ready, session, profile } = useAuth();
+  const who = profile?.full_name || session?.user.email || "";
+  const initials = who.split(/[\s@]/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const navRef = useRef<HTMLElement>(null);
@@ -45,6 +49,13 @@ export default function TopBar() {
             </Link>
           ))}
         </nav>
+        <span className="topbarAuth" data-ready={ready}>
+          {session ? (
+            <Link href="/account" className="avatarLink" aria-label="Your account" title={who}>{initials}</Link>
+          ) : (
+            <Link href="/login" className="loginLink">Log in</Link>
+          )}
+        </span>
         <Link href="/list" className="button topbarCta">List a conference</Link>
         <button
           className="menu-toggle"
@@ -62,7 +73,7 @@ export default function TopBar() {
         aria-label="Main"
         inert={!open || closing}
       >
-        {[...NAV, { href: "/list", label: "List a conference" }].map((n) => (
+        {[...NAV, { href: "/list", label: "List a conference" }, session ? { href: "/account", label: "Your account" } : { href: "/login", label: "Log in" }].map((n) => (
           <Link key={n.href} href={n.href} aria-current={pathname === n.href ? "page" : undefined}>{n.label}</Link>
         ))}
       </nav>
