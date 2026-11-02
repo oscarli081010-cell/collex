@@ -8,7 +8,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-// Smooth scroll, staggered section entrances and the scaling wordmark.
+// Smooth scroll and staggered entrances for [data-reveal] groups.
 export default function Motion() {
   const pathname = usePathname();
 
@@ -28,37 +28,10 @@ export default function Motion() {
         gsap.to(group.children, {
           opacity: 1,
           y: 0,
-          duration: 0.9,
+          duration: 0.7,
           ease: "power3.out",
-          stagger: 0.075,
+          stagger: 0.06,
           scrollTrigger: { trigger: group, start: "top 85%", once: true },
-        });
-      });
-
-      gsap.utils.toArray<HTMLElement>("[data-scale-out]").forEach((el) => {
-        gsap.fromTo(el, { scale: 1 }, {
-          scale: 0.93,
-          transformOrigin: "50% 100%",
-          ease: "none",
-          scrollTrigger: { trigger: el.closest("section") ?? el, start: "top top", end: "bottom top", scrub: true },
-        });
-      });
-
-      gsap.utils.toArray<HTMLElement>("[data-scale-in]").forEach((el) => {
-        gsap.fromTo(el, { scale: 0.94 }, {
-          scale: 1,
-          transformOrigin: "50% 0%",
-          ease: "none",
-          scrollTrigger: { trigger: el, start: "top bottom", end: "top 40%", scrub: true },
-        });
-      });
-
-      gsap.utils.toArray<HTMLElement>("[data-drift]").forEach((el) => {
-        gsap.fromTo(el, { scale: 1.12, yPercent: -4 }, {
-          scale: 1.02,
-          yPercent: 4,
-          ease: "none",
-          scrollTrigger: { trigger: el.parentElement ?? el, start: "top bottom", end: "bottom top", scrub: true },
         });
       });
     });

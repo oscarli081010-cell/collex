@@ -34,26 +34,26 @@ export default function ListForm() {
 
   return (
     <div className={s.formGrid}>
-      <form className={s.form} onSubmit={submit} data-reveal>
+      <form className={`panel ${s.form}`} onSubmit={submit}>
         {FIELDS.map((f) => {
           const id = `f-${f.name.replace(/\W+/g, "-").toLowerCase()}`;
           const hintId = "hint" in f ? `${id}-hint` : undefined;
           return (
-            <div key={f.name} className={`${s.field} ${"wide" in f && f.wide ? s.wide : ""}`}>
+            <div key={f.name} className={`field ${"wide" in f && f.wide ? s.wide : ""}`}>
               <label htmlFor={id}>{f.name}{"required" in f && f.required ? "" : " (optional)"}</label>
               {f.type === "select" ? (
-                <select id={id} name={f.name} className={s.input} defaultValue="">
+                <select id={id} name={f.name} className="control" defaultValue="">
                   <option value="">Not sure yet</option>
                   {f.options.map((o) => <option key={o}>{o}</option>)}
                 </select>
               ) : f.type === "textarea" ? (
-                <textarea id={id} name={f.name} className={s.input} aria-describedby={hintId} />
+                <textarea id={id} name={f.name} className="control" aria-describedby={hintId} />
               ) : (
                 <input
                   id={id}
                   name={f.name}
                   type={f.type}
-                  className={s.input}
+                  className="control"
                   required={"required" in f && f.required}
                   aria-describedby={hintId}
                 />
@@ -62,9 +62,9 @@ export default function ListForm() {
             </div>
           );
         })}
-        <div className={`${s.field} ${s.wide}`}>
+        <div className={`field ${s.wide}`}>
           <button type="submit" className="button" style={{ alignSelf: "flex-start" }}>
-            Send the listing <span className="arrow" aria-hidden="true">→</span>
+            Send the listing
           </button>
           {sent && (
             <p role="status" style={{ marginTop: 12 }}>
@@ -74,7 +74,7 @@ export default function ListForm() {
         </div>
       </form>
 
-      <aside className={s.formAside} data-reveal>
+      <aside className={`panel ${s.formAside}`}>
         <h2 className={s.h2}>What happens next</h2>
         <ol>
           <li>Your email app opens with the listing written out. Send it.</li>
