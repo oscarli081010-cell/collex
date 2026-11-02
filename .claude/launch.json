@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "collex",
+      "runtimeExecutable": "/Users/oscar/.local/node/bin/node",
+      "runtimeArgs": ["node_modules/next/dist/bin/next", "start", "-p", "3100"],
+      "port": 3100
+    }
+  ]
+}
