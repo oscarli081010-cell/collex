@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import SeasonCalendar from "@/components/SeasonCalendar";
 
-export const metadata: Metadata = { title: "Calendar · Collex" };
+export const metadata: Metadata = { title: "Calendar · Collex", description: "Model United Nations conferences in Sydney, month by month." };
 
 export default function CalendarPage() {
   return (

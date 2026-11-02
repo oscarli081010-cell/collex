@@ -3,7 +3,7 @@ import Link from "next/link";
 import LegalPage from "@/components/LegalPage";
 import { CONTACT } from "@/components/Footer";
 
-export const metadata: Metadata = { title: "Terms of use · Collex" };
+export const metadata: Metadata = { title: "Terms of use · Collex", description: "The rules for using Collex and listing a conference on it." };
 
 const mail = <a href={`mailto:${CONTACT}`}>{CONTACT}</a>;
 

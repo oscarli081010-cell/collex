@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatDate, formatRange, NA, template } from "@/lib/conferences";
+import { formatDate, formatRange, NA, template, type Conference } from "@/lib/conferences";
 import { getBySlug, getPublished } from "@/lib/data";
 import ApplyBand from "@/components/ApplyBand";
 import ConferenceActions from "@/components/ConferenceActions";
@@ -18,7 +18,39 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const c = await getBySlug((await params).slug);
-  return { title: c ? `${c.isTemplate ? "Demo" : c.name} · Collex` : "Collex" };
+  if (!c) return { title: "Collex" };
+  if (c.isTemplate) return { title: "Demo · Collex", robots: { index: false } };
+  return { title: `${c.name} · Collex`, description: describe(c), alternates: { canonical: `/conferences/${c.slug}` } };
+}
+
+// One or two plain sentences for search results: the overview if there is one, otherwise the facts.
+function describe(c: Conference) {
+  const when = c.startDate ? `, ${formatRange(c)}` : "";
+  const facts = `${c.name}, a Model UN conference hosted by ${c.host}${when}.`;
+  if (c.overview === NA) return facts;
+  return c.overview.length > 160 ? `${c.overview.slice(0, 157).trimEnd()}…` : c.overview;
+}
+
+// schema.org Event data, so search engines can show the conference as an event. Only facts from the listing.
+function eventSchema(c: Conference) {
+  const place = c.venue === NA ? c.host : c.venue;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: c.name,
+    startDate: c.startDate,
+    ...(c.endDate && { endDate: c.endDate }),
+    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    location: {
+      "@type": "Place",
+      name: place,
+      address: { "@type": "PostalAddress", addressLocality: "Sydney", addressRegion: "NSW", addressCountry: "AU" },
+    },
+    organizer: { "@type": "Organization", name: c.host },
+    ...(c.overview !== NA && { description: c.overview }),
+    url: `https://collex.au/conferences/${c.slug}`,
+  };
 }
 
 const TABS = [
@@ -47,6 +79,9 @@ export default async function ConferencePage({ params }: Props) {
 
   return (
       <main id="top" className="container">
+        {!c.isTemplate && c.startDate && (
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventSchema(c)).replace(/</g, "\\u003c") }} />
+        )}
         <div className={s.cover}>
           <span>{c.isTemplate ? "Cover image N/A" : c.shortName}</span>
         </div>

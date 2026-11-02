@@ -4,9 +4,26 @@ import MiniCalendar from "@/components/MiniCalendar";
 import NextCard from "@/components/NextCard";
 import styles from "./home.module.css";
 
+// schema.org data naming the site and who runs it, for search results.
+const SITE = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Collex",
+  url: "https://collex.au",
+  description: "A calendar of Model United Nations conferences in Sydney, each with its own page.",
+  publisher: {
+    "@type": "Organization",
+    name: "Collex",
+    url: "https://collex.au",
+    email: "hello@collex.au",
+    address: { "@type": "PostalAddress", addressLocality: "Sydney", addressRegion: "NSW", addressCountry: "AU" },
+  },
+};
+
 export default function Home() {
   return (
     <main id="top">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE) }} />
       <section className={`container ${styles.hero}`}>
         <div className={styles.heroText} data-reveal>
           <h1 className={`serif ${styles.title}`}>
