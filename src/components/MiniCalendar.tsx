@@ -29,7 +29,6 @@ export default function MiniCalendar() {
   return (
     <div className={`panel ${s.cal}`}>
       <h2 className={s.calTitle}>Check a date</h2>
-      <p className={s.calHint}>Pick a day to see if another conference is on that weekend.</p>
       <div className={s.calHead}>
         <MonthPicker size="sm" value={view} onChange={(v, d) => { setDir(d); setView(v); }} />
       </div>

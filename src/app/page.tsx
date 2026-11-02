@@ -1,17 +1,8 @@
 import Link from "next/link";
 import UpcomingBoard from "@/components/UpcomingBoard";
 import MiniCalendar from "@/components/MiniCalendar";
-import { conferences, NA, SEASON_YEAR, formatRange } from "@/lib/conferences";
+import { conferences, NA, formatRange } from "@/lib/conferences";
 import styles from "./home.module.css";
-
-const PAGE_PARTS = [
-  ["Overview", "Dates, venue, host school and fees"],
-  ["Committees", "Each committee, its topic and its chairs"],
-  ["Background guides", "Released and downloadable in one place"],
-  ["Secretariat", "Who runs it, by name and role"],
-  ["Key dates", "Registration, allocations and paper deadlines"],
-  ["Applications", "Delegations and chairs apply on the page"],
-];
 
 export default function Home() {
   const next = [...conferences]
@@ -20,28 +11,32 @@ export default function Home() {
 
   return (
     <main id="top">
-      <section className={`container ${styles.intro}`} data-reveal>
-        <div className={styles.introText}>
+      <section className={`container ${styles.hero}`}>
+        <div className={styles.heroText} data-reveal>
           <h1 className={`serif ${styles.title}`}>
-            Every Model UN conference in Sydney, <em>in one place.</em>
+            Sydney Model UN, <em>in one place.</em>
           </h1>
-          <p className={styles.lead}>
-            The circuit&rsquo;s shared calendar. Find a conference, check a date, and get every detail from
-            one standard page.
-          </p>
+          <p className={styles.lead}>Every conference on the circuit, with one page each to apply.</p>
+          <div className={styles.heroActions}>
+            <a href="#upcoming" className="button lg">See what&rsquo;s on</a>
+            <Link href="/list" className="button secondary lg">List a conference</Link>
+          </div>
         </div>
-        <dl className={styles.stats}>
-          <div><dt>Listed for {SEASON_YEAR}</dt><dd className="serif num">{conferences.length}</dd></div>
-          <div><dt>Next conference</dt><dd className="serif">{next ? next.shortName : NA}</dd></div>
-          <div><dt>Next date</dt><dd className="serif">{next ? formatRange(next) : NA}</dd></div>
-        </dl>
+        <div className={styles.heroPic}>
+          <span className={styles.heroImg} role="img" aria-label="The UN General Assembly hall" />
+          <Link href={next ? `/conferences/${next.slug}` : "/calendar"} className={styles.nextCard}>
+            <span className={styles.nextLabel}>Next conference</span>
+            <span className={`serif ${styles.nextName}`}>{next ? next.name : NA}</span>
+            <span className="muted">{next ? formatRange(next) : "Dates to be announced"}</span>
+          </Link>
+        </div>
       </section>
 
-      <section className={`container ${styles.board}`} aria-labelledby="upcoming-h">
-        <div className={styles.boardMain}>
+      <section id="upcoming" className={`container ${styles.board}`} aria-labelledby="upcoming-h">
+        <div>
           <div className={styles.boardHead}>
-            <h2 id="upcoming-h" className={`serif ${styles.h2}`}>Upcoming conferences</h2>
-            <Link href="/conferences" className="link">View all</Link>
+            <h2 id="upcoming-h" className={`serif ${styles.h2}`}>Upcoming</h2>
+            <Link href="/calendar" className="link">Open calendar →</Link>
           </div>
           <UpcomingBoard />
         </div>
@@ -49,45 +44,9 @@ export default function Home() {
           <MiniCalendar />
           <div className={`panel ${styles.sideCard}`}>
             <h2 className={`serif ${styles.sideTitle}`}>Running a conference?</h2>
-            <p className="muted">
-              List it once and it gets a page and a place on the calendar. Free, and it takes five minutes.
-            </p>
-            <Link href="/list" className="button">List a conference</Link>
+            <Link href="/list" className="button">List it free</Link>
           </div>
         </aside>
-      </section>
-
-      <section className={`container ${styles.standard}`} aria-labelledby="standard-h">
-        <div className={styles.standardHead} data-reveal>
-          <h2 id="standard-h" className={`serif ${styles.h2}`}>Every conference gets the same page</h2>
-          <p className="muted">So delegates always know where to look, whichever conference they&rsquo;re going to.</p>
-        </div>
-        <div className={styles.standardBody} data-reveal>
-          <ul className={styles.parts}>
-            {PAGE_PARTS.map(([t, d]) => (
-              <li key={t}>
-                <span className={styles.partTitle}>{t}</span>
-                <span className="muted">{d}</span>
-              </li>
-            ))}
-          </ul>
-          <Link href="/conferences/template" className={`panel ${styles.preview}`} aria-label="Open the standard conference page">
-            <span className={styles.previewCover} />
-            <span className={styles.previewBody}>
-              <span className="badge accent">Example listing</span>
-              <span className={`serif ${styles.previewTitle}`}>Conference name</span>
-              <span className="muted">Host school {NA} · Dates {NA}</span>
-              <span className={styles.previewTabs}>
-                <span data-on>Overview</span><span>Committees</span><span>Guides</span><span>Apply</span>
-              </span>
-              <span className={styles.previewFacts}>
-                {["Venue", "Level", "Fee", "Delegates"].map((k) => (
-                  <span key={k}><small>{k}</small>{NA}</span>
-                ))}
-              </span>
-            </span>
-          </Link>
-        </div>
       </section>
     </main>
   );

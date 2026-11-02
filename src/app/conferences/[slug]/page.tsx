@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { allPages, formatDate, formatRange, getConference, NA } from "@/lib/conferences";
+import ApplyBand from "@/components/ApplyBand";
 import ConferenceActions from "@/components/ConferenceActions";
 import ConferenceTabs from "@/components/ConferenceTabs";
 import s from "../../inner.module.css";
@@ -23,7 +24,6 @@ const TABS = [
   ["committees", "Committees"],
   ["guides", "Background guides"],
   ["secretariat", "Secretariat"],
-  ["apply", "Apply"],
 ] as const;
 
 const initials = (name: string) => (name === NA ? "" : name.split(" ").map((w) => w[0]).join("").slice(0, 2));
@@ -46,6 +46,8 @@ export default async function ConferencePage({ params }: Props) {
           </div>
           <ConferenceActions c={c} />
         </header>
+
+        <ApplyBand c={c} />
 
         <ConferenceTabs tabs={TABS} />
 
@@ -111,22 +113,6 @@ export default async function ConferencePage({ params }: Props) {
                     <span>{p.name}<small>{p.role}</small></span>
                   </div>
                 ))}
-              </div>
-            </section>
-
-            <section id="apply" className={s.block}>
-              <h2 className={s.h2}>Apply</h2>
-              <div className={s.apply}>
-                <div className={`panel ${s.applyCard}`}>
-                  <h3>Register a delegation</h3>
-                  <p className="muted">Schools register once and get their country allocations by email.</p>
-                  <button className="button" disabled>Opens soon</button>
-                </div>
-                <div className={`panel ${s.applyCard}`}>
-                  <h3>Apply to chair</h3>
-                  <p className="muted">One application, reviewed by the secretariat, with the outcome sent by email.</p>
-                  <button className="button" disabled>Opens soon</button>
-                </div>
               </div>
             </section>
           </div>

@@ -14,7 +14,7 @@ export default function Footer() {
         <nav className={styles.cols} aria-label="Footer">
           <ul>
             <li className={styles.head}>Circuit</li>
-            <li><Link href="/">Upcoming</Link></li>
+            <li><Link href="/">Home</Link></li>
             <li><Link href="/calendar">Calendar</Link></li>
             <li><Link href="/conferences">Conferences</Link></li>
           </ul>
@@ -33,7 +33,7 @@ export default function Footer() {
       </div>
       <div className={`container ${styles.legal}`}>
         <span>© {new Date().getFullYear()} Collex</span>
-        <span>Independent of any one conference.</span>
+        <span>Photo: UN General Assembly hall, Basil D Soufi, <a href="https://creativecommons.org/licenses/by-sa/3.0" className="link">CC BY-SA 3.0</a></span>
       </div>
     </footer>
   );

@@ -91,18 +91,13 @@ export default function UpcomingBoard() {
           <div className="t-stagger">
             <div className={s.empty} style={{ "--i": 0 } as React.CSSProperties}>
               <p className={s.emptyTitle}>{conferences.length === 0 ? "No conferences listed yet" : "No conferences match"}</p>
-              <p className="muted">
-                {conferences.length === 0
-                  ? "The 2027 season starts here. Each conference will appear as a row like the example below."
-                  : "Try a different search, or clear the filters."}
-              </p>
               {conferences.length === 0
                 ? <Link href="/list" className="button secondary">List the first one</Link>
                 : <button className="button secondary" onClick={reset}>Clear filters</button>}
             </div>
             {conferences.length === 0 && (
               <section className={s.group} style={{ "--i": 1 } as React.CSSProperties}>
-                <h3 className={s.groupHead}>Example of a listing</h3>
+                <h3 className={s.groupHead}>Example</h3>
                 <ConferenceRow c={template} />
               </section>
             )}

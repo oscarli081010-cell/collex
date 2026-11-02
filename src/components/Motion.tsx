@@ -17,7 +17,7 @@ export default function Motion() {
     const root = document.documentElement;
     root.classList.add("motion");
 
-    const lenis = new Lenis({ lerp: 0.1 });
+    const lenis = new Lenis({ lerp: 0.1, anchors: { offset: -80 } });
     lenis.on("scroll", ScrollTrigger.update);
     (window as unknown as { __lenis?: Lenis }).__lenis = lenis; // used by in-page tabs
     const tick = (t: number) => lenis.raf(t * 1000);

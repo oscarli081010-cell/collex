@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useToast } from "./useToast";
 import type { Conference } from "@/lib/conferences";
 import s from "@/app/inner.module.css";
 
@@ -12,18 +12,7 @@ const icsDate = (iso: string, addDays = 0) => {
 
 // Header actions on a conference page: save the dates, share the page.
 export default function ConferenceActions({ c }: { c: Conference }) {
-  const [toast, setToast] = useState<{ text: string; hiding: boolean } | null>(null);
-  const timers = useRef<number[]>([]);
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
-
-  const say = (text: string) => {
-    timers.current.forEach(clearTimeout);
-    setToast({ text, hiding: false });
-    timers.current = [
-      window.setTimeout(() => setToast((t) => t && { ...t, hiding: true }), 2200),
-      window.setTimeout(() => setToast(null), 2550),
-    ];
-  };
+  const { say, node } = useToast();
 
   const addToCalendar = () => {
     if (!c.startDate) return;
@@ -56,12 +45,12 @@ export default function ConferenceActions({ c }: { c: Conference }) {
         Copy link
       </button>
       <span className={s.tip} data-tip={noDates ? "Available once dates are announced" : undefined}>
-        <button className="button" onClick={addToCalendar} disabled={noDates}>
+        <button className="button secondary" onClick={addToCalendar} disabled={noDates}>
           <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
           Add to calendar
         </button>
       </span>
-      {toast && <div role="status" className={`t-toast${toast.hiding ? " is-hiding" : ""}`}>{toast.text}</div>}
+      {node}
     </div>
   );
 }

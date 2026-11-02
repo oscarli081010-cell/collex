@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePill } from "./usePill";
 
 export const NAV = [
-  { href: "/", label: "Upcoming" },
+  { href: "/", label: "Home" },
   { href: "/calendar", label: "Calendar" },
   { href: "/conferences", label: "Conferences" },
   { href: "/conferences/template", label: "Standard page" },

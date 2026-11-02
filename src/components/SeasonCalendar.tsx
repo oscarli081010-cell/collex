@@ -58,7 +58,6 @@ export default function SeasonCalendar() {
         {listed.length === 0 ? (
           <div key={`${y}-${m}`} className={`t-reveal ${board.empty}`}>
             <p className={board.emptyTitle}>Nothing listed for {MONTHS[m]} {y}</p>
-            <p className="muted">Conferences listed for this month will appear here and on the grid above.</p>
             <Link href="/list" className="button secondary">List a conference</Link>
           </div>
         ) : (

@@ -31,6 +31,9 @@ export type Conference = {
   secretariat: { role: string; name: string }[];
   contact: string;
   website: string;
+  /** Application form links; null until applications open. */
+  delegationUrl?: string | null;
+  chairUrl?: string | null;
   isTemplate?: boolean;
 };
 
