@@ -1,5 +1,5 @@
 /* Calendar page */
-.calBar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.calBar { position: relative; z-index: 2; display: flex; justify-content: center; margin-bottom: 20px; }
 .calGrid { display: flex; flex-direction: column; gap: 8px; }
 .weekdays, .days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .weekdays span { padding: 0 12px; font-size: 12px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); }

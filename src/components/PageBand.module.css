@@ -1,5 +1,5 @@
 .band {
-  position: relative; overflow: hidden; isolation: isolate;
+  position: relative; isolation: isolate;
   margin: clamp(28px, 4vw, 48px) 0 clamp(36px, 4vw, 56px);
   padding: clamp(28px, 4vw, 48px);
   border: 1px solid var(--line); border-radius: 20px; background: var(--panel);
@@ -7,8 +7,8 @@
 }
 /* A soft wash of the accent in one corner so the panel isn't a flat white box. */
 .band::before {
-  content: ""; position: absolute; z-index: -1; inset: -40% -10% auto auto; width: 70%; aspect-ratio: 1;
-  background: radial-gradient(closest-side, var(--accent-soft), transparent); opacity: 0.9; pointer-events: none;
+  content: ""; position: absolute; z-index: -1; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(60% 90% at 85% 15%, var(--accent-soft), transparent 70%); opacity: 0.9;
 }
 
 .top { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px 48px; flex-wrap: wrap; }

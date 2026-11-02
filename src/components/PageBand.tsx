@@ -6,7 +6,7 @@ export type Figure = { label: string; value: string; note?: string };
 // The headline panel at the top of Calendar and Conferences: a big title, three live figures,
 // and whatever control the page needs underneath (season strip, search).
 export default function PageBand({ title, accent, figures, children }: {
-  title: string; accent?: string; figures: Figure[]; children?: React.ReactNode;
+  title: string; accent?: React.ReactNode; figures: Figure[]; children?: React.ReactNode;
 }) {
   return (
     <header className={`t-reveal ${s.band}`}>

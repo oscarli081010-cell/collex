@@ -27,29 +27,31 @@ export default function SeasonCalendar() {
   const listed = conferences.filter((c) => c.startDate?.startsWith(isoOf(y, m, 1).slice(0, 7)));
   const prevDays = new Date(y, m, 0).getDate();
 
-  // Conferences starting in each month of the season, for the strip and the figures.
-  const perMonth = MONTHS.map((_, i) => conferences.filter((c) => c.startDate?.startsWith(isoOf(SEASON_YEAR, i, 1).slice(0, 7))).length);
+  // Conferences starting in each month of the year on show, for the strip and the figures.
+  const perMonth = MONTHS.map((_, i) => conferences.filter((c) => c.startDate?.startsWith(isoOf(y, i, 1).slice(0, 7))).length);
   const total = perMonth.reduce((a, b) => a + b, 0);
   const peak = Math.max(...perMonth);
-  const go = (to: number) => { if (to !== m || y !== SEASON_YEAR) { setDir(y * 12 + m < SEASON_YEAR * 12 + to ? "next" : "prev"); setView({ y: SEASON_YEAR, m: to }); } };
+  const go = (to: number) => { if (to !== m) { setDir(to > m ? "next" : "prev"); setView({ y, m: to }); } };
 
   return (
     <>
       <PageBand
         title="Calendar"
-        accent={String(SEASON_YEAR)}
+        accent={<span key={y} className="t-swap">{y}</span>}
         figures={[
           { label: "Conferences", value: String(total) },
-          { label: "Busiest month", value: peak ? MONTHS[perMonth.indexOf(peak)].slice(0, 3) : "TBA" },
           nextUp(conferences),
         ]}
       >
-        <div className={s.strip} role="group" aria-label={`Jump to a month of ${SEASON_YEAR}`}>
+        <div className={s.calBar}>
+          <MonthPicker value={view} onChange={(v, d) => { setDir(d); setView(v); }} />
+        </div>
+        <div className={s.strip} role="group" aria-label={`Jump to a month of ${y}`}>
           {MONTHS.map((name, i) => (
             <button
               key={name}
               className={s.stripMonth}
-              aria-pressed={y === SEASON_YEAR && m === i}
+              aria-pressed={m === i}
               aria-label={`${name}: ${perMonth[i]} conference${perMonth[i] === 1 ? "" : "s"}`}
               onClick={() => go(i)}
             >
@@ -60,12 +62,6 @@ export default function SeasonCalendar() {
         </div>
       </PageBand>
 
-      <div className={s.calBar}>
-        <MonthPicker value={view} onChange={(v, d) => { setDir(d); setView(v); }} />
-        <span key={`${y}-${m}`} className="t-swap muted">
-          {listed.length === 0 ? "Nothing listed yet" : listed.length === 1 ? "1 conference" : `${listed.length} conferences`}
-        </span>
-      </div>
 
       <div className={s.calGrid}>
         <div className={s.weekdays} aria-hidden="true">
