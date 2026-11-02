@@ -1,16 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { MONTHS, onDay as runningOn, SEASON_YEAR } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import ConferenceRow from "./ConferenceRow";
-import { usePill } from "./usePill";
+import MonthPicker, { type YM } from "./MonthPicker";
 import PageBand, { nextUp } from "./PageBand";
 import board from "./board.module.css";
 import s from "@/app/inner.module.css";
 
-type YM = { y: number; m: number };
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const isoOf = (y: number, m: number, d: number) =>
   `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -35,23 +34,9 @@ export default function SeasonCalendar() {
   const listed = conferences.filter((c) => c.startDate?.startsWith(isoOf(y, m, 1).slice(0, 7)));
   const prevDays = new Date(y, m, 0).getDate();
 
-  // Conferences starting in each month of the year on show, for the strip and the figures.
+  // Conferences starting in each month of the year on show.
   const perMonth = MONTHS.map((_, i) => conferences.filter((c) => c.startDate?.startsWith(isoOf(y, i, 1).slice(0, 7))).length);
   const total = perMonth.reduce((a, b) => a + b, 0);
-  const go = (to: number) => { if (to !== m) { setDir(to > m ? "next" : "prev"); setView({ y, m: to }); } };
-  const stepYear = (n: number) => { setDir(n > 0 ? "next" : "prev"); setView({ y: y + n, m }); };
-  const track = useRef<HTMLDivElement>(null);
-  const pill = usePill(track, '[aria-selected="true"]', `${y}-${m}`);
-  // Left and right arrows walk the months, rolling into the next or previous year.
-  const onTrackKey = (e: React.KeyboardEvent) => {
-    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-    e.preventDefault();
-    const t = new Date(y, m + (e.key === "ArrowRight" ? 1 : -1), 1);
-    setDir(e.key === "ArrowRight" ? "next" : "prev");
-    setView({ y: t.getFullYear(), m: t.getMonth() });
-    requestAnimationFrame(() => track.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus());
-  };
-
   return (
     <>
       <PageBand
@@ -62,35 +47,8 @@ export default function SeasonCalendar() {
           nextUp(conferences),
         ]}
       >
-        <div className={s.monthBar}>
-          <div className={s.yearStep}>
-            <button onClick={() => stepYear(-1)} aria-label={`Show ${y - 1}`}>
-              <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5L5.5 8 10 12.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </button>
-            <span key={y} className="t-swap">{y}</span>
-            <button onClick={() => stepYear(1)} aria-label={`Show ${y + 1}`}>
-              <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </button>
-          </div>
-          <div ref={track} className={s.months} role="tablist" aria-label={`Months of ${y}`} onKeyDown={onTrackKey}>
-            <span ref={pill} className={`t-pill ${s.monthPill}`} aria-hidden="true" />
-            {MONTHS.map((name, i) => (
-              <button
-                key={name}
-                role="tab"
-                aria-selected={m === i}
-                tabIndex={m === i ? 0 : -1}
-                data-now={y === now.y && i === now.m ? "true" : undefined}
-                aria-label={`${name} ${y}, ${perMonth[i]} conference${perMonth[i] === 1 ? "" : "s"}`}
-                onClick={() => go(i)}
-              >
-                {name.slice(0, 3)}
-                <span className={s.dots} aria-hidden="true">
-                  {Array.from({ length: Math.min(perMonth[i], 3) }, (_, k) => <i key={k} />)}
-                </span>
-              </button>
-            ))}
-          </div>
+        <div className={s.calBar}>
+          <MonthPicker value={view} onChange={(v, d) => { setDir(d); setView(v); }} />
         </div>
       </PageBand>
 

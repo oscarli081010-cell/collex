@@ -28,36 +28,7 @@
 }
 .event:hover { background: var(--accent); color: var(--on-accent); }
 
-/* Month bar in the calendar header: year stepper + the twelve months on one sliding track.
-   Dots under a month = conferences starting then (up to three). */
-.monthBar { display: flex; align-items: center; gap: 10px; }
-.yearStep {
-  flex: none; display: flex; align-items: center; height: 52px; padding: 4px; border-radius: 14px; background: var(--surface);
-  font-family: var(--serif); font-size: 20px; font-variant-numeric: lining-nums tabular-nums;
-}
-.yearStep span { min-width: 52px; text-align: center; }
-.yearStep button, .months button { border: 0; background: transparent; cursor: pointer; color: var(--muted); }
-.yearStep button {
-  width: 36px; height: 44px; border-radius: 10px; display: grid; place-items: center;
-  transition: background-color var(--duration-quick), color var(--duration-quick);
-}
-.yearStep button:hover { background: var(--panel); color: var(--ink); }
-.months {
-  position: relative; flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(12, minmax(44px, 1fr));
-  height: 52px; padding: 4px; border-radius: 14px; background: var(--surface); overflow-x: auto; scrollbar-width: none;
-}
-.months::-webkit-scrollbar { display: none; }
-.months button {
-  position: relative; z-index: 1; border-radius: 10px; font-size: 14px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  transition: color var(--duration-fast) var(--ease-smooth-out);
-}
-.months button:hover { color: var(--ink); }
-.months button[aria-selected="true"] { color: var(--ink); font-weight: 500; }
-.months button[data-now="true"] { color: var(--accent); }
-.monthPill { top: 4px; bottom: 4px; border-radius: 10px; background: var(--panel); box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.12); }
-.dots { display: flex; gap: 3px; height: 4px; }
-.dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+.calBar { position: relative; z-index: 2; display: flex; justify-content: center; }
 
 .agenda { margin-top: 72px; max-width: 860px; }
 .h2 { font-family: var(--serif); font-weight: 400; font-size: 32px; line-height: 1.1; margin-bottom: 20px; }
@@ -173,8 +144,6 @@
   .day.today::after { display: none; }
   .weekdays, .days { gap: 3px; }
   .weekdays span { padding: 0 4px; font-size: 10.5px; }
-  .monthBar { flex-direction: column; align-items: stretch; }
-  .yearStep { align-self: center; }
   .event { font-size: 0; padding: 0; height: 6px; }
   .people, .applyBand, .listForm { grid-template-columns: 1fr; }
   .applyOption { flex-direction: column; align-items: stretch; padding: 24px; }
