@@ -87,7 +87,7 @@ export default function ListForm() {
       submitted_by: session.user.id,
     });
     setBusy(false);
-    if (error) return setErrors({ form: "Couldn't send it. Check your connection and try again." });
+    if (error) return setErrors({ form: error.message.startsWith("Too many listings") ? "You've sent 5 listings today. Try again tomorrow." : "Couldn't send it. Check your connection and try again." });
     setSent(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -145,13 +145,14 @@ export default function ListForm() {
                   {f.options!.map((o) => <option key={o}>{o}</option>)}
                 </select>
               ) : f.type === "textarea" ? (
-                <textarea id={id} name={f.name} className="control" aria-describedby={hintId} onChange={clear} />
+                <textarea id={id} name={f.name} className="control" maxLength={4000} aria-describedby={hintId} onChange={clear} />
               ) : (
                 <input
                   id={id}
                   name={f.name}
                   type={f.type}
                   className="control"
+                  maxLength={f.type === "url" ? 500 : f.type === "email" ? 254 : ["fee", "submitter_role"].includes(f.name) ? 120 : 200}
                   defaultValue={f.name === "contact" ? session.user.email : undefined}
                   aria-invalid={Boolean(err)}
                   aria-describedby={hintId}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { formatDate } from "@/lib/conferences";
+import { formatDate, webUrl } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
 import { usePill } from "./usePill";
@@ -228,8 +228,8 @@ function ReviewCard({ r, i, onApprove, onReject }: { r: Row; i: number; onApprov
       </div>
       <dl className={s.facts}>
         {facts.filter(([, v]) => v).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
-        {r.delegation_url && <div><dt>Registration</dt><dd><a className="link" href={r.delegation_url} target="_blank" rel="noreferrer">Open link</a></dd></div>}
-        {r.chair_url && <div><dt>Chair applications</dt><dd><a className="link" href={r.chair_url} target="_blank" rel="noreferrer">Open link</a></dd></div>}
+        {webUrl(r.delegation_url) && <div><dt>Registration</dt><dd><a className="link" href={webUrl(r.delegation_url)!} target="_blank" rel="noreferrer">Open link</a></dd></div>}
+        {webUrl(r.chair_url) && <div><dt>Chair applications</dt><dd><a className="link" href={webUrl(r.chair_url)!} target="_blank" rel="noreferrer">Open link</a></dd></div>}
       </dl>
       {r.overview && <p className={s.overview}>{r.overview}</p>}
       {r.committees?.length > 0 && <p className="muted">Committees: {r.committees.map((c) => c.name).join(", ")}</p>}

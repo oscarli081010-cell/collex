@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { NA, template, type Conference } from "./conferences";
+import { NA, template, webUrl, type Conference } from "./conferences";
 
 // Server-side reads of published listings. Pages revalidate every minute, so an approval shows up quickly.
 
@@ -27,11 +27,11 @@ export const fromRow = (r: Row): Conference => ({
   overview: or(r.overview),
   keyDates: r.key_dates?.length ? r.key_dates : template.keyDates,
   committees: r.committees ?? [],
-  guides: r.guides ?? [],
+  guides: (r.guides ?? []).map((g) => ({ ...g, url: webUrl(g.url) })),
   secretariat: r.secretariat?.length ? r.secretariat : template.secretariat,
   contact: or(r.contact),
-  delegationUrl: r.delegation_url,
-  chairUrl: r.chair_url,
+  delegationUrl: webUrl(r.delegation_url),
+  chairUrl: webUrl(r.chair_url),
 });
 
 export async function getPublished(): Promise<Conference[]> {

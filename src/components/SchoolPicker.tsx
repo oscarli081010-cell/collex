@@ -71,6 +71,7 @@ export default function SchoolPicker({ name = "school", defaultValue = "" }: { n
     <div className={s.wrap}>
       <input
         name={name}
+        maxLength={200}
         className={`control ${s.input}`}
         value={value}
         placeholder="Start typing your school"

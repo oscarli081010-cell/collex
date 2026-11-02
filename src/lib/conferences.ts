@@ -35,6 +35,9 @@ export type Conference = {
 
 export const NA = "N/A";
 
+/** A link that is safe to put in href: only http(s) web links pass, so a stored javascript: link can never run. */
+export const webUrl = (u: string | null | undefined) => (u && /^https?:\/\//i.test(u.trim()) ? u.trim() : null);
+
 /** The standard page every listing gets. Shown so the structure can be seen before anything is listed. */
 export const template: Conference = {
   slug: "template",

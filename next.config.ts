@@ -1,5 +1,40 @@
 import type { NextConfig } from "next";
 
-const config: NextConfig = {};
+const supabase = "https://npdaczdwmhbtgitmplxc.supabase.co";
+
+// Content Security Policy: the browser may only load code, styles, fonts and images from collex.au,
+// and only talk to collex.au and our Supabase project. Inline scripts are allowed because Next.js and
+// the theme script use them; everything React renders is escaped, and no outside script can load.
+const csp = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self'",
+  `connect-src 'self' ${supabase} ${supabase.replace("https", "wss")}`,
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "upgrade-insecure-requests",
+].join("; ");
+
+const securityHeaders = [
+  { key: "Content-Security-Policy", value: csp },
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()" },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+];
+
+const config: NextConfig = {
+  poweredByHeader: false,
+  productionBrowserSourceMaps: false,
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaders }];
+  },
+};
 
 export default config;

@@ -202,7 +202,7 @@ export function SignupForm() {
     <form key="form" className={`t-reveal ${s.form}`} onSubmit={submit} noValidate>
       <h1 className={s.title}>Create your account</h1>
       <NotReady />
-      <Field label="Full name" error={errors.name}><input name="name" className="control" autoComplete="name" onChange={clear("name")} /></Field>
+      <Field label="Full name" error={errors.name}><input name="name" className="control" maxLength={120} autoComplete="name" onChange={clear("name")} /></Field>
       <Field label="School or University" hint="Optional"><SchoolPicker /></Field>
       <Field label="Email" error={errors.email}><input name="email" type="email" className="control" autoComplete="email" onChange={clear("email")} /></Field>
       <Field label="Password" error={errors.password} hint="At least 8 characters"><Password name="password" autoComplete="new-password" onChange={clear("password")} /></Field>
@@ -372,7 +372,7 @@ export function AccountView() {
 
       <form className={`panel ${s.card}`} onSubmit={saveProfile} style={{ "--i": 1 } as React.CSSProperties}>
         <h2 className={s.cardTitle}>Profile</h2>
-        <label className="field"><span>Full name</span><input name="name" className="control" defaultValue={profile?.full_name ?? ""} key={profile?.full_name} /></label>
+        <label className="field"><span>Full name</span><input name="name" className="control" maxLength={120} defaultValue={profile?.full_name ?? ""} key={profile?.full_name} /></label>
         <div className="field"><span>School or University</span><SchoolPicker defaultValue={profile?.school ?? ""} /></div>
         <button className="button" disabled={busy === "profile"}>
           <span key={String(busy === "profile")} className="t-swap">{busy === "profile" ? "Saving…" : "Save profile"}</span>
