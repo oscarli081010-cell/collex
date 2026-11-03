@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RowsSkeleton } from "./Skeleton";
+import SearchBox from "./SearchBox";
+import { Placard } from "./Drawings";
 import Verified from "./Verified";
 import IconButton, { ConfirmIconButton, ICONS } from "./IconButton";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -37,6 +39,9 @@ export default function Admin() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [users, setUsers] = useState<User[] | null>(null);
   const [log, setLog] = useState<Log[] | null>(null);
+  // One search per tab, so switching tabs keeps what you typed in each.
+  const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Users: "", "Audit log": "" });
+  const [statusFilter, setStatusFilter] = useState("any");
   const { say, node } = useToast();
   const tabsRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -105,7 +110,17 @@ export default function Admin() {
 
   const pending = rows?.filter((r) => r.status === "pending") ?? [];
   const others = rows?.filter((r) => r.status !== "pending") ?? [];
+  // Tab counts are always the totals; the search only narrows what the open tab shows.
   const counts: Record<Tab, number | null> = { Review: pending.length, Conferences: others.length, Users: users?.length ?? null, "Audit log": null };
+  const q = find[tab].trim().toLowerCase();
+  const has = (...parts: (string | null | undefined)[]) => !q || parts.join(" ").toLowerCase().includes(q);
+  const shownConfs = others.filter((r) => has(r.name, r.host, r.venue, STATUS[r.status]) && (statusFilter === "any" || r.status === statusFilter));
+  const shownUsers = (users ?? []).filter((u) => has(u.full_name, u.email, u.school));
+  const shownLog = (log ?? []).filter((e) => has(e.actor_email, e.action, e.target_label));
+  const searching = Boolean(q) || (tab === "Conferences" && statusFilter !== "any");
+  const clearSearch = () => { setFind((f) => ({ ...f, [tab]: "" })); if (tab === "Conferences") setStatusFilter("any"); };
+  const noMatches = <Empty title="No matches" body="Try a different word, or clear the search."><button className="button secondary" onClick={clearSearch}>Clear search</button></Empty>;
+  const searchFor: Partial<Record<Tab, string>> = { Conferences: "Search by name, host, venue or status", Users: "Search by name, email or school", "Audit log": "Search by who, action or what" };
 
   return (
     <div className={s.wrap}>
@@ -123,6 +138,20 @@ export default function Admin() {
 
       {rows === null ? <RowsSkeleton rows={4} height={72} /> : (
         <div key={tab} className="t-reveal">
+          {searchFor[tab] && (tab !== "Conferences" || others.length > 0) && (tab !== "Audit log" || log!.length > 0) && (
+            <div className={s.searchBar} role="search">
+              <SearchBox label={`Search ${tab.toLowerCase()}`} placeholder={searchFor[tab]!} value={find[tab]} onChange={(v) => setFind((f) => ({ ...f, [tab]: v }))} />
+              {tab === "Conferences" && (
+                <select className="control" aria-label="Status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                  <option value="any">Any status</option>
+                  {["published", "rejected", "unpublished"].map((k) => <option key={k} value={k}>{STATUS[k]}</option>)}
+                </select>
+              )}
+              <span key={`${tab}${q}${statusFilter}`} className={`t-swap muted ${s.searchCount}`} aria-live="polite">
+                {searching ? `${tab === "Conferences" ? shownConfs.length : tab === "Users" ? shownUsers.length : shownLog.length} shown` : ""}
+              </span>
+            </div>
+          )}
           {tab === "Review" && (pending.length === 0 ? (
             <Empty title="Nothing to review" body="New listings land here for approval." />
           ) : (
@@ -133,12 +162,12 @@ export default function Admin() {
 
           {tab === "Conferences" && (others.length === 0 ? (
             <Empty title="No conferences yet" body="Approved, rejected and taken-down listings show here." />
-          ) : (
+          ) : shownConfs.length === 0 ? noMatches : (
             <div className={s.tableWrap}>
               <table className={s.table}>
                 <thead><tr><th>Conference</th><th>Status</th><th>Dates</th><th className={s.right}>Actions</th></tr></thead>
                 <tbody>
-                  {others.map((r) => (
+                  {shownConfs.map((r) => (
                     <tr key={r.id}>
                       <td><strong>{r.name}{r.verified && <> <Verified /></>}</strong><small>{r.host}</small></td>
                       <td><span className={auth.status} data-status={r.status}>{STATUS[r.status]}</span></td>
@@ -160,12 +189,12 @@ export default function Admin() {
             </div>
           ))}
 
-          {tab === "Users" && (
+          {tab === "Users" && (shownUsers.length === 0 ? noMatches : (
             <div className={s.tableWrap}>
               <table className={s.table}>
                 <thead><tr><th>Name</th><th>School</th><th>Joined</th><th className={s.right}>Actions</th></tr></thead>
                 <tbody>
-                  {users!.map((u) => (
+                  {shownUsers.map((u) => (
                     <tr key={u.id}>
                       <td><strong>{u.full_name || "No name"}</strong><small>{u.email}</small></td>
                       <td>{u.school || <span className="muted">Not set</span>}</td>
@@ -186,13 +215,13 @@ export default function Admin() {
                 </tbody>
               </table>
             </div>
-          )}
+          ))}
 
           {tab === "Audit log" && (log!.length === 0 ? (
             <Empty title="No activity yet" body="Every submission, approval and access change is recorded here." />
-          ) : (
+          ) : shownLog.length === 0 ? noMatches : (
             <ol className={s.log}>
-              {log!.map((e) => (
+              {shownLog.map((e) => (
                 <li key={e.id}>
                   <time>{when(e.at)}</time>
                   <span><strong>{e.actor_email}</strong> <span className={s.action} data-action={e.action}>{e.action}</span> {e.target_label}</span>
@@ -208,11 +237,13 @@ export default function Admin() {
   );
 }
 
-function Empty({ title, body }: { title: string; body: string }) {
+function Empty({ title, body, children }: { title: string; body: string; children?: React.ReactNode }) {
   return (
     <div className={s.empty}>
+      <Placard />
       <p>{title}</p>
       <span>{body}</span>
+      {children}
     </div>
   );
 }

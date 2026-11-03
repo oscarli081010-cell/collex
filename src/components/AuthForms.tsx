@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { applyTheme, THEMES, type Theme } from "@/lib/theme";
 import { useAuth } from "./AuthProvider";
 import CodeInput from "./CodeInput";
 import PageBand, { type BandProps } from "./PageBand";
 import SchoolPicker from "./SchoolPicker";
-import { FormSkeleton, RowsSkeleton } from "./Skeleton";
+import { FormSkeleton } from "./Skeleton";
+import AccountSections from "./AccountSections";
 import { usePill } from "./usePill";
 import { useToast } from "./useToast";
 import s from "@/app/auth.module.css";
@@ -137,49 +138,6 @@ function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"
       {node}
     </div>
     </Banded>
-  );
-}
-
-const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Not approved", unpublished: "Taken down" };
-
-// The account's own submissions and where each one stands.
-function MyListings({ userId }: { userId: string }) {
-  const [rows, setRows] = useState<{ id: string; name: string; slug: string; status: string; review_note: string }[] | null>(null);
-  const [interest, setInterest] = useState<Record<string, number>>({});
-  useEffect(() => {
-    supabase?.from("conferences").select("id, name, slug, status, review_note").eq("submitted_by", userId)
-      .order("created_at", { ascending: false }).then(({ data }) => setRows(data ?? []));
-    // How many people have expressed interest in each listing. The names stay private.
-    supabase?.rpc("interest_counts").then(({ data }) =>
-      setInterest(Object.fromEntries(((data ?? []) as { conference_id: string; interested: number }[]).map((r) => [r.conference_id, Number(r.interested)]))));
-  }, [userId]);
-
-  return (
-    <section className={`panel ${s.card}`} style={{ "--i": 3 } as React.CSSProperties}>
-      <div className={s.cardHead}>
-        <h2 className={s.cardTitle}>Your listings</h2>
-        <Link href="/list" className="button secondary">List a conference</Link>
-      </div>
-      {rows === null ? <RowsSkeleton rows={2} height={44} /> : rows.length === 0 ? (
-        <p className="muted">Nothing listed yet.</p>
-      ) : (
-        <ul className={s.listings}>
-          {rows.map((r) => (
-            <li key={r.id}>
-              <div className={s.listingMain}>
-                {r.status === "published" ? <Link href={`/conferences/${r.slug}`} className={s.listingName}>{r.name}</Link> : <span className={s.listingName}>{r.name}</span>}
-                <span className={s.listingMeta}>
-                  <span className={s.status} data-status={r.status}>{STATUS[r.status]}</span>
-                  {r.status === "published" && r.id in interest && <span>{interest[r.id]} interested</span>}
-                  {r.status === "rejected" && r.review_note && <span>{r.review_note}</span>}
-                </span>
-              </div>
-              {(r.status === "published" || r.status === "pending") && <Link href={`/list?edit=${r.id}`} className="button secondary" aria-label={`Edit ${r.name}`}>Edit</Link>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
   );
 }
 
@@ -324,11 +282,10 @@ export function AccountView() {
   const uid = session?.user.id;
   useEffect(() => {
     if (!uid || !supabase) return;
-    Promise.all([
-      supabase.from("conferences").select("id", { count: "exact", head: true }).eq("submitted_by", uid),
-      supabase.from("follows").select("conference_id", { count: "exact", head: true }),
-    ]).then(([l, f]) => setCounts({ listings: l.count ?? 0, following: f.count ?? 0 }));
+    supabase.from("follows").select("conference_id", { count: "exact", head: true })
+      .then(({ count }) => setCounts((c) => ({ ...c, following: count ?? 0 })));
   }, [uid]);
+  const onListings = useCallback((n: number) => setCounts((c) => ({ ...c, listings: n })), []);
 
   if (!ready) return <FormSkeleton fields={3} width={640} />;
   if (!session || !supabase) {
@@ -420,7 +377,7 @@ export function AccountView() {
           <span key={String(busy === "password")} className="t-swap">{busy === "password" ? "Updating…" : "Update password"}</span>
         </button>
       </form>
-      <MyListings userId={session.user.id} />
+      <AccountSections userId={session.user.id} onListings={onListings} />
       {node}
     </div>
     </Banded>

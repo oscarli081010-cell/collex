@@ -15,17 +15,30 @@ export const ICONS = {
   verify: icon(<><path d="M8 1.8l1.6 1.2 2-.1.6 1.9 1.6 1.2-.6 1.9.6 1.9-1.6 1.2-.6 1.9-2-.1L8 14.2l-1.6-1.2-2 .1-.6-1.9-1.6-1.2.6-1.9-.6-1.9 1.6-1.2.6-1.9 2 .1z" /><path d="M5.8 8.1l1.5 1.5 2.9-3" /></>),
   makeAdmin: icon(<><path d="M8 1.8l5 2v4c0 3.2-2.2 5.4-5 6.4-2.8-1-5-3.2-5-6.4v-4z" /><path d="M8 5.8v4M6 7.8h4" /></>),
   removeAdmin: icon(<><path d="M8 1.8l5 2v4c0 3.2-2.2 5.4-5 6.4-2.8-1-5-3.2-5-6.4v-4z" /><path d="M6 7.8h4" /></>),
+  share: icon(<><path d="M8 10V2.5M5 5.5l3-3 3 3" /><path d="M5.5 7.5H4.5a1 1 0 00-1 1v4.5a1 1 0 001 1h7a1 1 0 001-1V8.5a1 1 0 00-1-1h-1" /></>),
+  calendar: icon(<><rect x="2.5" y="3.5" width="11" height="10" rx="2" /><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" /></>),
+  edit: icon(<path d="M10.5 2.5l3 3-7.5 7.5H3v-3zM9 4l3 3" />),
+  up: icon(<path d="M8 12.5v-9M4.5 7L8 3.5 11.5 7" />),
+  down: icon(<path d="M8 3.5v9M4.5 9L8 12.5 11.5 9" />),
+  close: icon(<path d="M4 4l8 8M12 4l-8 8" />),
+  leave: icon(<><path d="M6.5 2.5h-3a1 1 0 00-1 1v9a1 1 0 001 1h3" /><path d="M10 5l3 3-3 3M13 8H6" /></>),
 };
 
-type Props = { label: string; icon: React.ReactNode; onClick?: () => void; href?: string; pressed?: boolean; danger?: boolean; disabled?: boolean };
+type Props = {
+  id?: string; label: string; icon: React.ReactNode; onClick?: () => void; href?: string; pressed?: boolean; danger?: boolean; disabled?: boolean;
+  /** The tooltip, when it should say more than the label (or less). */
+  tip?: string;
+  /** For a file link, such as a calendar download: a plain link with the download attribute. */
+  download?: boolean;
+};
 
-export default function IconButton({ label, icon, onClick, href, pressed, danger, disabled }: Props) {
+export default function IconButton({ id, label, icon, onClick, href, pressed, danger, disabled, tip, download }: Props) {
   const cls = `button secondary iconbtn ${danger ? "iconbtn-danger" : ""}`;
   return (
-    <span className="tip" data-tip={label}>
-      {href
-        ? <Link href={href} className={cls} aria-label={label}>{icon}</Link>
-        : <button className={cls} onClick={onClick} aria-label={label} aria-pressed={pressed} disabled={disabled}>{icon}</button>}
+    <span className="tip" data-tip={tip ?? label}>
+      {href && download ? <a href={href} download className={cls} aria-label={label} onClick={onClick}>{icon}</a>
+        : href ? <Link href={href} className={cls} aria-label={label}>{icon}</Link>
+        : <button id={id} type="button" className={cls} onClick={onClick} aria-label={label} aria-pressed={pressed} disabled={disabled}>{icon}</button>}
     </span>
   );
 }
@@ -41,7 +54,7 @@ export function ConfirmIconButton({ label, confirm, icon, onConfirm }: { label: 
   }, [armed]);
   return (
     <span className="tip" data-tip={armed ? confirm : label} data-tip-open={armed || undefined}>
-      <button className={`button secondary iconbtn iconbtn-danger ${armed ? "is-armed" : ""}`} onClick={() => (armed ? onConfirm() : setArmed(true))} aria-label={armed ? confirm : label}>
+      <button type="button" className={`button secondary iconbtn iconbtn-danger ${armed ? "is-armed" : ""}`} onClick={() => (armed ? onConfirm() : setArmed(true))} aria-label={armed ? confirm : label}>
         {icon}
       </button>
     </span>

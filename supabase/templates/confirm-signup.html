@@ -1,49 +1,24 @@
 <!-- Supabase → Authentication → Emails → Confirm signup
-     Subject: Your Collex confirmation code: {{ .Token }} -->
+     Subject: Your Collex code: {{ .Token }}
+     Same card, type and colours as the follow emails the notify function sends. -->
 <!doctype html>
 <html lang="en-AU">
+  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head>
   <body style="margin:0;padding:0;background:#fbfaf7;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fbfaf7;padding:48px 16px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border:1px solid #e6e2d9;border-radius:16px;">
-            <tr>
-              <td style="padding:36px 40px 0;"><img src="https://collex.au/brand/wordmark.png" width="112" height="42" alt="Collex" style="display:block;border:0;"></td>
-            </tr>
-            <tr>
-              <td style="padding:28px 40px 0;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.2;color:#15161a;">
-                Confirm your account
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:14px 40px 0;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.6;color:#6b6e76;">
-                Enter this code on the sign-up page to confirm your Collex account.
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:24px 40px 0;">
-                <div style="display:inline-block;padding:16px 22px;border-radius:12px;background:#f3f1ec;font-family:Georgia,'Times New Roman',serif;font-size:34px;letter-spacing:10px;color:#15161a;">{{ .Token }}</div>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:24px 40px 0;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.6;color:#6b6e76;">
-                Or confirm with one click:
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:12px 40px 0;">
-                <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#213a73;color:#ffffff;text-decoration:none;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:15px;font-weight:600;">Confirm account</a>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:32px 40px 40px;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:13px;line-height:1.6;color:#6f7279;border-top:0;">
-                The code and link expire in one hour. If you did not create a Collex account, you can ignore this email.
-              </td>
-            </tr>
-          </table>
-          <p style="margin:20px 0 0;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#6f7279;"><a href="https://collex.au" style="color:#6f7279;">Collex</a> · The Sydney Model UN circuit · Sydney NSW, Australia</p>
-        </td>
-      </tr>
-    </table>
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your code is {{ .Token }}. It works for one hour.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fbfaf7;padding:48px 16px;"><tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border:1px solid #e6e2d9;border-radius:16px;">
+        <tr><td style="padding:36px 40px 0;"><img src="https://collex.au/brand/wordmark.png" width="112" height="42" alt="Collex" style="display:block;border:0;"></td></tr>
+        <tr><td style="padding:28px 40px 0;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.2;color:#15161a;">Confirm your account</td></tr>
+        <tr><td style="padding:12px 40px 0;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.6;color:#6b6e76;">Type this code on the Collex sign-up page to finish creating your account.</td></tr>
+        <tr><td style="padding:24px 40px 0;">
+          <div style="display:inline-block;padding:14px 22px;border-radius:12px;background:#f3f1ec;border:1px solid #e6e2d9;font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:1;letter-spacing:10px;color:#15161a;">{{ .Token }}</div>
+        </td></tr>
+        <tr><td style="padding:24px 40px 0;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.6;color:#6b6e76;">Or confirm with one click:</td></tr>
+        <tr><td style="padding:12px 40px 0;"><a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#213a73;color:#ffffff;text-decoration:none;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:15px;font-weight:600;">Confirm account</a></td></tr>
+        <tr><td style="padding:32px 40px 36px;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:12.5px;line-height:1.6;color:#6f7279;">The code and the button work for one hour. If you didn't sign up for Collex, ignore this email and nothing will happen.</td></tr>
+      </table>
+      <p style="margin:20px 0 0;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#6f7279;"><a href="https://collex.au" style="color:#6f7279;">Collex</a> · Sydney NSW, Australia · hello@collex.au</p>
+    </td></tr></table>
   </body>
 </html>

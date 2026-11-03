@@ -42,6 +42,7 @@
   transition: background-color var(--duration-quick);
 }
 .yearBtn:hover { background: var(--surface); color: var(--ink); }
+@media (pointer: coarse) { .yearBtn { width: 44px; height: 44px; } }
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
 .month {
   height: 40px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; font-size: 14px;

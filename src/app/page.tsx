@@ -20,6 +20,9 @@ const SITE = {
   },
 };
 
+const HERO = (ext: string) => [640, 960, 1440].map((w) => `/img/general-assembly-${w}.${ext} ${w}w`).join(", ");
+const HERO_SIZES = "(max-width: 980px) calc(100vw - 40px), 620px";
+
 export default function Home() {
   return (
     <main id="top">
@@ -36,7 +39,15 @@ export default function Home() {
           </div>
         </div>
         <div className={styles.heroPic}>
-          <span className={styles.heroImg} role="img" aria-label="The United Nations General Assembly Hall in New York" />
+          {/* Sized for the column it sits in, in the smallest format each browser can show; loaded first, with its
+              space held by the frame's aspect ratio so nothing moves when it arrives. */}
+          <picture className={styles.heroImg}>
+            <source type="image/avif" srcSet={HERO("avif")} sizes={HERO_SIZES} />
+            <source type="image/webp" srcSet={HERO("webp")} sizes={HERO_SIZES} />
+            {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized static files, no optimiser needed */}
+            <img src="/img/general-assembly-960.jpg" srcSet={HERO("jpg")} sizes={HERO_SIZES} width={1440} height={960}
+              alt="The United Nations General Assembly Hall in New York" fetchPriority="high" decoding="async" />
+          </picture>
           <NextCard />
         </div>
         <a href="#upcoming" className={styles.scrollCue}>

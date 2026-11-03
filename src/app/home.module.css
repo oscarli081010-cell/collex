@@ -34,9 +34,8 @@
   animation: heroIn var(--duration-very-slow) var(--ease-smooth-out) both;
 }
 /* The photo drifts slowly across the frame, like a camera panning the hall. */
-.heroImg::before {
-  content: ""; position: absolute; inset: 0;
-  background: url("/img/general-assembly.jpg") center 40% / cover;
+.heroImg img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 40%;
   transform: scale(1.12) translateX(-2.5%);
   animation: heroPan 42s ease-in-out infinite alternate;
   will-change: transform;
@@ -74,7 +73,7 @@
 .sideTitle { font-size: 24px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .heroImg, .heroImg::before, .nextCard, .scrollCue svg { animation: none; }
+  .heroImg, .heroImg img, .nextCard, .scrollCue svg { animation: none; }
   .aura { animation: none; background-size: 100% 100%; }
 }
 @media (max-width: 980px) {

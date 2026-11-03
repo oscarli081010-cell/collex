@@ -71,9 +71,11 @@ export default function MonthPicker({
 
   return (
     <div ref={root} className={`${s.picker} ${size === "sm" ? s.sm : ""}`}>
-      <button className={s.arrow} onClick={() => step(-1)} aria-label={`Previous month, ${MONTHS[shiftMonth(value, -1).m]}`}>
-        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5L5.5 8 10 12.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-      </button>
+      <span className="tip" data-tip="Previous month" data-tip-align="start">
+        <button className={s.arrow} onClick={() => step(-1)} aria-label={`Previous month, ${MONTHS[shiftMonth(value, -1).m]}`}>
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5L5.5 8 10 12.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
+      </span>
 
       <button
         ref={trigger}
@@ -87,9 +89,11 @@ export default function MonthPicker({
         <svg className={s.chev} data-open={open && !closing} width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5L6 7.5 9 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </button>
 
-      <button className={s.arrow} onClick={() => step(1)} aria-label={`Next month, ${MONTHS[shiftMonth(value, 1).m]}`}>
-        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-      </button>
+      <span className="tip" data-tip="Next month">
+        <button className={s.arrow} onClick={() => step(1)} aria-label={`Next month, ${MONTHS[shiftMonth(value, 1).m]}`}>
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
+      </span>
 
       {open && (
         <div

@@ -122,3 +122,17 @@ export function clashesNear(list: Conference[], iso: string) {
 /** Conferences running on a given day. */
 export const onDay = (list: Conference[], iso: string) =>
   list.filter((c) => c.startDate && c.startDate <= iso && (c.endDate ?? c.startDate) >= iso);
+
+/** Today's date in Sydney (yyyy-mm-dd), whatever time zone the server or browser runs in. */
+export const todayInSydney = () => new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+
+/** A conference has finished once its last day is over. Listings without dates never count as past. */
+export const isPast = (c: Conference, today = todayInSydney()) => Boolean(c.startDate && (c.endDate ?? c.startDate) < today);
+
+/** "2027-03" → "March 2027" */
+export const monthLabel = (ym: string) => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
+
+/** One or two letters standing in for a cover photo: "Sydney Collegiate MUN" → "SC". */
+export const monogram = (c: Conference) =>
+  (c.shortName && c.shortName !== c.name && c.shortName.length <= 4 ? c.shortName : c.name.split(/\s+/).filter((w) => /^[A-Za-z0-9]/.test(w)).map((w) => w[0]).join(""))
+    .slice(0, 2).toUpperCase();

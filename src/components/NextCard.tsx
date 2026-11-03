@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { formatRange } from "@/lib/conferences";
+import { formatRange, todayInSydney } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import styles from "@/app/home.module.css";
 
 export default function NextCard() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInSydney();
   const next = useConferences().find((c) => c.startDate && c.startDate >= today);
   return (
     <Link href={next ? `/conferences/${next.slug}` : "/list"} className={styles.nextCard}>

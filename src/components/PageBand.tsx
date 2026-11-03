@@ -1,4 +1,4 @@
-import { formatDate, type Conference } from "@/lib/conferences";
+import { formatDate, todayInSydney, type Conference } from "@/lib/conferences";
 import s from "./PageBand.module.css";
 
 export type Figure = { label: string; value: string; note?: string };
@@ -44,7 +44,7 @@ export default function PageBand({ title, accent, lead, media, figures = [], asi
 
 // The next conference that hasn't started yet, as a figure.
 export function nextUp(list: Conference[]): Figure {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInSydney();
   const next = list.filter((c) => c.startDate && c.startDate >= today).sort((a, b) => a.startDate!.localeCompare(b.startDate!))[0];
   return next ? { label: "Next up", value: next.shortName, note: formatDate(next.startDate!) } : { label: "Next up", value: "TBA" };
 }

@@ -35,7 +35,7 @@ export default function FollowButton({ id, name }: { id: string; name: string })
 
   if (!ready || following === null) return <span className={s.follow} aria-hidden="true" />;
   return (
-    <span className={`${s.tip} ${s.follow}`} data-tip={following ? "Unfollow any time" : "Emails when applications open or guides are released"}>
+    <span className={`tip ${s.follow}`} data-tip={following ? "Unfollow any time" : "Emails when applications open or guides are released"}>
       {session ? (
         <button className={`button ${following ? "secondary" : ""}`} onClick={toggle} disabled={busy} aria-pressed={following} aria-describedby={`follow-${id}`}>
           <span key={String(following)} className="t-swap">{following ? "Following ✓" : "Follow for updates"}</span>

@@ -3,11 +3,13 @@
 import Link from "next/link";
 import PageBand, { type BandProps } from "./PageBand";
 import { FormSkeleton } from "./Skeleton";
-import { useEffect, useState } from "react";
-import { coverUrl, NA, webUrl, type Conference } from "@/lib/conferences";
+import { useCallback, useEffect, useState } from "react";
+import { coverUrl, webUrl, type Conference } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
 import { useAuth } from "./AuthProvider";
+import { CommitteesEditor, committeeRows, GuidesEditor, guideRows, toCommittees, toGuides, type CommitteeRow, type GuideRow } from "./RowEditors";
+import Team, { type Member } from "./Team";
 import auth from "@/app/auth.module.css";
 import s from "@/app/inner.module.css";
 
@@ -26,11 +28,7 @@ const FIELDS: F[] = [
   { name: "delegation_url", label: "Delegate registration link", type: "url", hint: "Powers the Register button" },
   { name: "chair_url", label: "Chair application link", type: "url", hint: "Powers the Apply to chair button" },
   { name: "overview", label: "Overview", type: "textarea", wide: true, hint: "A few sentences about the conference" },
-  { name: "committees", label: "Committees", type: "textarea", wide: true, hint: "One per line, as Committee – Topic" },
 ];
-
-// Only when editing: guides are added once a conference is live.
-const GUIDES: F = { name: "guides", label: "Background guides", type: "textarea", wide: true, hint: "One per line, as Committee – https://link" };
 
 const isUrl = (v: string) => /^https?:\/\/\S+\.\S+/.test(v);
 
@@ -38,29 +36,9 @@ const isUrl = (v: string) => /^https?:\/\/\S+\.\S+/.test(v);
 const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const COVER_MAX = 5 * 1024 * 1024;
 
-// "UNSC – Arctic sovereignty" → { name, topic }
-const parseCommittees = (text: string) =>
-  text.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
-    const [name, ...rest] = l.split(/\s+[–—-]\s+|:\s+/);
-    return { name: name.trim(), topic: rest.join(" – ").trim() || NA, level: NA, chairs: NA };
-  });
-
-// "UNSC – https://…" → a released background guide. Keeps the release date of guides that were already there.
-const parseGuides = (text: string, before: Conference["guides"]) =>
-  text.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
-    const m = l.match(/^(.*?)\s+[–—-]\s+(\S+)$/);
-    const url = webUrl(m?.[2]);
-    if (!m || !url) return null;
-    const old = before.find((g) => g.url === url);
-    return { committee: m[1].trim(), released: old?.released ?? new Date().toISOString().slice(0, 10), url };
-  });
-
-// The fields an organiser can change on their own listing, read back to fill the form.
+// The fields an organiser can change on their listing, read back to fill the form.
 type Editing = Record<string, string | null> & { id: string; status: string; guides: Conference["guides"]; committees: Conference["committees"] };
-const asText = (e: Editing, k: string) =>
-  k === "committees" ? e.committees.map((c) => (c.topic && c.topic !== NA ? `${c.name} – ${c.topic}` : c.name)).join("\n")
-  : k === "guides" ? e.guides.filter((g) => g.url).map((g) => `${g.committee} – ${g.url}`).join("\n")
-  : (e[k] as string | null) ?? "";
+const asText = (e: Editing, k: string) => (e[k] as string | null) ?? "";
 
 export default function ListForm() {
   const { ready, session } = useAuth();
@@ -75,15 +53,34 @@ export default function ListForm() {
   // ?edit=<id> opens one of your own listings for editing instead of a blank form.
   const [editing, setEditing] = useState<Editing | null | "missing">(null);
   const [editId, setEditId] = useState<string | null>(null);
+  const [committees, setCommittees] = useState<CommitteeRow[]>([]);
+  const [guides, setGuides] = useState<GuideRow[]>([]);
+  const [team, setTeam] = useState<Member[]>([]);
   useEffect(() => { setEditId(new URLSearchParams(location.search).get("edit")); }, []);
+  // Who can edit: the database lists the team only to the people on it (and admins), so an empty team means no access.
+  const loadTeam = useCallback(async () => {
+    if (!editId || !supabase) return [];
+    const { data } = await supabase.rpc("organisers_of", { conf: editId });
+    setTeam((data as Member[] | null) ?? []);
+    return (data as Member[] | null) ?? [];
+  }, [editId]);
   useEffect(() => {
     if (!editId || !session || !supabase) return;
-    supabase.from("conferences")
-      .select("id, status, name, host, submitter_role, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, overview, committees, guides, cover_path")
-      .eq("id", editId).eq("submitted_by", session.user.id).in("status", ["pending", "published"]).maybeSingle()
-      .then(({ data }) => { setEditing((data as Editing) ?? "missing"); setFirstDay((data as Editing | null)?.start_date ?? ""); });
-  }, [editId, session]);
+    Promise.all([
+      supabase.from("conferences")
+        .select("id, status, name, host, submitter_role, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, overview, committees, guides, cover_path")
+        .eq("id", editId).in("status", ["pending", "published"]).maybeSingle(),
+      loadTeam(),
+    ]).then(([{ data }, members]) => {
+      const row = members.length ? (data as Editing | null) : null;
+      setEditing(row ?? "missing");
+      setFirstDay(row?.start_date ?? "");
+      setCommittees(committeeRows(row?.committees ?? []));
+      setGuides(guideRows(row?.guides ?? []));
+    });
+  }, [editId, session, loadTeam]);
   const edit = editing && editing !== "missing" ? editing : null;
+  const badGuides = guides.map((g, i) => (g.url.trim() && !webUrl(g.url) ? i : -1)).filter((i) => i >= 0);
 
   const check = (v: (k: string) => string) => {
     const out: Record<string, string> = {};
@@ -94,7 +91,8 @@ export default function ListForm() {
     if (v("start_date") && v("end_date") && v("end_date") < v("start_date")) out.end_date = "The last day is before the first day.";
     for (const k of ["delegation_url", "chair_url"]) if (v(k) && !isUrl(v(k))) out[k] = "Use a full link starting with https://";
     if (!v("publish")) out.publish = "Tick the box to confirm before sending.";
-    if (v("guides") && parseGuides(v("guides"), []).some((g) => !g)) out.guides = "Write each guide as Committee – https://link";
+    if (badGuides.length) out.guides = "Fix the guide links marked below.";
+    if (guides.some((g) => g.url.trim() && !g.committee)) out.guides = "Choose a committee for each guide.";
     return out;
   };
 
@@ -108,7 +106,7 @@ export default function ListForm() {
     setErrors(found);
     const first = Object.keys(found)[0];
     if (first) {
-      const el = form.elements.namedItem(first) as HTMLElement | null;
+      const el = (first === "guides" ? document.getElementById("guide-0-first") : form.elements.namedItem(first)) as HTMLElement | null;
       el?.focus({ preventScroll: true });
       el?.scrollIntoView({ block: "center", behavior: "smooth" });
       return;
@@ -135,13 +133,15 @@ export default function ListForm() {
       delegation_url: v("delegation_url") || null,
       chair_url: v("chair_url") || null,
       overview: v("overview"),
-      committees: parseCommittees(v("committees")),
+      committees: toCommittees(committees),
       ...cover,
     };
-    const { error } = edit
-      ? await supabase.from("conferences").update({ ...fields, guides: parseGuides(v("guides"), edit.guides) }).eq("id", edit.id)
-      : await supabase.from("conferences").insert({ ...fields, submitted_by: session.user.id });
+    // .select() returns the saved row, so an edit that changed nothing (no access any more) is caught, not shown as saved.
+    const { data: saved, error } = edit
+      ? await supabase.from("conferences").update({ ...fields, guides: toGuides(guides) }).eq("id", edit.id).select("id")
+      : await supabase.from("conferences").insert({ ...fields, submitted_by: session.user.id }).select("id");
     setBusy(false);
+    if (!error && !saved?.length) return setErrors({ form: "You can't edit this listing any more. Ask the person who listed it." });
     // New links or guides on a live listing queue emails to its followers; this sends them.
     if (!error && edit) supabase.functions.invoke("notify").catch(() => {});
     // A live listing's page shows the edit straight away.
@@ -173,10 +173,10 @@ export default function ListForm() {
   };
 
   // The headline band above every state of this page, with the state's content centred underneath.
-  const page = (band: BandProps, body: React.ReactNode) => (
+  const page = (band: BandProps, body: React.ReactNode, after?: React.ReactNode) => (
     <>
       <PageBand size="md" {...band} />
-      <div className={auth.body}>{body}</div>
+      <div className={auth.body}>{body}{after}</div>
     </>
   );
   const listBand: BandProps = editId
@@ -186,7 +186,7 @@ export default function ListForm() {
   if (!ready || (editId && session && editing === null)) return page(listBand, <FormSkeleton fields={6} width={600} grid />);
   if (editId && editing === "missing") {
     return page({
-      title: "Can\u2019t edit that", accent: "listing", lead: "Only the account that listed a conference can edit it, while it\u2019s in review or live.",
+      title: "Can\u2019t edit that", accent: "listing", lead: "Only the people who run a listing can edit it, while it\u2019s in review or live. Ask its organiser to invite you.",
       aside: <div className={auth.row}><Link href="/account" className="button lg">Your listings</Link></div>,
     }, null);
   }
@@ -220,14 +220,14 @@ export default function ListForm() {
         <div className={auth.row}>
           <Link href="/account" className="button">{edit ? "Your listings" : "See its status"}</Link>
           {edit ? <button className="button secondary" onClick={() => setSent(false)}>Keep editing</button>
-            : <button className="button secondary" onClick={() => setSent(false)}>List another</button>}
+            : <button className="button secondary" onClick={() => { setSent(false); setCommittees([]); }}>List another</button>}
         </div>
       </div>);
   }
 
   return page(listBand,
       <form key={edit?.id ?? "form"} className={`t-reveal ${s.listForm}`} onSubmit={submit} noValidate>
-        {(edit ? [...FIELDS, GUIDES] : FIELDS).map((f) => {
+        {FIELDS.map((f) => {
           const id = `f-${f.name}`;
           const err = errors[f.name];
           const hintId = err ? `${id}-err` : f.hint ? `${id}-hint` : undefined;
@@ -262,8 +262,20 @@ export default function ListForm() {
             </div>
           );
         })}
+        <fieldset className={`field ${s.wide}`}>
+          <legend>Committees <span className="muted">(optional)</span></legend>
+          <CommitteesEditor rows={committees} setRows={setCommittees} />
+        </fieldset>
+        {edit && (
+          <fieldset className={`field ${s.wide} ${errors.guides ? s.invalid : ""}`}>
+            <legend>Background guides <span className="muted">(optional)</span></legend>
+            {errors.guides && <small key="err" className={`t-reveal ${s.error}`}>{errors.guides}</small>}
+            <GuidesEditor rows={guides} setRows={(r) => { setGuides(r); if (errors.guides) setErrors(({ guides: _, ...rest }) => rest); }} committees={toCommittees(committees).map((c) => c.name)} error={badGuides} />
+          </fieldset>
+        )}
         <div className={`field ${s.wide} ${errors.cover ? s.invalid : ""}`}>
           <label htmlFor="f-cover">Cover photo <span className="muted">(optional)</span></label>
+          {!shownCover && <p className={s.nudge}>Listings with a photo get noticed. It shows on the conference page, in every list and when the link is shared.</p>}
           <label htmlFor="f-cover" className={s.coverPick} data-filled={Boolean(shownCover)}>
             {shownCover
               // eslint-disable-next-line @next/next/no-img-element -- a local preview of the picked file
@@ -296,5 +308,6 @@ export default function ListForm() {
           </button>
           <small className="muted" style={{ textAlign: "center" }}>Only fields marked <span className={s.req}>*</span> are needed. Add the rest later.</small>
         </div>
-      </form>);
+      </form>,
+      edit && session && <Team conf={edit.id} name={edit.name ?? "this listing"} me={session.user.id} team={team} reload={loadTeam} />);
 }

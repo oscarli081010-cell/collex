@@ -74,23 +74,16 @@
 /* Share, save and follow sit in one row of matching 44px pills, the main action last. */
 .confAside { display: flex; align-items: center; gap: 8px; }
 .confAside :global(.button) { height: 44px; border-radius: 999px; }
-.iconBtn { width: 44px; padding: 0 !important; justify-content: center; }
-.confAside .tip[data-tip]::after { bottom: auto; top: calc(100% + 8px); }
+.confAside :global(.iconbtn) { width: 44px; height: 44px; }
+/* Up here the tooltips open below, so the sticky header never covers them. */
+.confAside :global(.tip)::after { bottom: auto; top: calc(100% + 8px); translate: 0 -4px; }
+.confAside :global(.tip:hover)::after, .confAside :global(.tip:has(:focus-visible))::after { translate: 0 0; }
 @media (max-width: 720px) {
   .confAside { width: 100%; }
   .confAside .follow { flex: 1; }
   .confAside .follow > :global(.button) { width: 100%; }
 }
 .confActions { display: flex; gap: 8px; }
-.tip { position: relative; display: inline-flex; }
-.tip[data-tip]::after {
-  content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); right: 0;
-  white-space: nowrap; font-size: 12.5px; padding: 6px 10px; border-radius: 6px;
-  background: var(--ink); color: var(--on-ink); pointer-events: none;
-  opacity: 0; transform: translateY(4px) scale(0.98); transform-origin: bottom right;
-  transition: opacity var(--duration-quick) var(--ease-out, ease-out), transform var(--duration-quick) var(--ease-out, ease-out);
-}
-.tip[data-tip]:hover::after, .tip[data-tip]:focus-within::after { opacity: 1; transform: none; transition-delay: var(--duration-micro); }
 .tabs {
   position: sticky; top: 72px; z-index: 20; background: var(--glass);
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
@@ -229,3 +222,52 @@
 }
 .subscribeTitle { font-family: var(--serif); font-size: 24px; line-height: 1.15; margin-bottom: 4px; }
 .subscribeActions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* A past conference: one calm line in place of the apply buttons. */
+.finished {
+  display: flex; flex-direction: column; gap: 6px; padding: 24px 28px; margin-bottom: 28px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+}
+.finishedTitle { font-family: var(--serif); font-weight: 400; font-size: 28px; line-height: 1.1; text-wrap: balance; }
+
+/* Organisers only: interest over time, next to the edit button. */
+.organiser { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 28px; align-items: center; padding: 24px 28px; }
+.organiserText { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.organiserText :global(.button) { margin-top: 8px; }
+.organiserTitle { font-family: var(--serif); font-weight: 400; font-size: 26px; line-height: 1.1; }
+@media (max-width: 640px) {
+  .organiser { grid-template-columns: 1fr; padding: 20px; }
+  .finished { padding: 20px; }
+}
+
+/* Committees and guides, one row of labelled fields each, with move and remove on the right. */
+fieldset:global(.field) { border: 0; padding: 0; margin: 0; min-width: 0; }
+fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0; margin-bottom: 6px; }
+.rowsEditor { display: flex; flex-direction: column; gap: 10px; }
+.rowsEmpty { font-size: 13.5px; color: var(--muted); }
+.rowsList { display: flex; flex-direction: column; gap: 10px; }
+.editRow {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: start;
+  padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+}
+.editFields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.editFields label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 500; color: var(--muted); min-width: 0; }
+.editFields .control { background: var(--panel); }
+.editWide { grid-column: 1 / -1; }
+.editActions { display: flex; flex-direction: column; gap: 6px; padding-top: 20px; }
+.addRow { align-self: flex-start; }
+.nudge { font-size: 13.5px; color: var(--accent); margin-bottom: 2px; }
+
+/* Organisers of a listing, under the edit form. */
+.team { width: 100%; max-width: 600px; margin-top: 32px; padding: 28px; display: flex; flex-direction: column; gap: 18px; }
+.teamTitle { font-family: var(--serif); font-weight: 400; font-size: 26px; margin-bottom: 4px; }
+.invite { border-top: 1px solid var(--line); padding-top: 18px; }
+.inviteRow { display: flex; gap: 8px; }
+.inviteRow .control { flex: 1; min-width: 0; }
+@media (max-width: 560px) {
+  .editRow { grid-template-columns: 1fr; gap: 10px; }
+  .editFields { grid-template-columns: 1fr; }
+  .editActions { flex-direction: row; justify-content: flex-end; padding-top: 0; }
+  .team { padding: 20px; }
+  .inviteRow { flex-direction: column; }
+}

@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatDate, formatRange, NA, template, type Conference } from "@/lib/conferences";
+import { ViewTransition } from "react";
+import { formatDate, formatRange, isPast, NA, template, type Conference } from "@/lib/conferences";
 import { getBySlug, getPublished } from "@/lib/data";
 import ApplyBand from "@/components/ApplyBand";
 import ConferenceActions from "@/components/ConferenceActions";
 import ConferenceTabs from "@/components/ConferenceTabs";
 import Countdown from "@/components/Countdown";
 import FollowButton from "@/components/FollowButton";
+import OrganiserPanel from "@/components/OrganiserPanel";
 import Verified from "@/components/Verified";
 import { META_ICONS as ICONS } from "@/components/MetaIcons";
 import s from "../../inner.module.css";
@@ -24,12 +26,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const c = await getBySlug((await params).slug);
   if (!c) return { title: "Collex" };
   if (c.isTemplate) return { title: "Demo · Collex", robots: { index: false } };
+  // Shared links show the organiser's cover photo when there is one, otherwise the generated card.
+  const image = c.cover
+    ? { url: c.cover, alt: `${c.name} cover photo` }
+    : { url: `/conferences/${c.slug}/share.png`, width: 1200, height: 630, alt: `${c.name} on Collex` };
   return {
     title: `${c.name} · Collex`,
     description: describe(c),
     alternates: { canonical: `/conferences/${c.slug}` },
-    openGraph: { title: c.name, description: describe(c), siteName: "Collex", locale: "en_AU", type: "website", url: `/conferences/${c.slug}` },
+    openGraph: { title: c.name, description: shareLine(c), siteName: "Collex", locale: "en_AU", type: "website", url: `/conferences/${c.slug}`, images: [image] },
+    twitter: { card: "summary_large_image", title: c.name, description: shareLine(c), images: [image] },
   };
+}
+
+// The line under a shared link's title: when and where.
+function shareLine(c: Conference) {
+  const when = c.startDate ? formatRange(c) : "Dates to be announced";
+  const where = c.venue === NA ? `hosted by ${c.host}` : `at ${c.venue}, hosted by ${c.host}`;
+  return `${when}, ${where}.`;
 }
 
 // One or two plain sentences for search results: the overview if there is one, otherwise the facts.
@@ -85,6 +99,7 @@ const initials = (name: string) => (name === NA ? "" : name.split(" ").map((w) =
 export default async function ConferencePage({ params }: Props) {
   const c = await getBySlug((await params).slug);
   if (!c) notFound();
+  const past = isPast(c);
 
   return (
       <main id="top" className="container">
@@ -92,19 +107,23 @@ export default async function ConferencePage({ params }: Props) {
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventSchema(c)).replace(/</g, "\\u003c") }} />
         )}
         <section className={s.confFirst}>
-        <div className={s.cover}>
-          {c.cover
-            // eslint-disable-next-line @next/next/no-img-element -- organisers' photos come straight from storage at their own size
-            ? <img src={c.cover} alt="" className={s.coverImg} fetchPriority="high" />
-            : <span>{c.isTemplate ? "Cover image N/A" : c.shortName}</span>}
-        </div>
+        <ViewTransition name={`cover-${c.slug}`} share="morph" default="none">
+          <div className={s.cover}>
+            {c.cover
+              // eslint-disable-next-line @next/next/no-img-element -- organisers' photos come straight from storage at their own size
+              ? <img src={c.cover} alt="" className={s.coverImg} fetchPriority="high" />
+              : <span>{c.isTemplate ? "Cover image N/A" : c.shortName}</span>}
+          </div>
+        </ViewTransition>
 
         <header className={s.confHead}>
           <div>
             {c.isTemplate ? <span className="badge accent">Demo listing</span> : (
-              <span className={s.confBadges}>{c.verified && <Verified />}<Countdown c={c} /></span>
+              <span className={s.confBadges}>{past && <span className="badge">Finished</span>}{c.verified && <Verified />}<Countdown c={c} /></span>
             )}
-            <h1 className={s.confTitle}>{c.name}</h1>
+            <ViewTransition name={`title-${c.slug}`} share="morph" default="none">
+              <h1 className={s.confTitle}>{c.name}</h1>
+            </ViewTransition>
             <ul className={s.confMeta}>
               <li>{ICONS.date}{formatRange(c)}</li>
               <li>{ICONS.host}Hosted by {c.host}</li>
@@ -112,12 +131,17 @@ export default async function ConferencePage({ params }: Props) {
             </ul>
           </div>
           <div className={s.confAside}>
-            <ConferenceActions c={c} />
-            {c.id && <FollowButton id={c.id} name={c.name} />}
+            <ConferenceActions c={c} past={past} />
+            {c.id && !past && <FollowButton id={c.id} name={c.name} />}
           </div>
         </header>
 
-        <ApplyBand c={c} />
+        {past ? (
+          <section className={s.finished} aria-label="Finished">
+            <h2 className={s.finishedTitle}>This conference has finished</h2>
+            <p className="muted">Its page stays up so committees and guides are easy to look back on. <Link href="/conferences" className="link">See what&rsquo;s coming up</Link></p>
+          </section>
+        ) : <ApplyBand c={c} />}
         <a href="#details" className={s.cue}>
           Details
           <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -129,6 +153,7 @@ export default async function ConferencePage({ params }: Props) {
 
         <div className={s.confGrid}>
           <div className={s.main}>
+            {!past && <OrganiserPanel c={c} />}
             <section id="overview" className={s.block}>
               <h2 className={s.h2}>Overview</h2>
               <p>{c.overview}</p>

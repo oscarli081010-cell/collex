@@ -301,6 +301,13 @@ select.control {
 @keyframes livePulse { 50% { opacity: 0.3; } }
 @media (prefers-reduced-motion: reduce) { .countdown, .countdown::before { animation: none !important; } }
 
+/* Headlines break into even lines; body text avoids a lone last word. */
+h1, h2, h3, .serif { text-wrap: balance; }
+p, li, dd, small, figcaption { text-wrap: pretty; }
+
+/* Line drawings (Drawings.tsx) in empty and lost states. */
+.drawing { color: var(--muted); opacity: 0.75; flex: none; }
+
 /* Icon buttons (IconButton.tsx): round and quiet; the tooltip names the action after a short hover. */
 .iconbtn { width: 40px; height: 40px; padding: 0 !important; border-radius: 50% !important; justify-content: center; flex: none; }
 .iconbtn[aria-pressed="true"] { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
@@ -317,3 +324,5 @@ select.control {
 .tip:hover::after { opacity: 1; translate: 0 0; transition-delay: 500ms; }
 .tip:has(:focus-visible)::after, .tip[data-tip-open]::after { opacity: 1; translate: 0 0; transition-delay: 0ms; }
 @media (prefers-reduced-motion: reduce) { .tip::after { translate: none; } }
+/* A longer explanation (the Verified badge): opens from the left edge and wraps. */
+.tip[data-tip-align="start"]::after { right: auto; left: 0; white-space: normal; width: max-content; max-width: 240px; line-height: 1.4; }

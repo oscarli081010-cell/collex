@@ -55,12 +55,21 @@
 .action[data-action="approved"], .action[data-action="made admin"] { background: var(--ok-soft); color: var(--ok); }
 .action[data-action="rejected"], .action[data-action="deleted"], .action[data-action="removed admin"], .action[data-action="unpublished"] { background: var(--danger-soft); color: var(--danger); }
 .action[data-action="submitted"] { background: var(--warn-soft); color: var(--warn); }
+.action[data-action="accepted organiser invite"], .action[data-action="invited organiser"] { background: var(--accent-soft); color: var(--accent); }
+.action[data-action="removed organiser"], .action[data-action="left organisers"], .action[data-action="deleted user"] { background: var(--danger-soft); color: var(--danger); }
+
+/* Search above each tab's list. */
+.searchBar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.searchBar > label { flex: 1 1 280px; }
+.searchBar > select { width: 170px; }
+.searchCount { font-size: 13.5px; min-width: 64px; }
 
 .empty {
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 64px 24px;
   border: 1px dashed var(--line-strong); border-radius: var(--radius); color: var(--muted); font-size: 14px;
 }
 .empty p { font-family: var(--serif); font-size: 26px; color: var(--ink); }
+.empty :global(.button) { margin-top: 10px; }
 
 @media (max-width: 640px) {
   .log li { grid-template-columns: 1fr; }
