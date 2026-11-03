@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Log in · Collex", description: "Log
 
 export default function Page() {
   return (
-    <main id="top" className={`container ${s.page}`}>
+    <main id="top" className={`container ${s.banded}`}>
       <LoginForm />
     </main>
   );

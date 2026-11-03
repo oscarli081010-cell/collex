@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "List a conference · Collex", descri
 
 export default function ListPage() {
   return (
-    <main id="top" className={`container ${s.page}`}>
+    <main id="top" className={`container ${s.banded}`}>
       <ListForm />
     </main>
   );

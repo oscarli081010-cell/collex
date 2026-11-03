@@ -38,5 +38,4 @@
 .empty { padding: 28px 12px; text-align: center; color: var(--muted); font-size: 14px; }
 
 @media (max-width: 920px), (pointer: coarse) { .trigger { width: 44px; height: 44px; } }
-@media (max-width: 820px) { .trigger { margin-left: auto; } }
 @media (prefers-reduced-motion: reduce) { .dialog[open] .panel, .dialog[open]::backdrop { animation: none; } }

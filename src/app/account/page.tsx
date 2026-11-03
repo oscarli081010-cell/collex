@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Your account · Collex", robots: { i
 
 export default function Page() {
   return (
-    <main id="top" className={`container ${s.page}`}>
+    <main id="top" className={`container ${s.banded}`}>
       <AccountView />
     </main>
   );

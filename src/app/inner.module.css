@@ -115,11 +115,11 @@
 .person span { display: flex; flex-direction: column; font-size: 14px; font-weight: 500; }
 .person small { font-weight: 400; color: var(--muted); font-size: 12.5px; }
 .applyBand {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 48px; scroll-margin-top: 96px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; scroll-margin-top: 96px;
 }
 .applyOption {
-  display: flex; justify-content: space-between; align-items: center; gap: 24px;
-  padding: 28px 28px 28px 32px; border-radius: 14px;
+  display: flex; flex-direction: column; justify-content: space-between; align-items: stretch; gap: 24px;
+  padding: 28px 30px 30px; border-radius: 14px;
   background: var(--panel); border: 1px solid var(--line);
   transition: border-color var(--duration-fast), box-shadow var(--duration-slow) var(--ease-smooth-out);
 }
@@ -128,7 +128,25 @@
 .applyStatus { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); }
 .applyStatus::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
 .applyStatus[data-open="true"]::before { background: var(--ok); }
-.applyBtn { height: 56px !important; padding: 0 30px !important; font-size: 16px !important; border-radius: 12px !important; flex: none; }
+.applyBtn { height: 56px !important; padding: 0 30px !important; font-size: 16px !important; border-radius: 12px !important; flex: none; width: 100%; }
+/* The middle card, Express interest, carries a wash of the accent so it reads as the easy first step. */
+.applyOption[data-kind="interest"] { background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--panel); border-color: color-mix(in srgb, var(--accent) 22%, var(--line)); }
+.applyOption[data-kind="interest"] .applyBtn:not(.secondary) { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.applyOption[data-kind="interest"] .applyBtn:not(.secondary):hover { filter: brightness(1.08); }
+
+/* The conference's first screen: cover, name, actions and the three cards, with an arrow down to the details. */
+.confFirst { position: relative; display: flex; flex-direction: column; min-height: calc(100svh - 73px); padding-bottom: 104px; }
+.cue {
+  position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--muted); transition: color var(--duration-quick);
+}
+.cue:hover { color: var(--ink); }
+.cue svg { animation: cue 1.8s var(--ease-in-out, ease-in-out) infinite; }
+@keyframes cue { 50% { transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .cue svg { animation: none; } }
+@media (pointer: coarse) { .cue { padding: 6px 12px; } }
+.details { scroll-margin-top: 73px; }
 
 /* Empty section */
 .nothing {
@@ -160,6 +178,7 @@
 
 @media (max-width: 980px) {
   .confGrid { grid-template-columns: 1fr; }
+  .applyBand { grid-template-columns: 1fr; }
   .facts { position: static; order: -1; }
 }
 @media (max-width: 640px) {
@@ -170,8 +189,7 @@
   .weekdays span { padding: 0 4px; font-size: 10.5px; }
   .event { font-size: 0; padding: 0; height: 6px; }
   .people, .applyBand, .listForm { grid-template-columns: 1fr; }
-  .applyOption { flex-direction: column; align-items: stretch; padding: 24px; }
-  .applyBtn { width: 100%; }
+  .applyOption { padding: 24px; }
   .table th, .table td { padding-inline: 10px; }
 }
 

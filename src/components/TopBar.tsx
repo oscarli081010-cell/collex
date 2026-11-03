@@ -51,6 +51,7 @@ export default function TopBar() {
             </Link>
           ))}
         </nav>
+        <div className="topbarEnd">
         <CommandBar />
         <div className="topbarRight" data-ready={ready}>
           <Link href="/list" className="button secondary">List a conference</Link>
@@ -60,6 +61,7 @@ export default function TopBar() {
           ) : (
             <Link href="/login" className="button">Log in</Link>
           )}
+        </div>
         </div>
         <button
           className="menu-toggle"

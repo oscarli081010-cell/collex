@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { applyTheme, THEMES, type Theme } from "@/lib/theme";
 import { useAuth } from "./AuthProvider";
 import CodeInput from "./CodeInput";
+import PageBand, { type BandProps } from "./PageBand";
 import SchoolPicker from "./SchoolPicker";
 import { FormSkeleton, RowsSkeleton } from "./Skeleton";
 import { usePill } from "./usePill";
@@ -21,6 +22,16 @@ const friendly = (msg: string) =>
   : msg;
 
 const origin = () => window.location.origin;
+
+// The page's headline band, with the page's content centred underneath.
+function Banded({ band, children }: { band: BandProps; children: React.ReactNode }) {
+  return (
+    <>
+      <PageBand size="md" {...band} />
+      <div className={s.body}>{children}</div>
+    </>
+  );
+}
 
 function NotReady() {
   return supabase ? null : <p className={s.notice}>Accounts are being switched on. Sign-up opens shortly.</p>;
@@ -108,16 +119,11 @@ function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"
     say(error ? friendly(error.message) : "Sent again");
   };
   return (
+    <Banded band={{
+      title: "Check your", accent: "email",
+      lead: <>We sent a link to <strong className={s.strong}>{email}</strong>. {kind === "signup" ? "Open it, or type the 6-digit code from the email here." : "Open it to set a new password."}</>,
+    }}>
     <div className={`t-reveal ${s.sent}`} role="status">
-      <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true" className={s.sentIcon}>
-        <circle cx="22" cy="22" r="21" fill="var(--accent-soft)" />
-        <path d="M13 16h18v13H13zM13 16l9 7 9-7" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinejoin="round" pathLength={1} />
-      </svg>
-      <h1 className={s.title}>Check your email</h1>
-      <p className="muted">
-        We sent a link to <strong className={s.strong}>{email}</strong>.{" "}
-        {kind === "signup" ? "Open it, or type the 6-digit code from the email here." : "Open it to set a new password."}
-      </p>
       {kind === "signup" && (
         <div className={s.code}>
           <CodeInput onComplete={verify} errors={wrong} disabled={checking} />
@@ -130,6 +136,7 @@ function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"
       </div>
       {node}
     </div>
+    </Banded>
   );
 }
 
@@ -138,9 +145,13 @@ const STATUS: Record<string, string> = { pending: "In review", published: "Live"
 // The account's own submissions and where each one stands.
 function MyListings({ userId }: { userId: string }) {
   const [rows, setRows] = useState<{ id: string; name: string; slug: string; status: string; review_note: string }[] | null>(null);
+  const [interest, setInterest] = useState<Record<string, number>>({});
   useEffect(() => {
     supabase?.from("conferences").select("id, name, slug, status, review_note").eq("submitted_by", userId)
       .order("created_at", { ascending: false }).then(({ data }) => setRows(data ?? []));
+    // How many people have expressed interest in each listing. The names stay private.
+    supabase?.rpc("interest_counts").then(({ data }) =>
+      setInterest(Object.fromEntries(((data ?? []) as { conference_id: string; interested: number }[]).map((r) => [r.conference_id, Number(r.interested)]))));
   }, [userId]);
 
   return (
@@ -157,6 +168,7 @@ function MyListings({ userId }: { userId: string }) {
             <li key={r.id}>
               {r.status === "published" ? <Link href={`/conferences/${r.slug}`} className="link">{r.name}</Link> : <span>{r.name}</span>}
               <span className={s.status} data-status={r.status}>{STATUS[r.status]}</span>
+              {r.status === "published" && r.id in interest && <small className="muted" style={{ flexBasis: "auto" }}>{interest[r.id]} interested</small>}
               {(r.status === "published" || r.status === "pending") && <Link href={`/list?edit=${r.id}`} className="link" aria-label={`Edit ${r.name}`}>Edit</Link>}
               {r.status === "rejected" && r.review_note && <small className="muted">{r.review_note}</small>}
             </li>
@@ -202,8 +214,8 @@ export function SignupForm() {
   if (sent) return <Sent email={sent} kind="signup" onBack={() => setSent(null)} />;
 
   return (
+    <Banded band={{ title: "Create your", accent: "account", lead: "Follow conferences for email updates, and list your own." }}>
     <form key="form" className={`t-reveal ${s.form}`} onSubmit={submit} noValidate>
-      <h1 className={s.title}>Create your account</h1>
       <NotReady />
       <Field label="Full name" error={errors.name}><input name="name" className="control" maxLength={120} autoComplete="name" onChange={clear("name")} /></Field>
       <Field label="School or University" hint="Optional"><SchoolPicker /></Field>
@@ -222,6 +234,7 @@ export function SignupForm() {
       </button>
       <p className={s.switch}>Already have an account? <Link href="/login" className="link">Log in</Link></p>
     </form>
+    </Banded>
   );
 }
 
@@ -259,10 +272,11 @@ export function LoginForm() {
   if (sent) return <Sent email={sent} kind="reset" onBack={() => { setSent(null); setMode("login"); }} />;
 
   return (
+    <Banded band={mode === "login"
+      ? { title: "Log", accent: "in", lead: "Follow conferences, list your own and keep track of your listings." }
+      : { title: "Reset your", accent: "password", lead: "We’ll email you a link to set a new one." }}>
     <form key={mode} className={`t-reveal ${s.form}`} onSubmit={submit} noValidate>
-      <h1 className={s.title}>{mode === "login" ? "Log in" : "Reset your password"}</h1>
       <NotReady />
-      {mode === "reset" && <p className="muted">We&rsquo;ll email you a link to set a new one.</p>}
       <Field label="Email"><input name="email" type="email" className="control" autoComplete="email" onChange={() => setError("")} /></Field>
       {mode === "login" && (
         <Field label="Password"><Password name="password" autoComplete="current-password" onChange={() => setError("")} /></Field>
@@ -283,13 +297,14 @@ export function LoginForm() {
           <>
             <button type="button" className={s.textBtn} onClick={() => { setMode("reset"); setError(""); }}>Forgot password?</button>
             <span className={s.dot} aria-hidden="true">·</span>
-            New here? <Link href="/signup" className="link">Create an account</Link>
+            <Link href="/signup" className="link">Create an account</Link>
           </>
         ) : (
           <button type="button" className={s.textBtn} onClick={() => { setMode("login"); setError(""); }}>← Back to log in</button>
         )}
       </p>
     </form>
+    </Banded>
   );
 }
 
@@ -299,20 +314,30 @@ export function AccountView() {
   const { say, node } = useToast();
   const [busy, setBusy] = useState("");
   const pwRef = useRef<HTMLFormElement>(null);
+  const [counts, setCounts] = useState<{ listings: number | null; following: number | null }>({ listings: null, following: null });
 
   useEffect(() => { if (recovering) pwRef.current?.querySelector("input")?.focus(); }, [recovering]);
+  const uid = session?.user.id;
+  useEffect(() => {
+    if (!uid || !supabase) return;
+    Promise.all([
+      supabase.from("conferences").select("id", { count: "exact", head: true }).eq("submitted_by", uid),
+      supabase.from("follows").select("conference_id", { count: "exact", head: true }),
+    ]).then(([l, f]) => setCounts({ listings: l.count ?? 0, following: f.count ?? 0 }));
+  }, [uid]);
 
   if (!ready) return <FormSkeleton fields={3} width={640} />;
   if (!session || !supabase) {
     return (
-      <div className={`t-reveal ${s.form}`}>
-        <h1 className={s.title}>Your account</h1>
-        <p className="muted">Log in to see your account.</p>
-        <div className={s.row}>
-          <Link href="/login" className="button lg">Log in</Link>
-          <Link href="/signup" className="button secondary lg">Create an account</Link>
-        </div>
-      </div>
+      <Banded band={{
+        title: "Your", accent: "account", lead: "Log in to see your account.",
+        aside: (
+          <div className={s.row}>
+            <Link href="/login" className="button lg">Log in</Link>
+            <Link href="/signup" className="button secondary lg">Create an account</Link>
+          </div>
+        ),
+      }}>{null}</Banded>
     );
   }
 
@@ -351,15 +376,17 @@ export function AccountView() {
   }
 
   return (
+    <Banded band={{
+      title: name,
+      media: <span className={s.avatar} aria-hidden="true">{initials}</span>,
+      lead: <>{session.user.email}{profile?.school && <><br />{profile.school}</>}</>,
+      figures: [
+        { label: "Listings", value: counts.listings === null ? "–" : String(counts.listings) },
+        { label: "Following", value: counts.following === null ? "–" : String(counts.following) },
+      ],
+      aside: <button className="button secondary" onClick={signOut}>Log out</button>,
+    }}>
     <div className={`t-stagger ${s.account}`}>
-      <header className={s.accHead} style={{ "--i": 0 } as React.CSSProperties}>
-        <span className={s.avatar} aria-hidden="true">{initials}</span>
-        <div>
-          <h1 className={s.title}>{name}</h1>
-          <p className="muted">{session.user.email}{profile?.school && <> · {profile.school}</>}</p>
-        </div>
-        <button className="button secondary" onClick={signOut}>Log out</button>
-      </header>
 
       {recovering && (
         <p className={s.notice} style={{ "--i": 1 } as React.CSSProperties}>Set a new password below to finish resetting it.</p>
@@ -392,5 +419,6 @@ export function AccountView() {
       <MyListings userId={session.user.id} />
       {node}
     </div>
+    </Banded>
   );
 }

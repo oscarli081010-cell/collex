@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Create an account · Collex", descri
 
 export default function Page() {
   return (
-    <main id="top" className={`container ${s.page}`}>
+    <main id="top" className={`container ${s.banded}`}>
       <SignupForm />
     </main>
   );

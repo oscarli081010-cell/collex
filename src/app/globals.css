@@ -98,6 +98,10 @@
 .theme-switching, .theme-switching *, .theme-switching *::before, .theme-switching *::after {
   transition: background-color 300ms var(--ease-out), border-color 300ms var(--ease-out), color 300ms var(--ease-out), fill 300ms var(--ease-out) !important;
 }
+/* Sliding pills keep their slide while the colours cross-fade, so the Appearance switch glides to the new choice. */
+.theme-switching .t-pill {
+  transition: transform var(--tabs-dur) var(--tabs-ease), width var(--tabs-dur) var(--tabs-ease), background-color 300ms var(--ease-out) !important;
+}
 
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -211,6 +215,8 @@ select.control {
 }
 .mobileNav a { padding: 12px 12px; min-height: 44px; display: flex; align-items: center; border-radius: 8px; font-size: 15px; transition: background-color var(--duration-quick); }
 .mobileNav a:hover, .mobileNav a[aria-current="page"] { background: var(--surface); }
+/* Search and the account buttons sit together at the right end of the bar. */
+.topbarEnd { display: flex; align-items: center; gap: 10px; }
 .menu-toggle { display: none; }
 .topbarRight { display: flex; align-items: center; gap: 10px; opacity: 0; transition: opacity var(--duration-fast) var(--ease-smooth-out); }
 .topbarRight[data-ready="true"] { opacity: 1; }
@@ -242,6 +248,7 @@ select.control {
   .topbarInner { gap: 12px; height: 64px; }
   .navlinks { display: none; }
   .topbarRight { display: none; }
+  .topbarEnd { margin-left: auto; }
   .mobileNav { display: flex; }
   .menu-toggle {
     display: inline-flex; align-items: center;

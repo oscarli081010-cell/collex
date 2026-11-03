@@ -17,6 +17,12 @@
   font-size: clamp(52px, 7.4vw, 104px);
 }
 .title em { font-style: italic; color: var(--accent); }
+.head { display: flex; align-items: center; gap: clamp(16px, 2.2vw, 28px); min-width: 0; }
+.headText { min-width: 0; }
+.lead { margin-top: 14px; font-size: 16px; line-height: 1.55; color: var(--muted); max-width: 52ch; overflow-wrap: anywhere; text-wrap: pretty; }
+.side { display: flex; flex-direction: column; align-items: flex-end; gap: 20px; }
+/* Smaller title for pages that are mostly a form (log in, account, list a conference). */
+.md .title { font-size: clamp(44px, 5.6vw, 80px); }
 
 .figures { display: flex; gap: clamp(20px, 3vw, 44px); }
 .figures > div { display: flex; flex-direction: column-reverse; gap: 6px; min-width: 0; }
@@ -31,6 +37,7 @@
 .foot { margin-top: clamp(28px, 3.4vw, 40px); }
 
 @media (max-width: 720px) {
+  .side { width: 100%; align-items: stretch; }
   .figures { width: 100%; justify-content: space-between; gap: 12px; }
   .figures > div + div { padding-left: 12px; }
   .figures dd { font-size: 26px; white-space: normal; }

@@ -90,6 +90,7 @@ export default async function ConferencePage({ params }: Props) {
         {!c.isTemplate && c.startDate && (
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventSchema(c)).replace(/</g, "\\u003c") }} />
         )}
+        <section className={s.confFirst}>
         <div className={s.cover}>
           <span>{c.isTemplate ? "Cover image N/A" : c.shortName}</span>
         </div>
@@ -110,7 +111,13 @@ export default async function ConferencePage({ params }: Props) {
         </header>
 
         <ApplyBand c={c} />
+        <a href="#details" className={s.cue}>
+          Details
+          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </a>
+        </section>
 
+        <div id="details" className={s.details}>
         <ConferenceTabs tabs={TABS} />
 
         <div className={s.confGrid}>
@@ -205,6 +212,7 @@ export default async function ConferencePage({ params }: Props) {
               Run this conference? <Link className="link" href="/list">Update the listing</Link>
             </p>
           </aside>
+        </div>
         </div>
       </main>
   );

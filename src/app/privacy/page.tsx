@@ -28,6 +28,9 @@ export default function Privacy() {
         <p>The details you enter: its name, host school, dates, venue, level, fee, contact email, registration links, overview and committees, and your role in it. We also record which account sent it.</p>
         <h3>When you follow a conference</h3>
         <p>Which conferences you follow. Following is your choice: you press Follow on a conference&rsquo;s page, and you can unfollow there or from the link in any email.</p>
+
+        <h3>When you express interest in a conference</h3>
+        <p>Which conferences you&rsquo;ve sent an expression of interest to. You choose to send it on the conference&rsquo;s page and can withdraw it there. The conference&rsquo;s organisers see only how many expressions of interest it has, not who sent them.</p>
         <h3>A record of changes</h3>
         <p>When a listing or profile changes, we log who made the change, what changed and when. Only Collex admins can see this log. It helps us review listings and fix mistakes.</p>
         <h3>When you visit</h3>

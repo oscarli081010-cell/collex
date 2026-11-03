@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import PageBand, { type BandProps } from "./PageBand";
 import { FormSkeleton } from "./Skeleton";
 import { useEffect, useState } from "react";
 import { NA, webUrl, type Conference } from "@/lib/conferences";
@@ -130,35 +131,43 @@ export default function ListForm() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  if (!ready || (editId && session && editing === null)) return <FormSkeleton fields={6} width={600} grid />;
+  // The headline band above every state of this page, with the state's content centred underneath.
+  const page = (band: BandProps, body: React.ReactNode) => (
+    <>
+      <PageBand size="md" {...band} />
+      <div className={auth.body}>{body}</div>
+    </>
+  );
+  const listBand: BandProps = editId
+    ? { title: "Edit your", accent: "listing", lead: edit ? (edit.status === "published" ? "Changes show on the live page straight away." : "It's still in review. Your changes go with it.") : undefined }
+    : { title: "List a", accent: "conference", lead: "The Collex team reviews it before it goes live." };
+
+  if (!ready || (editId && session && editing === null)) return page(listBand, <FormSkeleton fields={6} width={600} grid />);
   if (editId && editing === "missing") {
-    return (
-      <div className={`t-reveal ${auth.form}`}>
-        <h1 className={auth.title}>Can&rsquo;t edit that listing</h1>
-        <p className="muted">Only the account that listed a conference can edit it, while it&rsquo;s in review or live.</p>
-        <div className={auth.row}><Link href="/account" className="button lg">Your listings</Link></div>
-      </div>
-    );
+    return page({
+      title: "Can\u2019t edit that", accent: "listing", lead: "Only the account that listed a conference can edit it, while it\u2019s in review or live.",
+      aside: <div className={auth.row}><Link href="/account" className="button lg">Your listings</Link></div>,
+    }, null);
   }
 
   if (!session) {
-    return (
-      <div className={`t-reveal ${auth.form}`}>
-        <h1 className={auth.title}>List a conference</h1>
-        <p className="muted">Log in first. Your listing stays tied to your account, so you can track it.</p>
+    return page({
+      title: "List a", accent: "conference", lead: "Log in first. Your listing stays tied to your account, so you can track it.",
+      aside: (
         <div className={auth.row}>
           <Link href="/login" className="button lg">Log in</Link>
           <Link href="/signup" className="button secondary lg">Create an account</Link>
         </div>
-      </div>
-    );
+      ),
+    }, null);
   }
 
   if (sent) {
-    return (
+    return page({
+      title: edit ? "Changes" : "Sent for", accent: edit ? "saved" : "review",
+      media: <svg width="56" height="56" viewBox="0 0 40 40" aria-hidden="true" className={s.sentIcon}><circle cx="20" cy="20" r="19" fill="var(--accent-soft)" /><path d="M13 20.5l5 5 9-10" fill="none" stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" pathLength={1} /></svg>,
+    },
       <div key="sent" role="status" className={`t-reveal ${auth.sent}`}>
-        <svg width="44" height="44" viewBox="0 0 40 40" aria-hidden="true" className={s.sentIcon}><circle cx="20" cy="20" r="19" fill="var(--accent-soft)" /><path d="M13 20.5l5 5 9-10" fill="none" stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" pathLength={1} /></svg>
-        <h1 className={auth.title}>{edit ? "Changes saved" : "Sent for review"}</h1>
         <ol className={`t-stagger ${s.next}`}>
           {(edit ? (edit.status === "published"
             ? ["They show on its page now.", "People following it get an email about new application links or guides.", "Each change is recorded, so the Collex team can see what changed."]
@@ -172,18 +181,11 @@ export default function ListForm() {
           {edit ? <button className="button secondary" onClick={() => setSent(false)}>Keep editing</button>
             : <button className="button secondary" onClick={() => setSent(false)}>List another</button>}
         </div>
-      </div>
-    );
+      </div>);
   }
 
-  return (
+  return page(listBand,
       <form key={edit?.id ?? "form"} className={`t-reveal ${s.listForm}`} onSubmit={submit} noValidate>
-        <div className={s.wide}>
-          <h1 className={auth.title}>{edit ? "Edit your listing" : "List a conference"}</h1>
-          <p className="muted" style={{ marginTop: 12 }}>
-            {edit ? (edit.status === "published" ? "Changes show on the live page straight away." : "It's still in review. Your changes go with it.") : "The Collex team reviews it before it goes live."}
-          </p>
-        </div>
         {(edit ? [...FIELDS, GUIDES] : FIELDS).map((f) => {
           const id = `f-${f.name}`;
           const err = errors[f.name];
@@ -231,6 +233,5 @@ export default function ListForm() {
           </button>
           <small className="muted" style={{ textAlign: "center" }}>Only fields marked <span className={s.req}>*</span> are needed. Add the rest later.</small>
         </div>
-      </form>
-  );
+      </form>);
 }
