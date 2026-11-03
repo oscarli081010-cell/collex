@@ -214,6 +214,10 @@ select.control {
 .menu-toggle { display: none; }
 .topbarRight { display: flex; align-items: center; gap: 10px; opacity: 0; transition: opacity var(--duration-fast) var(--ease-smooth-out); }
 .topbarRight[data-ready="true"] { opacity: 1; }
+/* Top bar buttons are pills, like the nav and the search circle. "List a conference" reads as a quiet link until hovered. */
+.topbarRight .button { height: 40px; padding: 0 18px; border-radius: 999px; }
+.topbarRight .button.secondary { background: transparent; border-color: transparent; color: var(--muted); }
+.topbarRight .button.secondary:hover { background: var(--surface-2); color: var(--ink); }
 .avatarLink {
   width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
   background: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 500;

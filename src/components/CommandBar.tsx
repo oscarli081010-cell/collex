@@ -65,10 +65,8 @@ export default function CommandBar() {
 
   return (
     <>
-      <button className={s.trigger} onClick={open} aria-label="Search Collex" aria-keyshortcuts="Meta+K Control+K">
-        <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-        <span className={s.triggerText}>Search</span>
-        <kbd className={s.kbd}>{mac ? "⌘" : "Ctrl"} K</kbd>
+      <button className={s.trigger} onClick={open} aria-label="Search Collex" aria-keyshortcuts="Meta+K Control+K" title={`Search (${mac ? "⌘" : "Ctrl"} K)`}>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
       </button>
       <dialog ref={dialog} className={s.dialog} aria-label="Search Collex" onClick={(e) => e.target === dialog.current && close()}>
         <div className={s.panel}>
