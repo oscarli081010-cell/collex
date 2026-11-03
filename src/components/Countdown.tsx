@@ -27,9 +27,9 @@ export function nextMoment(c: Conference, now = Date.now()): { text: string; liv
   return { text: n <= 60 ? `Starts ${when(n)}` : `Starts in ${Math.round(n / 7)} weeks` };
 }
 
-export default function Countdown({ c }: { c: Conference }) {
+export default function Countdown({ c, large = false }: { c: Conference; large?: boolean }) {
   const [m, setM] = useState<ReturnType<typeof nextMoment>>(null);
   useEffect(() => { setM(nextMoment(c)); }, [c]);
   if (!m || c.isTemplate) return null;
-  return <span className="countdown" data-live={m.live ?? false}>{m.text}</span>;
+  return <span className={`countdown ${large ? "lg" : ""}`} data-live={m.live ?? false}>{m.text}</span>;
 }

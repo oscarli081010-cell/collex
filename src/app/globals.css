@@ -297,6 +297,9 @@ select.control {
   animation: skelIn var(--duration-fast) var(--ease-smooth-out) both;
 }
 .countdown::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+/* On a conference's own page it's the headline fact, so it's a size up and stands in the accent. */
+.countdown.lg { height: 32px; padding: 0 14px; gap: 8px; font-size: 14px; background: var(--accent); color: var(--on-accent); font-variant-numeric: tabular-nums; }
+.countdown.lg::before { width: 7px; height: 7px; }
 .countdown[data-live="true"]::before { animation: livePulse 1.6s ease-in-out infinite; }
 @keyframes livePulse { 50% { opacity: 0.3; } }
 @media (prefers-reduced-motion: reduce) { .countdown, .countdown::before { animation: none !important; } }

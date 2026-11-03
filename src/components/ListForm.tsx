@@ -3,8 +3,9 @@
 import Link from "next/link";
 import PageBand, { type BandProps } from "./PageBand";
 import { FormSkeleton } from "./Skeleton";
-import { useCallback, useEffect, useState } from "react";
-import { coverUrl, webUrl, type Conference } from "@/lib/conferences";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import { coverUrl, formatRange, webUrl, type Conference } from "@/lib/conferences";
+import { useConferences } from "./ConferencesContext";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
 import { useAuth } from "./AuthProvider";
@@ -46,6 +47,7 @@ export default function ListForm() {
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [firstDay, setFirstDay] = useState("");
+  const [lastDay, setLastDay] = useState("");
   // A newly picked photo (uploaded on send), and what the picker shows: the new photo, the saved one, or nothing.
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
@@ -75,11 +77,15 @@ export default function ListForm() {
       const row = members.length ? (data as Editing | null) : null;
       setEditing(row ?? "missing");
       setFirstDay(row?.start_date ?? "");
+      setLastDay(row?.end_date ?? "");
       setCommittees(committeeRows(row?.committees ?? []));
       setGuides(guideRows(row?.guides ?? []));
     });
   }, [editId, session, loadTeam]);
   const edit = editing && editing !== "missing" ? editing : null;
+  // Other live listings on any of the same days. A heads-up only: two conferences can share a weekend.
+  const listed = useConferences();
+  const clashes = firstDay ? clashing(listed, firstDay, lastDay && lastDay >= firstDay ? lastDay : firstDay, edit?.id) : [];
   const badGuides = guides.map((g, i) => (g.url.trim() && !webUrl(g.url) ? i : -1)).filter((i) => i >= 0);
 
   const check = (v: (k: string) => string) => {
@@ -233,7 +239,8 @@ export default function ListForm() {
           const hintId = err ? `${id}-err` : f.hint ? `${id}-hint` : undefined;
           const clear = () => err && setErrors(({ [f.name]: _, ...rest }) => rest);
           return (
-            <div key={f.name} className={`field ${f.wide ? s.wide : ""} ${err ? s.invalid : ""}`}>
+            <Fragment key={f.name}>
+            <div className={`field ${f.wide ? s.wide : ""} ${err ? s.invalid : ""}`}>
               <label htmlFor={id}>{f.label}{f.required ? <span className={s.req} aria-hidden="true"> *</span> : <span className="muted"> (optional)</span>}</label>
               {f.type === "select" ? (
                 <select id={id} name={f.name} className="control" defaultValue={edit?.level ?? ""} onChange={clear}>
@@ -253,13 +260,16 @@ export default function ListForm() {
                   aria-invalid={Boolean(err)}
                   aria-describedby={hintId}
                   min={f.name === "end_date" ? firstDay || undefined : undefined}
-                  onChange={(e) => { clear(); if (f.name === "start_date") setFirstDay(e.target.value); }}
+                  onChange={(e) => { clear(); if (f.name === "start_date") setFirstDay(e.target.value); if (f.name === "end_date") setLastDay(e.target.value); }}
                 />
               )}
               {err
                 ? <small key="err" id={hintId} className={`t-reveal ${s.error}`}>{err}</small>
                 : f.hint && <small id={hintId}>{f.hint}</small>}
             </div>
+            {/* Right under the dates, across the form, while it matters. */}
+            {f.name === "end_date" && <ClashNote clashes={clashes} />}
+            </Fragment>
           );
         })}
         <fieldset className={`field ${s.wide}`}>
@@ -310,4 +320,27 @@ export default function ListForm() {
         </div>
       </form>,
       edit && session && <Team conf={edit.id} name={edit.name ?? "this listing"} me={session.user.id} team={team} reload={loadTeam} />);
+}
+
+/** Live listings running on any day from first to last, except the one being edited. */
+function clashing(list: Conference[], first: string, last: string, except?: string) {
+  return list.filter((c) => c.id !== except && c.startDate && c.startDate <= last && (c.endDate ?? c.startDate) >= first);
+}
+
+// Polite, not blocking: it names the clash so the organiser can decide. Always in the page, so screen readers hear it appear.
+function ClashNote({ clashes }: { clashes: Conference[] }) {
+  return (
+    <div className={`${s.wide} ${s.clashSlot}`} role="status">
+      {clashes.length > 0 && (
+        <div key={clashes.map((c) => c.id).join()} className={`t-reveal ${s.clash}`}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 2.2l6.2 11H1.8z" /><path d="M8 6.5v3M8 11.6v.1" /></svg>
+          <p>
+            {clashes.length === 1 ? <>Heads up: <Link href={`/conferences/${clashes[0].slug}`} className="link" target="_blank">{clashes[0].name}</Link> runs on {formatRange(clashes[0])}.</>
+              : <>Heads up: {clashes.length} conferences run on these dates: {clashes.map((c, i) => <span key={c.id}>{i > 0 && (i === clashes.length - 1 ? " and " : ", ")}<Link href={`/conferences/${c.slug}`} className="link" target="_blank">{c.name}</Link></span>)}.</>}
+            {" "}You can still list on these dates.
+          </p>
+        </div>
+      )}
+    </div>
+  );
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ViewTransition } from "react";
-import { formatDate, formatRange, isPast, NA, template, type Conference } from "@/lib/conferences";
+import { formatDate, formatRange, isPast, monogram, NA, template, type Conference } from "@/lib/conferences";
 import { getBySlug, getPublished } from "@/lib/data";
 import ApplyBand from "@/components/ApplyBand";
 import ConferenceActions from "@/components/ConferenceActions";
@@ -10,6 +10,7 @@ import ConferenceTabs from "@/components/ConferenceTabs";
 import Countdown from "@/components/Countdown";
 import FollowButton from "@/components/FollowButton";
 import OrganiserPanel from "@/components/OrganiserPanel";
+import StickyApply from "@/components/StickyApply";
 import Verified from "@/components/Verified";
 import { META_ICONS as ICONS } from "@/components/MetaIcons";
 import s from "../../inner.module.css";
@@ -94,6 +95,24 @@ function Nothing({ what }: { what: string }) {
   );
 }
 
+// The dates as a desk-calendar page beside the name: month on top, day large, weekday under.
+// The facts line says the same in words, so this is decoration to screen readers.
+const part = (iso: string, o: Intl.DateTimeFormatOptions) => new Date(iso + "T00:00:00").toLocaleDateString("en-AU", o);
+function DateTile({ start, end }: { start: string; end: string | null }) {
+  const last = end && end !== start ? end : null;
+  const span = (o: Intl.DateTimeFormatOptions) => {
+    const a = part(start, o), b = last ? part(last, o) : a;
+    return a === b ? a : `${a}–${b}`;
+  };
+  return (
+    <span className={s.dateTile} aria-hidden="true">
+      <span className={s.tileMonth}>{span({ month: "short" })}</span>
+      <span className={s.tileDay}>{span({ day: "numeric" })}</span>
+      <span className={s.tileWeekday}>{span({ weekday: "short" })}</span>
+    </span>
+  );
+}
+
 const initials = (name: string) => (name === NA ? "" : name.split(" ").map((w) => w[0]).join("").slice(0, 2));
 
 export default async function ConferencePage({ params }: Props) {
@@ -112,23 +131,29 @@ export default async function ConferencePage({ params }: Props) {
             {c.cover
               // eslint-disable-next-line @next/next/no-img-element -- organisers' photos come straight from storage at their own size
               ? <img src={c.cover} alt="" className={s.coverImg} fetchPriority="high" />
-              : <span>{c.isTemplate ? "Cover image N/A" : c.shortName}</span>}
+              : c.isTemplate
+                ? <span className={s.coverNote}>Cover image N/A</span>
+                // No photo yet: the conference's initials, as in the lists, so the page still opens on something of its own.
+                : <span className={`serif ${s.coverMark}`} aria-hidden="true">{monogram(c)}</span>}
           </div>
         </ViewTransition>
 
         <header className={s.confHead}>
-          <div>
-            {c.isTemplate ? <span className="badge accent">Demo listing</span> : (
-              <span className={s.confBadges}>{past && <span className="badge">Finished</span>}{c.verified && <Verified />}<Countdown c={c} /></span>
-            )}
-            <ViewTransition name={`title-${c.slug}`} share="morph" default="none">
-              <h1 className={s.confTitle}>{c.name}</h1>
-            </ViewTransition>
-            <ul className={s.confMeta}>
-              <li>{ICONS.date}{formatRange(c)}</li>
-              <li>{ICONS.host}Hosted by {c.host}</li>
-              <li>{ICONS.venue}{c.venue}</li>
-            </ul>
+          <div className={s.confLead}>
+            {c.startDate && !c.isTemplate && <DateTile start={c.startDate} end={c.endDate} />}
+            <div>
+              {c.isTemplate ? <span className="badge accent">Demo listing</span> : (
+                <span className={s.confBadges}>{past && <span className="badge">Finished</span>}<Countdown c={c} large />{c.verified && <Verified />}</span>
+              )}
+              <ViewTransition name={`title-${c.slug}`} share="morph" default="none">
+                <h1 className={s.confTitle}>{c.name}</h1>
+              </ViewTransition>
+              <ul className={s.confMeta}>
+                <li>{ICONS.date}{formatRange(c)}</li>
+                <li>{ICONS.host}Hosted by {c.host}</li>
+                <li>{ICONS.venue}{c.venue}</li>
+              </ul>
+            </div>
           </div>
           <div className={s.confAside}>
             <ConferenceActions c={c} past={past} />
@@ -142,6 +167,7 @@ export default async function ConferencePage({ params }: Props) {
             <p className="muted">Its page stays up so committees and guides are easy to look back on. <Link href="/conferences" className="link">See what&rsquo;s coming up</Link></p>
           </section>
         ) : <ApplyBand c={c} />}
+        {!past && !c.isTemplate && <StickyApply c={c} />}
         <a href="#details" className={s.cue}>
           Details
           <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
