@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatRange, NA, type Conference } from "@/lib/conferences";
+import Countdown from "./Countdown";
 import s from "./board.module.css";
 
 // A listing: the whole card opens the page; the two buttons go straight to applying.
@@ -23,6 +24,7 @@ export default function ConferenceRow({ c }: { c: Conference }) {
         <span className={s.rowTitle}>
           <Link href={page} className={`serif ${s.rowLink}`}>{c.name}</Link>
           {c.isTemplate && <span className="badge accent">Demo</span>}
+          <Countdown c={c} />
         </span>
         <span className={s.rowMeta}>{formatRange(c)} · {c.host} · {c.venue}</span>
       </span>

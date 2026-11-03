@@ -8,6 +8,7 @@ import { applyTheme, THEMES, type Theme } from "@/lib/theme";
 import { useAuth } from "./AuthProvider";
 import CodeInput from "./CodeInput";
 import SchoolPicker from "./SchoolPicker";
+import { FormSkeleton, RowsSkeleton } from "./Skeleton";
 import { usePill } from "./usePill";
 import { useToast } from "./useToast";
 import s from "@/app/auth.module.css";
@@ -92,6 +93,7 @@ function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"
     setChecking(true);
     const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
     setChecking(false);
+    if (!error && navigator.vibrate && matchMedia("(pointer: coarse)").matches) navigator.vibrate(12); // a light tap on phones
     if (error) {
       setWrong((n) => n + 1);
       return say(/expired/i.test(error.message) ? "That code has expired. Send a new one." : "That code isn't right. Try again.");
@@ -147,7 +149,7 @@ function MyListings({ userId }: { userId: string }) {
         <h2 className={s.cardTitle}>Your listings</h2>
         <Link href="/list" className="link">List a conference</Link>
       </div>
-      {rows === null ? <div className={s.skeleton} style={{ height: 56 }} /> : rows.length === 0 ? (
+      {rows === null ? <RowsSkeleton rows={2} height={44} /> : rows.length === 0 ? (
         <p className="muted">Nothing listed yet.</p>
       ) : (
         <ul className={s.listings}>
@@ -299,7 +301,7 @@ export function AccountView() {
 
   useEffect(() => { if (recovering) pwRef.current?.querySelector("input")?.focus(); }, [recovering]);
 
-  if (!ready) return <div className={`${s.form} ${s.skeleton}`} aria-busy="true" />;
+  if (!ready) return <FormSkeleton fields={3} width={640} />;
   if (!session || !supabase) {
     return (
       <div className={`t-reveal ${s.form}`}>

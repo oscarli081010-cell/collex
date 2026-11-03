@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { RowsSkeleton } from "./Skeleton";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatDate, webUrl } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
@@ -50,7 +51,7 @@ export default function Admin() {
 
   useEffect(() => { if (profile?.is_admin) load(); }, [profile?.is_admin, load]);
 
-  if (!ready) return <div className={auth.skeleton} style={{ height: 480 }} aria-busy="true" />;
+  if (!ready) return <RowsSkeleton rows={5} height={72} />;
   if (!session || !profile?.is_admin) {
     return (
       <div className={`t-reveal ${auth.form}`}>
@@ -98,7 +99,7 @@ export default function Admin() {
         </div>
       </header>
 
-      {rows === null ? <div className={auth.skeleton} style={{ height: 320 }} /> : (
+      {rows === null ? <RowsSkeleton rows={4} height={72} /> : (
         <div key={tab} className="t-reveal">
           {tab === "Review" && (pending.length === 0 ? (
             <Empty title="Nothing to review" body="New listings land here for approval." />

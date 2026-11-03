@@ -27,6 +27,26 @@
   transition: background-color var(--duration-quick), color var(--duration-quick);
 }
 .event:hover { background: var(--accent); color: var(--on-accent); }
+.day:hover, .day:focus-within { z-index: 2; }
+.evWrap { position: relative; display: flex; flex-direction: column; }
+.preview {
+  position: absolute; left: -6px; bottom: calc(100% + 8px); z-index: 5; width: 240px;
+  display: flex; flex-direction: column; gap: 3px; padding: 14px 16px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 18px 40px -18px rgba(var(--shadow-rgb), 0.35);
+  font-size: 13px; line-height: 1.4; color: var(--ink);
+  opacity: 0; visibility: hidden; transform: translateY(4px) scale(var(--scale-small, 0.98)); transform-origin: bottom left;
+  transition: opacity var(--duration-quick) var(--ease-out), transform var(--duration-quick) var(--ease-out), visibility 0s linear var(--duration-quick);
+  pointer-events: none;
+}
+.evWrap[data-edge="end"] .preview { left: auto; right: -6px; transform-origin: bottom right; }
+.previewName { font-family: var(--serif); font-size: 20px; line-height: 1.1; margin-bottom: 2px; }
+.evWrap:hover .preview, .evWrap:focus-within .preview {
+  opacity: 1; visibility: visible; transform: none;
+  transition: opacity var(--duration-quick) var(--ease-out) var(--duration-micro), transform var(--duration-quick) var(--ease-out) var(--duration-micro), visibility 0s;
+}
+@media (prefers-reduced-motion: reduce) { .preview { transition: none !important; transform: none; } }
+@media (hover: none) { .preview { display: none; } }
 
 .calBar { position: relative; z-index: 2; display: flex; justify-content: center; }
 

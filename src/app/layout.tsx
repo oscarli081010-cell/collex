@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 import { Inter, Instrument_Serif } from "next/font/google";
 import Motion from "@/components/Motion";
 import TopBar from "@/components/TopBar";
@@ -37,7 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <ConferencesProvider list={list}>
             <Motion />
             <TopBar />
-            {children}
+            <ViewTransition name="page" default="auto">{children}</ViewTransition>
             <Footer />
           </ConferencesProvider>
         </AuthProvider>

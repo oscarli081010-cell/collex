@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FormSkeleton } from "./Skeleton";
 import { useState } from "react";
 import { NA } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
@@ -92,7 +93,7 @@ export default function ListForm() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  if (!ready) return <div className={`${auth.form} ${auth.skeleton}`} style={{ maxWidth: 600, height: 560 }} aria-busy="true" />;
+  if (!ready) return <FormSkeleton fields={6} width={600} grid />;
 
   if (!session) {
     return (

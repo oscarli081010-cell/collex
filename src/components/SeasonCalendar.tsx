@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { MONTHS, onDay as runningOn, SEASON_YEAR } from "@/lib/conferences";
+import { formatRange, MONTHS, NA, onDay as runningOn, SEASON_YEAR } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import ConferenceRow from "./ConferenceRow";
 import MonthPicker, { type YM } from "./MonthPicker";
@@ -67,9 +67,20 @@ export default function SeasonCalendar() {
             return (
               <div key={i} role="gridcell" className={`${s.day} ${i % 7 >= 5 ? s.weekend : ""} ${iso === todayIso ? s.today : ""} ${onDay(iso).length ? s.busy : ""}`}>
                 <span className={s.dayNum}>{d}</span>
-                {onDay(iso).map((c) => (
-                  <Link key={c.slug} href={`/conferences/${c.slug}`} className={s.event}>{c.shortName}</Link>
-                ))}
+                {onDay(iso).map((c) => {
+                  const tip = `pv-${iso}-${c.slug}`;
+                  // Hover or keyboard focus shows a small card with the conference's details.
+                  return (
+                    <span key={c.slug} className={s.evWrap} data-edge={i % 7 >= 5 ? "end" : undefined}>
+                      <Link href={`/conferences/${c.slug}`} className={s.event} aria-describedby={tip}>{c.shortName}</Link>
+                      <span id={tip} role="tooltip" className={s.preview}>
+                        <span className={s.previewName}>{c.name}</span>
+                        <span>{formatRange(c)}</span>
+                        <span className="muted">{c.host}{c.venue !== NA ? ` · ${c.venue}` : ""}</span>
+                      </span>
+                    </span>
+                  );
+                })}
               </div>
             );
           })}
