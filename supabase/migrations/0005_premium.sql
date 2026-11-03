@@ -44,6 +44,7 @@ create policy "Follow a live conference" on public.follows
     and exists (select 1 from public.conferences c where c.id = conference_id and c.status = 'published'));
 create policy "Unfollow own" on public.follows
   for delete to authenticated using (user_id = (select auth.uid()));
+revoke all on public.follows from anon, authenticated;
 grant select, delete on public.follows to authenticated;
 grant insert (conference_id) on public.follows to authenticated;
 

@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
   const jobs = await sql`
     update private.notifications set sent_at = now()
     where id in (select id from private.notifications where sent_at is null order by id limit 20 for update skip locked)
-    returning conference_id, kind`;
+    returning id, conference_id, kind`;
 
   let sent = 0;
   for (const job of jobs) {
@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
       select u.email, f.token from public.follows f join auth.users u on u.id = f.user_id
       where f.conference_id = ${job.conference_id} and u.email is not null`;
     const page = `https://collex.au/conferences/${c.slug}`;
+    let failed = false, jobSent = 0;
     for (let i = 0; i < people.length; i += 100) {
       const batch = people.slice(i, i + 100).map((p) => {
         const unsub = `https://collex.au/unfollow?t=${p.token}`;
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
           html: html(c.name, job.kind, page, unsub),
           text: `${c.name}\n\n${BODY[job.kind]}\n${page}\n\nUnsubscribe from emails about this conference: ${unsub}\nCollex · Sydney NSW, Australia`,
           headers: {
-            "List-Unsubscribe": `<https://collex.au/api/unfollow?t=${p.token}>, <mailto:hello@collex.au?subject=unsubscribe>`,
+            "List-Unsubscribe": `<https://collex.au/api/unfollow?t=${p.token}>`,
             "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           },
         };
@@ -78,9 +79,11 @@ Deno.serve(async (req) => {
         headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify(batch),
       });
-      if (res.ok) sent += batch.length;
-      else console.error("Resend failed", res.status, await res.text());
+      if (res.ok) { sent += batch.length; jobSent += batch.length; }
+      else { failed = true; console.error("Resend failed", res.status, await res.text()); }
     }
+    // Put the job back in the queue if nobody got it, so the next run tries again.
+    if (failed && !jobSent) await sql`update private.notifications set sent_at = null where id = ${job.id}`;
   }
   return Response.json({ jobs: jobs.length, sent }, { headers: cors });
 });
