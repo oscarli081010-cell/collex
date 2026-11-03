@@ -16,7 +16,10 @@ export const NAV = [
 ];
 
 export default function TopBar() {
-  const pathname = usePathname();
+  // When Vercel refreshes the home page in the background it renders it as "/index", which would leave Home unmarked
+  // (and React keeps the server's attribute on hydration), so that name counts as "/".
+  const raw = usePathname();
+  const pathname = raw === "/index" ? "/" : raw;
   const { ready, session, profile } = useAuth();
   const who = profile?.full_name || session?.user.email || "";
   const initials = who.split(/[\s@]/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();

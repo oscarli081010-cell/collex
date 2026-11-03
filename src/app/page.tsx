@@ -2,6 +2,7 @@ import Link from "next/link";
 import UpcomingBoard from "@/components/UpcomingBoard";
 import MiniCalendar from "@/components/MiniCalendar";
 import NextCard from "@/components/NextCard";
+import Reveal from "@/components/Reveal";
 import styles from "./home.module.css";
 
 // schema.org data naming the site and who runs it, for search results.
@@ -28,7 +29,7 @@ export default function Home() {
     <main id="top">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE) }} />
       <section className={`container ${styles.hero}`}>
-        <div className={styles.heroText} data-reveal>
+        <Reveal className={styles.heroText}>
           <h1 className={`serif ${styles.title}`}>
             Sydney Model UN, <em>in one place.</em>
           </h1>
@@ -37,7 +38,7 @@ export default function Home() {
             <a href="#upcoming" className="button lg">See what&rsquo;s on</a>
             <Link href="/list" className="button secondary lg">List a conference</Link>
           </div>
-        </div>
+        </Reveal>
         <div className={styles.heroPic}>
           {/* Sized for the column it sits in, in the smallest format each browser can show; loaded first, with its
               space held by the frame's aspect ratio so nothing moves when it arrives. */}
