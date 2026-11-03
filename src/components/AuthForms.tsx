@@ -157,6 +157,7 @@ function MyListings({ userId }: { userId: string }) {
             <li key={r.id}>
               {r.status === "published" ? <Link href={`/conferences/${r.slug}`} className="link">{r.name}</Link> : <span>{r.name}</span>}
               <span className={s.status} data-status={r.status}>{STATUS[r.status]}</span>
+              {(r.status === "published" || r.status === "pending") && <Link href={`/list?edit=${r.id}`} className="link" aria-label={`Edit ${r.name}`}>Edit</Link>}
               {r.status === "rejected" && r.review_note && <small className="muted">{r.review_note}</small>}
             </li>
           ))}

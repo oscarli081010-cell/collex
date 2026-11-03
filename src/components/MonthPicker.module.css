@@ -23,6 +23,10 @@
 .sm .arrow, .sm .trigger { height: 32px; }
 .sm .arrow { width: 32px; }
 .sm .trigger { font-size: 18px; min-width: 140px; padding: 0 12px; }
+@media (pointer: coarse) {
+  .arrow, .trigger, .sm .arrow, .sm .trigger { height: 44px; }
+  .arrow, .sm .arrow { width: 44px; }
+}
 
 .menu {
   position: absolute; top: calc(100% + 8px); left: 50%; margin-left: -132px; z-index: 50;

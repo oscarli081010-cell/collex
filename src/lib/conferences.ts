@@ -10,6 +10,8 @@ export type Committee = {
 };
 
 export type Conference = {
+  /** Database id; the demo page has none. */
+  id?: string;
   slug: string;
   name: string;
   shortName: string;
@@ -31,6 +33,10 @@ export type Conference = {
   delegationUrl?: string | null;
   chairUrl?: string | null;
   isTemplate?: boolean;
+  /** Set by an admin when the listing came from the conference's own secretariat. */
+  verified?: boolean;
+  /** ISO timestamp of the last change to the listing. */
+  updatedAt?: string;
 };
 
 export const NA = "N/A";

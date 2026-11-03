@@ -17,6 +17,7 @@ export async function GET() {
     "",
     "- [Calendar](https://collex.au/calendar): conferences month by month",
     "- [Conferences](https://collex.au/conferences): upcoming conferences with hosts and dates",
+    "- [About](https://collex.au/about): why Collex exists and how listings work",
     "- [List a conference](https://collex.au/list): how organisers submit a listing",
     "- [Terms of use](https://collex.au/terms)",
     "- [Privacy policy](https://collex.au/privacy)",

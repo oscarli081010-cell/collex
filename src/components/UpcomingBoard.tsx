@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MONTHS, template, type Conference } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import ConferenceRow from "./ConferenceRow";
@@ -14,6 +14,8 @@ export default function UpcomingBoard({ band = false }: { band?: boolean }) {
   const conferences = useConferences();
   const [q, setQ] = useState("");
   const [level, setLevel] = useState("any");
+  // ?q= prefills the search, so the command bar can open "conferences hosted by …".
+  useEffect(() => { const v = new URLSearchParams(location.search).get("q"); if (v) setQ(v); }, []);
   const input = useRef<HTMLInputElement>(null);
 
   const filtered = Boolean(q || level !== "any");

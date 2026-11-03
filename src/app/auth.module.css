@@ -10,6 +10,7 @@
   transition: text-decoration-color var(--duration-quick);
 }
 .textBtn:hover { text-decoration-color: currentColor; }
+@media (pointer: coarse) { .textBtn { padding-block: 12px; } }
 .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .notice { font-size: 14px; padding: 12px 14px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); }
 .invalid .control { border-color: var(--danger); }

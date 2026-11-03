@@ -63,6 +63,10 @@
 .confHead { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; padding-block: 36px 32px; flex-wrap: wrap; }
 .confTitle { font-family: var(--serif); font-weight: 400; font-size: clamp(40px, 5vw, 60px); line-height: 1.02; letter-spacing: -0.015em; margin-top: 10px; }
 .confSub { color: var(--muted); margin-top: 12px; font-size: 15px; }
+.updated { margin-top: 6px; font-size: 13px; color: var(--muted); }
+.confBadges { display: inline-flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.confAside { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+@media (max-width: 720px) { .confAside { align-items: stretch; width: 100%; } }
 .confActions { display: flex; gap: 10px; }
 .tip { position: relative; display: inline-flex; }
 .tip[data-tip]::after {
@@ -170,3 +174,16 @@
   .applyBtn { width: 100%; }
   .table th, .table td { padding-inline: 10px; }
 }
+
+/* Follow a conference */
+.follow { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-height: 42px; max-width: 280px; text-align: right; }
+.follow small { font-size: 12.5px; line-height: 1.4; }
+@media (max-width: 720px) { .follow { align-items: stretch; max-width: none; text-align: left; } }
+
+/* Calendar subscription */
+.subscribe {
+  display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap;
+  margin-top: 40px; padding: 24px 28px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel);
+}
+.subscribeTitle { font-family: var(--serif); font-size: 24px; line-height: 1.15; margin-bottom: 4px; }
+.subscribeActions { display: flex; gap: 10px; flex-wrap: wrap; }

@@ -101,6 +101,16 @@ export default function SeasonCalendar() {
             {listed.map((c, i) => <div key={c.slug} style={{ "--i": i } as React.CSSProperties}><ConferenceRow c={c} /></div>)}
           </div>
         )}
+        <div className={s.subscribe}>
+          <div>
+            <p className={s.subscribeTitle}>Keep the season in your own calendar</p>
+            <p className="muted">Subscribe once and new conferences appear in Apple, Google or Outlook Calendar as they&rsquo;re listed.</p>
+          </div>
+          <div className={s.subscribeActions}>
+            <a href="webcal://collex.au/calendar.ics" className="button">Subscribe</a>
+            <a href="/calendar.ics" className="button secondary" download="collex.ics">Download .ics</a>
+          </div>
+        </div>
       </section>
     </>
   );

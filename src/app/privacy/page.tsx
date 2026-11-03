@@ -26,6 +26,8 @@ export default function Privacy() {
         </ul>
         <h3>When you list a conference</h3>
         <p>The details you enter: its name, host school, dates, venue, level, fee, contact email, registration links, overview and committees, and your role in it. We also record which account sent it.</p>
+        <h3>When you follow a conference</h3>
+        <p>Which conferences you follow. Following is your choice: you press Follow on a conference&rsquo;s page, and you can unfollow there or from the link in any email.</p>
         <h3>A record of changes</h3>
         <p>When a listing or profile changes, we log who made the change, what changed and when. Only Collex admins can see this log. It helps us review listings and fix mistakes.</p>
         <h3>When you visit</h3>
@@ -39,9 +41,10 @@ export default function Privacy() {
           <li>To create and run your account and keep you signed in.</li>
           <li>To review listings and publish the ones we approve.</li>
           <li>To send emails your account needs: a confirmation code when you sign up and a link when you reset your password.</li>
+          <li>If you follow a conference, to email you when its applications open or its background guides are released. Every one of these emails has an unsubscribe link that works straight away.</li>
           <li>To keep the site secure and fix problems.</li>
         </ul>
-        <p>We do not sell your information, and we do not send marketing emails.</p>
+        <p>We do not sell your information, and we do not send marketing emails or newsletters.</p>
       </section>
 
       <section>
@@ -49,14 +52,14 @@ export default function Privacy() {
         <ul>
           <li><strong>Everyone</strong> can see approved listings, including the contact email entered on them. Your account details are never shown publicly.</li>
           <li><strong>Collex admins</strong> can see accounts and listings so they can review submissions and answer requests.</li>
-          <li><strong>Our service providers</strong> handle data only to run their part of Collex: Supabase (database and sign-in), Vercel (website hosting) and Resend (sending account emails).</li>
+          <li><strong>Our service providers</strong> handle data only to run their part of Collex: Supabase (database and sign-in), Vercel (website hosting) and Resend (sending account and follow emails).</li>
           <li><strong>Authorities</strong>, only where the law requires us to share it.</li>
         </ul>
       </section>
 
       <section>
         <h2>Where it is stored</h2>
-        <p>Accounts and listings are stored in Supabase&rsquo;s Sydney data centre. Vercel and Resend are based in the United States and may handle your IP address or email address outside Australia, including in the United States and Japan, when they deliver pages or send emails.</p>
+        <p>Accounts and listings are stored in Supabase&rsquo;s Sydney data centre. Vercel and Resend are based in the United States and may handle your IP address or email address outside Australia, including in the United States and Japan, when they deliver pages or send emails. The small Supabase program that sends follow emails may also run outside Australia while it sends them.</p>
       </section>
 
       <section>

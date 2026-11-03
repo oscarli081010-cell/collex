@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePill } from "./usePill";
 import { useAuth } from "./AuthProvider";
 import { Wordmark } from "@/lib/brand";
+import CommandBar from "./CommandBar";
 
 export const NAV = [
   { href: "/", label: "Home" },
@@ -50,6 +51,7 @@ export default function TopBar() {
             </Link>
           ))}
         </nav>
+        <CommandBar />
         <div className="topbarRight" data-ready={ready}>
           <Link href="/list" className="button secondary">List a conference</Link>
           {profile?.is_admin && <Link href="/admin" className="button">Admin</Link>}

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { RowsSkeleton } from "./Skeleton";
+import Verified from "./Verified";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatDate, webUrl } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
@@ -15,7 +16,7 @@ type Row = {
   id: string; slug: string; status: string; name: string; host: string; start_date: string | null; end_date: string | null;
   venue: string; level: string | null; contact: string; fee: string; overview: string; submitter_role: string;
   delegation_url: string | null; chair_url: string | null; committees: { name: string; topic: string }[];
-  review_note: string; created_at: string;
+  review_note: string; created_at: string; verified: boolean;
 };
 type User = { id: string; email: string; full_name: string; school: string; role: string; is_admin: boolean; created_at: string };
 type Log = { id: number; at: string; actor_email: string; action: string; target_type: string; target_label: string; detail: { note?: string } };
@@ -62,10 +63,16 @@ export default function Admin() {
     );
   }
 
-  const setStatus = async (r: Row, status: string, note = "") => {
-    const { error } = await supabase!.from("conferences").update({ status, review_note: note }).eq("id", r.id);
+  const setStatus = async (r: Row, status: string, note = "", verified = r.verified) => {
+    const { error } = await supabase!.from("conferences").update({ status, review_note: note, verified }).eq("id", r.id);
     if (error) return say("That didn't save. Try again.");
     say(status === "published" ? `${r.name} is live` : status === "rejected" ? "Rejected" : status === "unpublished" ? "Taken down" : "Updated");
+    load();
+  };
+  const setVerified = async (r: Row) => {
+    const { error } = await supabase!.from("conferences").update({ verified: !r.verified }).eq("id", r.id);
+    if (error) return say("That didn't save. Try again.");
+    say(r.verified ? "Badge removed" : `${r.name} is verified`);
     load();
   };
   const remove = async (r: Row) => {
@@ -105,7 +112,7 @@ export default function Admin() {
             <Empty title="Nothing to review" body="New listings land here for approval." />
           ) : (
             <div className={`t-stagger ${s.stack}`}>
-              {pending.map((r, i) => <ReviewCard key={r.id} r={r} i={i} onApprove={() => setStatus(r, "published")} onReject={(note) => setStatus(r, "rejected", note)} />)}
+              {pending.map((r, i) => <ReviewCard key={r.id} r={r} i={i} onApprove={(verified) => setStatus(r, "published", "", verified)} onReject={(note) => setStatus(r, "rejected", note)} />)}
             </div>
           ))}
 
@@ -118,12 +125,13 @@ export default function Admin() {
                 <tbody>
                   {others.map((r) => (
                     <tr key={r.id}>
-                      <td><strong>{r.name}</strong><small>{r.host}</small></td>
+                      <td><strong>{r.name}{r.verified && <> <Verified /></>}</strong><small>{r.host}</small></td>
                       <td><span className={auth.status} data-status={r.status}>{STATUS[r.status]}</span></td>
                       <td>{dates(r)}</td>
                       <td className={s.right}>
                         <div className={s.actions}>
                           {r.status === "published" && <Link href={`/conferences/${r.slug}`} className="button secondary">View</Link>}
+                          <button className="button secondary" onClick={() => setVerified(r)} aria-pressed={r.verified}>{r.verified ? "Unverify" : "Verify"}</button>
                           {r.status === "published"
                             ? <button className="button secondary" onClick={() => setStatus(r, "unpublished")}>Take down</button>
                             : <button className="button secondary" onClick={() => setStatus(r, "published")}>Publish</button>}
@@ -208,8 +216,9 @@ function Confirm({ label, confirm, onConfirm }: { label: string; confirm: string
   );
 }
 
-function ReviewCard({ r, i, onApprove, onReject }: { r: Row; i: number; onApprove: () => void; onReject: (note: string) => void }) {
+function ReviewCard({ r, i, onApprove, onReject }: { r: Row; i: number; onApprove: (verified: boolean) => void; onReject: (note: string) => void }) {
   const [rejecting, setRejecting] = useState(false);
+  const [verified, setVerified] = useState(false);
   const [note, setNote] = useState("");
   const facts: [string, string | null][] = [
     ["Dates", dates(r)], ["Venue", r.venue], ["Level", r.level], ["Fee", r.fee], ["Contact", r.contact],
@@ -224,7 +233,7 @@ function ReviewCard({ r, i, onApprove, onReject }: { r: Row; i: number; onApprov
         </div>
         <div className={s.actions}>
           <button className="button secondary" onClick={() => setRejecting(!rejecting)} aria-expanded={rejecting}>Reject</button>
-          <button className="button" onClick={onApprove}>Approve and publish</button>
+          <button className="button" onClick={() => onApprove(verified)}>Approve and publish</button>
         </div>
       </div>
       <dl className={s.facts}>
@@ -232,6 +241,10 @@ function ReviewCard({ r, i, onApprove, onReject }: { r: Row; i: number; onApprov
         {webUrl(r.delegation_url) && <div><dt>Registration</dt><dd><a className="link" href={webUrl(r.delegation_url)!} target="_blank" rel="noreferrer">Open link</a></dd></div>}
         {webUrl(r.chair_url) && <div><dt>Chair applications</dt><dd><a className="link" href={webUrl(r.chair_url)!} target="_blank" rel="noreferrer">Open link</a></dd></div>}
       </dl>
+      <label className="check" style={{ marginTop: 16 }}>
+        <input type="checkbox" checked={verified} onChange={(e) => setVerified(e.target.checked)} />
+        <span>Sent by the conference&rsquo;s own secretariat. Show the Verified badge.</span>
+      </label>
       {r.overview && <p className={s.overview}>{r.overview}</p>}
       {r.committees?.length > 0 && <p className="muted">Committees: {r.committees.map((c) => c.name).join(", ")}</p>}
       <div className={s.rejectWrap} data-open={rejecting}>

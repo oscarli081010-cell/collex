@@ -32,8 +32,12 @@ export default function ConferenceTabs({ tabs }: { tabs: readonly (readonly [str
   }, [tabs]);
 
   // Keep the active tab in view on narrow screens where the row scrolls sideways.
+  // Only the row scrolls: scrollIntoView would also move the page when the row is near the bottom of a phone screen.
   useEffect(() => {
-    list.current?.querySelector<HTMLElement>('[aria-current="true"]')?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+    const row = list.current;
+    const tab = row?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!row || !tab) return;
+    row.scrollTo({ left: tab.offsetLeft - (row.clientWidth - tab.offsetWidth) / 2, behavior: "smooth" });
   }, [active]);
 
   const go = (e: React.MouseEvent, id: string) => {

@@ -4,16 +4,18 @@ import { NA, template, webUrl, type Conference } from "./conferences";
 // Server-side reads of published listings. Pages revalidate every minute, so an approval shows up quickly.
 
 type Row = {
-  slug: string; name: string; short_name: string; host: string; start_date: string | null; end_date: string | null;
+  id: string; slug: string; name: string; short_name: string; host: string; start_date: string | null; end_date: string | null;
   venue: string; level: Conference["level"]; fee: string; delegates: string; overview: string; contact: string;
   delegation_url: string | null; chair_url: string | null;
   key_dates: Conference["keyDates"]; committees: Conference["committees"]; guides: Conference["guides"];
   secretariat: Conference["secretariat"];
+  verified?: boolean; updated_at?: string;
 };
 
 const or = (v: string | null | undefined) => (v && v.trim() ? v : NA);
 
 export const fromRow = (r: Row): Conference => ({
+  id: r.id,
   slug: r.slug,
   name: r.name,
   shortName: r.short_name || r.name,
@@ -32,6 +34,8 @@ export const fromRow = (r: Row): Conference => ({
   contact: or(r.contact),
   delegationUrl: webUrl(r.delegation_url),
   chairUrl: webUrl(r.chair_url),
+  verified: r.verified ?? false,
+  updatedAt: r.updated_at,
 });
 
 export async function getPublished(): Promise<Conference[]> {

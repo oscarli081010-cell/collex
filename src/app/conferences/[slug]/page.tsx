@@ -7,6 +7,8 @@ import ApplyBand from "@/components/ApplyBand";
 import ConferenceActions from "@/components/ConferenceActions";
 import ConferenceTabs from "@/components/ConferenceTabs";
 import Countdown from "@/components/Countdown";
+import FollowButton from "@/components/FollowButton";
+import Verified from "@/components/Verified";
 import s from "../../inner.module.css";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -94,11 +96,17 @@ export default async function ConferencePage({ params }: Props) {
 
         <header className={s.confHead}>
           <div>
-            {c.isTemplate ? <span className="badge accent">Demo listing</span> : <Countdown c={c} />}
+            {c.isTemplate ? <span className="badge accent">Demo listing</span> : (
+              <span className={s.confBadges}>{c.verified && <Verified />}<Countdown c={c} /></span>
+            )}
             <h1 className={s.confTitle}>{c.name}</h1>
             <p className={s.confSub}>{formatRange(c)} · Hosted by {c.host} · {c.venue}</p>
+            {c.updatedAt && <p className={s.updated}>Last updated {new Date(c.updatedAt).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric", timeZone: "Australia/Sydney" })}</p>}
           </div>
-          <ConferenceActions c={c} />
+          <div className={s.confAside}>
+            <ConferenceActions c={c} />
+            {c.id && <FollowButton id={c.id} name={c.name} />}
+          </div>
         </header>
 
         <ApplyBand c={c} />

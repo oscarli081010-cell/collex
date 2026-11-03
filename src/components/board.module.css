@@ -100,4 +100,8 @@
   .rowActions .rowBtn { flex: 1; }
   .go { display: none; }
   .rowLink { font-size: 22px; }
+  .calWeek, .calDays { margin-inline: -16px; }
+  .calDays { gap: 1px; }
 }
+/* Touch screens: the clear button reaches 44px without looking bigger. */
+@media (pointer: coarse) { .clearX::before { content: ""; position: absolute; inset: -8px; } }
