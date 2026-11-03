@@ -42,8 +42,12 @@
 .segPill { top: 4px; bottom: 4px; border-radius: 7px; background: var(--panel); box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.1); }
 
 /* Check your email */
-.sent { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 16px; align-items: flex-start; }
-.code { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 4px; }
+.sent { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 16px; align-items: center; text-align: center; }
+.sent .row { justify-content: center; }
+.code { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 8px 0 4px; }
+/* Keeps an instruction on one line under the email address, wherever there's room. */
+.oneLine { display: block; }
+@media (min-width: 640px) { .oneLine { white-space: nowrap; } }
 .sentIcon path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw var(--duration-very-slow) var(--ease-smooth-out) var(--duration-quick) forwards; }
 @keyframes draw { to { stroke-dashoffset: 0; } }
 
@@ -83,7 +87,7 @@
 /* 404 */
 .lost { align-items: center; text-align: center; max-width: 480px; }
 .lost .row { justify-content: center; }
-.code {
+.bigCode {
   font-size: clamp(120px, 18vw, 200px); line-height: 0.85; letter-spacing: -0.03em;
   color: transparent; -webkit-text-stroke: 1.5px var(--line-strong);
 }

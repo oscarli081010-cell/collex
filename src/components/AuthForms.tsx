@@ -121,7 +121,7 @@ function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"
   return (
     <Banded band={{
       title: "Check your", accent: "email",
-      lead: <>We sent a link to <strong className={s.strong}>{email}</strong>. {kind === "signup" ? "Open it, or type the 6-digit code from the email here." : "Open it to set a new password."}</>,
+      lead: <>We sent a link to <strong className={s.strong}>{email}</strong>. <span className={s.oneLine}>{kind === "signup" ? "Open it, or type the 6-digit code from the email here." : "Open it to set a new password."}</span></>,
     }}>
     <div className={`t-reveal ${s.sent}`} role="status">
       {kind === "signup" && (

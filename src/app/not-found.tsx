@@ -8,7 +8,7 @@ export default function NotFound() {
   return (
     <main id="top" className={`container ${s.page}`}>
       <div className={`t-reveal ${s.form} ${s.lost}`}>
-        <p className={`serif ${s.code}`} aria-hidden="true">404</p>
+        <p className={`serif ${s.bigCode}`} aria-hidden="true">404</p>
         <h1 className={s.title}>This page is out of order.</h1>
         <p className="muted">The link may be old, or the page may have moved. The calendar has every listed conference.</p>
         <div className={s.row}>
