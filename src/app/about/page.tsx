@@ -37,7 +37,6 @@ export default function About() {
         <section id="who">
           <h2>Who runs it</h2>
           <p>Collex is run by Oscar Li, from Sydney, New South Wales. It is free for every conference and every delegate.</p>
-          {/* TODO(Oscar): add the ABN here once confirmed, e.g. "ABN 00 000 000 000". Do not publish a number until it's real. */}
         </section>
 
         <section id="reviews">
