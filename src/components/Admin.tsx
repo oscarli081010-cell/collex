@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RowsSkeleton } from "./Skeleton";
 import Verified from "./Verified";
+import IconButton, { ConfirmIconButton, ICONS } from "./IconButton";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { coverUrl, formatDate, webUrl } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
@@ -89,6 +90,12 @@ export default function Admin() {
     load();
     published();
   };
+  const removeUser = async (u: User) => {
+    const { error } = await supabase!.rpc("delete_user", { target: u.id });
+    if (error) return say(error.message);
+    say(`${u.full_name || u.email}'s account is deleted`);
+    load();
+  };
   const toggleAdmin = async (u: User) => {
     const { error } = await supabase!.rpc("set_admin", { target: u.id, make_admin: !u.is_admin });
     if (error) return say(error.message);
@@ -138,12 +145,12 @@ export default function Admin() {
                       <td>{dates(r)}</td>
                       <td className={s.right}>
                         <div className={s.actions}>
-                          {r.status === "published" && <Link href={`/conferences/${r.slug}`} className="button secondary">View</Link>}
-                          <button className="button secondary" onClick={() => setVerified(r)} aria-pressed={r.verified}>{r.verified ? "Unverify" : "Verify"}</button>
+                          {r.status === "published" && <IconButton label={`View ${r.name}`} icon={ICONS.view} href={`/conferences/${r.slug}`} />}
+                          <IconButton label={r.verified ? `Remove ${r.name}'s Verified badge` : `Verify ${r.name}`} icon={ICONS.verify} pressed={r.verified} onClick={() => setVerified(r)} />
                           {r.status === "published"
-                            ? <button className="button secondary" onClick={() => setStatus(r, "unpublished")}>Take down</button>
-                            : <button className="button secondary" onClick={() => setStatus(r, "published")}>Publish</button>}
-                          <Confirm label="Delete" confirm="Delete for good?" onConfirm={() => remove(r)} />
+                            ? <IconButton label={`Take down ${r.name}`} icon={ICONS.hide} onClick={() => setStatus(r, "unpublished")} />
+                            : <IconButton label={`Publish ${r.name}`} icon={ICONS.publish} onClick={() => setStatus(r, "published")} />}
+                          <ConfirmIconButton label={`Delete ${r.name}`} confirm={`Click again to delete ${r.name} for good`} icon={ICONS.trash} onConfirm={() => remove(r)} />
                         </div>
                       </td>
                     </tr>
@@ -156,7 +163,7 @@ export default function Admin() {
           {tab === "Users" && (
             <div className={s.tableWrap}>
               <table className={s.table}>
-                <thead><tr><th>Name</th><th>School</th><th>Joined</th><th className={s.right}>Access</th></tr></thead>
+                <thead><tr><th>Name</th><th>School</th><th>Joined</th><th className={s.right}>Actions</th></tr></thead>
                 <tbody>
                   {users!.map((u) => (
                     <tr key={u.id}>
@@ -166,11 +173,12 @@ export default function Admin() {
                       <td className={s.right}>
                         <div className={s.actions}>
                           {u.is_admin && <span className="badge accent">Admin</span>}
-                          {u.id !== session.user.id && (
-                            u.is_admin
-                              ? <Confirm label="Remove admin" confirm="Remove admin?" onConfirm={() => toggleAdmin(u)} />
-                              : <button className="button secondary" onClick={() => toggleAdmin(u)}>Make admin</button>
-                          )}
+                          {u.id !== session.user.id && (u.is_admin ? (
+                            <ConfirmIconButton label={`Remove admin access from ${u.full_name || u.email}`} confirm="Click again to remove admin access" icon={ICONS.removeAdmin} onConfirm={() => toggleAdmin(u)} />
+                          ) : (<>
+                            <IconButton label={`Make ${u.full_name || u.email} an admin`} icon={ICONS.makeAdmin} onClick={() => toggleAdmin(u)} />
+                            <ConfirmIconButton label={`Delete user ${u.full_name || u.email}`} confirm={`Click again to delete ${u.full_name || u.email}'s account`} icon={ICONS.trash} onConfirm={() => removeUser(u)} />
+                          </>))}
                         </div>
                       </td>
                     </tr>
@@ -206,21 +214,6 @@ function Empty({ title, body }: { title: string; body: string }) {
       <p>{title}</p>
       <span>{body}</span>
     </div>
-  );
-}
-
-// A button that asks once more before doing something destructive.
-function Confirm({ label, confirm, onConfirm }: { label: string; confirm: string; onConfirm: () => void }) {
-  const [armed, setArmed] = useState(false);
-  useEffect(() => {
-    if (!armed) return;
-    const t = setTimeout(() => setArmed(false), 3000);
-    return () => clearTimeout(t);
-  }, [armed]);
-  return (
-    <button className={`button secondary ${armed ? s.danger : ""}`} onClick={() => (armed ? onConfirm() : setArmed(true))}>
-      <span key={String(armed)} className="t-swap">{armed ? confirm : label}</span>
-    </button>
   );
 }
 

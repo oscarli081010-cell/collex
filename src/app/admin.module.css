@@ -71,3 +71,5 @@
 
 /* The cover photo a listing was sent with, so it can be checked before it goes live. */
 .reviewCover { width: 100%; aspect-ratio: 16 / 5; object-fit: cover; border-radius: 12px; background: var(--surface); }
+.actions :global(.iconbtn) { width: 36px; height: 36px; }
+@media (pointer: coarse) { .actions :global(.iconbtn) { width: 44px; height: 44px; } }
