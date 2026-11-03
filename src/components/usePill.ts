@@ -16,11 +16,17 @@ export function usePill(container: RefObject<HTMLElement | null>, activeSelector
     const el = pill.current;
     if (!box || !el) return;
 
+    // Where the pill was last put. A re-fit that finds nothing has moved must leave it alone: writing the same
+    // position with the transition off would cut a slide that has just started.
+    let at = "";
     const place = (instant: boolean) => {
       const active = box.querySelector<HTMLElement>(activeSelector);
-      if (!active) { el.style.opacity = "0"; return; }
+      if (!active) { el.style.opacity = "0"; at = ""; return; }
       const b = box.getBoundingClientRect();
       const a = active.getBoundingClientRect();
+      const now = `${a.width}|${a.left - b.left + box.scrollLeft}`;
+      if (instant && now === at) return;
+      at = now;
       if (instant) el.style.transition = "none";
       el.style.opacity = "1";
       el.style.width = `${a.width}px`;
@@ -33,7 +39,7 @@ export function usePill(container: RefObject<HTMLElement | null>, activeSelector
     const onResize = () => place(true);
     window.addEventListener("resize", onResize);
     document.fonts?.ready.then(() => place(true));
-    // Tabs can change width after the first paint, e.g. when a count badge loads in.
+    // Tabs can change width after the first paint, e.g. when a count badge loads in, or when a hidden panel is shown.
     const ro = new ResizeObserver(() => place(true));
     box.querySelectorAll(":scope > *").forEach((child) => child !== el && ro.observe(child));
     return () => { window.removeEventListener("resize", onResize); ro.disconnect(); };

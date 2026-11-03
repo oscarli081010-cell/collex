@@ -38,7 +38,19 @@
   font-size: 14px; color: var(--muted); transition: color var(--duration-fast) var(--ease-smooth-out);
 }
 .seg button[aria-checked="true"] { color: var(--ink); font-weight: 500; }
+.seg button[aria-selected="true"] { color: var(--ink); font-weight: 500; }
 .segIcon { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+/* Two tabs (Profile / Conferences) on the same control, with a badge when an invite is waiting. */
+.segTwo { grid-template-columns: repeat(2, 1fr); }
+.segBadge {
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center;
+  background: var(--accent); color: var(--on-accent); font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+/* Touch screens: the control is a 44px target, like every other button. */
+@media (pointer: coarse) { .seg button { height: 44px; } }
+/* One tab's worth of cards. hidden must still win over this display. */
+.panelStack { display: flex; flex-direction: column; gap: 20px; }
+.panelStack[hidden] { display: none; }
 .segPill { top: 4px; bottom: 4px; border-radius: 7px; background: var(--panel); box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.1); }
 
 /* Check your email */
@@ -69,9 +81,42 @@
 .listingName { font-size: 16px; font-weight: 500; color: var(--ink); overflow-wrap: anywhere; }
 a.listingName:hover { color: var(--accent); }
 .listingMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13px; color: var(--muted); }
-/* A listing with its interest chart underneath. */
-.listings li.listingRow { flex-direction: column; align-items: stretch; gap: 18px; }
-.listingTop { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+/* Your listings: a card for each listing, then a dashed tile to add another. */
+.listingList { display: flex; flex-direction: column; gap: 12px; }
+.listing {
+  display: flex; flex-direction: column; gap: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  transition: border-color var(--duration-quick);
+}
+.listing:hover { border-color: var(--line-strong); }
+.listingTop { display: flex; align-items: center; gap: 14px; }
+.listingTop { flex-wrap: wrap; }
+.listingTop .listingMain { flex: 1 1 160px; }
+.listingThumb {
+  flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 10px; overflow: hidden;
+  background: var(--accent-soft); color: var(--accent);
+}
+.listingThumb img { width: 100%; height: 100%; object-fit: cover; }
+.listingThumb > span { font-size: 20px; line-height: 1; letter-spacing: 0.02em; }
+.listingActions { display: flex; gap: 6px; flex: none; margin-left: auto; }
+.listingNote { font-size: 13.5px; padding: 10px 12px; border-radius: 8px; background: var(--panel); color: var(--muted); }
+.listingNote[data-tone="danger"] { background: var(--danger-soft); color: var(--danger); }
+/* Pills and tags that are normally grey-on-grey need the panel colour to show on a listing's card. */
+.listing .tag, .listing .status:not([data-status="pending"], [data-status="published"], [data-status="rejected"]) { background: var(--panel); }
+.listing :global(.iconbtn) { background: var(--panel); }
+.listing :global(.iconbtn):hover { background: var(--surface-2); }
+.addTile {
+  display: flex; align-items: center; gap: 14px; min-height: 72px; padding: 14px 16px; border: 1px dashed var(--line-strong); border-radius: 12px;
+  transition: border-color var(--duration-quick), background-color var(--duration-quick);
+}
+.addTile:hover { border-color: var(--accent); background: var(--accent-soft); }
+.addIcon {
+  flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--accent);
+  transition: background-color var(--duration-quick);
+}
+.addTile:hover .addIcon { background: var(--panel); }
+.addText { display: flex; flex-direction: column; min-width: 0; }
+.addText strong { font-weight: 500; font-size: 15px; }
+.addText small { color: var(--muted); font-size: 13px; }
 .tag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 6px; background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 500; }
 /* Saved conferences: thumbnail, name, when and the next key date. */
 .saved { display: flex; flex-direction: column; }
@@ -96,6 +141,8 @@ a.listingName:hover { color: var(--accent); }
 }
 @media (max-width: 560px) {
   .avatar { width: 52px; height: 52px; font-size: 18px; }
+  .card { padding: 20px; }
+  .listing { padding: 14px; }
 }
 
 /* 404 */

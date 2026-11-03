@@ -95,7 +95,7 @@ function Interest({ c, say }: { c: Conference; say: Say }) {
       {!ready || state === null ? (
         <span className={`button ${s.applyBtn}`} aria-hidden="true" data-closed />
       ) : organiser ? (
-        <Link href="/account" className={`button secondary ${s.applyBtn}`}>Your listings →</Link>
+        <Link href="/account#conferences" className={`button secondary ${s.applyBtn}`}>Your listings →</Link>
       ) : !c.id ? (
         <button className={`button ${s.applyBtn}`} onClick={() => say("This is a demo. On a real listing, this tells the organisers you're interested.")}>Send interest →</button>
       ) : !session ? (

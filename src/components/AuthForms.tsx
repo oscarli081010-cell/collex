@@ -10,7 +10,7 @@ import CodeInput from "./CodeInput";
 import PageBand, { type BandProps } from "./PageBand";
 import SchoolPicker from "./SchoolPicker";
 import { FormSkeleton } from "./Skeleton";
-import AccountSections from "./AccountSections";
+import ConferencesTab from "./AccountSections";
 import { usePill } from "./usePill";
 import { useToast } from "./useToast";
 import s from "@/app/auth.module.css";
@@ -270,6 +270,41 @@ export function LoginForm() {
   );
 }
 
+type AccountTab = "profile" | "conferences";
+const ACCOUNT_TABS: { id: AccountTab; label: string; icon: React.ReactNode }[] = [
+  { id: "profile", label: "Profile", icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.5" /><path d="M2.8 13.5c.6-2.3 2.6-3.6 5.2-3.6s4.6 1.3 5.2 3.6" /></svg> },
+  { id: "conferences", label: "Conferences", icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2" /><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" /></svg> },
+];
+
+// Profile / Conferences on the same sliding control as Appearance. A badge on Conferences means an invite is waiting.
+export function AccountTabs({ tab, setTab, invites = 0 }: { tab: AccountTab; setTab: (t: AccountTab) => void; invites?: number }) {
+  const box = useRef<HTMLDivElement>(null);
+  const pill = usePill(box, '[aria-selected="true"]', tab);
+  // With two tabs, either arrow moves to the other one.
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    const next = tab === "profile" ? "conferences" : "profile";
+    setTab(next);
+    box.current?.querySelector<HTMLElement>(`#account-tab-${next}`)?.focus();
+  };
+  return (
+    <div ref={box} className={`${s.seg} ${s.segTwo}`} role="tablist" aria-label="Account" onKeyDown={onKey}>
+      <span ref={pill} className={`t-pill ${s.segPill}`} aria-hidden="true" />
+      {ACCOUNT_TABS.map((a) => (
+        <button key={a.id} id={`account-tab-${a.id}`} type="button" role="tab" aria-selected={tab === a.id} aria-controls={`account-panel-${a.id}`}
+          tabIndex={tab === a.id ? 0 : -1} onClick={() => setTab(a.id)} className={s.segIcon}>
+          {a.icon}{a.label}
+          {a.id === "conferences" && invites > 0 && (<>
+            <span className={s.segBadge} aria-hidden="true">{invites}</span>
+            <span className="sr-only">, {invites} {invites === 1 ? "invite" : "invites"} waiting</span>
+          </>)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function AccountView() {
   const { ready, session, profile, recovering, refresh } = useAuth();
   const router = useRouter();
@@ -277,8 +312,21 @@ export function AccountView() {
   const [busy, setBusy] = useState("");
   const pwRef = useRef<HTMLFormElement>(null);
   const [counts, setCounts] = useState<{ listings: number | null; following: number | null }>({ listings: null, following: null });
+  const [invites, setInvites] = useState(0);
+  // The open tab lives in the address (#conferences), so a refresh or a link from elsewhere lands on the right one.
+  const [tab, setTab] = useState<AccountTab>("profile");
+  useEffect(() => { if (location.hash === "#conferences") setTab("conferences"); }, []);
+  const choose = useCallback((t: AccountTab) => {
+    setTab(t);
+    history.replaceState(null, "", location.pathname + (t === "conferences" ? "#conferences" : ""));
+  }, []);
 
-  useEffect(() => { if (recovering) pwRef.current?.querySelector("input")?.focus(); }, [recovering]);
+  // Arriving from a password-reset email: the password form is on Profile, so go there.
+  useEffect(() => {
+    if (!recovering) return;
+    setTab("profile");
+    pwRef.current?.querySelector("input")?.focus();
+  }, [recovering]);
   const uid = session?.user.id;
   useEffect(() => {
     if (!uid || !supabase) return;
@@ -347,37 +395,46 @@ export function AccountView() {
       ],
       aside: <button className="button secondary" onClick={signOut}>Log out</button>,
     }}>
-    <div className={`t-stagger ${s.account}`}>
+    <div className={s.account}>
 
       {recovering && (
-        <p className={s.notice} style={{ "--i": 1 } as React.CSSProperties}>Set a new password below to finish resetting it.</p>
+        <p className={s.notice}>Set a new password below to finish resetting it.</p>
       )}
 
-      <section className={`panel ${s.card}`} style={{ "--i": 1 } as React.CSSProperties}>
-        <div>
-          <h2 className={s.cardTitle}>Appearance</h2>
-          <p className="muted">System follows your device&rsquo;s light or dark setting.</p>
-        </div>
-        <ThemePicker userId={session.user.id} initial={profile?.theme ?? "light"} onSaved={(ok) => { if (!ok) say("Couldn't save that. It still applies on this device."); }} />
-      </section>
+      <AccountTabs tab={tab} setTab={choose} invites={invites} />
 
-      <form className={`panel ${s.card}`} onSubmit={saveProfile} style={{ "--i": 1 } as React.CSSProperties}>
-        <h2 className={s.cardTitle}>Profile</h2>
-        <label className="field"><span>Full name</span><input name="name" className="control" maxLength={120} defaultValue={profile?.full_name ?? ""} key={profile?.full_name} /></label>
-        <div className="field"><span>School or University</span><SchoolPicker defaultValue={profile?.school ?? ""} /></div>
-        <button className="button" disabled={busy === "profile"}>
-          <span key={String(busy === "profile")} className="t-swap">{busy === "profile" ? "Saving…" : "Save profile"}</span>
-        </button>
-      </form>
+      {/* Both stay mounted, so the counts above are right and a half-typed form survives a trip to the other tab.
+          Each panel's entrance replays whenever it is shown again. */}
+      <div id="account-panel-profile" role="tabpanel" aria-labelledby="account-tab-profile" hidden={tab !== "profile"} className={`t-stagger ${s.panelStack}`}>
+        <section className={`panel ${s.card}`} style={{ "--i": 0 } as React.CSSProperties}>
+          <div>
+            <h2 className={s.cardTitle}>Appearance</h2>
+            <p className="muted">System follows your device&rsquo;s light or dark setting.</p>
+          </div>
+          <ThemePicker userId={session.user.id} initial={profile?.theme ?? "light"} onSaved={(ok) => { if (!ok) say("Couldn't save that. It still applies on this device."); }} />
+        </section>
 
-      <form ref={pwRef} className={`panel ${s.card} ${recovering ? s.highlight : ""}`} onSubmit={savePassword} style={{ "--i": 2 } as React.CSSProperties}>
-        <h2 className={s.cardTitle}>Password</h2>
-        <label className="field"><span>New password</span><Password name="password" label="New password" autoComplete="new-password" /></label>
-        <button className="button secondary" disabled={busy === "password"}>
-          <span key={String(busy === "password")} className="t-swap">{busy === "password" ? "Updating…" : "Update password"}</span>
-        </button>
-      </form>
-      <AccountSections userId={session.user.id} onListings={onListings} />
+        <form className={`panel ${s.card}`} onSubmit={saveProfile} style={{ "--i": 1 } as React.CSSProperties}>
+          <h2 className={s.cardTitle}>Profile</h2>
+          <label className="field"><span>Full name</span><input name="name" className="control" maxLength={120} defaultValue={profile?.full_name ?? ""} key={profile?.full_name} /></label>
+          <div className="field"><span>School or University</span><SchoolPicker defaultValue={profile?.school ?? ""} /></div>
+          <button className="button" disabled={busy === "profile"}>
+            <span key={String(busy === "profile")} className="t-swap">{busy === "profile" ? "Saving…" : "Save profile"}</span>
+          </button>
+        </form>
+
+        <form ref={pwRef} className={`panel ${s.card} ${recovering ? s.highlight : ""}`} onSubmit={savePassword} style={{ "--i": 2 } as React.CSSProperties}>
+          <h2 className={s.cardTitle}>Password</h2>
+          <label className="field"><span>New password</span><Password name="password" label="New password" autoComplete="new-password" /></label>
+          <button className="button secondary" disabled={busy === "password"}>
+            <span key={String(busy === "password")} className="t-swap">{busy === "password" ? "Updating…" : "Update password"}</span>
+          </button>
+        </form>
+      </div>
+
+      <div id="account-panel-conferences" role="tabpanel" aria-labelledby="account-tab-conferences" hidden={tab !== "conferences"} className={`t-stagger ${s.panelStack}`}>
+        <ConferencesTab userId={session.user.id} onListings={onListings} onInvites={setInvites} />
+      </div>
       {node}
     </div>
     </Banded>

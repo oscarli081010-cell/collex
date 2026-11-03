@@ -193,7 +193,7 @@ export default function ListForm() {
   if (editId && editing === "missing") {
     return page({
       title: "Can\u2019t edit that", accent: "listing", lead: "Only the people who run a listing can edit it, while it\u2019s in review or live. Ask its organiser to invite you.",
-      aside: <div className={auth.row}><Link href="/account" className="button lg">Your listings</Link></div>,
+      aside: <div className={auth.row}><Link href="/account#conferences" className="button lg">Your listings</Link></div>,
     }, null);
   }
 
@@ -224,7 +224,7 @@ export default function ListForm() {
           ))}
         </ol>
         <div className={auth.row}>
-          <Link href="/account" className="button">{edit ? "Your listings" : "See its status"}</Link>
+          <Link href="/account#conferences" className="button">{edit ? "Your listings" : "See its status"}</Link>
           {edit ? <button className="button secondary" onClick={() => setSent(false)}>Keep editing</button>
             : <button className="button secondary" onClick={() => { setSent(false); setCommittees([]); }}>List another</button>}
         </div>
