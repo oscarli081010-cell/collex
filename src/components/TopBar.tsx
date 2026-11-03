@@ -54,7 +54,8 @@ export default function TopBar() {
         <div className="topbarEnd">
         <CommandBar />
         <div className="topbarRight" data-ready={ready}>
-          <Link href="/list" className="button secondary">List a conference</Link>
+          {/* Signed in, it sits with Admin as a solid button; signed out, Log in stays the one solid button. */}
+          <Link href="/list" className={`button ${session ? "" : "secondary"}`}>List a conference</Link>
           {profile?.is_admin && <Link href="/admin" className="button">Admin</Link>}
           {session ? (
             <Link href="/account" className="avatarLink" aria-label="Your account" title={who}>{initials}</Link>

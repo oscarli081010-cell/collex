@@ -55,8 +55,9 @@
 
 /* Conference page */
 .cover {
-  /* Shorter on short screens, so the name and the three cards fit on the first screen. */
-  height: clamp(120px, min(18vw, 20svh), 220px); border-radius: var(--radius); margin-top: 32px;
+  /* At least this tall (less on short screens, so the name and cards still fit), then it grows into any spare
+     room on the first screen, so the cards end just above the Details arrow instead of leaving a gap. */
+  min-height: clamp(120px, min(18vw, 20svh), 220px); max-height: 420px; flex: 1 0 auto; border-radius: var(--radius); margin-top: 32px;
   background: var(--surface); position: relative; overflow: hidden;
   display: flex; align-items: flex-end; padding: 14px;
 }

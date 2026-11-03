@@ -12,7 +12,7 @@ export default function ConferenceRow({ c }: { c: Conference }) {
     url ? (
       <a href={url} target="_blank" rel="noreferrer" className={`button ${primary ? "" : "secondary"} ${s.rowBtn}`}>{label}</a>
     ) : (
-      <Link href={`${page}#apply`} className={`button ${primary ? "" : "secondary"} ${s.rowBtn}`}>{label}</Link>
+      <Link href={page} className={`button ${primary ? "" : "secondary"} ${s.rowBtn}`}>{label}</Link>
     );
 
   return (
