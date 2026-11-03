@@ -131,21 +131,22 @@
 .applyBtn { height: 56px !important; padding: 0 30px !important; font-size: 16px !important; border-radius: 12px !important; flex: none; width: 100%; }
 /* The middle card, Express interest, carries a wash of the accent so it reads as the easy first step. */
 .applyOption[data-kind="interest"] { background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--panel); border-color: color-mix(in srgb, var(--accent) 22%, var(--line)); }
-.applyOption[data-kind="interest"] .applyBtn:not(.secondary) { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.applyOption[data-kind="interest"] .applyBtn:not(.secondary):hover { filter: brightness(1.08); }
 
 /* The conference's first screen: cover, name, actions and the three cards, with an arrow down to the details. */
-.confFirst { position: relative; display: flex; flex-direction: column; min-height: calc(100svh - 73px); padding-bottom: 104px; }
+/* The arrow sits at the foot of the screen; when the content runs taller than the screen, it sticks to the bottom
+   edge until the visitor scrolls to where it belongs, so it's always in view on arrival. */
+.confFirst { position: relative; display: flex; flex-direction: column; min-height: calc(100svh - 73px); padding-bottom: 20px; }
 .cue {
-  position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%);
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  font-size: 13px; color: var(--muted); transition: color var(--duration-quick);
+  position: sticky; bottom: 20px; align-self: center; margin-top: auto;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 999px;
+  background: var(--glass); font-size: 13px; color: var(--muted); transition: color var(--duration-quick);
 }
+.confFirst > .applyBand { margin-bottom: 28px; }
 .cue:hover { color: var(--ink); }
 .cue svg { animation: cue 1.8s var(--ease-in-out, ease-in-out) infinite; }
 @keyframes cue { 50% { transform: translateY(4px); } }
 @media (prefers-reduced-motion: reduce) { .cue svg { animation: none; } }
-@media (pointer: coarse) { .cue { padding: 6px 12px; } }
+@media (pointer: coarse) { .cue { min-height: 44px; justify-content: center; } }
 .details { scroll-margin-top: 73px; }
 
 /* Empty section */

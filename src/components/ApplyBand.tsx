@@ -97,12 +97,12 @@ function Interest({ c, say }: { c: Conference; say: Say }) {
       ) : organiser ? (
         <Link href="/account" className={`button secondary ${s.applyBtn}`}>Your listings →</Link>
       ) : !c.id ? (
-        <button className={`button ${s.applyBtn}`} onClick={() => say("This is a demo. On a real listing, this tells the organisers you're interested.")}>Send interest</button>
+        <button className={`button ${s.applyBtn}`} onClick={() => say("This is a demo. On a real listing, this tells the organisers you're interested.")}>Send interest →</button>
       ) : !session ? (
-        <Link href="/login" className={`button ${s.applyBtn}`}>Log in to send</Link>
+        <Link href="/login" className={`button ${s.applyBtn}`}>Log in to send →</Link>
       ) : (
         <button className={`button ${state.sent ? "secondary" : ""} ${s.applyBtn}`} onClick={toggle} disabled={busy} aria-pressed={state.sent}>
-          <span key={String(state.sent)} className="t-swap">{state.sent ? "Interest sent ✓" : "Send interest"}</span>
+          <span key={String(state.sent)} className="t-swap">{state.sent ? "Interest sent ✓" : "Send interest →"}</span>
         </button>
       )}
     </div>
