@@ -50,7 +50,13 @@
 .rowLink::after { content: ""; position: absolute; inset: 0; border-radius: inherit; } /* whole card is clickable */
 .rowActions { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; }
 .rowBtn { height: 40px; }
-.rowMeta { color: var(--muted); font-size: 14px; }
+/* When, who and where as separate icon facts, like the conference page header. */
+.rowMeta { display: flex; flex-wrap: wrap; gap: 6px 20px; color: var(--ink); font-size: 14px; }
+.rowMeta li { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+.rowMeta svg { flex: none; width: 15px; height: 15px; color: var(--muted); }
+/* Where the row is narrow (the home page column, phones), one fact per line rather than a ragged wrap. */
+.rowMain { container-type: inline-size; }
+@container (max-width: 520px) { .rowMeta { flex-direction: column; gap: 5px; } }
 .go { color: var(--faint); font-size: 18px; padding: 8px 4px 8px 10px; transition: transform var(--duration-fast) var(--ease-smooth-out), color var(--duration-quick); }
 
 .empty {

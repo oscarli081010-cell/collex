@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatRange, NA, type Conference } from "@/lib/conferences";
 import Countdown from "./Countdown";
 import Verified from "./Verified";
+import { META_ICONS } from "./MetaIcons";
 import s from "./board.module.css";
 
 // A listing: the whole card opens the page; the two buttons go straight to applying.
@@ -21,15 +22,19 @@ export default function ConferenceRow({ c }: { c: Conference }) {
         <span className={s.dateMonth}>{d ? d.toLocaleDateString("en-AU", { month: "short" }) : "Date"}</span>
         <span className={`serif ${s.dateDay}`}>{d ? d.getDate() : NA}</span>
       </span>
-      <span className={s.rowMain}>
+      <div className={s.rowMain}>
         <span className={s.rowTitle}>
           <Link href={page} className={`serif ${s.rowLink}`}>{c.name}</Link>
           {c.isTemplate && <span className="badge accent">Demo</span>}
           {c.verified && <Verified />}
           <Countdown c={c} />
         </span>
-        <span className={s.rowMeta}>{formatRange(c)} · {c.host} · {c.venue}</span>
-      </span>
+        <ul className={s.rowMeta}>
+          <li>{META_ICONS.date}{formatRange(c)}</li>
+          <li>{META_ICONS.host}{c.host}</li>
+          <li>{META_ICONS.venue}{c.venue}</li>
+        </ul>
+      </div>
       <span className={s.rowActions}>
         {action(c.delegationUrl, "Register", true)}
         {action(c.chairUrl, "Apply to chair", false)}
