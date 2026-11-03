@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { MONTHS, template, type Conference } from "@/lib/conferences";
+import { MONTHS, type Conference } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import ConferenceRow from "./ConferenceRow";
 import PageBand, { nextUp } from "./PageBand";
@@ -109,12 +109,6 @@ export default function UpcomingBoard({ band = false }: { band?: boolean }) {
                 ? <Link href="/list" className="button secondary">List the first one</Link>
                 : <button className="button secondary" onClick={reset}>Clear filters</button>}
             </div>
-            {conferences.length === 0 && (
-              <section className={s.group} style={{ "--i": 1 } as React.CSSProperties}>
-                <h3 className={s.groupHead}>Example</h3>
-                <ConferenceRow c={template} />
-              </section>
-            )}
           </div>
         )}
       </div>

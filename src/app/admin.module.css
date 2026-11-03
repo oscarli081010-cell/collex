@@ -68,3 +68,6 @@
   .reject { flex-direction: column; }
   .review { padding: 20px; }
 }
+
+/* The cover photo a listing was sent with, so it can be checked before it goes live. */
+.reviewCover { width: 100%; aspect-ratio: 16 / 5; object-fit: cover; border-radius: 12px; background: var(--surface); }

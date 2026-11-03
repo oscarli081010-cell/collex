@@ -158,7 +158,7 @@ function MyListings({ userId }: { userId: string }) {
     <section className={`panel ${s.card}`} style={{ "--i": 3 } as React.CSSProperties}>
       <div className={s.cardHead}>
         <h2 className={s.cardTitle}>Your listings</h2>
-        <Link href="/list" className="link">List a conference</Link>
+        <Link href="/list" className="button secondary">List a conference</Link>
       </div>
       {rows === null ? <RowsSkeleton rows={2} height={44} /> : rows.length === 0 ? (
         <p className="muted">Nothing listed yet.</p>
@@ -166,11 +166,15 @@ function MyListings({ userId }: { userId: string }) {
         <ul className={s.listings}>
           {rows.map((r) => (
             <li key={r.id}>
-              {r.status === "published" ? <Link href={`/conferences/${r.slug}`} className="link">{r.name}</Link> : <span>{r.name}</span>}
-              <span className={s.status} data-status={r.status}>{STATUS[r.status]}</span>
-              {r.status === "published" && r.id in interest && <small className="muted" style={{ flexBasis: "auto" }}>{interest[r.id]} interested</small>}
-              {(r.status === "published" || r.status === "pending") && <Link href={`/list?edit=${r.id}`} className="link" aria-label={`Edit ${r.name}`}>Edit</Link>}
-              {r.status === "rejected" && r.review_note && <small className="muted">{r.review_note}</small>}
+              <div className={s.listingMain}>
+                {r.status === "published" ? <Link href={`/conferences/${r.slug}`} className={s.listingName}>{r.name}</Link> : <span className={s.listingName}>{r.name}</span>}
+                <span className={s.listingMeta}>
+                  <span className={s.status} data-status={r.status}>{STATUS[r.status]}</span>
+                  {r.status === "published" && r.id in interest && <span>{interest[r.id]} interested</span>}
+                  {r.status === "rejected" && r.review_note && <span>{r.review_note}</span>}
+                </span>
+              </div>
+              {(r.status === "published" || r.status === "pending") && <Link href={`/list?edit=${r.id}`} className="button secondary" aria-label={`Edit ${r.name}`}>Edit</Link>}
             </li>
           ))}
         </ul>

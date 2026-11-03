@@ -33,7 +33,10 @@ export function usePill(container: RefObject<HTMLElement | null>, activeSelector
     const onResize = () => place(true);
     window.addEventListener("resize", onResize);
     document.fonts?.ready.then(() => place(true));
-    return () => window.removeEventListener("resize", onResize);
+    // Tabs can change width after the first paint, e.g. when a count badge loads in.
+    const ro = new ResizeObserver(() => place(true));
+    box.querySelectorAll(":scope > *").forEach((child) => child !== el && ro.observe(child));
+    return () => { window.removeEventListener("resize", onResize); ro.disconnect(); };
   }, [container, activeSelector, dep]);
 
   return pill;

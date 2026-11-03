@@ -4,8 +4,9 @@ import Link from "next/link";
 import PageBand, { type BandProps } from "./PageBand";
 import { FormSkeleton } from "./Skeleton";
 import { useEffect, useState } from "react";
-import { NA, webUrl, type Conference } from "@/lib/conferences";
+import { coverUrl, NA, webUrl, type Conference } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
+import { refreshSite } from "@/lib/refresh";
 import { useAuth } from "./AuthProvider";
 import auth from "@/app/auth.module.css";
 import s from "@/app/inner.module.css";
@@ -32,6 +33,10 @@ const FIELDS: F[] = [
 const GUIDES: F = { name: "guides", label: "Background guides", type: "textarea", wide: true, hint: "One per line, as Committee – https://link" };
 
 const isUrl = (v: string) => /^https?:\/\/\S+\.\S+/.test(v);
+
+// Cover photos: the kinds and size the storage bucket accepts.
+const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+const COVER_MAX = 5 * 1024 * 1024;
 
 // "UNSC – Arctic sovereignty" → { name, topic }
 const parseCommittees = (text: string) =>
@@ -63,6 +68,10 @@ export default function ListForm() {
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [firstDay, setFirstDay] = useState("");
+  // A newly picked photo (uploaded on send), and what the picker shows: the new photo, the saved one, or nothing.
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverRemoved, setCoverRemoved] = useState(false);
   // ?edit=<id> opens one of your own listings for editing instead of a blank form.
   const [editing, setEditing] = useState<Editing | null | "missing">(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -70,7 +79,7 @@ export default function ListForm() {
   useEffect(() => {
     if (!editId || !session || !supabase) return;
     supabase.from("conferences")
-      .select("id, status, name, host, submitter_role, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, overview, committees, guides")
+      .select("id, status, name, host, submitter_role, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, overview, committees, guides, cover_path")
       .eq("id", editId).eq("submitted_by", session.user.id).in("status", ["pending", "published"]).maybeSingle()
       .then(({ data }) => { setEditing((data as Editing) ?? "missing"); setFirstDay((data as Editing | null)?.start_date ?? ""); });
   }, [editId, session]);
@@ -105,6 +114,14 @@ export default function ListForm() {
       return;
     }
     setBusy(true);
+    // Upload the photo first, into this account's own folder, so the listing only ever points at a file that exists.
+    let cover: { cover_path: string | null } | null = coverRemoved ? { cover_path: null } : null;
+    if (coverFile) {
+      const path = `${session.user.id}/${crypto.randomUUID()}.${COVER_TYPES[coverFile.type]}`;
+      const { error: upError } = await supabase.storage.from("covers").upload(path, coverFile, { contentType: coverFile.type, cacheControl: "31536000" });
+      if (upError) { setBusy(false); return setErrors({ cover: "The photo didn't upload. Try again, or try a smaller one." }); }
+      cover = { cover_path: path };
+    }
     const fields = {
       name: v("name"),
       host: v("host"),
@@ -119,6 +136,7 @@ export default function ListForm() {
       chair_url: v("chair_url") || null,
       overview: v("overview"),
       committees: parseCommittees(v("committees")),
+      ...cover,
     };
     const { error } = edit
       ? await supabase.from("conferences").update({ ...fields, guides: parseGuides(v("guides"), edit.guides) }).eq("id", edit.id)
@@ -126,10 +144,33 @@ export default function ListForm() {
     setBusy(false);
     // New links or guides on a live listing queue emails to its followers; this sends them.
     if (!error && edit) supabase.functions.invoke("notify").catch(() => {});
+    // A live listing's page shows the edit straight away.
+    if (!error && edit?.status === "published") refreshSite();
     if (error) return setErrors({ form: error.message.startsWith("Too many listings") ? "You've sent 5 listings today. Try again tomorrow." : "Couldn't send it. Check your connection and try again." });
     setSent(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+  const savedCover = edit && !coverRemoved ? coverUrl(edit.cover_path) : null;
+  const shownCover = coverPreview ?? savedCover;
+  const pickCover = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!COVER_TYPES[file.type]) return setErrors((x) => ({ ...x, cover: "Use a JPG, PNG or WebP photo." }));
+    if (file.size > COVER_MAX) return setErrors((x) => ({ ...x, cover: "That photo is over 5 MB. Try a smaller one." }));
+    setErrors(({ cover: _, ...rest }) => rest);
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
+    setCoverRemoved(false);
+  };
+  const removeCover = () => {
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverFile(null);
+    setCoverPreview(null);
+    setCoverRemoved(Boolean(edit?.cover_path));
+  };
 
   // The headline band above every state of this page, with the state's content centred underneath.
   const page = (band: BandProps, body: React.ReactNode) => (
@@ -221,6 +262,28 @@ export default function ListForm() {
             </div>
           );
         })}
+        <div className={`field ${s.wide} ${errors.cover ? s.invalid : ""}`}>
+          <label htmlFor="f-cover">Cover photo <span className="muted">(optional)</span></label>
+          <label htmlFor="f-cover" className={s.coverPick} data-filled={Boolean(shownCover)}>
+            {shownCover
+              // eslint-disable-next-line @next/next/no-img-element -- a local preview of the picked file
+              ? <img src={shownCover} alt="The cover photo you picked" />
+              : <span className={s.coverEmpty}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2.5" /><circle cx="9" cy="10" r="1.8" /><path d="M21 16l-5-5-8 8.5" /></svg>
+                  Add a photo
+                </span>}
+          </label>
+          <input id="f-cover" type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-invalid={Boolean(errors.cover)} aria-describedby="f-cover-hint" onChange={pickCover} />
+          {errors.cover
+            ? <small key="err" id="f-cover-hint" className={`t-reveal ${s.error}`}>{errors.cover}</small>
+            : <small id="f-cover-hint">A wide photo of the venue or a past conference. JPG, PNG or WebP, up to 5 MB.</small>}
+          {shownCover && (
+            <div className={auth.row}>
+              <label htmlFor="f-cover" className="button secondary">Change photo</label>
+              <button type="button" className={auth.textBtn} onClick={removeCover}>Remove</button>
+            </div>
+          )}
+        </div>
         <div className={`field ${s.wide}`}>
           <label className={`check ${errors.publish ? "invalid" : ""}`} style={{ marginBottom: 8 }}>
             <input type="checkbox" name="publish" aria-invalid={Boolean(errors.publish)} aria-describedby={errors.publish ? "publish-err" : undefined} onChange={() => errors.publish && setErrors(({ publish: _, ...rest }) => rest)} />

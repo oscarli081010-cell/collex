@@ -9,7 +9,7 @@ const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  `img-src 'self' data: blob: ${supabase}`,
   "font-src 'self'",
   `connect-src 'self' ${supabase} ${supabase.replace("https", "wss")}`,
   "frame-ancestors 'none'",

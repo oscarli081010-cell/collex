@@ -7,7 +7,7 @@ import { useAuth } from "./AuthProvider";
 import { useToast } from "./useToast";
 import s from "@/app/inner.module.css";
 
-// Opt in to emails about one conference. The sentence beside the button says exactly what will be sent,
+// Opt in to emails about one conference. The tooltip and the confirmation say exactly what will be sent,
 // and every email has a one-click unsubscribe link (Spam Act 2003).
 export default function FollowButton({ id, name }: { id: string; name: string }) {
   const { ready, session } = useAuth();
@@ -30,21 +30,21 @@ export default function FollowButton({ id, name }: { id: string; name: string })
     setBusy(false);
     if (error) return say("That didn't save. Try again.");
     setFollowing(!following);
-    say(following ? `You won't get emails about ${name}` : `We'll email you about ${name}`);
+    say(following ? `You won't get emails about ${name}` : `We'll email you when ${name}'s applications open or guides are released`);
   };
 
   if (!ready || following === null) return <span className={s.follow} aria-hidden="true" />;
   return (
-    <div className={s.follow}>
+    <span className={`${s.tip} ${s.follow}`} data-tip={following ? "Unfollow any time" : "Emails when applications open or guides are released"}>
       {session ? (
-        <button className={`button ${following ? "secondary" : ""}`} onClick={toggle} disabled={busy} aria-pressed={following}>
+        <button className={`button ${following ? "secondary" : ""}`} onClick={toggle} disabled={busy} aria-pressed={following} aria-describedby={`follow-${id}`}>
           <span key={String(following)} className="t-swap">{following ? "Following ✓" : "Follow for updates"}</span>
         </button>
       ) : (
-        <Link href="/login" className="button">Log in to follow</Link>
+        <Link href="/login" className="button" aria-describedby={`follow-${id}`}>Log in to follow</Link>
       )}
-      <small className="muted">{following ? "Unfollow any time." : "Email me when applications open or guides are released."}</small>
+      <span id={`follow-${id}`} className="sr-only">Emails when applications open or guides are released. Unfollow any time.</span>
       {node}
-    </div>
+    </span>
   );
 }

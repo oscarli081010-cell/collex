@@ -53,7 +53,7 @@ export default function Privacy() {
       <section>
         <h2>Who can see it</h2>
         <ul>
-          <li><strong>Everyone</strong> can see approved listings, including the contact email entered on them. Your account details are never shown publicly.</li>
+          <li><strong>Everyone</strong> can see approved listings, including the contact email and any cover photo added to them. Your account details are never shown publicly.</li>
           <li><strong>Collex admins</strong> can see accounts and listings so they can review submissions and answer requests.</li>
           <li><strong>Our service providers</strong> handle data only to run their part of Collex: Supabase (database and sign-in), Vercel (website hosting) and Resend (sending account and follow emails).</li>
           <li><strong>Authorities</strong>, only where the law requires us to share it.</li>
@@ -68,7 +68,7 @@ export default function Privacy() {
       <section>
         <h2>Students and young people</h2>
         <p>Many people on Collex are high school students. If you are under 18, check with a parent or guardian before you create an account. We only ask for what an account needs, and the school field is optional.</p>
-        <p>If you list a conference, do not include personal details of students, such as names or phone numbers, unless they have agreed.</p>
+        <p>If you list a conference, do not include personal details of students, such as names, phone numbers or photos where they can be recognised, unless they have agreed.</p>
       </section>
 
       <section>

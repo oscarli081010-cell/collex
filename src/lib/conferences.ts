@@ -35,11 +35,17 @@ export type Conference = {
   isTemplate?: boolean;
   /** Set by an admin when the listing came from the conference's own secretariat. */
   verified?: boolean;
+  /** Address of the organiser's cover photo, if they added one. */
+  cover?: string | null;
   /** ISO timestamp of the last change to the listing. */
   updatedAt?: string;
 };
 
 export const NA = "N/A";
+
+/** The public address of a cover photo stored in the "covers" bucket. */
+export const coverUrl = (path: string | null | undefined) =>
+  path && process.env.NEXT_PUBLIC_SUPABASE_URL ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/covers/${path}` : null;
 
 /** A link that is safe to put in href: only http(s) web links pass, so a stored javascript: link can never run. */
 export const webUrl = (u: string | null | undefined) => (u && /^https?:\/\//i.test(u.trim()) ? u.trim() : null);

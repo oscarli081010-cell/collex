@@ -13,6 +13,13 @@ import s from "../../inner.module.css";
 
 type Props = { params: Promise<{ slug: string }> };
 
+const icon = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
+const ICONS = {
+  date: icon(<><rect x="2.5" y="3.5" width="11" height="10" rx="2" /><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" /></>),
+  host: icon(<><path d="M2 13.5h12M3.5 13.5V7L8 3.5 12.5 7v6.5" /><path d="M6.5 13.5v-3h3v3" /></>),
+  venue: icon(<><path d="M8 14s4.5-4.2 4.5-7.5a4.5 4.5 0 00-9 0C3.5 9.8 8 14 8 14z" /><circle cx="8" cy="6.5" r="1.6" /></>),
+};
+
 export const revalidate = 60;
 
 export async function generateStaticParams() {
@@ -92,7 +99,10 @@ export default async function ConferencePage({ params }: Props) {
         )}
         <section className={s.confFirst}>
         <div className={s.cover}>
-          <span>{c.isTemplate ? "Cover image N/A" : c.shortName}</span>
+          {c.cover
+            // eslint-disable-next-line @next/next/no-img-element -- organisers' photos come straight from storage at their own size
+            ? <img src={c.cover} alt="" className={s.coverImg} fetchPriority="high" />
+            : <span>{c.isTemplate ? "Cover image N/A" : c.shortName}</span>}
         </div>
 
         <header className={s.confHead}>
@@ -101,8 +111,11 @@ export default async function ConferencePage({ params }: Props) {
               <span className={s.confBadges}>{c.verified && <Verified />}<Countdown c={c} /></span>
             )}
             <h1 className={s.confTitle}>{c.name}</h1>
-            <p className={s.confSub}>{formatRange(c)} · Hosted by {c.host} · {c.venue}</p>
-            {c.updatedAt && <p className={s.updated}>Last updated {new Date(c.updatedAt).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric", timeZone: "Australia/Sydney" })}</p>}
+            <ul className={s.confMeta}>
+              <li>{ICONS.date}{formatRange(c)}</li>
+              <li>{ICONS.host}Hosted by {c.host}</li>
+              <li>{ICONS.venue}{c.venue}</li>
+            </ul>
           </div>
           <div className={s.confAside}>
             <ConferenceActions c={c} />
@@ -125,6 +138,7 @@ export default async function ConferencePage({ params }: Props) {
             <section id="overview" className={s.block}>
               <h2 className={s.h2}>Overview</h2>
               <p>{c.overview}</p>
+              {c.updatedAt && <p className={s.updated}>Updated {new Date(c.updatedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" })}</p>}
             </section>
 
             <section id="dates" className={s.block}>

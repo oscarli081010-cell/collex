@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { RowsSkeleton } from "./Skeleton";
 import Verified from "./Verified";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { formatDate, webUrl } from "@/lib/conferences";
+import { coverUrl, formatDate, webUrl } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
+import { refreshSite } from "@/lib/refresh";
 import { useAuth } from "./AuthProvider";
 import { usePill } from "./usePill";
 import { useToast } from "./useToast";
@@ -15,7 +17,7 @@ import s from "@/app/admin.module.css";
 type Row = {
   id: string; slug: string; status: string; name: string; host: string; start_date: string | null; end_date: string | null;
   venue: string; level: string | null; contact: string; fee: string; overview: string; submitter_role: string;
-  delegation_url: string | null; chair_url: string | null; committees: { name: string; topic: string }[];
+  delegation_url: string | null; chair_url: string | null; committees: { name: string; topic: string }[]; cover_path?: string | null;
   review_note: string; created_at: string; verified: boolean;
 };
 type User = { id: string; email: string; full_name: string; school: string; role: string; is_admin: boolean; created_at: string };
@@ -36,6 +38,9 @@ export default function Admin() {
   const [log, setLog] = useState<Log[] | null>(null);
   const { say, node } = useToast();
   const tabsRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  // Public pages pick up the change now, and so does this tab's copy of them.
+  const published = () => refreshSite().then(() => router.refresh());
   const pill = usePill(tabsRef, '[aria-selected="true"]', `${tab}${profile?.is_admin}`);
 
   const load = useCallback(async () => {
@@ -68,18 +73,21 @@ export default function Admin() {
     if (error) return say("That didn't save. Try again.");
     say(status === "published" ? `${r.name} is live` : status === "rejected" ? "Rejected" : status === "unpublished" ? "Taken down" : "Updated");
     load();
+    published();
   };
   const setVerified = async (r: Row) => {
     const { error } = await supabase!.from("conferences").update({ verified: !r.verified }).eq("id", r.id);
     if (error) return say("That didn't save. Try again.");
     say(r.verified ? "Badge removed" : `${r.name} is verified`);
     load();
+    published();
   };
   const remove = async (r: Row) => {
     const { error } = await supabase!.from("conferences").delete().eq("id", r.id);
     if (error) return say("That didn't delete. Try again.");
     say("Deleted");
     load();
+    published();
   };
   const toggleAdmin = async (u: User) => {
     const { error } = await supabase!.rpc("set_admin", { target: u.id, make_admin: !u.is_admin });
@@ -236,6 +244,8 @@ function ReviewCard({ r, i, onApprove, onReject }: { r: Row; i: number; onApprov
           <button className="button" onClick={() => onApprove(verified)}>Approve and publish</button>
         </div>
       </div>
+      {/* eslint-disable-next-line @next/next/no-img-element -- the organiser's photo, shown so it can be checked before approving */}
+      {r.cover_path && <img src={coverUrl(r.cover_path)!} alt={`Cover photo sent with ${r.name}`} className={s.reviewCover} />}
       <dl className={s.facts}>
         {facts.filter(([, v]) => v).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
         {webUrl(r.delegation_url) && <div><dt>Registration</dt><dd><a className="link" href={webUrl(r.delegation_url)!} target="_blank" rel="noreferrer">Open link</a></dd></div>}

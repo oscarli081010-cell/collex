@@ -59,11 +59,16 @@
 .status[data-status="rejected"] { background: var(--danger-soft); color: var(--danger); }
 
 /* Account */
-.cardHead { display: flex; justify-content: space-between; align-items: baseline; }
+.cardHead { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
 .listings { display: flex; flex-direction: column; }
-.listings li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 12px 0; font-size: 15px; }
+.listings li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; }
+.listings li:first-child { padding-top: 4px; }
 .listings li + li { border-top: 1px solid var(--line); }
-.listings small { flex-basis: 100%; }
+/* Each listing: its name, with its status and interest underneath; Edit on the right. */
+.listingMain { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
+.listingName { font-size: 16px; font-weight: 500; color: var(--ink); overflow-wrap: anywhere; }
+a.listingName:hover { color: var(--accent); }
+.listingMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13px; color: var(--muted); }
 .account { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 20px; }
 .avatar {
   width: 64px; height: 64px; border-radius: 50%; flex: none; display: grid; place-items: center;
