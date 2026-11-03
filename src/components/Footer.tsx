@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Wordmark } from "@/lib/brand";
 import styles from "./Footer.module.css";
 
 export const CONTACT = "hello@collex.au";
@@ -8,7 +9,7 @@ export default function Footer() {
     <footer className={styles.footer}>
       <div className={`container ${styles.inner}`}>
         <div className={styles.brand}>
-          <Link href="/" className="wordmark">Collex</Link>
+          <Link href="/" className="wordmark" aria-label="Collex home"><Wordmark /></Link>
           <p className="muted">A calendar for the Sydney Model UN circuit. Independent, and not affiliated with the United Nations.</p>
         </div>
         <nav className={styles.cols} aria-label="Footer">

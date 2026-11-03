@@ -20,7 +20,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const c = await getBySlug((await params).slug);
   if (!c) return { title: "Collex" };
   if (c.isTemplate) return { title: "Demo · Collex", robots: { index: false } };
-  return { title: `${c.name} · Collex`, description: describe(c), alternates: { canonical: `/conferences/${c.slug}` } };
+  return {
+    title: `${c.name} · Collex`,
+    description: describe(c),
+    alternates: { canonical: `/conferences/${c.slug}` },
+    openGraph: { title: c.name, description: describe(c), siteName: "Collex", locale: "en_AU", type: "website", url: `/conferences/${c.slug}` },
+  };
 }
 
 // One or two plain sentences for search results: the overview if there is one, otherwise the facts.

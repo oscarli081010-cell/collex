@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   title: "Collex · The Sydney MUN calendar",
   description: "A calendar of Model United Nations conferences in Sydney, each with its own page.",
   metadataBase: new URL("https://collex.au"),
+  openGraph: { siteName: "Collex", locale: "en_AU", type: "website" },
+  twitter: { card: "summary_large_image" },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

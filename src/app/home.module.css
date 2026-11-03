@@ -29,11 +29,24 @@
 
 .heroPic { position: relative; }
 .heroImg {
-  display: block; aspect-ratio: 4 / 3; border-radius: 16px;
-  background: var(--accent) url("/img/general-assembly.jpg") center 40% / cover;
+  position: relative; display: block; aspect-ratio: 4 / 3; border-radius: 16px; overflow: hidden;
+  background: var(--accent); isolation: isolate;
   animation: heroIn var(--duration-very-slow) var(--ease-smooth-out) both;
 }
+/* The photo drifts slowly across the frame, like a camera panning the hall. */
+.heroImg::before {
+  content: ""; position: absolute; inset: 0;
+  background: url("/img/general-assembly.jpg") center 40% / cover;
+  transform: scale(1.12) translateX(-2.5%);
+  animation: heroPan 42s ease-in-out infinite alternate;
+  will-change: transform;
+}
+/* In dark mode the photo is dimmed a little so it sits on the darker page. */
+.heroImg::after { content: ""; position: absolute; inset: 0; background: #000; opacity: 0; transition: opacity 300ms var(--ease-out); }
+:global(:root[data-theme="dark"]) .heroImg::after { opacity: 0.22; }
+@media (prefers-color-scheme: dark) { :global(:root[data-theme="system"]) .heroImg::after { opacity: 0.22; } }
 @keyframes heroIn { from { opacity: 0; transform: scale(0.98); } }
+@keyframes heroPan { to { transform: scale(1.12) translateX(2.5%) translateY(-1.5%); } }
 .nextCard {
   position: absolute; left: -32px; bottom: -28px; min-width: 260px;
   display: flex; flex-direction: column; gap: 4px; padding: 18px 22px;
@@ -61,7 +74,7 @@
 .sideTitle { font-size: 24px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .heroImg, .nextCard, .scrollCue svg { animation: none; }
+  .heroImg, .heroImg::before, .nextCard, .scrollCue svg { animation: none; }
   .aura { animation: none; background-size: 100% 100%; }
 }
 @media (max-width: 980px) {

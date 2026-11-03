@@ -191,7 +191,7 @@ select.control {
   border-bottom: 1px solid var(--line);
 }
 .topbarInner { display: flex; align-items: center; gap: 40px; height: 72px; }
-.wordmark { font-family: var(--serif); font-size: 28px; line-height: 1; letter-spacing: -0.01em; }
+.wordmark { display: inline-flex; align-items: center; color: var(--ink); line-height: 1; border-radius: 6px; }
 .navlinks { position: relative; display: flex; gap: 4px; flex: 1; align-items: center; }
 .navlinks a {
   position: relative; z-index: 1;
