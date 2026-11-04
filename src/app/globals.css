@@ -204,7 +204,7 @@ select.control {
 /* Top bar */
 .topbar {
   position: sticky; top: 0; z-index: 30;
-  background: var(--glass);
+  background: var(--bg); /* solid: the page scrolls under it and must not show through */
   border-bottom: 1px solid var(--line);
 }
 .topbarInner { display: flex; align-items: center; gap: 40px; height: 72px; }

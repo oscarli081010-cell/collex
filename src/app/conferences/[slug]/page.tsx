@@ -9,7 +9,7 @@ import roleStyles from "@/components/Roles.module.css";
 import { getBySlug, getPublished } from "@/lib/data";
 import ApplyBand from "@/components/ApplyBand";
 import ConferenceActions from "@/components/ConferenceActions";
-import ConferenceTabs, { type TabGroup } from "@/components/ConferenceTabs";
+import ConferenceTabs from "@/components/ConferenceTabs";
 import Countdown from "@/components/Countdown";
 import FollowButton from "@/components/FollowButton";
 import StickyApply from "@/components/StickyApply";
@@ -119,13 +119,12 @@ export default async function ConferencePage({ params }: Props) {
   const c = await getBySlug((await params).slug);
   if (!c) notFound();
   const past = isPast(c);
-  // Related sections sit under one tab each. The secretariat comes before the ways to get involved.
+  // The secretariat comes before the ways to get involved.
   const hasRoles = Boolean(c.roles?.length) && !past;
-  const groups: TabGroup[] = [
-    { id: "about", label: "About", items: [["overview", "Overview"], ["dates", "Key dates"]] },
-    { id: "programme", label: "Programme", items: [["committees", "Committees"], ["guides", "Background guides"]] },
-    { id: "people", label: "People", items: [["secretariat", "Secretariat"], ...(hasRoles ? [["roles", "Get involved"] as const] : [])] },
-  ];
+  const tabs = [
+    ["overview", "Overview"], ["dates", "Key dates"], ["committees", "Committees"], ["guides", "Background guides"], ["secretariat", "Secretariat"],
+    ...(hasRoles ? [["roles", "Get involved"] as const] : []),
+  ] as const;
 
   return (
       <main id="top" className="container">
@@ -185,7 +184,7 @@ export default async function ConferencePage({ params }: Props) {
         </section>
 
         <div id="details" className={s.details}>
-        <ConferenceTabs groups={groups} />
+        <ConferenceTabs tabs={tabs} />
 
         <div className={s.confGrid}>
           <div className={s.main}>
