@@ -29,7 +29,8 @@ export default function MiniCalendar() {
 
   return (
     <div className={`panel ${s.cal}`}>
-      <h2 className={s.calTitle}>Check a date</h2>
+      <h2 id="check-h" className={s.calTitle}>Check a date</h2>
+      <div className={s.calPick}>
       <div className={s.calHead}>
         <MonthPicker size="sm" value={view} onChange={(v, d) => { setDir(d); setView(v); }} />
       </div>
@@ -53,8 +54,9 @@ export default function MiniCalendar() {
           );
         })}
       </div>
+      </div>
       <div className={s.calResult} aria-live="polite">
-        {!picked && <p key="none" className="t-reveal muted">No date picked yet.</p>}
+        {!picked && <p key="none" className="t-reveal muted">Pick a day to see what else is on that weekend.</p>}
         {picked && (
           <div key={picked} className="t-reveal">
             <p className={s.calResultHead}>

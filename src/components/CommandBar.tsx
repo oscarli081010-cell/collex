@@ -27,11 +27,20 @@ export default function CommandBar() {
   const dialog = useRef<HTMLDialogElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState("");
-  const [active, setActive] = useState(0);
+  // The highlighted result. None until you type or move: opening the menu shouldn't pick anything for you.
+  const [active, setActive] = useState(-1);
   const [mac, setMac] = useState(true);
 
-  const open = () => { setQ(""); setActive(0); dialog.current?.showModal(); input.current?.focus(); };
+  // While the menu is up the page behind stays put: native scrolling and Lenis's smooth scrolling both stop.
+  const lock = (on: boolean) => {
+    const lenis = (window as unknown as { __lenis?: { stop(): void; start(): void } }).__lenis;
+    document.documentElement.style.overflow = on ? "hidden" : "";
+    document.body.style.overflow = on ? "hidden" : "";
+    if (on) lenis?.stop(); else lenis?.start();
+  };
+  const open = () => { setQ(""); setActive(-1); dialog.current?.showModal(); lock(true); input.current?.focus(); };
   const close = () => dialog.current?.close();
+  useEffect(() => () => lock(false), []);
 
   useEffect(() => {
     setMac(/Mac|iPhone|iPad/.test(navigator.platform));
@@ -61,14 +70,14 @@ export default function CommandBar() {
     else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
     else if (e.key === "Enter") { e.preventDefault(); go(results[active]); }
   };
-  useEffect(() => { document.getElementById(`cmd-${active}`)?.scrollIntoView({ block: "nearest" }); }, [active]);
+  useEffect(() => { if (active >= 0) document.getElementById(`cmd-${active}`)?.scrollIntoView({ block: "nearest" }); }, [active]);
 
   return (
     <>
       <button className={s.trigger} onClick={open} aria-label="Search Collex" aria-keyshortcuts="Meta+K Control+K" title={`Search (${mac ? "⌘" : "Ctrl"} K)`}>
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
       </button>
-      <dialog ref={dialog} className={s.dialog} aria-label="Search Collex" onClick={(e) => e.target === dialog.current && close()}>
+      <dialog ref={dialog} className={s.dialog} aria-label="Search Collex" onClick={(e) => e.target === dialog.current && close()} onClose={() => lock(false)}>
         <div className={s.panel}>
           <div className={s.field}>
             <svg width="17" height="17" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
@@ -76,13 +85,13 @@ export default function CommandBar() {
               ref={input}
               className={s.input}
               value={q}
-              onChange={(e) => { setQ(e.target.value); setActive(0); }}
+              onChange={(e) => { setQ(e.target.value); setActive(e.target.value.trim() ? 0 : -1); }}
               onKeyDown={onKeyDown}
               placeholder="Search conferences, schools and pages"
               role="combobox"
               aria-expanded="true"
               aria-controls="cmd-list"
-              aria-activedescendant={results.length ? `cmd-${active}` : undefined}
+              aria-activedescendant={results.length && active >= 0 ? `cmd-${active}` : undefined}
               aria-autocomplete="list"
               autoComplete="off"
               spellCheck={false}

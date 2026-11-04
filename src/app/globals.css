@@ -105,6 +105,8 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
+/* Keeps the page from shifting sideways when scrolling is locked (the search menu) and the scrollbar goes. */
+html { scrollbar-gutter: stable; }
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
 body {
@@ -155,6 +157,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .button.secondary { background: var(--panel); color: var(--ink); border-color: var(--line-strong); }
 .button.secondary:hover { background: var(--surface); }
 .button.lg { height: 46px; padding: 0 20px; font-size: 15px; }
+/* A one-off button fills the box it sits in, instead of floating at one side. */
+.button.block { width: 100%; }
 .button[disabled] { background: var(--surface); color: var(--faint); border-color: var(--line); cursor: not-allowed; transform: none; }
 
 /* Badge */
@@ -304,6 +308,19 @@ select.control {
 @keyframes livePulse { 50% { opacity: 0.3; } }
 @media (prefers-reduced-motion: reduce) { .countdown, .countdown::before { animation: none !important; } }
 
+/* A calm call-to-action box: a title, a line of text, then wide buttons, all centred. Used for subscribing to the
+   calendar and for listing a conference, so every box like this looks the same. */
+.callout {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 24px;
+  padding: clamp(32px, 5vw, 56px) clamp(20px, 4vw, 48px); border: 1px solid var(--line); border-radius: 20px;
+  background: radial-gradient(70% 120% at 50% 0%, var(--accent-soft), transparent 72%), var(--panel);
+}
+.calloutIcon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); }
+.calloutTitle { font-family: var(--serif); font-weight: 400; font-size: clamp(28px, 3.4vw, 40px); line-height: 1.1; letter-spacing: -0.01em; }
+.calloutText { max-width: 52ch; color: var(--muted); margin-top: -12px; }
+.calloutActions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; width: min(100%, 560px); }
+.calloutActions .button { height: 48px; font-size: 15px; }
+
 /* Headlines break into even lines; body text avoids a lone last word. */
 h1, h2, h3, .serif { text-wrap: balance; }
 p, li, dd, small, figcaption { text-wrap: pretty; }
@@ -322,10 +339,13 @@ p, li, dd, small, figcaption { text-wrap: pretty; }
   content: attr(data-tip); position: absolute; z-index: 60; bottom: calc(100% + 8px); right: 0;
   white-space: nowrap; font-size: 12.5px; font-weight: 500; padding: 6px 10px; border-radius: 8px;
   background: var(--ink); color: var(--on-ink); pointer-events: none;
-  opacity: 0; translate: 0 4px; transition: opacity var(--duration-quick), translate var(--duration-quick);
+  /* Hidden, it also has no size (scale 0, applied once the fade is over), so a wide bubble beside the screen's edge
+     can't stretch the page sideways on a phone. */
+  opacity: 0; translate: 0 4px; scale: 0;
+  transition: opacity var(--duration-quick), translate var(--duration-quick), scale 0s linear var(--duration-quick);
 }
-.tip:hover::after { opacity: 1; translate: 0 0; transition-delay: 500ms; }
-.tip:has(:focus-visible)::after, .tip[data-tip-open]::after { opacity: 1; translate: 0 0; transition-delay: 0ms; }
+.tip:hover::after { opacity: 1; translate: 0 0; scale: 1; transition-delay: 500ms; }
+.tip:has(:focus-visible)::after, .tip[data-tip-open]::after { opacity: 1; translate: 0 0; scale: 1; transition-delay: 0ms; }
 @media (prefers-reduced-motion: reduce) { .tip::after { translate: none; } }
 /* A longer explanation (the Verified badge): opens from the left edge and wraps. */
 .tip[data-tip-align="start"]::after { right: auto; left: 0; white-space: normal; width: max-content; max-width: 240px; line-height: 1.4; }

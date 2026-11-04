@@ -57,21 +57,26 @@ export default function Home() {
         </a>
       </section>
 
+      {/* Below the hero, three calm sections one after another: what's on, a date check, and listing yours. */}
       <section id="upcoming" className={`container ${styles.board}`} aria-labelledby="upcoming-h">
-        <div>
-          <div className={styles.boardHead}>
-            <h2 id="upcoming-h" className={`serif ${styles.h2}`}>Upcoming</h2>
-            <Link href="/calendar" className="link">Open calendar →</Link>
-          </div>
-          <UpcomingBoard />
+        <div className={styles.boardHead}>
+          <h2 id="upcoming-h" className={`serif ${styles.h2}`}>Upcoming</h2>
+          <Link href="/calendar" className="link">Open calendar →</Link>
         </div>
-        <aside className={styles.side}>
-          <MiniCalendar />
-          <div className={`panel ${styles.sideCard}`}>
-            <h2 className={`serif ${styles.sideTitle}`}>Running a conference?</h2>
+        <UpcomingBoard />
+      </section>
+
+      <section className={`container ${styles.section}`} aria-labelledby="check-h">
+        <MiniCalendar />
+      </section>
+
+      <section className={`container ${styles.section}`} aria-labelledby="list-h">
+        <div className="callout">
+          <h2 id="list-h" className="calloutTitle">Running a conference?</h2>
+          <div className="calloutActions">
             <Link href="/list" className="button">List it free</Link>
           </div>
-        </aside>
+        </div>
       </section>
     </main>
   );

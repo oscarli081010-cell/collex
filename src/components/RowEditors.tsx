@@ -39,9 +39,9 @@ function move<T>(list: T[], from: number, to: number) {
 }
 
 // The add / reorder / remove frame shared by both editors.
-function Rows<T extends { key: string }>({ id, rows, setRows, label, empty, addLabel, make, render }: {
+function Rows<T extends { key: string }>({ id, rows, setRows, label, addLabel, make, render }: {
   id: string; rows: T[]; setRows: (rows: T[]) => void; label: (r: T, i: number) => string;
-  empty: string; addLabel: string; make: () => T; render: (r: T, i: number, set: (patch: Partial<T>) => void) => React.ReactNode;
+  addLabel: string; make: () => T; render: (r: T, i: number, set: (patch: Partial<T>) => void) => React.ReactNode;
 }) {
   const shift = (i: number, by: number, button: "up" | "down") => {
     // Render the move straight away, then keep focus on the same button of the row that moved,
@@ -56,7 +56,6 @@ function Rows<T extends { key: string }>({ id, rows, setRows, label, empty, addL
   };
   return (
     <div className={s.rowsEditor}>
-      {rows.length === 0 && <p className={s.rowsEmpty}>{empty}</p>}
       <ol className={s.rowsList}>
         {rows.map((r, i) => (
           <li key={r.key} className={`t-reveal ${s.editRow}`}>
@@ -81,7 +80,6 @@ export function CommitteesEditor({ rows, setRows }: { rows: CommitteeRow[]; setR
   return (
     <Rows
       id="committee" rows={rows} setRows={setRows} addLabel="Add a committee"
-      empty="No committees yet. Add them now, or later once they're set."
       label={(r, i) => r.name.trim() || `committee ${i + 1}`}
       make={() => ({ name: "", topic: "", level: "", chairs: "", key: key() })}
       render={(r, i, set) => <>
@@ -98,7 +96,6 @@ export function GuidesEditor({ rows, setRows, committees, error }: { rows: Guide
   return (
     <Rows
       id="guide" rows={rows} setRows={setRows} addLabel="Add a guide"
-      empty="No guides yet. Add one per committee as they're released."
       label={(r, i) => (r.committee.trim() ? `${r.committee} guide` : `guide ${i + 1}`)}
       make={() => ({ committee: committees[rows.length] ?? committees[0] ?? "", url: "", released: "", key: key() })}
       render={(r, i, set) => {

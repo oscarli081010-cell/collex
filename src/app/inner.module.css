@@ -50,7 +50,7 @@
 
 .calBar { position: relative; z-index: 2; display: flex; justify-content: center; }
 
-.agenda { margin-top: 72px; max-width: 860px; }
+.agenda { margin-top: 72px; }
 .h2 { font-family: var(--serif); font-weight: 400; font-size: 32px; line-height: 1.1; margin-bottom: 20px; }
 
 /* Conference page */
@@ -252,13 +252,8 @@
 /* Follow a conference */
 .follow { min-height: 44px; min-width: 168px; }
 
-/* Calendar subscription */
-.subscribe {
-  display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap;
-  margin-top: 40px; padding: 24px 28px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel);
-}
-.subscribeTitle { font-family: var(--serif); font-size: 24px; line-height: 1.15; margin-bottom: 4px; }
-.subscribeActions { display: flex; gap: 10px; flex-wrap: wrap; }
+/* Calendar subscription: the shared callout box, set apart from the month's list above it. */
+.subscribe { margin-top: 56px; }
 
 /* A past conference: one calm line in place of the apply buttons. */
 .finished {
@@ -281,7 +276,10 @@
 fieldset:global(.field) { border: 0; padding: 0; margin: 0; min-width: 0; }
 fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0; margin-bottom: 6px; }
 .rowsEditor { display: flex; flex-direction: column; gap: 10px; }
-.rowsEmpty { font-size: 13.5px; color: var(--muted); }
+/* The delegate fee: a fixed $ inside the box, in front of what's typed. */
+.money { position: relative; display: block; }
+.moneySign { position: absolute; left: 14px; top: 0; height: 44px; display: grid; place-items: center; color: var(--muted); font-size: 14px; pointer-events: none; }
+.money :global(.control) { padding-left: 28px; }
 .rowsList { display: flex; flex-direction: column; gap: 10px; }
 .editRow {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: start;
@@ -292,8 +290,7 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 .editFields .control { background: var(--panel); }
 .editWide { grid-column: 1 / -1; }
 .editActions { display: flex; flex-direction: column; gap: 6px; padding-top: 20px; }
-.addRow { align-self: flex-start; }
-.nudge { font-size: 13.5px; color: var(--accent); margin-bottom: 2px; }
+.addRow { align-self: stretch; }
 
 /* Organisers of a listing, under the edit form. */
 .team { width: 100%; max-width: 600px; margin-top: 32px; padding: 28px; display: flex; flex-direction: column; gap: 18px; }

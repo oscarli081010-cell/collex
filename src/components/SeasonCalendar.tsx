@@ -101,12 +101,13 @@ export default function SeasonCalendar() {
             {listed.map((c, i) => <div key={c.slug} style={{ "--i": i } as React.CSSProperties}><ConferenceRow c={c} /></div>)}
           </div>
         )}
-        <div className={s.subscribe}>
-          <div>
-            <p className={s.subscribeTitle}>Keep the season in your own calendar</p>
-            <p className="muted">Subscribe once and new conferences appear in Apple, Google or Outlook Calendar as they&rsquo;re listed.</p>
-          </div>
-          <div className={s.subscribeActions}>
+        <div className={`callout ${s.subscribe}`}>
+          <span className="calloutIcon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="2.5" y="3.5" width="11" height="10" rx="2" /><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3M8 8.5v3M6.5 10h3" /></svg>
+          </span>
+          <h3 className="calloutTitle">Keep the season in your own calendar</h3>
+          <p className="calloutText">Subscribe once and new conferences appear in Apple, Google or Outlook Calendar as they&rsquo;re listed.</p>
+          <div className="calloutActions">
             <a href="webcal://collex.au/calendar.ics" className="button">Subscribe</a>
             <a href="/calendar.ics" className="button secondary" download="collex.ics">Download .ics</a>
           </div>

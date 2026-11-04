@@ -60,17 +60,11 @@
 .nextLabel { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
 .nextName { font-size: 28px; line-height: 1.1; }
 
-/* Board */
-.board {
-  display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 64px; align-items: start;
-  padding-top: 56px; border-top: 1px solid var(--line);
-  scroll-margin-top: 72px;
-}
-.boardHead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 28px; }
-.h2 { font-size: clamp(32px, 3.4vw, 44px); }
-.side { position: sticky; top: 96px; display: flex; flex-direction: column; gap: 20px; }
-.sideCard { padding: 24px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
-.sideTitle { font-size: 24px; }
+/* Below the hero: sections stacked, each with its own room, so nothing competes for the same space. */
+.board { padding-top: clamp(56px, 6vw, 80px); border-top: 1px solid var(--line); scroll-margin-top: 72px; }
+.boardHead { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 32px; }
+.h2 { font-size: clamp(36px, 4vw, 52px); }
+.section { margin-top: var(--space-section); }
 
 @media (prefers-reduced-motion: reduce) {
   .heroImg, .heroImg img, .nextCard, .scrollCue svg { animation: none; }
@@ -79,6 +73,4 @@
 @media (max-width: 980px) {
   .hero { grid-template-columns: 1fr; gap: 48px; min-height: 0; padding-block: 40px 112px; }
   .nextCard { left: 16px; right: 16px; bottom: -24px; min-width: 0; }
-  .board { grid-template-columns: 1fr; gap: 48px; }
-  .side { position: static; }
 }

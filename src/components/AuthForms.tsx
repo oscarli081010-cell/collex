@@ -11,6 +11,8 @@ import PageBand, { type BandProps } from "./PageBand";
 import SchoolPicker from "./SchoolPicker";
 import { FormSkeleton } from "./Skeleton";
 import ConferencesTab from "./AccountSections";
+import { ICONS } from "./IconButton";
+import { META_ICONS } from "./MetaIcons";
 import { usePill } from "./usePill";
 import { useToast } from "./useToast";
 import s from "@/app/auth.module.css";
@@ -388,12 +390,17 @@ export function AccountView() {
     <Banded band={{
       title: name,
       media: <span className={s.avatar} aria-hidden="true">{initials}</span>,
-      lead: <>{session.user.email}{profile?.school && <><br />{profile.school}</>}</>,
+      lead: (
+        <ul className={s.identity}>
+          <li>{META_ICONS.mail}<span>{session.user.email}</span></li>
+          {profile?.school && <li>{META_ICONS.host}<span>{profile.school}</span></li>}
+        </ul>
+      ),
       figures: [
         { label: "Listings", value: counts.listings === null ? "–" : String(counts.listings) },
         { label: "Following", value: counts.following === null ? "–" : String(counts.following) },
       ],
-      aside: <button className="button secondary" onClick={signOut}>Log out</button>,
+      aside: <button className={`button secondary ${s.logout}`} onClick={signOut}>{ICONS.leave}Log out</button>,
     }}>
     <div className={s.account}>
 
@@ -407,10 +414,7 @@ export function AccountView() {
           Each panel's entrance replays whenever it is shown again. */}
       <div id="account-panel-profile" role="tabpanel" aria-labelledby="account-tab-profile" hidden={tab !== "profile"} className={`t-stagger ${s.panelStack}`}>
         <section className={`panel ${s.card}`} style={{ "--i": 0 } as React.CSSProperties}>
-          <div>
-            <h2 className={s.cardTitle}>Appearance</h2>
-            <p className="muted">System follows your device&rsquo;s light or dark setting.</p>
-          </div>
+          <h2 className={s.cardTitle}>Appearance</h2>
           <ThemePicker userId={session.user.id} initial={profile?.theme ?? "light"} onSaved={(ok) => { if (!ok) say("Couldn't save that. It still applies on this device."); }} />
         </section>
 

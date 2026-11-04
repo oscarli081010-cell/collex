@@ -104,20 +104,23 @@ export default function UpcomingBoard({ band = false }: { band?: boolean }) {
         </PageBand>
       ) : toolbar}
 
-      <div className={s.resultBar}>
-        <span key={`${rows.length}-${filterKey}`} className="t-swap muted" aria-live="polite">
-          {rows.length === 1 ? "1 conference" : `${rows.length} conferences`}
-          {filtered ? " match" : " coming up"}
-        </span>
-        <button className={s.resetBtn} data-shown={filtered} onClick={reset} tabIndex={filtered ? 0 : -1}>
-          Clear filters
-        </button>
-      </div>
+      {/* Only while searching or filtering: how many match, and a way back. */}
+      {filtered && (
+        <div className={s.resultBar}>
+          <span key={`${rows.length}-${filterKey}`} className="t-swap muted" aria-live="polite">
+            {rows.length === 1 ? "1 conference matches" : `${rows.length} conferences match`}
+          </span>
+          <button className={s.resetBtn} data-shown onClick={reset}>
+            Clear filters
+          </button>
+        </div>
+      )}
 
       <div key={filterKey}>
         {[...groups].map(([group, list]) => (
           <section key={group} className={s.group}>
-            <h3 className={s.groupHead}>{group}</h3>
+            {/* The month heading helps on the Conferences page; on the home page each row's date says it. */}
+            {band && <h3 className={s.groupHead}>{group}</h3>}
             <div className={`t-stagger ${s.list}`}>
               {list.map((c, i) => <div key={c.slug} style={{ "--i": i } as React.CSSProperties}><ConferenceRow c={c} /></div>)}
             </div>

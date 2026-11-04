@@ -122,14 +122,22 @@ a.listingName:hover { color: var(--accent); }
 .saved { display: flex; flex-direction: column; }
 .saved li { display: flex; align-items: center; gap: 14px; padding: 12px 0; }
 .saved li + li { border-top: 1px solid var(--line); }
-.emptyState { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.emptyState { display: flex; flex-direction: column; align-items: stretch; gap: 14px; }
 .account { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 20px; }
 .avatar {
-  width: 64px; height: 64px; border-radius: 50%; flex: none; display: grid; place-items: center;
-  background: var(--accent); color: var(--on-accent); font-size: 22px; font-weight: 500;
+  width: clamp(88px, 8vw, 112px); aspect-ratio: 1; border-radius: 50%; flex: none; display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent); font-size: clamp(32px, 3.2vw, 42px); font-weight: 500; letter-spacing: 0.02em;
 }
+/* Email and school under the name, each with its icon. */
+.identity { display: flex; flex-direction: column; gap: 8px; }
+.identity li { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.identity svg { flex: none; width: 18px; height: 18px; color: var(--faint); }
+.identity span { min-width: 0; overflow-wrap: anywhere; }
+/* Log out sits under the figures, as wide as they are, instead of hanging off the corner. */
+.logout { align-self: stretch; height: 44px; border-radius: 999px; }
+.logout svg { color: var(--muted); }
 .card { padding: 28px; display: flex; flex-direction: column; gap: 18px; align-items: stretch; }
-.card > .button, .card > button { align-self: flex-start; }
+.card > .button, .card > button { align-self: stretch; }
 .cardTitle { font-family: var(--serif); font-weight: 400; font-size: 26px; }
 .highlight { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .skeleton { height: 320px; border-radius: 14px; background: var(--surface); animation: pulse 1.4s linear infinite; }
@@ -140,7 +148,7 @@ a.listingName:hover { color: var(--accent); }
   .skeleton { animation: none; }
 }
 @media (max-width: 560px) {
-  .avatar { width: 52px; height: 52px; font-size: 18px; }
+  .avatar { width: 76px; font-size: 28px; }
   .card { padding: 20px; }
   .listing { padding: 14px; }
 }

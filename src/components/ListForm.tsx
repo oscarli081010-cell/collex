@@ -25,12 +25,14 @@ const FIELDS: F[] = [
   { name: "venue", label: "Venue", type: "text" },
   { name: "level", label: "Level", type: "select", options: ["High school", "University", "Open"] },
   { name: "contact", label: "Contact email", type: "email", required: true },
-  { name: "fee", label: "Delegate fee", type: "text", hint: "For example, $35 per delegate" },
-  { name: "delegation_url", label: "Delegate registration link", type: "url", hint: "Powers the Register button" },
-  { name: "chair_url", label: "Chair application link", type: "url", hint: "Powers the Apply to chair button" },
-  { name: "overview", label: "Overview", type: "textarea", wide: true, hint: "A few sentences about the conference" },
+  { name: "fee", label: "Delegate fee", type: "text" },
+  { name: "delegation_url", label: "Delegate registration link", type: "url" },
+  { name: "chair_url", label: "Chair application link", type: "url" },
+  { name: "overview", label: "Overview", type: "textarea", wide: true },
 ];
 
+// The fee always starts with a dollar sign: it's shown inside the box, and added here whatever was typed or pasted.
+const feeText = (raw: string) => { const x = raw.replace(/\$/g, "").trim(); return x ? `$${x}` : ""; };
 const isUrl = (v: string) => /^https?:\/\/\S+\.\S+/.test(v);
 
 // Cover photos: the kinds and size the storage bucket accepts.
@@ -135,7 +137,7 @@ export default function ListForm() {
       venue: v("venue"),
       level: v("level") || null,
       contact: v("contact"),
-      fee: v("fee"),
+      fee: feeText(v("fee")),
       delegation_url: v("delegation_url") || null,
       chair_url: v("chair_url") || null,
       overview: v("overview"),
@@ -249,6 +251,21 @@ export default function ListForm() {
                 </select>
               ) : f.type === "textarea" ? (
                 <textarea id={id} name={f.name} className="control" maxLength={4000} defaultValue={edit ? asText(edit, f.name) : undefined} aria-invalid={Boolean(err)} aria-describedby={hintId} onChange={clear} />
+              ) : f.name === "fee" ? (
+                <span className={s.money}>
+                  <span className={s.moneySign} aria-hidden="true">$</span>
+                  <input
+                    id={id}
+                    name={f.name}
+                    type="text"
+                    className="control"
+                    maxLength={119}
+                    defaultValue={edit ? asText(edit, f.name).replace(/^\$\s*/, "") : undefined}
+                    aria-invalid={Boolean(err)}
+                    aria-describedby={hintId}
+                    onChange={(e) => { clear(); e.target.value = e.target.value.replace(/\$/g, ""); }}
+                  />
+                </span>
               ) : (
                 <input
                   id={id}
@@ -285,7 +302,6 @@ export default function ListForm() {
         )}
         <div className={`field ${s.wide} ${errors.cover ? s.invalid : ""}`}>
           <label htmlFor="f-cover">Cover photo <span className="muted">(optional)</span></label>
-          {!shownCover && <p className={s.nudge}>Listings with a photo get noticed. It shows on the conference page, in every list and when the link is shared.</p>}
           <label htmlFor="f-cover" className={s.coverPick} data-filled={Boolean(shownCover)}>
             {shownCover
               // eslint-disable-next-line @next/next/no-img-element -- a local preview of the picked file
@@ -298,7 +314,7 @@ export default function ListForm() {
           <input id="f-cover" type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-invalid={Boolean(errors.cover)} aria-describedby="f-cover-hint" onChange={pickCover} />
           {errors.cover
             ? <small key="err" id="f-cover-hint" className={`t-reveal ${s.error}`}>{errors.cover}</small>
-            : <small id="f-cover-hint">A wide photo of the venue or a past conference. JPG, PNG or WebP, up to 5 MB.</small>}
+            : <small id="f-cover-hint">JPG, PNG or WebP, up to 5MB.</small>}
           {shownCover && (
             <div className={auth.row}>
               <label htmlFor="f-cover" className="button secondary">Change photo</label>
@@ -316,7 +332,7 @@ export default function ListForm() {
           <button type="submit" className={`button lg ${auth.submit}`} disabled={busy}>
             <span key={String(busy)} className="t-swap">{busy ? "Sending…" : "Send for review"}</span>
           </button>
-          <small className="muted" style={{ textAlign: "center" }}>Only fields marked <span className={s.req}>*</span> are needed. Add the rest later.</small>
+          <small className="muted" style={{ textAlign: "center" }}><span className={s.req} aria-hidden="true">*</span> Required</small>
         </div>
       </form>,
       edit && session && <Team conf={edit.id} name={edit.name ?? "this listing"} me={session.user.id} team={team} reload={loadTeam} />);
