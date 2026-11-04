@@ -12,8 +12,7 @@ export const NAV = [
   { href: "/", label: "Home" },
   { href: "/calendar", label: "Calendar" },
   { href: "/conferences", label: "Conferences" },
-  { href: "/roles", label: "Roles" },
-  { href: "/conferences/template", label: "Demo" },
+  { href: "/roles", label: "Get involved" },
 ];
 
 export default function TopBar() {

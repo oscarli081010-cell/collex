@@ -27,11 +27,14 @@ export function usePill(container: RefObject<HTMLElement | null>, activeSelector
       const now = `${a.width}|${a.left - b.left + box.scrollLeft}`;
       if (instant && now === at) return;
       at = now;
-      if (instant) el.style.transition = "none";
-      el.style.opacity = "1";
+      // A pill that was hidden (nothing active in this row) is put in place at once and then fades in, rather than
+      // sliding in from the left edge.
+      const reveal = el.style.opacity === "0";
+      if (instant || reveal) el.style.transition = "none";
       el.style.width = `${a.width}px`;
       el.style.transform = `translateX(${a.left - b.left + box.scrollLeft}px)`;
-      if (instant) { void el.offsetWidth; el.style.transition = ""; }
+      if (instant || reveal) { void el.offsetWidth; el.style.transition = ""; }
+      el.style.opacity = "1";
     };
 
     place(!placed.current);

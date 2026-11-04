@@ -9,7 +9,7 @@ import { useConferences } from "./ConferencesContext";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
 import { useAuth } from "./AuthProvider";
-import { badGuide, badRole, CommitteesEditor, committeeRows, RolesEditor, roleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toRoles, toSecretariat, type CommitteeRow, type RoleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
+import { badGuide, badRole, CommitteesEditor, committeeRows, KeyDatesEditor, keyDateRows, RolesEditor, roleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toKeyDates, toRoles, toSecretariat, type CommitteeRow, type KeyDateRow, type RoleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
 import Team, { type Member } from "./Team";
 import auth from "@/app/auth.module.css";
 import s from "@/app/inner.module.css";
@@ -61,6 +61,7 @@ export default function ListForm() {
   const [committees, setCommittees] = useState<CommitteeRow[]>([]);
   const [secretariat, setSecretariat] = useState<SecretariatRow[]>(() => secretariatRows());
   const [roles, setRoles] = useState<RoleRow[]>([]);
+  const [keyDates, setKeyDates] = useState<KeyDateRow[]>(() => keyDateRows());
   // Guides whose committee has since been removed or renamed: kept as they were.
   const [stray, setStray] = useState<Conference["guides"]>([]);
   const [team, setTeam] = useState<Member[]>([]);
@@ -78,7 +79,7 @@ export default function ListForm() {
     if (!editId || !userId || !supabase) return;
     Promise.all([
       supabase.from("conferences")
-        .select("id, status, name, host, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, interest_url, overview, committees, guides, secretariat, roles, cover_path")
+        .select("id, status, name, host, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, interest_url, overview, committees, guides, secretariat, roles, key_dates, cover_path")
         .eq("id", editId).in("status", ["pending", "published"]).maybeSingle(),
       loadTeam(),
     ]).then(([{ data }, members]) => {
@@ -89,6 +90,7 @@ export default function ListForm() {
       setCommittees(committeeRows(row?.committees ?? [], row?.guides ?? []));
       setSecretariat(secretariatRows((row?.secretariat as unknown as { role: string; name: string }[] | undefined) ?? []));
       setRoles(roleRows(row?.roles as unknown as Partial<Role>[] | undefined));
+      setKeyDates(keyDateRows(row?.key_dates as unknown as { label: string; date: string | null }[] | undefined));
       setStray(strayGuides(row?.committees ?? [], row?.guides ?? []));
     });
   }, [editId, userId, loadTeam]);
@@ -143,6 +145,7 @@ export default function ListForm() {
     const guideList = toGuides(committees, stray);
     const people = toSecretariat(secretariat);
     const roleList = toRoles(roles);
+    const dateList = toKeyDates(keyDates);
     const fields = {
       name: v("name"),
       host: v("host"),
@@ -161,9 +164,9 @@ export default function ListForm() {
     };
     // .select() returns the saved row, so an edit that changed nothing (no access any more) is caught, not shown as saved.
     const { data: saved, error } = edit
-      ? await supabase.from("conferences").update({ ...fields, guides: guideList, secretariat: people, roles: roleList }).eq("id", edit.id).select("id")
+      ? await supabase.from("conferences").update({ ...fields, guides: guideList, secretariat: people, roles: roleList, key_dates: dateList }).eq("id", edit.id).select("id")
       : await supabase.from("conferences").insert({
-          ...fields, ...(guideList.length ? { guides: guideList } : {}), ...(people.length ? { secretariat: people } : {}), ...(roleList.length ? { roles: roleList } : {}),
+          ...fields, ...(guideList.length ? { guides: guideList } : {}), ...(people.length ? { secretariat: people } : {}), ...(roleList.length ? { roles: roleList } : {}), ...(dateList.length ? { key_dates: dateList } : {}),
           submitted_by: session.user.id,
         }).select("id");
     setBusy(false);
@@ -256,7 +259,7 @@ export default function ListForm() {
         <div className="btnStack one">
           <Link href="/account#conferences" className="button lg">{edit ? "Your listings" : "See its status"}</Link>
           {edit ? <button className="button secondary lg" onClick={() => setSent(false)}>Keep editing</button>
-            : <button className="button secondary lg" onClick={() => { setSent(false); setCommittees([]); setStray([]); setSecretariat(secretariatRows()); setRoles([]); }}>List another</button>}
+            : <button className="button secondary lg" onClick={() => { setSent(false); setCommittees([]); setStray([]); setSecretariat(secretariatRows()); setRoles([]); setKeyDates(keyDateRows()); }}>List another</button>}
         </div>
       </div>);
   }
@@ -323,11 +326,15 @@ export default function ListForm() {
           <CommitteesEditor rows={committees} setRows={(a) => { setCommittees(a); if (errors.guides) setErrors(({ guides: _, ...rest }) => rest); }} upload={uploadGuide} />
         </fieldset>
         <fieldset className={`field ${s.wide}`}>
+          <legend>Key dates <span className="muted">(optional)</span></legend>
+          <KeyDatesEditor rows={keyDates} setRows={setKeyDates} />
+        </fieldset>
+        <fieldset className={`field ${s.wide}`}>
           <legend>Secretariat <span className="muted">(optional)</span></legend>
           <SecretariatEditor rows={secretariat} setRows={setSecretariat} />
         </fieldset>
         <fieldset className={`field ${s.wide}`}>
-          <legend>Roles needed <span className="muted">(optional)</span></legend>
+          <legend>Help wanted <span className="muted">(optional)</span></legend>
           {errors.roles && <small key="err" className={`t-reveal ${s.error}`}>{errors.roles}</small>}
           <RolesEditor rows={roles} setRows={(a) => { setRoles(a); if (errors.roles) setErrors(({ roles: _, ...rest }) => rest); }} />
         </fieldset>

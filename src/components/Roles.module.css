@@ -1,27 +1,41 @@
-/* Roles needed: the card, used on the board and on a conference's own page. */
-.card { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 24px; min-width: 0;
-  transition: border-color var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-fast) var(--ease-smooth-out), transform var(--duration-fast) var(--ease-smooth-out); }
-.card:hover { border-color: var(--line-strong); box-shadow: 0 10px 28px rgba(var(--shadow-rgb), 0.07); transform: translateY(-2px); }
+/* A role a conference is looking to fill: the card, used on the board and on a conference's own page. Kept compact. */
+.card {
+  position: relative; display: flex; flex-direction: column; min-width: 0; padding: 0; overflow: hidden; border-radius: 12px;
+  transition: border-color var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-fast) var(--ease-smooth-out), transform var(--duration-fast) var(--ease-smooth-out);
+}
+.card:hover { border-color: var(--line-strong); box-shadow: 0 8px 22px rgba(var(--shadow-rgb), 0.06); transform: translateY(-1px); }
+.body { display: flex; flex-direction: column; gap: 8px; flex: 1; padding: 16px 18px 14px; }
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 /* Each kind has a colour from the site's own palette, so it works in light and dark. */
 .kind {
   --k: var(--accent);
-  display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 0 10px; border-radius: 999px;
-  background: color-mix(in srgb, var(--k) 14%, transparent); color: var(--k); font-size: 13px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px 0 8px; border-radius: 999px;
+  background: color-mix(in srgb, var(--k) 14%, transparent); color: var(--k); font-size: 12px; font-weight: 600;
 }
 .kind[data-kind="crisis"] { --k: var(--danger); }
 .kind[data-kind="press"] { --k: var(--warn); }
 .kind[data-kind="photo"] { --k: var(--ok); }
 .kind[data-kind="logistics"], .kind[data-kind="other"] { --k: var(--muted); }
-.kind svg { flex: none; }
-.when { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.title { font-family: var(--serif); font-weight: 400; font-size: 28px; line-height: 1.08; letter-spacing: -0.01em; text-wrap: balance; }
-.note { color: var(--muted); font-size: 14.5px; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere;
-  display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
-.conf { display: flex; flex-direction: column; font-size: 14px; line-height: 1.4; margin-top: auto; padding-top: 6px; }
-.conf a { font-weight: 500; }
+.kind svg { flex: none; width: 14px; height: 14px; }
+.when { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.title { font-family: var(--serif); font-weight: 400; font-size: 21px; line-height: 1.15; letter-spacing: -0.005em; text-wrap: balance; }
+.note { color: var(--muted); font-size: 13.5px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.conf { display: flex; align-items: baseline; gap: 6px; margin-top: auto; padding-top: 2px; font-size: 13px; line-height: 1.4; min-width: 0; }
+.conf a { font-weight: 500; flex: none; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .conf a:hover { color: var(--accent); }
-.conf span { color: var(--muted); }
+.conf span { color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conf span::before { content: "\00b7"; margin-right: 6px; }
+.action {
+  display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 18px;
+  border-top: 1px solid var(--line); font-size: 14px; font-weight: 500;
+  transition: background-color var(--duration-quick) var(--ease-smooth-out), color var(--duration-quick) var(--ease-smooth-out);
+}
+.action svg { color: var(--muted); transition: transform var(--duration-fast) var(--ease-smooth-out), color var(--duration-quick) var(--ease-smooth-out); }
+.action:hover { background: var(--surface); }
+.action:hover svg { color: var(--ink); transform: translateX(3px); }
+.card:has(.action:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.action:focus-visible { outline: none; background: var(--surface); }
 
 /* The board. */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -37,18 +51,13 @@
 .chip[data-empty="true"] { opacity: 0.5; }
 @media (pointer: coarse) { .chip { height: 44px; } }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 16px; margin-top: 8px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; margin-top: 8px; }
 
 /* Cards in a row are the same height, with the Apply button at the foot. */
 .grid > div, .pageGrid > div { display: flex; }
 .grid > div > *, .pageGrid > div > * { flex: 1; }
-.apply { margin-top: auto; }
 
 /* On a conference's page: the same cards in a tidy row. */
-.pageGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 12px; }
+.pageGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 12px; }
 
-@media (max-width: 640px) {
-  .card { padding: 20px; }
-  .title { font-size: 25px; }
-}
 @media (prefers-reduced-motion: reduce) { .card { transition: none; transform: none !important; } }

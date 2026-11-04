@@ -3,12 +3,8 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Lenis from "lenis";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-gsap.registerPlugin(ScrollTrigger);
-
-// Smooth scroll. Staggered entrances live in Reveal.tsx, with each group.
+// Smooth scrolling. Entrance animations are plain CSS (motion.css), so this is the only script behind the motion.
 export default function Motion() {
   const pathname = usePathname();
 
@@ -18,14 +14,14 @@ export default function Motion() {
     root.classList.add("motion");
 
     const lenis = new Lenis({ lerp: 0.1, anchors: { offset: -80 } });
-    lenis.on("scroll", ScrollTrigger.update);
-    (window as unknown as { __lenis?: Lenis }).__lenis = lenis; // used by in-page tabs
-    const tick = (t: number) => lenis.raf(t * 1000);
-    gsap.ticker.add(tick);
-    gsap.ticker.lagSmoothing(0);
+    (window as unknown as { __lenis?: Lenis }).__lenis = lenis; // used by in-page tabs and the scroll lock
+    let frame = requestAnimationFrame(function tick(time) {
+      lenis.raf(time);
+      frame = requestAnimationFrame(tick);
+    });
 
     return () => {
-      gsap.ticker.remove(tick);
+      cancelAnimationFrame(frame);
       lenis.destroy();
       delete (window as unknown as { __lenis?: Lenis }).__lenis;
       root.classList.remove("motion");

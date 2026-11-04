@@ -25,9 +25,9 @@ export default function RolesBoard({ items }: { items: BoardItem[] }) {
   return (
     <>
       <PageBand
-        title="Roles"
-        accent="needed"
-        lead={items.length ? "Chairs, crisis staff, press and more, from Sydney conferences that need a hand." : undefined}
+        title="Get"
+        accent="involved"
+        lead={items.length ? "Chairs, crisis staff, press and more. See where Sydney conferences need a hand." : undefined}
         figures={[{ label: "Open roles", value: String(items.length) }, { label: "Conferences", value: String(hosts) }]}
       >
         {items.length > 0 && (
@@ -45,13 +45,13 @@ export default function RolesBoard({ items }: { items: BoardItem[] }) {
       {items.length === 0 ? (
         <div className={board.empty}>
           <Placard />
-          <p className={board.emptyTitle}>No roles posted yet</p>
-          <p className="muted">When a conference lists what it needs help with, it appears here.</p>
-          <Link href="/list" className="button secondary">Post the roles you need</Link>
+          <p className={board.emptyTitle}>Nothing posted yet</p>
+          <p className="muted">When a conference says it needs a hand, it appears here.</p>
+          <Link href="/list" className="button secondary">Ask for help with your conference</Link>
         </div>
       ) : shown.length === 0 ? (
         <div className={board.empty}>
-          <p className={board.emptyTitle}>Nothing here right now</p>
+          <p className={board.emptyTitle}>Nothing in this group right now</p>
           <button className="button secondary" onClick={() => setKind("all")}>Show everything</button>
         </div>
       ) : (

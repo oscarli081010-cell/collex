@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
 import InterestChart, { type Week } from "./InterestChart";
 import PageBand, { type BandProps } from "./PageBand";
-import { FormSkeleton, RowsSkeleton } from "./Skeleton";
+import { ActivitySkeleton } from "./Skeleton";
 import auth from "@/app/auth.module.css";
 import s from "./Activity.module.css";
 
@@ -26,7 +26,7 @@ const FIELD: Record<string, string> = {
   venue: "the venue", level: "the level", contact: "the contact email", fee: "the delegate fee", delegates: "the delegate count",
   delegation_url: "the registration link", chair_url: "the chair application link", interest_url: "the interest form link",
   overview: "the overview", committees: "the committees", guides: "the background guides", cover_path: "the cover photo",
-  key_dates: "the key dates", roles: "the roles needed", secretariat: "the secretariat", submitter_role: "the submitter's role", verified: "the Verified badge",
+  key_dates: "the key dates", roles: "the help wanted", secretariat: "the secretariat", submitter_role: "the submitter's role", verified: "the Verified badge",
 };
 const fieldName = (k: string) => FIELD[k] ?? `the ${k.replaceAll("_", " ")}`;
 const list = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
@@ -98,7 +98,7 @@ export default function ActivityView() {
     </>
   );
 
-  if (!ready || id === undefined || (id && session && data === null)) return page({ title: "Activity", lead: " " }, <FormSkeleton fields={3} width={880} />);
+  if (!ready || id === undefined || (id && session && data === null)) return page({ title: "Activity", lead: " " }, <ActivitySkeleton />);
   if (!session) {
     return page({
       title: "Activity", lead: "Log in to see how your listing is doing.",

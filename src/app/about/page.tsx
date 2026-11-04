@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CONTACT } from "@/components/Footer";
 import s from "@/components/LegalPage.module.css";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = { alternates: { canonical: "/about" },
   title: "About · Collex",
   description: "Why Collex exists, who it's for, and how listings work.",
 };

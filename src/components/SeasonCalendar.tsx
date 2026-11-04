@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { formatRange, MONTHS, NA, onDay as runningOn, SEASON_YEAR } from "@/lib/conferences";
+import { useEffect, useRef, useState } from "react";
+import { formatRange, MONTHS, NA, onDay as runningOn, todayInSydney } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import ConferenceRow from "./ConferenceRow";
 import MonthPicker, { type YM } from "./MonthPicker";
 import PageBand, { nextUp } from "./PageBand";
+import IconButton, { ICONS } from "./IconButton";
 import board from "./board.module.css";
 import s from "@/app/inner.module.css";
 
@@ -15,16 +16,21 @@ const isoOf = (y: number, m: number, d: number) =>
   `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
 export default function SeasonCalendar() {
-  const [view, setView] = useState<YM>({ y: SEASON_YEAR, m: 2 });
+  // Starts on this month (Sydney time), so the page is right from the first paint instead of jumping after it loads.
+  const [view, setView] = useState<YM>(() => { const t = todayInSydney(); return { y: Number(t.slice(0, 4)), m: Number(t.slice(5, 7)) - 1 }; });
   const [now, setNow] = useState<YM>({ y: -1, m: -1 });
-  // Open on today's month. Done after mount so the prerendered page and the browser agree.
+  // "Today" is marked after mount, so the prerendered page and the browser agree.
   useEffect(() => {
     const d = new Date();
     setNow({ y: d.getFullYear(), m: d.getMonth() });
-    setView({ y: d.getFullYear(), m: d.getMonth() });
   }, []);
   const [dir, setDir] = useState<"next" | "prev">("next");
+  // The day tapped on a phone, whose conferences show in a card under the month.
+  const [picked, setPicked] = useState<string | null>(null);
+  const card = useRef<HTMLDivElement>(null);
   const { y, m } = view;
+  useEffect(() => { setPicked(null); }, [y, m]);
+  useEffect(() => { if (picked) card.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, [picked]);
   const lead = (new Date(y, m, 1).getDay() + 6) % 7; // Monday first
   const days = new Date(y, m + 1, 0).getDate();
   const cells = 42; // always six rows, so the grid never jumps in height
@@ -71,6 +77,10 @@ export default function SeasonCalendar() {
             return (
               <div key={i} role="gridcell" className={`${s.day} ${i % 7 >= 5 ? s.weekend : ""} ${iso === todayIso ? s.today : ""} ${onDay(iso).length ? s.busy : ""}`}>
                 <span className={s.dayNum}>{d}</span>
+                {onDay(iso).length > 0 && (
+                  <button type="button" className={s.dayHit} aria-pressed={picked === iso} onClick={() => setPicked(picked === iso ? null : iso)}
+                    aria-label={`${d} ${MONTHS[m]}: ${onDay(iso).length} ${onDay(iso).length === 1 ? "conference" : "conferences"}`} />
+                )}
                 {onDay(iso).map((c) => {
                   const tip = `pv-${iso}-${c.slug}`;
                   // Hover or keyboard focus shows a small card with the conference's details.
@@ -90,6 +100,20 @@ export default function SeasonCalendar() {
           })}
         </div>
       </div>
+
+      {picked && (
+        <div ref={card} className={`panel t-reveal ${s.dayCard}`} role="region" aria-label={`Conferences on ${picked}`}>
+          <div className={s.dayCardHead}>
+            <strong>{new Date(picked + "T00:00:00").toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" })}</strong>
+            <IconButton label="Close" tip="Close" icon={ICONS.close} onClick={() => setPicked(null)} />
+          </div>
+          <ul>
+            {onDay(picked).map((c) => (
+              <li key={c.slug}><Link href={`/conferences/${c.slug}`}><span>{c.name}</span><span>{formatRange(c)} · {c.host}</span></Link></li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <section className={s.agenda} aria-labelledby="agenda-h">
         <h2 id="agenda-h" className={s.h2}>

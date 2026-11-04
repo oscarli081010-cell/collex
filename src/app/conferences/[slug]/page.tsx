@@ -9,7 +9,7 @@ import roleStyles from "@/components/Roles.module.css";
 import { getBySlug, getPublished } from "@/lib/data";
 import ApplyBand from "@/components/ApplyBand";
 import ConferenceActions from "@/components/ConferenceActions";
-import ConferenceTabs from "@/components/ConferenceTabs";
+import ConferenceTabs, { type TabGroup } from "@/components/ConferenceTabs";
 import Countdown from "@/components/Countdown";
 import FollowButton from "@/components/FollowButton";
 import StickyApply from "@/components/StickyApply";
@@ -80,20 +80,12 @@ function eventSchema(c: Conference) {
   };
 }
 
-const TABS = [
-  ["overview", "Overview"],
-  ["dates", "Key dates"],
-  ["committees", "Committees"],
-  ["guides", "Background guides"],
-  ["secretariat", "Secretariat"],
-] as const;
-
 function Nothing({ what }: { what: string }) {
   return (
     <div className={s.nothing}>
       <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="5" y="4" width="18" height="20" rx="3" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M9.5 10h9M9.5 14h9M9.5 18h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
       <p>There&rsquo;s nothing to show yet.</p>
-      <span>The {what} will appear here once they&rsquo;re announced.</span>
+      <span>The {what} will appear here once announced.</span>
     </div>
   );
 }
@@ -127,6 +119,13 @@ export default async function ConferencePage({ params }: Props) {
   const c = await getBySlug((await params).slug);
   if (!c) notFound();
   const past = isPast(c);
+  // Related sections sit under one tab each. The secretariat comes before the ways to get involved.
+  const hasRoles = Boolean(c.roles?.length) && !past;
+  const groups: TabGroup[] = [
+    { id: "about", label: "About", items: [["overview", "Overview"], ["dates", "Key dates"]] },
+    { id: "programme", label: "Programme", items: [["committees", "Committees"], ["guides", "Background guides"]] },
+    { id: "people", label: "People", items: [["secretariat", "Secretariat"], ...(hasRoles ? [["roles", "Get involved"] as const] : [])] },
+  ];
 
   return (
       <main id="top" className="container">
@@ -186,7 +185,7 @@ export default async function ConferencePage({ params }: Props) {
         </section>
 
         <div id="details" className={s.details}>
-        <ConferenceTabs tabs={c.roles?.length ? [...TABS, ["roles", "Roles needed"] as const] : TABS} />
+        <ConferenceTabs groups={groups} />
 
         <div className={s.confGrid}>
           <div className={s.main}>
@@ -198,16 +197,20 @@ export default async function ConferencePage({ params }: Props) {
 
             <section id="dates" className={s.block}>
               <h2 className={s.h2}>Key dates</h2>
-              <div className={s.tableWrap}>
-                <table className={s.table}>
-                  <thead><tr><th scope="col">What</th><th scope="col" className={s.right}>When</th></tr></thead>
-                  <tbody>
-                    {c.keyDates.map((k) => (
-                      <tr key={k.label}><td>{k.label}</td><td className={s.right}>{formatDate(k.date)}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {c.keyDates.length === 0 ? (
+                <Nothing what="key dates" />
+              ) : (
+                <div className={s.tableWrap}>
+                  <table className={s.table}>
+                    <thead><tr><th scope="col">What</th><th scope="col" className={s.right}>When</th></tr></thead>
+                    <tbody>
+                      {c.keyDates.map((k) => (
+                        <tr key={k.label}><td>{k.label}</td><td className={s.right}>{formatDate(k.date)}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </section>
 
             <section id="committees" className={s.block}>
@@ -253,26 +256,30 @@ export default async function ConferencePage({ params }: Props) {
               )}
             </section>
 
-            {c.roles && c.roles.length > 0 && !past && (
+            <section id="secretariat" className={s.block}>
+              <h2 className={s.h2}>Secretariat</h2>
+              {c.secretariat.length === 0 ? (
+                <Nothing what="secretariat" />
+              ) : (
+                <div className={s.people}>
+                  {c.secretariat.map((p) => (
+                    <div key={p.role} className={`panel ${s.person}`}>
+                      <span className={s.avatar} aria-hidden="true">{initials(p.name)}</span>
+                      <span>{p.name}<small>{p.role}</small></span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {hasRoles && (
               <section id="roles" className={s.block}>
-                <h2 className={s.h2}>Roles needed</h2>
+                <h2 className={s.h2}>Get involved</h2>
                 <div className={`t-stagger ${roleStyles.pageGrid}`}>
-                  {c.roles.map((r, i) => <div key={i} style={{ "--i": i } as React.CSSProperties}><RoleCard role={r} apply={applyFor(r, c)} /></div>)}
+                  {c.roles!.map((r, i) => <div key={i} style={{ "--i": i } as React.CSSProperties}><RoleCard role={r} apply={applyFor(r, c)} /></div>)}
                 </div>
               </section>
             )}
-
-            <section id="secretariat" className={s.block}>
-              <h2 className={s.h2}>Secretariat</h2>
-              <div className={s.people}>
-                {c.secretariat.map((p) => (
-                  <div key={p.role} className={`panel ${s.person}`}>
-                    <span className={s.avatar} aria-hidden="true">{initials(p.name)}</span>
-                    <span>{p.name}<small>{p.role}</small></span>
-                  </div>
-                ))}
-              </div>
-            </section>
           </div>
 
           <aside className={`panel ${s.facts}`} aria-label="At a glance">

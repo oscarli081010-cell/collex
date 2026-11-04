@@ -220,3 +220,30 @@ export function RolesEditor({ rows, setRows }: { rows: RoleRow[]; setRows: Dispa
     />
   );
 }
+
+// ---- Key dates: registration opens, papers due, conference day ----
+
+export type KeyDateRow = { label: string; date: string; key: string };
+const STANDARD_DATES = ["Delegation registration opens", "Chair applications close", "Country allocations sent", "Background guides released", "Position papers due", "Conference day"];
+
+/** The usual milestones in order, with whatever dates are saved; any other saved dates follow. */
+export const keyDateRows = (list: { label: string; date: string | null }[] = []): KeyDateRow[] => [
+  ...STANDARD_DATES.map((label) => ({ label, date: list.find((k) => k.label === label)?.date ?? "", key: key() })),
+  ...list.filter((k) => !STANDARD_DATES.includes(k.label)).map((k) => ({ label: k.label, date: k.date ?? "", key: key() })),
+];
+/** Only dates that are filled in are kept; the page lists what's announced and leaves out the rest. */
+export const toKeyDates = (rows: KeyDateRow[]) => rows.filter((r) => r.label.trim() && r.date).map((r) => ({ label: r.label.trim(), date: r.date }));
+
+export function KeyDatesEditor({ rows, setRows }: { rows: KeyDateRow[]; setRows: Dispatch<SetStateAction<KeyDateRow[]>> }) {
+  return (
+    <Rows<KeyDateRow>
+      id="keydate" rows={rows} setRows={setRows} addLabel="Add a date" max={20} inline
+      label={(r, i) => r.label.trim() || `date ${i + 1}`}
+      make={() => ({ label: "", date: "", key: key() })}
+      render={(r, i, set) => <>
+        <label><span>What</span><input id={`keydate-${i}-first`} className="control" value={r.label} maxLength={80} placeholder="For example, Position papers due" onChange={(e) => set({ label: e.target.value })} /></label>
+        <label><span>When</span><input className="control" type="date" value={r.date} onChange={(e) => set({ date: e.target.value })} /></label>
+      </>}
+    />
+  );
+}

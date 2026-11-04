@@ -124,7 +124,7 @@ a { color: inherit; text-decoration: none; }
 h1, h2, h3, h4, p, ol, ul, dl, dd, figure { margin: 0; }
 ol, ul { padding: 0; list-style: none; }
 button, input, select, textarea { font: inherit; color: inherit; }
-::selection { background: var(--accent); color: var(--accent-ink); }
+::selection { background: var(--accent); color: var(--on-accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .serif { font-family: var(--serif); font-weight: 400; letter-spacing: -0.01em; line-height: 1.05; }
@@ -209,6 +209,7 @@ select.control {
 }
 .topbarInner { display: flex; align-items: center; gap: 40px; height: 72px; }
 .wordmark { display: inline-flex; align-items: center; color: var(--ink); line-height: 1; border-radius: 6px; }
+@media (pointer: coarse) { .wordmark { min-height: 44px; } }
 .navlinks { position: relative; display: flex; gap: 4px; flex: 1; align-items: center; }
 .navlinks a {
   position: relative; z-index: 1;
@@ -248,8 +249,6 @@ select.control {
 .pagehead h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(44px, 5.4vw, 68px); line-height: 1.02; letter-spacing: -0.015em; }
 .pagehead p { color: var(--muted); font-size: 17px; margin-top: 14px; max-width: 60ch; }
 
-/* Reveal: hidden only once JS has confirmed motion is on */
-.motion [data-reveal] > * { opacity: 0; transform: translateY(14px); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }

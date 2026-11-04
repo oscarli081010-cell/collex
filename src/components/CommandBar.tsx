@@ -10,7 +10,7 @@ import s from "./CommandBar.module.css";
 type Item = { group: string; label: string; sub?: string; href: string };
 
 const PAGES: Item[] = [
-  ["Home", "/"], ["Calendar", "/calendar"], ["Conferences", "/conferences"], ["Roles needed", "/roles"], ["List a conference", "/list"],
+  ["Home", "/"], ["Calendar", "/calendar"], ["Conferences", "/conferences"], ["Get involved", "/roles"], ["List a conference", "/list"],
   ["Your account", "/account"], ["About", "/about"], ["Privacy policy", "/privacy"], ["Terms of use", "/terms"], ["Cookies policy", "/cookies"],
 ].map(([label, href]) => ({ group: "Pages", label, href }));
 

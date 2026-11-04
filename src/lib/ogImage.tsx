@@ -7,8 +7,10 @@ export const OG_SIZE = { width: 1200, height: 630 };
 
 // Each path is written out in full, relative to this file, so the bundler ships exactly these files with the function.
 
-export async function ogImage({ title, italic, lines, footer, photo }: {
+export async function ogImage({ title, italic, lines, footer, photo, pill }: {
   title: string; italic?: string; lines: string[]; footer: string; photo?: boolean;
+  /** The date as on the conference page: the month in the accent colour, then the day. */
+  pill?: { month: string; rest: string };
 }) {
   const [serif, serifItalic, sans] = await Promise.all([
     readFile(new URL("../assets/fonts/InstrumentSerif-Regular.ttf", import.meta.url)),
@@ -29,6 +31,12 @@ export async function ogImage({ title, italic, lines, footer, photo }: {
             <path d={OLLEX_PATH} fill="#15161a" />
           </svg>
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            {pill && (
+              <div style={{ display: "flex", alignItems: "center", alignSelf: "flex-start", height: 56, borderRadius: 28, border: "2px solid #e6e2d9", background: "#ffffff", overflow: "hidden" }}>
+                <div style={{ display: "flex", alignItems: "center", height: "100%", padding: "0 24px", background: "#213a73", color: "#ffffff", fontSize: 24, letterSpacing: "0.08em" }}>{pill.month}</div>
+                <div style={{ display: "flex", alignItems: "center", padding: "0 26px", fontSize: 28, color: "#15161a" }}>{pill.rest}</div>
+              </div>
+            )}
             <div style={{ display: "flex", flexDirection: "column", fontFamily: "Instrument Serif", fontSize: size, lineHeight: 1.02, letterSpacing: "-0.02em" }}>
               <span>{title}</span>
               {italic && <span style={{ fontStyle: "italic", color: "#213a73" }}>{italic}</span>}

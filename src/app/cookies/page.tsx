@@ -4,7 +4,7 @@ import LegalPage from "@/components/LegalPage";
 import { CONTACT } from "@/components/Footer";
 import s from "@/components/LegalPage.module.css";
 
-export const metadata: Metadata = { title: "Cookies policy · Collex", description: "Collex sets no cookies. The two items it keeps in your browser, and why." };
+export const metadata: Metadata = { alternates: { canonical: "/cookies" }, title: "Cookies policy · Collex", description: "Collex sets no cookies. The two items it keeps in your browser, and why." };
 
 export default function Cookies() {
   return (

@@ -27,10 +27,10 @@ export const fromRow = (r: Row): Conference => ({
   fee: or(r.fee),
   delegates: or(r.delegates),
   overview: or(r.overview),
-  keyDates: r.key_dates?.length ? r.key_dates : template.keyDates,
+  keyDates: r.key_dates ?? [],
   committees: r.committees ?? [],
   guides: (r.guides ?? []).map((g) => ({ ...g, url: webUrl(g.url) })),
-  secretariat: r.secretariat?.length ? r.secretariat : template.secretariat,
+  secretariat: r.secretariat ?? [],
   // Only well-formed roles; a link that isn't a plain web address is dropped, like every other link.
   roles: (r.roles ?? []).filter((x) => ROLE_KINDS.some((k) => k.id === x.kind))
     .map((x) => ({ kind: x.kind!, title: x.title ?? "", note: x.note ?? "", url: webUrl(x.url) })),

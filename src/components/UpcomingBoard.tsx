@@ -120,7 +120,7 @@ export default function UpcomingBoard({ band = false }: { band?: boolean }) {
         {[...groups].map(([group, list]) => (
           <section key={group} className={s.group}>
             {/* The month heading helps on the Conferences page; on the home page each row's date says it. */}
-            {band && <h3 className={s.groupHead}>{group}</h3>}
+            {band && <h2 className={s.groupHead}>{group}</h2>}
             <div className={`t-stagger ${s.list}`}>
               {list.map((c, i) => <div key={c.slug} style={{ "--i": i } as React.CSSProperties}><ConferenceRow c={c} /></div>)}
             </div>

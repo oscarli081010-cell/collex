@@ -31,21 +31,27 @@ export default function RoleCard({ role, conference, when, apply }: {
   const label = roleLabel(role.kind);
   return (
     <article className={`panel ${s.card}`}>
-      <div className={s.top}>
-        <span className={s.kind} data-kind={role.kind}>{KIND_ICON[role.kind]}{label}</span>
-        {when && <span className={s.when}>{when}</span>}
+      <div className={s.body}>
+        <div className={s.top}>
+          <span className={s.kind} data-kind={role.kind}>{KIND_ICON[role.kind]}{label}</span>
+          {when && <span className={s.when}>{when}</span>}
+        </div>
+        <h3 className={s.title}>{role.title || label}</h3>
+        {role.note && <p className={s.note}>{role.note}</p>}
+        {conference && (
+          <p className={s.conf}>
+            <Link href={`/conferences/${conference.slug}`}>{conference.name}</Link>
+            <span>{conference.host}</span>
+          </p>
+        )}
       </div>
-      <h3 className={s.title}>{role.title || label}</h3>
-      {role.note && <p className={s.note}>{role.note}</p>}
-      {conference && (
-        <p className={s.conf}>
-          <Link href={`/conferences/${conference.slug}`}>{conference.name}</Link>
-          <span>Hosted by {conference.host}</span>
-        </p>
+      {/* A slim row across the foot of the card: the whole width is the target, without a heavy button's height. */}
+      {apply && (
+        <a href={apply.href} {...(apply.external ? { target: "_blank", rel: "noreferrer" } : {})} className={s.action}>
+          <span>{apply.label}</span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" /></svg>
+        </a>
       )}
-      {apply && (apply.external
-        ? <a href={apply.href} target="_blank" rel="noreferrer" className={`button block ${s.apply}`}>{apply.label} →</a>
-        : <a href={apply.href} className={`button secondary block ${s.apply}`}>{apply.label}</a>)}
     </article>
   );
 }

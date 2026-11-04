@@ -3,9 +3,9 @@ import RolesBoard, { type BoardItem } from "@/components/RolesBoard";
 import { getPublished } from "@/lib/data";
 import { isPast } from "@/lib/conferences";
 
-export const metadata: Metadata = {
-  title: "Roles needed · Collex",
-  description: "Chairs, crisis staff, press, photographers and more: what Sydney Model UN conferences need help with.",
+export const metadata: Metadata = { alternates: { canonical: "/roles" },
+  title: "Get involved · Collex",
+  description: "Chairs, crisis staff, press, photographers and more. See where Sydney Model UN conferences need a hand.",
 };
 export const revalidate = 60;
 

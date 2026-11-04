@@ -10,6 +10,5 @@ export default function Image() {
     italic: "in one place.",
     lines: ["Upcoming conferences, dates and links."],
     footer: "collex.au",
-    photo: true,
   });
 }

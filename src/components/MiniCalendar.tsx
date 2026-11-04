@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { clashesNear, onDay, SEASON_YEAR } from "@/lib/conferences";
+import { clashesNear, onDay, todayInSydney } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import MonthPicker, { type YM } from "./MonthPicker";
 import s from "./board.module.css";
@@ -13,7 +13,8 @@ const iso = (y: number, m: number, d: number) =>
 
 // Month calendar that doubles as the date-clash checker: pick a day, see what else is on that weekend.
 export default function MiniCalendar() {
-  const [view, setView] = useState<YM>({ y: SEASON_YEAR, m: 2 });
+  // Opens on this month (Sydney time), not on a fixed one, so there is something to look at straight away.
+  const [view, setView] = useState<YM>(() => { const t = todayInSydney(); return { y: Number(t.slice(0, 4)), m: Number(t.slice(5, 7)) - 1 }; });
   const [dir, setDir] = useState<"next" | "prev">("next");
   const [picked, setPicked] = useState<string | null>(null);
 

@@ -102,7 +102,6 @@ export const template: Conference = {
   isTemplate: true,
 };
 
-export const SEASON_YEAR = 2027;
 
 export const MONTHS = [
   "January", "February", "March", "April", "May", "June",

@@ -54,6 +54,20 @@ export function ConferenceSkeleton({ band }: { band: string }) {
   );
 }
 
+/** The Activity page while it loads: the tiles, the chart card and the history card, in their real places. */
+export function ActivitySkeleton() {
+  return (
+    <div className="skelWrap" style={{ width: "100%", maxWidth: 880, display: "flex", flexDirection: "column", gap: 20 }} aria-busy="true" aria-label="Loading">
+      <B w={110} h={14} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
+        {Array.from({ length: 6 }, (_, i) => <B key={i} h={104} r={12} style={{ opacity: 1 - (i % 3) * 0.12 }} />)}
+      </div>
+      <B h={232} r={14} />
+      <B h={300} r={14} />
+    </div>
+  );
+}
+
 /** Rows in a list or table. */
 export function RowsSkeleton({ rows = 3, height = 56 }: { rows?: number; height?: number }) {
   return (

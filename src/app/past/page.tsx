@@ -28,7 +28,7 @@ export default async function PastPage() {
         title="Past"
         accent="conferences"
         lead="Conferences that have already run. Their pages stay up, so committees and guides are easy to look back on."
-        figures={[{ label: "Archived", value: String(past.length) }, { label: "Years", value: String(years.size) }]}
+        figures={past.length ? [{ label: "Archived", value: String(past.length) }, { label: "Years", value: String(years.size) }] : undefined}
       />
       {past.length === 0 ? (
         <div className={s.empty} style={{ marginTop: 32 }}>

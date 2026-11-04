@@ -1,9 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import UpcomingBoard from "@/components/UpcomingBoard";
 import MiniCalendar from "@/components/MiniCalendar";
 import NextCard from "@/components/NextCard";
 import Reveal from "@/components/Reveal";
 import styles from "./home.module.css";
+
+// The title and description come from the layout; the home page just names its own address.
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 // schema.org data naming the site and who runs it, for search results.
 const SITE = {
