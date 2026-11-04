@@ -170,12 +170,11 @@ export function ListingCard({ c, status, note, coOrganiser, interest, today }: {
             <span>{c.startDate ? formatRange(c) : "Dates not set"}</span>
           </span>
         </div>
-        {editable && (
-          <span className={s.listingActions}>
-            {live && <IconButton label={`View ${c.name}`} tip="View page" icon={ICONS.view} href={`/conferences/${c.slug}`} />}
-            <IconButton label={`Edit ${c.name}`} tip="Edit listing" icon={ICONS.edit} href={`/list?edit=${c.id}`} />
-          </span>
-        )}
+        <span className={s.listingActions}>
+          <IconButton label={`Activity for ${c.name}`} tip="Activity" icon={ICONS.chart} href={`/activity?id=${c.id}`} />
+          {live && <IconButton label={`View ${c.name}`} tip="View page" icon={ICONS.view} href={`/conferences/${c.slug}`} />}
+          {editable && <IconButton label={`Edit ${c.name}`} tip="Edit listing" icon={ICONS.edit} href={`/list?edit=${c.id}`} />}
+        </span>
       </div>
       {status === "pending" && <p className={s.listingNote}>The Collex team is reviewing it. Once approved, it gets its own page and joins the calendar.</p>}
       {(status === "rejected" || status === "unpublished") && note && <p className={s.listingNote} data-tone="danger">{note}</p>}

@@ -74,19 +74,20 @@
 .confHead { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; padding-block: 36px 32px; flex-wrap: wrap; }
 /* The date tile sits beside the name and its facts. */
 .confLead { min-width: 0; }
-.confSide { display: flex; flex-direction: column; align-items: flex-end; gap: 20px; }
+/* On the right, one row: the date pill, then share, calendar and follow, all the same 44px height. */
+.confSide { display: flex; align-items: center; gap: 8px; }
 .dateTile {
-  flex: none; display: flex; flex-direction: column; align-items: center; min-width: 84px; padding: 0 12px 10px;
-  border: 1px solid var(--line); border-radius: 14px; background: var(--panel); overflow: hidden;
-  box-shadow: 0 8px 22px -14px rgba(var(--shadow-rgb), 0.35);
+  flex: none; display: inline-flex; align-items: stretch; height: 44px; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--panel);
   font-variant-numeric: lining-nums tabular-nums;
 }
 .tileMonth {
-  align-self: stretch; margin: 0 -12px; padding: 5px 12px; text-align: center;
+  display: grid; place-items: center; padding: 0 14px 0 18px;
   background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
 }
-.tileDay { font-family: var(--serif); font-size: 44px; line-height: 1; margin-top: 8px; white-space: nowrap; }
-.tileWeekday { font-size: 12px; color: var(--muted); margin-top: 4px; white-space: nowrap; }
+.tileRest { display: inline-flex; align-items: center; gap: 8px; padding: 0 18px 0 14px; white-space: nowrap; }
+.tileDay { font-family: var(--serif); font-size: 24px; line-height: 1; }
+.tileWeekday { font-size: 13px; color: var(--muted); }
 .confTitle { font-family: var(--serif); font-weight: 400; font-size: clamp(40px, 5vw, 60px); line-height: 1.02; letter-spacing: -0.015em; margin-top: 10px; }
 /* When, who and where: one short line each, with an icon, so they read as facts rather than a run-on sentence. */
 .confMeta { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 16px; font-size: 15px; color: var(--ink); }
@@ -102,10 +103,8 @@
 .confAside :global(.tip)::after { bottom: auto; top: calc(100% + 8px); translate: 0 -4px; }
 .confAside :global(.tip:hover)::after, .confAside :global(.tip:has(:focus-visible))::after { translate: 0 0; }
 @media (max-width: 720px) {
-  .dateTile { min-width: 64px; padding: 0 8px 8px; border-radius: 12px; }
-  .tileMonth { margin: 0 -8px; padding: 4px 8px; font-size: 11px; }
-  .tileDay { font-size: 32px; margin-top: 6px; }
-  .tileWeekday { font-size: 11px; }
+  /* On a phone the date is already in the line under the name, so the pill steps aside for the buttons. */
+  .dateTile { display: none; }
   .confSide, .confAside { width: 100%; }
   /* The calendar button sits at the left here, so its menu opens rightwards, on screen. */
   .calPop { left: 0; right: auto; }

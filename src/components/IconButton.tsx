@@ -17,6 +17,7 @@ export const ICONS = {
   removeAdmin: icon(<><path d="M8 1.8l5 2v4c0 3.2-2.2 5.4-5 6.4-2.8-1-5-3.2-5-6.4v-4z" /><path d="M6 7.8h4" /></>),
   share: icon(<><path d="M8 10V2.5M5 5.5l3-3 3 3" /><path d="M5.5 7.5H4.5a1 1 0 00-1 1v4.5a1 1 0 001 1h7a1 1 0 001-1V8.5a1 1 0 00-1-1h-1" /></>),
   calendar: icon(<><rect x="2.5" y="3.5" width="11" height="10" rx="2" /><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" /></>),
+  chart: icon(<path d="M3.5 13.5V8.5M8 13.5V3M12.5 13.5V6" />),
   edit: icon(<path d="M10.5 2.5l3 3-7.5 7.5H3v-3zM9 4l3 3" />),
   up: icon(<path d="M8 12.5v-9M4.5 7L8 3.5 11.5 7" />),
   down: icon(<path d="M8 3.5v9M4.5 9L8 12.5 11.5 9" />),

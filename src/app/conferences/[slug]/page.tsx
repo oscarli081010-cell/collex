@@ -95,7 +95,7 @@ function Nothing({ what }: { what: string }) {
   );
 }
 
-// The dates as a desk-calendar page beside the name: month on top, day large, weekday under.
+// The dates as a slim pill in the row of buttons: the month in the accent colour, then the day and weekday.
 // The facts line says the same in words, so this is decoration to screen readers.
 const part = (iso: string, o: Intl.DateTimeFormatOptions) => new Date(iso + "T00:00:00").toLocaleDateString("en-AU", o);
 function DateTile({ start, end }: { start: string; end: string | null }) {
@@ -107,8 +107,10 @@ function DateTile({ start, end }: { start: string; end: string | null }) {
   return (
     <span className={s.dateTile} aria-hidden="true">
       <span className={s.tileMonth}>{span({ month: "short" })}</span>
-      <span className={s.tileDay}>{span({ day: "numeric" })}</span>
-      <span className={s.tileWeekday}>{span({ weekday: "short" })}</span>
+      <span className={s.tileRest}>
+        <span className={s.tileDay}>{span({ day: "numeric" })}</span>
+        <span className={s.tileWeekday}>{span({ weekday: "short" })}</span>
+      </span>
     </span>
   );
 }
