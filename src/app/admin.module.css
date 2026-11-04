@@ -82,3 +82,51 @@
 .reviewCover { width: 100%; aspect-ratio: 16 / 5; object-fit: cover; border-radius: 12px; background: var(--surface); }
 .actions :global(.iconbtn) { width: 36px; height: 36px; }
 @media (pointer: coarse) { .actions :global(.iconbtn) { width: 44px; height: 44px; } }
+
+/* Ticking rows for bulk actions. The box is 20px; its label is a 44px target. */
+.pick { display: inline-grid; place-items: center; width: 44px; height: 44px; margin: -12px; cursor: pointer; flex: none; }
+.pick input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.pickCell { width: 44px; padding-right: 0 !important; }
+.table th.pickCell { padding-block: 0; }
+.table tr[data-picked] { background: var(--accent-soft); }
+.review[data-picked], .report[data-picked] { border-color: var(--accent); }
+.reviewWho { display: flex; align-items: flex-start; gap: 16px; min-width: 0; }
+.reviewWho .pick { margin-top: -2px; }
+
+/* A report about a listing. */
+.report { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 18px; align-items: start; padding: 18px 22px; }
+.report[data-resolved] { opacity: 0.7; }
+.reportBody { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.reportTop { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.reportTop strong { font-weight: 500; font-size: 16px; overflow-wrap: anywhere; }
+.reason { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; background: var(--surface); font-size: 12px; font-weight: 500; color: var(--muted); }
+.reason[data-reason="inappropriate"] { background: var(--danger-soft); color: var(--danger); }
+.reason[data-reason="link"], .reason[data-reason="details"] { background: var(--warn-soft); color: var(--warn); }
+.reportNote { white-space: pre-line; overflow-wrap: anywhere; max-width: 70ch; }
+.reportMeta { font-size: 13px; }
+@media (max-width: 640px) { .report { grid-template-columns: auto minmax(0, 1fr); padding: 16px; } .report > .actions { grid-column: 1 / -1; justify-content: flex-start; } }
+
+/* The bar that appears when something is ticked. */
+.bulk {
+  position: fixed; left: 50%; bottom: 20px; z-index: 50; transform: translateX(-50%);
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px; max-width: calc(100vw - 24px); padding: 10px 12px 10px 18px;
+  background: var(--ink); color: var(--on-ink); border-radius: 18px; box-shadow: 0 18px 50px rgba(var(--shadow-rgb), 0.35);
+  animation: bulkIn var(--duration-fast) var(--ease-smooth-out) both;
+}
+@keyframes bulkIn { from { opacity: 0; transform: translate(-50%, 12px); } }
+.bulkCount { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; margin-right: 6px; white-space: nowrap; }
+.bulk :global(.button) { height: 40px; background: var(--on-ink); border-color: transparent; color: var(--ink); font-size: 13.5px; }
+.bulk :global(.button:hover) { background: color-mix(in srgb, var(--on-ink) 88%, var(--ink)); }
+.bulk :global(.button[disabled]) { opacity: 0.5; }
+.bulk .bulkDanger, .bulk .bulkDanger:hover { background: var(--danger); color: #fff; }
+.bulkClear { height: 40px; padding: 0 12px; border: 0; background: transparent; color: inherit; opacity: 0.75; font-size: 13.5px; cursor: pointer; border-radius: 8px; }
+.bulkClear:hover { opacity: 1; background: rgba(255, 255, 255, 0.08); }
+.bulkForm { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 360px; }
+.bulkForm :global(.control) { flex: 1 1 220px; height: 40px; background: var(--panel); color: var(--ink); }
+@media (max-width: 640px) {
+  .bulk { left: 12px; right: 12px; bottom: 12px; transform: none; max-width: none; animation-name: bulkInMobile; padding-left: 14px; }
+  .bulk :global(.button) { flex: 1 1 calc(50% - 8px); height: 44px; }
+  .bulkClear { height: 44px; }
+}
+@keyframes bulkInMobile { from { opacity: 0; transform: translateY(12px); } }
+@media (prefers-reduced-motion: reduce) { .bulk { animation: none; } }

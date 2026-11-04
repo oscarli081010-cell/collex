@@ -3,17 +3,20 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ViewTransition } from "react";
 import { formatDate, formatRange, isPast, monogram, NA, template, type Conference } from "@/lib/conferences";
+import RoleCard, { applyFor } from "@/components/RoleCard";
+import ReportProblem from "@/components/ReportProblem";
+import roleStyles from "@/components/Roles.module.css";
 import { getBySlug, getPublished } from "@/lib/data";
 import ApplyBand from "@/components/ApplyBand";
 import ConferenceActions from "@/components/ConferenceActions";
 import ConferenceTabs from "@/components/ConferenceTabs";
 import Countdown from "@/components/Countdown";
 import FollowButton from "@/components/FollowButton";
-import OrganiserPanel from "@/components/OrganiserPanel";
 import StickyApply from "@/components/StickyApply";
 import Verified from "@/components/Verified";
 import { META_ICONS as ICONS } from "@/components/MetaIcons";
 import s from "../../inner.module.css";
+import reportStyles from "@/components/ReportProblem.module.css";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -183,11 +186,10 @@ export default async function ConferencePage({ params }: Props) {
         </section>
 
         <div id="details" className={s.details}>
-        <ConferenceTabs tabs={TABS} />
+        <ConferenceTabs tabs={c.roles?.length ? [...TABS, ["roles", "Roles needed"] as const] : TABS} />
 
         <div className={s.confGrid}>
           <div className={s.main}>
-            {!past && <OrganiserPanel c={c} />}
             <section id="overview" className={s.block}>
               <h2 className={s.h2}>Overview</h2>
               <p>{c.overview}</p>
@@ -251,6 +253,15 @@ export default async function ConferencePage({ params }: Props) {
               )}
             </section>
 
+            {c.roles && c.roles.length > 0 && !past && (
+              <section id="roles" className={s.block}>
+                <h2 className={s.h2}>Roles needed</h2>
+                <div className={`t-stagger ${roleStyles.pageGrid}`}>
+                  {c.roles.map((r, i) => <div key={i} style={{ "--i": i } as React.CSSProperties}><RoleCard role={r} apply={applyFor(r, c)} /></div>)}
+                </div>
+              </section>
+            )}
+
             <section id="secretariat" className={s.block}>
               <h2 className={s.h2}>Secretariat</h2>
               <div className={s.people}>
@@ -281,6 +292,7 @@ export default async function ConferencePage({ params }: Props) {
             <p className="muted" style={{ fontSize: 13, padding: "12px 0 14px", borderTop: "1px solid var(--line)" }}>
               Run this conference? <Link className="link" href="/list">Update the listing</Link>
             </p>
+            {c.id && !c.isTemplate && <div className={reportStyles.wrap}><ReportProblem id={c.id} name={c.name} /></div>}
           </aside>
         </div>
         </div>

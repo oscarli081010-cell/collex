@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase, type Profile } from "@/lib/supabase";
 import { applyTheme } from "@/lib/theme";
@@ -22,10 +22,21 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [profile, setProfile] = useState<Profile | null>(null);
   const [recovering, setRecovering] = useState(false);
 
-  const load = useCallback(async (s: Session | null) => {
-    setSession(s);
-    if (!s || !supabase) { setProfile(null); applyTheme("light"); return; } // visitors and signed-out users see light
+  const current = useRef<{ session: Session | null; profile: Profile | null }>({ session: null, profile: null });
+
+  const load = useCallback(async (s: Session | null, force = false) => {
+    // Supabase announces the same signed-in person again whenever a tab regains focus or its token refreshes. Nothing
+    // about them has changed then, so keep what's here: forms and effects that depend on the session must not reset
+    // (it used to wipe whatever was being typed after a switch to another window and back).
+    const prev = current.current.session;
+    const same = Boolean(prev && s && prev.user.id === s.user.id && prev.user.updated_at === s.user.updated_at);
+    current.current.session = same ? prev : s;
+    setSession(same ? prev : s);
+    if (!s || !supabase) { current.current.profile = null; setProfile(null); applyTheme("light"); return; } // visitors and signed-out users see light
     const { data } = await supabase.from("profiles").select("id, email, full_name, school, role, is_admin, theme").eq("id", s.user.id).maybeSingle();
+    // Still read it again on a refocus (a theme or admin change made elsewhere shows up), but only touch the page if it differs.
+    if (same && !force && JSON.stringify(data) === JSON.stringify(current.current.profile)) return;
+    current.current.profile = data as Profile | null;
     setProfile(data as Profile | null);
     if (data?.theme) applyTheme(data.theme); // follow the account's choice on any device
   }, []);
@@ -44,7 +55,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const refresh = useCallback(async () => {
     if (!supabase) return;
     const { data } = await supabase.auth.getSession();
-    await load(data.session);
+    await load(data.session, true); // asked for on purpose (a saved profile), so read it again
   }, [load]);
 
   return <Ctx.Provider value={{ ready, session, profile, recovering, refresh }}>{children}</Ctx.Provider>;

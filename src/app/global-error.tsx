@@ -21,7 +21,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
           <div role="alert" className={`${s.form} ${s.lost}`}>
             <h1 className={s.title}>Collex didn&rsquo;t load.</h1>
             <p className="muted">Something went wrong on our side, not yours. Try again, and if it keeps happening, email <a className="link" href="mailto:hello@collex.au">hello@collex.au</a>.</p>
-            <div className={s.row}>
+            <div className="btnStack one">
               <button type="button" className="button lg" onClick={reset}>Try again</button>
               {/* A full reload, not a client navigation, since the app around this page has failed. */}
               <a href="/" className="button secondary lg">Go home</a>

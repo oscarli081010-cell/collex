@@ -66,7 +66,9 @@
 .rowLink { font-size: 26px; line-height: 1.1; }
 .rowLink::after { content: ""; position: absolute; inset: 0; border-radius: inherit; } /* whole card is clickable */
 .rowActions { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; }
-.rowBtn { height: 40px; }
+/* Register and Apply fill their column, one above the other: wide buttons, like everywhere else. */
+.rowBtns { display: flex; flex-direction: column; gap: 8px; width: 220px; }
+.rowBtn { height: 44px; width: 100%; }
 /* When, who and where as separate icon facts, like the conference page header. */
 .rowMeta { display: flex; flex-wrap: wrap; gap: 6px 20px; color: var(--ink); font-size: 14px; }
 .rowMeta li { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
@@ -134,7 +136,9 @@
   .lead .dateBlock { right: -8px; bottom: -8px; width: 38px; height: 38px; }
   .lead .dateDay { font-size: 16px; }
   .rowActions { grid-column: 1 / -1; }
-  .rowActions .rowBtn { flex: 1; }
+  .rowActions { flex-direction: column; align-items: stretch; }
+  .rowBtns { width: 100%; flex-direction: row; }
+  .rowBtns .rowBtn { flex: 1; min-width: 0; }
   .go { display: none; }
   .rowLink { font-size: 22px; }
   .calWeek, .calDays { margin-inline: -16px; }

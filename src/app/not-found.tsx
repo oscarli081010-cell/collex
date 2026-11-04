@@ -13,7 +13,7 @@ export default function NotFound() {
         <p className={`serif ${s.bigCode}`} aria-hidden="true">404</p>
         <h1 className={s.title}>This page is out of order.</h1>
         <p className="muted">The link may be old, or the page may have moved. The calendar has every listed conference.</p>
-        <div className={s.row}>
+        <div className="btnStack one">
           <Link href="/calendar" className="button lg">Open the calendar</Link>
           <Link href="/" className="button secondary lg">Go home</Link>
         </div>

@@ -8,6 +8,12 @@
 .statValue { font-family: var(--serif); font-size: clamp(30px, 3.4vw, 40px); line-height: 1; font-variant-numeric: lining-nums tabular-nums; overflow-wrap: anywhere; }
 .statValue small { font-family: var(--sans); font-size: 14px; color: var(--muted); }
 .statNote { font-size: 12.5px; color: var(--muted); }
+/* The status, with a dot in its colour: green when live. */
+.statusValue { display: inline-flex; align-items: center; gap: 10px; font-size: 0.7em; }
+.statusDot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--faint); }
+.statusDot[data-status="published"] { background: var(--ok); box-shadow: 0 0 0 4px var(--ok-soft); }
+.statusDot[data-status="pending"] { background: var(--warn); box-shadow: 0 0 0 4px var(--warn-soft); }
+.statusDot[data-status="rejected"] { background: var(--danger); box-shadow: 0 0 0 4px var(--danger-soft); }
 
 .card { padding: 28px; display: flex; flex-direction: column; gap: 18px; }
 .cardHead { display: flex; flex-direction: column; gap: 4px; }

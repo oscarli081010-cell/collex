@@ -2,6 +2,21 @@
 
 export type Level = "High school" | "University" | "Open";
 
+/** What a conference can ask for help with. The ids are the only kinds the database accepts. */
+export const ROLE_KINDS = [
+  { id: "chair", label: "Chair" },
+  { id: "crisis", label: "Crisis staff" },
+  { id: "press", label: "Press and media" },
+  { id: "photo", label: "Photography" },
+  { id: "tech", label: "Tech" },
+  { id: "logistics", label: "Logistics" },
+  { id: "other", label: "Other" },
+] as const;
+export type RoleKind = (typeof ROLE_KINDS)[number]["id"];
+export const roleLabel = (k: RoleKind) => ROLE_KINDS.find((r) => r.id === k)?.label ?? "Other";
+/** Help a conference is looking for. With no apply link, people are pointed to the organisers. */
+export type Role = { kind: RoleKind; title: string; note: string; url: string | null };
+
 export type Committee = {
   name: string;
   topic: string;
@@ -27,6 +42,8 @@ export type Conference = {
   keyDates: { label: string; date: string | null }[];
   committees: Committee[];
   guides: { committee: string; released: string | null; url: string | null }[];
+  /** Roles the conference needs filled; empty for most. */
+  roles?: Role[];
   secretariat: { role: string; name: string }[];
   contact: string;
   /** Application form links; null until applications open. */

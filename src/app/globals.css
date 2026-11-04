@@ -159,6 +159,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .button.lg { height: 46px; padding: 0 20px; font-size: 15px; }
 /* A one-off button fills the box it sits in, instead of floating at one side. */
 .button.block { width: 100%; }
+/* A group of buttons fills its box: equal wide columns where there's room, one per line where there isn't.
+   With "one" they always stack, like the buttons in a form. */
+.btnStack { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px; width: 100%; min-width: min(100%, 300px); }
+.btnStack.one { grid-template-columns: 1fr; }
+.btnStack .button { width: 100%; }
 .button[disabled] { background: var(--surface); color: var(--faint); border-color: var(--line); cursor: not-allowed; transform: none; }
 
 /* Badge */

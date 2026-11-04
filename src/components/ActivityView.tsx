@@ -26,7 +26,7 @@ const FIELD: Record<string, string> = {
   venue: "the venue", level: "the level", contact: "the contact email", fee: "the delegate fee", delegates: "the delegate count",
   delegation_url: "the registration link", chair_url: "the chair application link", interest_url: "the interest form link",
   overview: "the overview", committees: "the committees", guides: "the background guides", cover_path: "the cover photo",
-  key_dates: "the key dates", secretariat: "the secretariat", submitter_role: "the submitter's role", verified: "the Verified badge",
+  key_dates: "the key dates", roles: "the roles needed", secretariat: "the secretariat", submitter_role: "the submitter's role", verified: "the Verified badge",
 };
 const fieldName = (k: string) => FIELD[k] ?? `the ${k.replaceAll("_", " ")}`;
 const list = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
@@ -102,13 +102,13 @@ export default function ActivityView() {
   if (!session) {
     return page({
       title: "Activity", lead: "Log in to see how your listing is doing.",
-      aside: <div className={auth.row}><Link href="/login" className="button lg">Log in</Link></div>,
+      aside: <div className="btnStack one"><Link href="/login" className="button lg">Log in</Link></div>,
     }, null);
   }
   if (!id || data === "missing" || !data) {
     return page({
       title: "Can’t open", accent: "that", lead: "Only the people who run a listing can see its activity. Pick one from your account.",
-      aside: <div className={auth.row}><Link href="/account#conferences" className="button lg">Your listings</Link></div>,
+      aside: <div className="btnStack one"><Link href="/account#conferences" className="button lg">Your listings</Link></div>,
     }, null);
   }
 
@@ -136,7 +136,7 @@ export function ActivityBody({ data }: { data: Loaded }) {
     { label: "Interested this week", value: ownForm ? "–" : num(thisWeek) },
     { label: "Following", value: num(followers) },
     { label: "Running it", value: <>{team}<small> {team === 1 ? "person" : "people"}</small></> },
-    { label: "Status", value: <span style={{ fontSize: "0.7em" }}>{STATUS[status] ?? status}</span> },
+    { label: "Status", value: <span className={s.statusValue}><span className={s.statusDot} data-status={status} aria-hidden="true" />{STATUS[status] ?? status}</span> },
     { label: "Last edited", value: <span style={{ fontSize: "0.5em" }}>{c.updatedAt ? when(c.updatedAt) : "–"}</span> },
   ];
 
@@ -148,7 +148,7 @@ export function ActivityBody({ data }: { data: Loaded }) {
       { label: "Following", value: num(followers) },
     ],
     aside: (
-      <div className={auth.row}>
+      <div className="btnStack">
         {live && <Link href={`/conferences/${c.slug}`} className="button secondary">View page</Link>}
         {canEdit && <Link href={`/list?edit=${c.id}`} className="button secondary">Edit listing</Link>}
       </div>

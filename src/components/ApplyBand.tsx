@@ -100,9 +100,8 @@ function BuiltInInterest({ c, say }: { c: Conference; say: Say }) {
   };
 
   const organiser = state?.count != null;
-  const status = organiser
-    ? `${state!.count} ${state!.count === 1 ? "expression" : "expressions"} of interest`
-    : state?.sent ? "Interest sent" : "Not ready to register? Let them know.";
+  // The people who run a listing don't see the count here; it's on the Activity page.
+  const status = organiser ? "You run this listing" : state?.sent ? "Interest sent" : "Not ready to register? Let them know.";
 
   return (
     <div className={s.applyOption} data-kind="interest">
@@ -113,7 +112,7 @@ function BuiltInInterest({ c, say }: { c: Conference; say: Say }) {
       {!ready || state === null ? (
         <span className={`button ${s.applyBtn}`} aria-hidden="true" data-closed />
       ) : organiser ? (
-        <Link href="/account#conferences" className={`button secondary ${s.applyBtn}`}>Your listings →</Link>
+        <Link href={`/activity?id=${c.id}`} className={`button secondary ${s.applyBtn}`}>See activity →</Link>
       ) : !c.id ? (
         <button className={`button ${s.applyBtn}`} onClick={() => say("This is a demo. On a real listing, this tells the organisers you're interested.")}>Send interest →</button>
       ) : !session ? (

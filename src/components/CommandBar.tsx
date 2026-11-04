@@ -3,13 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatRange } from "@/lib/conferences";
+import { lockScroll } from "@/lib/scrollLock";
 import { useConferences } from "./ConferencesContext";
 import s from "./CommandBar.module.css";
 
 type Item = { group: string; label: string; sub?: string; href: string };
 
 const PAGES: Item[] = [
-  ["Home", "/"], ["Calendar", "/calendar"], ["Conferences", "/conferences"], ["List a conference", "/list"],
+  ["Home", "/"], ["Calendar", "/calendar"], ["Conferences", "/conferences"], ["Roles needed", "/roles"], ["List a conference", "/list"],
   ["Your account", "/account"], ["About", "/about"], ["Privacy policy", "/privacy"], ["Terms of use", "/terms"], ["Cookies policy", "/cookies"],
 ].map(([label, href]) => ({ group: "Pages", label, href }));
 
@@ -31,13 +32,7 @@ export default function CommandBar() {
   const [active, setActive] = useState(-1);
   const [mac, setMac] = useState(true);
 
-  // While the menu is up the page behind stays put: native scrolling and Lenis's smooth scrolling both stop.
-  const lock = (on: boolean) => {
-    const lenis = (window as unknown as { __lenis?: { stop(): void; start(): void } }).__lenis;
-    document.documentElement.style.overflow = on ? "hidden" : "";
-    document.body.style.overflow = on ? "hidden" : "";
-    if (on) lenis?.stop(); else lenis?.start();
-  };
+  const lock = lockScroll; // the page behind stays put while the menu is up
   const open = () => { setQ(""); setActive(-1); dialog.current?.showModal(); lock(true); input.current?.focus(); };
   const close = () => dialog.current?.close();
   useEffect(() => () => lock(false), []);

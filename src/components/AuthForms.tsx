@@ -133,9 +133,9 @@ function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"
           <small key={String(checking)} className="t-swap muted">{checking ? "Checking…" : "The code works for an hour."}</small>
         </div>
       )}
-      <div className={s.row}>
-        <button className="button secondary" onClick={resend}>Send it again</button>
-        <button className={s.textBtn} onClick={onBack}>Use a different email</button>
+      <div className="btnStack one">
+        <button className="button secondary lg" onClick={resend}>Send it again</button>
+        <button className="button secondary lg" onClick={onBack}>Use a different email</button>
       </div>
       {node}
     </div>
@@ -343,7 +343,7 @@ export function AccountView() {
       <Banded band={{
         title: "Your", accent: "account", lead: "Log in to see your account.",
         aside: (
-          <div className={s.row}>
+          <div className="btnStack">
             <Link href="/login" className="button lg">Log in</Link>
             <Link href="/signup" className="button secondary lg">Create an account</Link>
           </div>

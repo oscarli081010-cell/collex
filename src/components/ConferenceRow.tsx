@@ -54,8 +54,12 @@ export default function ConferenceRow({ c, past = false }: { c: Conference; past
         </ul>
       </div>
       <span className={s.rowActions}>
-        {!past && action(c.delegationUrl, "Register", true)}
-        {!past && action(c.chairUrl, "Apply to chair", false)}
+        {!past && (
+          <span className={s.rowBtns}>
+            {action(c.delegationUrl, "Register", true)}
+            {action(c.chairUrl, "Apply to chair", false)}
+          </span>
+        )}
         <Link href={page} className={s.go} aria-label={`Open ${c.name}`}>→</Link>
       </span>
     </div>

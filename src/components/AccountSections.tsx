@@ -8,7 +8,6 @@ import { supabase } from "@/lib/supabase";
 import { useConferences } from "./ConferencesContext";
 import { Thumb } from "./ConferenceRow";
 import IconButton, { ICONS } from "./IconButton";
-import InterestChart, { type Week } from "./InterestChart";
 import { RowsSkeleton } from "./Skeleton";
 import { useToast } from "./useToast";
 import s from "@/app/auth.module.css";
@@ -16,7 +15,6 @@ import s from "@/app/auth.module.css";
 const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Not approved", unpublished: "Taken down" };
 
 type Listing = { c: Conference; status: string; note: string; mine: boolean };
-type Interest = { total: number; weeks: Week[] };
 type Invite = { conference_id: string; conference: string; invited_by: string };
 
 // The account page's Conferences tab: invites to help run a listing, conferences you saved, and the listings you run.
@@ -64,17 +62,23 @@ function Invites({ onAccepted, onCount }: { onAccepted: () => void; onCount: (n:
   return (
     <section className={`panel ${s.card} ${s.highlight}`} style={{ "--i": 0 } as React.CSSProperties} aria-labelledby="invites-h">
       <h2 id="invites-h" className={s.cardTitle}>{invites.length === 1 ? "An invite" : "Invites"} to help run a listing</h2>
-      <ul className={s.listings}>
+      <ul className={s.inviteList}>
         {invites.map((i) => (
-          <li key={i.conference_id}>
+          <li key={i.conference_id} className={s.invite}>
             <div className={s.listingMain}>
               <span className={s.listingName}>{i.conference}</span>
-              <span className={s.listingMeta}>{i.invited_by} invited you as a co-organiser. You&rsquo;ll be able to edit the listing and see its interest.</span>
+              <span className={s.listingMeta}>{i.invited_by} invited you as a co-organiser. You&rsquo;ll be able to edit the listing and see its activity.</span>
             </div>
-            <span className={s.row}>
-              <button className="button secondary" onClick={() => answer(i, false)} disabled={busy === i.conference_id}>Decline</button>
-              <button className="button" onClick={() => answer(i, true)} disabled={busy === i.conference_id}>Accept</button>
-            </span>
+            <div className={s.inviteActions}>
+              <button className="button secondary" onClick={() => answer(i, false)} disabled={busy === i.conference_id}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7" /></svg>
+                Decline
+              </button>
+              <button className="button" onClick={() => answer(i, true)} disabled={busy === i.conference_id}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.8 7.4l2.8 2.8 5.6-6" /></svg>
+                Accept
+              </button>
+            </div>
           </li>
         ))}
       </ul>
@@ -153,8 +157,8 @@ function ListingThumb({ c }: { c: Conference }) {
   );
 }
 
-// One listing you run: where it stands, its dates, the ways to open or edit it and, once live, its interest by week.
-export function ListingCard({ c, status, note, coOrganiser, interest, today }: { c: Conference; status: string; note: string; coOrganiser: boolean; interest?: Interest; today: string }) {
+// One listing you run: where it stands, its dates, and the ways to open, edit or see its activity. Interest is on the Activity page.
+export function ListingCard({ c, status, note, coOrganiser, today }: { c: Conference; status: string; note: string; coOrganiser: boolean; today: string }) {
   const live = status === "published";
   const editable = live || status === "pending";
   return (
@@ -178,16 +182,13 @@ export function ListingCard({ c, status, note, coOrganiser, interest, today }: {
       </div>
       {status === "pending" && <p className={s.listingNote}>The Collex team is reviewing it. Once approved, it gets its own page and joins the calendar.</p>}
       {(status === "rejected" || status === "unpublished") && note && <p className={s.listingNote} data-tone="danger">{note}</p>}
-      {live && c.interestUrl && <p className={s.listingNote}>Interest goes to your own form, so there&rsquo;s no count here.</p>}
-      {live && interest && !c.interestUrl && <InterestChart weeks={interest.weeks} total={interest.total} today={today} />}
     </li>
   );
 }
 
-// Listings you sent or help run, with their review status and, once live, interest by week.
+// Listings you sent or help run, with their review status.
 function MyListings({ userId, version, onCount }: { userId: string; version: number; onCount: (n: number) => void }) {
   const [rows, setRows] = useState<Listing[] | null>(null);
-  const [interest, setInterest] = useState<Record<string, Interest>>({});
   useEffect(() => {
     if (!supabase) return;
     const db = supabase;
@@ -201,12 +202,6 @@ function MyListings({ userId, version, onCount }: { userId: string; version: num
         .map((r) => ({ c: fromRow(r), status: r.status, note: r.review_note, mine: r.submitted_by === userId }));
       setRows(list);
       onCount(list.length);
-      // How many people have expressed interest in each listing, by week. The names stay private.
-      const [counts, weekly] = await Promise.all([db.rpc("interest_counts"), db.rpc("interest_weekly")]);
-      const out: Record<string, Interest> = {};
-      for (const r of (counts.data ?? []) as { conference_id: string; interested: number }[]) out[r.conference_id] = { total: Number(r.interested), weeks: [] };
-      for (const w of (weekly.data ?? []) as { conference_id: string; week: string; interested: number }[]) out[w.conference_id]?.weeks.push({ week: w.week, interested: Number(w.interested) });
-      setInterest(out);
     })();
   }, [userId, version, onCount]);
 
@@ -215,13 +210,13 @@ function MyListings({ userId, version, onCount }: { userId: string; version: num
     <section className={`panel ${s.card}`} style={{ "--i": 2 } as React.CSSProperties} aria-labelledby="listings-h">
       <div>
         <h2 id="listings-h" className={s.cardTitle}>Your listings</h2>
-        <p className="muted">Conferences you run or help run. Once one is live, you can see how many people are interested.</p>
+        <p className="muted">Conferences you run or help run.</p>
       </div>
       {rows === null ? <RowsSkeleton rows={2} height={84} /> : (
         <>
           {rows.length > 0 && (
             <ul className={s.listingList}>
-              {rows.map((r) => <ListingCard key={r.c.id} c={r.c} status={r.status} note={r.note} coOrganiser={!r.mine} interest={interest[r.c.id!]} today={today} />)}
+              {rows.map((r) => <ListingCard key={r.c.id} c={r.c} status={r.status} note={r.note} coOrganiser={!r.mine} today={today} />)}
             </ul>
           )}
           <AddListing first={rows.length === 0} />

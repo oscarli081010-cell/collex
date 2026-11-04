@@ -24,9 +24,14 @@ type Row = {
   review_note: string; created_at: string; verified: boolean;
 };
 type User = { id: string; email: string; full_name: string; school: string; role: string; is_admin: boolean; created_at: string };
+type Report = {
+  id: number; conference_id: string; reason: string; note: string; reply_to: string; status: string; created_at: string; resolved_at: string | null;
+  conferences: { name: string; slug: string } | null;
+};
 type Log = { id: number; at: string; actor_email: string; action: string; target_type: string; target_label: string; detail: { note?: string } };
 
-const TABS = ["Review", "Conferences", "Users", "Audit log"] as const;
+const TABS = ["Review", "Conferences", "Reports", "Users", "Audit log"] as const;
+const REASON: Record<string, string> = { details: "Wrong or out of date", link: "Broken link", inappropriate: "Shouldn\u2019t be here", other: "Something else" };
 type Tab = (typeof TABS)[number];
 const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Rejected", unpublished: "Taken down" };
 
@@ -39,9 +44,17 @@ export default function Admin() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [users, setUsers] = useState<User[] | null>(null);
   const [log, setLog] = useState<Log[] | null>(null);
+  const [reports, setReports] = useState<Report[] | null>(null);
   // One search per tab, so switching tabs keeps what you typed in each.
-  const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Users: "", "Audit log": "" });
+  const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Reports: "", Users: "", "Audit log": "" });
   const [statusFilter, setStatusFilter] = useState("any");
+  const [reportFilter, setReportFilter] = useState("open");
+  // Bulk actions: what's ticked on the open tab (ids as text), the reject reason being typed, and the two-step delete.
+  const [sel, setSel] = useState<string[]>([]);
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectNote, setRejectNote] = useState("");
+  const [armed, setArmed] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const { say, node } = useToast();
   const tabsRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -51,17 +64,21 @@ export default function Admin() {
 
   const load = useCallback(async () => {
     if (!supabase) return;
-    const [c, u, l] = await Promise.all([
+    const [c, u, l, rp] = await Promise.all([
       supabase.from("conferences").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, email, full_name, school, role, is_admin, created_at").order("created_at", { ascending: false }),
       supabase.from("audit_log").select("*").order("at", { ascending: false }).limit(200),
+      supabase.from("reports").select("id, conference_id, reason, note, reply_to, status, created_at, resolved_at, conferences(name, slug)").order("created_at", { ascending: false }).limit(200),
     ]);
     setRows((c.data as Row[]) ?? []);
     setUsers((u.data as User[]) ?? []);
     setLog((l.data as Log[]) ?? []);
+    setReports((rp.data as unknown as Report[] | null) ?? []);
   }, []);
 
   useEffect(() => { if (profile?.is_admin) load(); }, [profile?.is_admin, load]);
+  // The first click on a bulk Delete arms it; it disarms itself after three seconds.
+  useEffect(() => { if (!armed) return; const t = setTimeout(() => setArmed(false), 3000); return () => clearTimeout(t); }, [armed]);
 
   if (!ready) return <RowsSkeleton rows={5} height={72} />;
   if (!session || !profile?.is_admin) {
@@ -108,19 +125,51 @@ export default function Admin() {
     load();
   };
 
+  const setReport = async (r: Report, status: "open" | "resolved") => {
+    const { error } = await supabase!.from("reports").update({ status, resolved_at: status === "resolved" ? new Date().toISOString() : null }).eq("id", r.id);
+    if (error) return say("That didn't save. Try again.");
+    say(status === "resolved" ? "Marked as resolved" : "Reopened");
+    load();
+  };
+  const removeReport = async (r: Report) => {
+    const { error } = await supabase!.from("reports").delete().eq("id", r.id);
+    if (error) return say("That didn't delete. Try again.");
+    say("Deleted");
+    load();
+  };
+
+  // Bulk actions: one change to everything ticked, then the lists and the public pages refresh.
+  const toggle = (id: string) => setSel((x) => (x.includes(id) ? x.filter((y) => y !== id) : [...x, id]));
+  const clearSel = () => { setSel([]); setRejecting(false); setRejectNote(""); setArmed(false); };
+  const bulk = async (done: string, run: () => PromiseLike<{ error: { message: string } | null }>, site = true) => {
+    setBulkBusy(true);
+    const { error } = await run();
+    setBulkBusy(false);
+    if (error) return say("That didn't save. Try again.");
+    say(`${sel.length} ${done}`);
+    clearSel();
+    load();
+    if (site) published();
+  };
+  const db = () => supabase!;
+  const confStatus = (status: string, note = "") => db().from("conferences").update({ status, review_note: note }).in("id", sel);
+  const reportIds = sel.map(Number);
+
   const pending = rows?.filter((r) => r.status === "pending") ?? [];
   const others = rows?.filter((r) => r.status !== "pending") ?? [];
   // Tab counts are always the totals; the search only narrows what the open tab shows.
-  const counts: Record<Tab, number | null> = { Review: pending.length, Conferences: others.length, Users: users?.length ?? null, "Audit log": null };
+  const openReports = (reports ?? []).filter((r) => r.status === "open");
+  const counts: Record<Tab, number | null> = { Review: pending.length, Conferences: others.length, Reports: openReports.length, Users: users?.length ?? null, "Audit log": null };
   const q = find[tab].trim().toLowerCase();
   const has = (...parts: (string | null | undefined)[]) => !q || parts.join(" ").toLowerCase().includes(q);
   const shownConfs = others.filter((r) => has(r.name, r.host, r.venue, STATUS[r.status]) && (statusFilter === "any" || r.status === statusFilter));
+  const shownReports = (reports ?? []).filter((r) => (reportFilter === "all" || r.status === reportFilter) && has(r.conferences?.name, REASON[r.reason], r.note, r.reply_to));
   const shownUsers = (users ?? []).filter((u) => has(u.full_name, u.email, u.school));
   const shownLog = (log ?? []).filter((e) => has(e.actor_email, e.action, e.target_label));
-  const searching = Boolean(q) || (tab === "Conferences" && statusFilter !== "any");
-  const clearSearch = () => { setFind((f) => ({ ...f, [tab]: "" })); if (tab === "Conferences") setStatusFilter("any"); };
+  const searching = Boolean(q) || (tab === "Conferences" && statusFilter !== "any") || (tab === "Reports" && reportFilter !== "open");
+  const clearSearch = () => { setFind((f) => ({ ...f, [tab]: "" })); if (tab === "Conferences") setStatusFilter("any"); if (tab === "Reports") setReportFilter("open"); };
   const noMatches = <Empty title="No matches" body="Try a different word, or clear the search."><button className="button secondary" onClick={clearSearch}>Clear search</button></Empty>;
-  const searchFor: Partial<Record<Tab, string>> = { Conferences: "Search by name, host, venue or status", Users: "Search by name, email or school", "Audit log": "Search by who, action or what" };
+  const searchFor: Partial<Record<Tab, string>> = { Conferences: "Search by name, host, venue or status", Reports: "Search by listing, reason or message", Users: "Search by name, email or school", "Audit log": "Search by who, action or what" };
 
   return (
     <div className={s.wrap}>
@@ -129,7 +178,7 @@ export default function Admin() {
         <div ref={tabsRef} className={s.tabs} role="tablist">
           <span ref={pill} className={`t-pill ${s.tabPill}`} aria-hidden="true" />
           {TABS.map((t) => (
-            <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>
+            <button key={t} role="tab" aria-selected={tab === t} onClick={() => { clearSel(); setTab(t); }}>
               {t}{counts[t] ? <span className={s.count}>{counts[t]}</span> : null}
             </button>
           ))}
@@ -138,7 +187,7 @@ export default function Admin() {
 
       {rows === null ? <RowsSkeleton rows={4} height={72} /> : (
         <div key={tab} className="t-reveal">
-          {searchFor[tab] && (tab !== "Conferences" || others.length > 0) && (tab !== "Audit log" || log!.length > 0) && (
+          {searchFor[tab] && (tab !== "Conferences" || others.length > 0) && (tab !== "Reports" || (reports ?? []).length > 0) && (tab !== "Audit log" || log!.length > 0) && (
             <div className={s.searchBar} role="search">
               <SearchBox label={`Search ${tab.toLowerCase()}`} placeholder={searchFor[tab]!} value={find[tab]} onChange={(v) => setFind((f) => ({ ...f, [tab]: v }))} />
               {tab === "Conferences" && (
@@ -147,8 +196,15 @@ export default function Admin() {
                   {["published", "rejected", "unpublished"].map((k) => <option key={k} value={k}>{STATUS[k]}</option>)}
                 </select>
               )}
-              <span key={`${tab}${q}${statusFilter}`} className={`t-swap muted ${s.searchCount}`} aria-live="polite">
-                {searching ? `${tab === "Conferences" ? shownConfs.length : tab === "Users" ? shownUsers.length : shownLog.length} shown` : ""}
+              {tab === "Reports" && (
+                <select className="control" aria-label="Show" value={reportFilter} onChange={(e) => { setReportFilter(e.target.value); clearSel(); }}>
+                  <option value="open">Open</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="all">All</option>
+                </select>
+              )}
+              <span key={`${tab}${q}${statusFilter}${reportFilter}`} className={`t-swap muted ${s.searchCount}`} aria-live="polite">
+                {searching ? `${tab === "Conferences" ? shownConfs.length : tab === "Reports" ? shownReports.length : tab === "Users" ? shownUsers.length : shownLog.length} shown` : ""}
               </span>
             </div>
           )}
@@ -156,7 +212,7 @@ export default function Admin() {
             <Empty title="Nothing to review" body="New listings land here for approval." />
           ) : (
             <div className={`t-stagger ${s.stack}`}>
-              {pending.map((r, i) => <ReviewCard key={r.id} r={r} i={i} onApprove={(verified) => setStatus(r, "published", "", verified)} onReject={(note) => setStatus(r, "rejected", note)} />)}
+              {pending.map((r, i) => <ReviewCard key={r.id} r={r} i={i} picked={sel.includes(r.id)} onPick={() => toggle(r.id)} onApprove={(verified) => setStatus(r, "published", "", verified)} onReject={(note) => setStatus(r, "rejected", note)} />)}
             </div>
           ))}
 
@@ -165,10 +221,16 @@ export default function Admin() {
           ) : shownConfs.length === 0 ? noMatches : (
             <div className={s.tableWrap}>
               <table className={s.table}>
-                <thead><tr><th>Conference</th><th>Status</th><th>Dates</th><th className={s.right}>Actions</th></tr></thead>
+                <thead><tr>
+                  <th className={s.pickCell}>
+                    <label className={s.pick}><input type="checkbox" aria-label="Select all shown" checked={shownConfs.length > 0 && shownConfs.every((r) => sel.includes(r.id))} onChange={(e) => setSel(e.target.checked ? shownConfs.map((r) => r.id) : [])} /></label>
+                  </th>
+                  <th>Conference</th><th>Status</th><th>Dates</th><th className={s.right}>Actions</th>
+                </tr></thead>
                 <tbody>
                   {shownConfs.map((r) => (
-                    <tr key={r.id}>
+                    <tr key={r.id} data-picked={sel.includes(r.id) || undefined}>
+                      <td className={s.pickCell}><label className={s.pick}><input type="checkbox" aria-label={`Select ${r.name}`} checked={sel.includes(r.id)} onChange={() => toggle(r.id)} /></label></td>
                       <td><strong>{r.name}{r.verified && <> <Verified /></>}</strong><small>{r.host}</small></td>
                       <td><span className={auth.status} data-status={r.status}>{STATUS[r.status]}</span></td>
                       <td>{dates(r)}</td>
@@ -186,6 +248,41 @@ export default function Admin() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          ))}
+
+          {tab === "Reports" && ((reports ?? []).length === 0 ? (
+            <Empty title="No reports" body="When someone reports a problem with a listing, it lands here." />
+          ) : shownReports.length === 0 ? (
+            <Empty title={q ? "No matches" : reportFilter === "open" ? "Nothing open" : "Nothing here"} body={q ? "Try a different word, or clear the search." : reportFilter === "open" ? "Every report has been dealt with." : "No reports match."}>
+              {(q || reportFilter !== "open") && <button className="button secondary" onClick={clearSearch}>Show open reports</button>}
+            </Empty>
+          ) : (
+            <div className={`t-stagger ${s.stack}`}>
+              {shownReports.map((r, i) => (
+                <article key={r.id} className={`panel ${s.report}`} data-resolved={r.status === "resolved" || undefined} style={{ "--i": Math.min(i, 8) } as React.CSSProperties}>
+                  <label className={s.pick}><input type="checkbox" aria-label={`Select report about ${r.conferences?.name ?? "a listing"}`} checked={sel.includes(String(r.id))} onChange={() => toggle(String(r.id))} /></label>
+                  <div className={s.reportBody}>
+                    <div className={s.reportTop}>
+                      <strong>{r.conferences?.name ?? "A deleted listing"}</strong>
+                      <span className={s.reason} data-reason={r.reason}>{REASON[r.reason] ?? r.reason}</span>
+                      {r.status === "resolved" && <span className={auth.status} data-status="published">Resolved</span>}
+                    </div>
+                    {r.note ? <p className={s.reportNote}>{r.note}</p> : <p className="muted">No message.</p>}
+                    <p className={`muted ${s.reportMeta}`}>
+                      {when(r.created_at)}
+                      {r.reply_to && <> · <a className="link" href={`mailto:${r.reply_to}?subject=${encodeURIComponent(`About ${r.conferences?.name ?? "your report"} on Collex`)}`}>{r.reply_to}</a></>}
+                    </p>
+                  </div>
+                  <div className={s.actions}>
+                    {r.conferences && <IconButton label={`View ${r.conferences.name}`} tip="View listing" icon={ICONS.view} href={`/conferences/${r.conferences.slug}`} />}
+                    {r.status === "open"
+                      ? <IconButton label="Mark as resolved" tip="Resolve" icon={ICONS.check} onClick={() => setReport(r, "resolved")} />
+                      : <IconButton label="Reopen this report" tip="Reopen" icon={ICONS.up} onClick={() => setReport(r, "open")} />}
+                    <ConfirmIconButton label="Delete this report" confirm="Click again to delete this report" icon={ICONS.trash} onConfirm={() => removeReport(r)} />
+                  </div>
+                </article>
+              ))}
             </div>
           ))}
 
@@ -232,6 +329,38 @@ export default function Admin() {
           ))}
         </div>
       )}
+      {sel.length > 0 && (tab === "Review" || tab === "Conferences" || tab === "Reports") && (
+        <div className={s.bulk} role="region" aria-label="Bulk actions">
+          <span className={s.bulkCount} aria-live="polite">{sel.length} selected</span>
+          {tab === "Review" && (rejecting ? (
+            <form className={s.bulkForm} onSubmit={(e) => { e.preventDefault(); bulk("rejected", () => confStatus("rejected", rejectNote.trim())); }}>
+              <input className="control" placeholder="Reason, shown to each person" value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} aria-label="Reason for rejecting" autoFocus />
+              <button className={`button ${s.bulkDanger}`} disabled={bulkBusy}>Reject {sel.length}</button>
+              <button type="button" className="button" onClick={() => setRejecting(false)}>Back</button>
+            </form>
+          ) : (<>
+            <button className="button" disabled={bulkBusy} onClick={() => bulk("approved and live", () => confStatus("published"))}>Approve all</button>
+            <button className="button" disabled={bulkBusy} onClick={() => setRejecting(true)}>Reject…</button>
+          </>))}
+          {tab === "Conferences" && (<>
+            <button className="button" disabled={bulkBusy} onClick={() => bulk("published", () => confStatus("published"))}>Publish</button>
+            <button className="button" disabled={bulkBusy} onClick={() => bulk("taken down", () => confStatus("unpublished"))}>Take down</button>
+            <button className="button" disabled={bulkBusy} onClick={() => bulk("verified", () => db().from("conferences").update({ verified: true }).in("id", sel))}>Verify</button>
+            <button className="button" disabled={bulkBusy} onClick={() => bulk("unverified", () => db().from("conferences").update({ verified: false }).in("id", sel))}>Unverify</button>
+            <button className={`button ${armed ? s.bulkDanger : ""}`} disabled={bulkBusy} onClick={() => (armed ? bulk("deleted", () => db().from("conferences").delete().in("id", sel)) : setArmed(true))}>
+              {armed ? `Click again to delete ${sel.length}` : "Delete"}
+            </button>
+          </>)}
+          {tab === "Reports" && (<>
+            <button className="button" disabled={bulkBusy} onClick={() => bulk("resolved", () => db().from("reports").update({ status: "resolved", resolved_at: new Date().toISOString() }).in("id", reportIds), false)}>Resolve</button>
+            <button className="button" disabled={bulkBusy} onClick={() => bulk("reopened", () => db().from("reports").update({ status: "open", resolved_at: null }).in("id", reportIds), false)}>Reopen</button>
+            <button className={`button ${armed ? s.bulkDanger : ""}`} disabled={bulkBusy} onClick={() => (armed ? bulk("deleted", () => db().from("reports").delete().in("id", reportIds), false) : setArmed(true))}>
+              {armed ? `Click again to delete ${sel.length}` : "Delete"}
+            </button>
+          </>)}
+          <button className={s.bulkClear} onClick={clearSel}>Clear</button>
+        </div>
+      )}
       {node}
     </div>
   );
@@ -248,7 +377,7 @@ function Empty({ title, body, children }: { title: string; body: string; childre
   );
 }
 
-function ReviewCard({ r, i, onApprove, onReject }: { r: Row; i: number; onApprove: (verified: boolean) => void; onReject: (note: string) => void }) {
+function ReviewCard({ r, i, picked, onPick, onApprove, onReject }: { r: Row; i: number; picked: boolean; onPick: () => void; onApprove: (verified: boolean) => void; onReject: (note: string) => void }) {
   const [rejecting, setRejecting] = useState(false);
   const [verified, setVerified] = useState(false);
   const [note, setNote] = useState("");
@@ -257,11 +386,14 @@ function ReviewCard({ r, i, onApprove, onReject }: { r: Row; i: number; onApprov
     ["Submitted by", r.submitter_role], ["Received", when(r.created_at)],
   ];
   return (
-    <article className={`panel ${s.review}`} style={{ "--i": i } as React.CSSProperties}>
+    <article className={`panel ${s.review}`} data-picked={picked || undefined} style={{ "--i": i } as React.CSSProperties}>
       <div className={s.reviewHead}>
-        <div>
-          <h2 className={s.reviewTitle}>{r.name}</h2>
-          <p className="muted">{r.host}</p>
+        <div className={s.reviewWho}>
+          <label className={s.pick}><input type="checkbox" aria-label={`Select ${r.name}`} checked={picked} onChange={onPick} /></label>
+          <div>
+            <h2 className={s.reviewTitle}>{r.name}</h2>
+            <p className="muted">{r.host}</p>
+          </div>
         </div>
         <div className={s.actions}>
           <button className="button secondary" onClick={() => setRejecting(!rejecting)} aria-expanded={rejecting}>Reject</button>

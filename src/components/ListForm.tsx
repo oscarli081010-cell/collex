@@ -4,12 +4,12 @@ import Link from "next/link";
 import PageBand, { type BandProps } from "./PageBand";
 import { FormSkeleton } from "./Skeleton";
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { coverUrl, formatRange, webUrl, type Conference } from "@/lib/conferences";
+import { coverUrl, formatRange, webUrl, type Conference, type Role } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
 import { useAuth } from "./AuthProvider";
-import { badGuide, CommitteesEditor, committeeRows, strayGuides, toCommittees, toGuides, type CommitteeRow, type UploadGuide } from "./RowEditors";
+import { badGuide, badRole, CommitteesEditor, committeeRows, RolesEditor, roleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toRoles, toSecretariat, type CommitteeRow, type RoleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
 import Team, { type Member } from "./Team";
 import auth from "@/app/auth.module.css";
 import s from "@/app/inner.module.css";
@@ -59,6 +59,8 @@ export default function ListForm() {
   const [editing, setEditing] = useState<Editing | null | "missing">(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [committees, setCommittees] = useState<CommitteeRow[]>([]);
+  const [secretariat, setSecretariat] = useState<SecretariatRow[]>(() => secretariatRows());
+  const [roles, setRoles] = useState<RoleRow[]>([]);
   // Guides whose committee has since been removed or renamed: kept as they were.
   const [stray, setStray] = useState<Conference["guides"]>([]);
   const [team, setTeam] = useState<Member[]>([]);
@@ -70,11 +72,13 @@ export default function ListForm() {
     setTeam((data as Member[] | null) ?? []);
     return (data as Member[] | null) ?? [];
   }, [editId]);
+  // Keyed on who is signed in, not on the session object, so a silent token refresh never reloads the form over unsaved edits.
+  const userId = session?.user.id;
   useEffect(() => {
-    if (!editId || !session || !supabase) return;
+    if (!editId || !userId || !supabase) return;
     Promise.all([
       supabase.from("conferences")
-        .select("id, status, name, host, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, interest_url, overview, committees, guides, cover_path")
+        .select("id, status, name, host, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, interest_url, overview, committees, guides, secretariat, roles, cover_path")
         .eq("id", editId).in("status", ["pending", "published"]).maybeSingle(),
       loadTeam(),
     ]).then(([{ data }, members]) => {
@@ -83,14 +87,17 @@ export default function ListForm() {
       setFirstDay(row?.start_date ?? "");
       setLastDay(row?.end_date ?? "");
       setCommittees(committeeRows(row?.committees ?? [], row?.guides ?? []));
+      setSecretariat(secretariatRows((row?.secretariat as unknown as { role: string; name: string }[] | undefined) ?? []));
+      setRoles(roleRows(row?.roles as unknown as Partial<Role>[] | undefined));
       setStray(strayGuides(row?.committees ?? [], row?.guides ?? []));
     });
-  }, [editId, session, loadTeam]);
+  }, [editId, userId, loadTeam]);
   const edit = editing && editing !== "missing" ? editing : null;
   // Other live listings on any of the same days. A heads-up only: two conferences can share a weekend.
   const listed = useConferences();
   const clashes = firstDay ? clashing(listed, firstDay, lastDay && lastDay >= firstDay ? lastDay : firstDay, edit?.id) : [];
   const firstBadGuide = committees.findIndex(badGuide);
+  const firstBadRole = roles.findIndex(badRole);
 
   const check = (v: (k: string) => string) => {
     const out: Record<string, string> = {};
@@ -103,6 +110,7 @@ export default function ListForm() {
     if (!v("publish")) out.publish = "Tick the box to confirm before sending.";
     if (committees.some((r) => r.uploading)) out.guides = "Wait for the PDF to finish uploading.";
     else if (firstBadGuide >= 0) out.guides = "Fix the guide link marked below.";
+    if (firstBadRole >= 0) out.roles = "Fix the apply link marked below.";
     else if (committees.some((r) => r.guide.trim() && !r.name.trim())) out.guides = "Name the committee a guide belongs to.";
     return out;
   };
@@ -117,7 +125,8 @@ export default function ListForm() {
     setErrors(found);
     const first = Object.keys(found)[0];
     if (first) {
-      const el = (first === "guides" ? document.getElementById(firstBadGuide >= 0 ? `committee-${firstBadGuide}-guide` : "committee-0-first") : form.elements.namedItem(first)) as HTMLElement | null;
+      const el = (first === "guides" ? document.getElementById(firstBadGuide >= 0 ? `committee-${firstBadGuide}-guide` : "committee-0-first")
+        : first === "roles" ? document.getElementById(`role-${firstBadRole}-url`) : form.elements.namedItem(first)) as HTMLElement | null;
       el?.focus({ preventScroll: true });
       el?.scrollIntoView({ block: "center", behavior: "smooth" });
       return;
@@ -132,6 +141,8 @@ export default function ListForm() {
       cover = { cover_path: path };
     }
     const guideList = toGuides(committees, stray);
+    const people = toSecretariat(secretariat);
+    const roleList = toRoles(roles);
     const fields = {
       name: v("name"),
       host: v("host"),
@@ -150,8 +161,11 @@ export default function ListForm() {
     };
     // .select() returns the saved row, so an edit that changed nothing (no access any more) is caught, not shown as saved.
     const { data: saved, error } = edit
-      ? await supabase.from("conferences").update({ ...fields, guides: guideList }).eq("id", edit.id).select("id")
-      : await supabase.from("conferences").insert({ ...fields, ...(guideList.length ? { guides: guideList } : {}), submitted_by: session.user.id }).select("id");
+      ? await supabase.from("conferences").update({ ...fields, guides: guideList, secretariat: people, roles: roleList }).eq("id", edit.id).select("id")
+      : await supabase.from("conferences").insert({
+          ...fields, ...(guideList.length ? { guides: guideList } : {}), ...(people.length ? { secretariat: people } : {}), ...(roleList.length ? { roles: roleList } : {}),
+          submitted_by: session.user.id,
+        }).select("id");
     setBusy(false);
     if (!error && !saved?.length) return setErrors({ form: "You can't edit this listing any more. Ask the person who listed it." });
     // New links or guides on a live listing queue emails to its followers; this sends them.
@@ -209,7 +223,7 @@ export default function ListForm() {
   if (editId && editing === "missing") {
     return page({
       title: "Can\u2019t edit that", accent: "listing", lead: "Only the people who run a listing can edit it, while it\u2019s in review or live. Ask its organiser to invite you.",
-      aside: <div className={auth.row}><Link href="/account#conferences" className="button lg">Your listings</Link></div>,
+      aside: <div className="btnStack one"><Link href="/account#conferences" className="button lg">Your listings</Link></div>,
     }, null);
   }
 
@@ -217,7 +231,7 @@ export default function ListForm() {
     return page({
       title: "List a", accent: "conference", lead: "Log in first. Your listing stays tied to your account, so you can track it.",
       aside: (
-        <div className={auth.row}>
+        <div className="btnStack">
           <Link href="/login" className="button lg">Log in</Link>
           <Link href="/signup" className="button secondary lg">Create an account</Link>
         </div>
@@ -239,10 +253,10 @@ export default function ListForm() {
             <li key={t} style={{ "--i": i } as React.CSSProperties}>{t}</li>
           ))}
         </ol>
-        <div className={auth.row}>
-          <Link href="/account#conferences" className="button">{edit ? "Your listings" : "See its status"}</Link>
-          {edit ? <button className="button secondary" onClick={() => setSent(false)}>Keep editing</button>
-            : <button className="button secondary" onClick={() => { setSent(false); setCommittees([]); }}>List another</button>}
+        <div className="btnStack one">
+          <Link href="/account#conferences" className="button lg">{edit ? "Your listings" : "See its status"}</Link>
+          {edit ? <button className="button secondary lg" onClick={() => setSent(false)}>Keep editing</button>
+            : <button className="button secondary lg" onClick={() => { setSent(false); setCommittees([]); setStray([]); setSecretariat(secretariatRows()); setRoles([]); }}>List another</button>}
         </div>
       </div>);
   }
@@ -307,6 +321,15 @@ export default function ListForm() {
           <legend>Committees <span className="muted">(optional)</span></legend>
           {errors.guides && <small key="err" className={`t-reveal ${s.error}`}>{errors.guides}</small>}
           <CommitteesEditor rows={committees} setRows={(a) => { setCommittees(a); if (errors.guides) setErrors(({ guides: _, ...rest }) => rest); }} upload={uploadGuide} />
+        </fieldset>
+        <fieldset className={`field ${s.wide}`}>
+          <legend>Secretariat <span className="muted">(optional)</span></legend>
+          <SecretariatEditor rows={secretariat} setRows={setSecretariat} />
+        </fieldset>
+        <fieldset className={`field ${s.wide}`}>
+          <legend>Roles needed <span className="muted">(optional)</span></legend>
+          {errors.roles && <small key="err" className={`t-reveal ${s.error}`}>{errors.roles}</small>}
+          <RolesEditor rows={roles} setRows={(a) => { setRoles(a); if (errors.roles) setErrors(({ roles: _, ...rest }) => rest); }} />
         </fieldset>
         <div className={`field ${s.wide} ${errors.cover ? s.invalid : ""}`}>
           <label htmlFor="f-cover">Cover photo <span className="muted">(optional)</span></label>

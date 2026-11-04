@@ -1,0 +1,54 @@
+/* Roles needed: the card, used on the board and on a conference's own page. */
+.card { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 24px; min-width: 0;
+  transition: border-color var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-fast) var(--ease-smooth-out), transform var(--duration-fast) var(--ease-smooth-out); }
+.card:hover { border-color: var(--line-strong); box-shadow: 0 10px 28px rgba(var(--shadow-rgb), 0.07); transform: translateY(-2px); }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* Each kind has a colour from the site's own palette, so it works in light and dark. */
+.kind {
+  --k: var(--accent);
+  display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 0 10px; border-radius: 999px;
+  background: color-mix(in srgb, var(--k) 14%, transparent); color: var(--k); font-size: 13px; font-weight: 600;
+}
+.kind[data-kind="crisis"] { --k: var(--danger); }
+.kind[data-kind="press"] { --k: var(--warn); }
+.kind[data-kind="photo"] { --k: var(--ok); }
+.kind[data-kind="logistics"], .kind[data-kind="other"] { --k: var(--muted); }
+.kind svg { flex: none; }
+.when { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.title { font-family: var(--serif); font-weight: 400; font-size: 28px; line-height: 1.08; letter-spacing: -0.01em; text-wrap: balance; }
+.note { color: var(--muted); font-size: 14.5px; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+.conf { display: flex; flex-direction: column; font-size: 14px; line-height: 1.4; margin-top: auto; padding-top: 6px; }
+.conf a { font-weight: 500; }
+.conf a:hover { color: var(--accent); }
+.conf span { color: var(--muted); }
+
+/* The board. */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink); font-size: 14px; font-weight: 500;
+  transition: background-color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out);
+}
+.chip:hover { background: var(--surface); }
+.chip:active { transform: scale(0.97); }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+.chip small { font-size: 12.5px; opacity: 0.7; font-variant-numeric: tabular-nums; }
+.chip[data-empty="true"] { opacity: 0.5; }
+@media (pointer: coarse) { .chip { height: 44px; } }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 16px; margin-top: 8px; }
+
+/* Cards in a row are the same height, with the Apply button at the foot. */
+.grid > div, .pageGrid > div { display: flex; }
+.grid > div > *, .pageGrid > div > * { flex: 1; }
+.apply { margin-top: auto; }
+
+/* On a conference's page: the same cards in a tidy row. */
+.pageGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 12px; }
+
+@media (max-width: 640px) {
+  .card { padding: 20px; }
+  .title { font-size: 25px; }
+}
+@media (prefers-reduced-motion: reduce) { .card { transition: none; transform: none !important; } }
