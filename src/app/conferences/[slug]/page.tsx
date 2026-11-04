@@ -113,6 +113,9 @@ function DateTile({ start, end }: { start: string; end: string | null }) {
   );
 }
 
+// A committee's released guide, by name.
+const guideOf = (c: Conference, committee: string) => c.guides.find((g) => g.committee === committee && g.url)?.url ?? null;
+
 const initials = (name: string) => (name === NA ? "" : name.split(" ").map((w) => w[0]).join("").slice(0, 2));
 
 export default async function ConferencePage({ params }: Props) {
@@ -140,10 +143,9 @@ export default async function ConferencePage({ params }: Props) {
 
         <header className={s.confHead}>
           <div className={s.confLead}>
-            {c.startDate && !c.isTemplate && <DateTile start={c.startDate} end={c.endDate} />}
             <div>
               {c.isTemplate ? <span className="badge accent">Demo listing</span> : (
-                <span className={s.confBadges}>{past && <span className="badge">Finished</span>}<Countdown c={c} large />{c.verified && <Verified />}</span>
+                <span className={s.confBadges}>{past && <span className="badge">Finished</span>}<Countdown c={c} large />{c.verified && <Verified large />}</span>
               )}
               <ViewTransition name={`title-${c.slug}`} share="morph" default="none">
                 <h1 className={s.confTitle}>{c.name}</h1>
@@ -155,9 +157,13 @@ export default async function ConferencePage({ params }: Props) {
               </ul>
             </div>
           </div>
-          <div className={s.confAside}>
-            <ConferenceActions c={c} past={past} />
-            {c.id && !past && <FollowButton id={c.id} name={c.name} />}
+          {/* On the right: the date as a calendar page, above the share, calendar and follow buttons. */}
+          <div className={s.confSide}>
+            {c.startDate && !c.isTemplate && <DateTile start={c.startDate} end={c.endDate} />}
+            <div className={s.confAside}>
+              <ConferenceActions c={c} past={past} />
+              {c.id && !past && <FollowButton id={c.id} name={c.name} />}
+            </div>
           </div>
         </header>
 
@@ -207,10 +213,13 @@ export default async function ConferencePage({ params }: Props) {
               ) : (
                 <div className={s.tableWrap}>
                   <table className={s.table}>
-                    <thead><tr><th scope="col">Committee</th><th scope="col">Topic</th><th scope="col">Level</th><th scope="col" className={s.right}>Chairs</th></tr></thead>
+                    <thead><tr><th scope="col">Committee</th><th scope="col">Topic</th><th scope="col">Level</th><th scope="col">Chairs</th><th scope="col" className={s.right}>Guide</th></tr></thead>
                     <tbody>
                       {c.committees.map((x, i) => (
-                        <tr key={i}><td>{x.name}</td><td>{x.topic}</td><td>{x.level}</td><td className={s.right}>{x.chairs}</td></tr>
+                        <tr key={i}>
+                          <td>{x.name}</td><td>{x.topic}</td><td>{x.level}</td><td>{x.chairs}</td>
+                          <td className={s.right}>{guideOf(c, x.name) ? <a className="link" href={guideOf(c, x.name)!} target="_blank" rel="noreferrer">Download</a> : <span className="muted">Not released</span>}</td>
+                        </tr>
                       ))}
                     </tbody>
                   </table>
@@ -231,7 +240,7 @@ export default async function ConferencePage({ params }: Props) {
                         <tr key={i}>
                           <td>{g.committee}</td>
                           <td>{formatDate(g.released)}</td>
-                          <td className={s.right}>{g.url ? <a className="link" href={g.url}>Download</a> : <span className="muted">Not released</span>}</td>
+                          <td className={s.right}>{g.url ? <a className="link" href={g.url} target="_blank" rel="noreferrer">Download</a> : <span className="muted">Not released</span>}</td>
                         </tr>
                       ))}
                     </tbody>

@@ -9,7 +9,7 @@ import { useConferences } from "./ConferencesContext";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
 import { useAuth } from "./AuthProvider";
-import { CommitteesEditor, committeeRows, GuidesEditor, guideRows, toCommittees, toGuides, type CommitteeRow, type GuideRow } from "./RowEditors";
+import { badGuide, CommitteesEditor, committeeRows, strayGuides, toCommittees, toGuides, type CommitteeRow, type UploadGuide } from "./RowEditors";
 import Team, { type Member } from "./Team";
 import auth from "@/app/auth.module.css";
 import s from "@/app/inner.module.css";
@@ -18,8 +18,7 @@ type F = { name: string; label: string; type: "text" | "date" | "email" | "url" 
 
 const FIELDS: F[] = [
   { name: "name", label: "Conference name", type: "text", wide: true, required: true },
-  { name: "host", label: "Host school", type: "text", required: true },
-  { name: "submitter_role", label: "Your role", type: "text", hint: "For example, Secretary-General" },
+  { name: "host", label: "Host school", type: "text", wide: true, required: true },
   { name: "start_date", label: "First day", type: "date" },
   { name: "end_date", label: "Last day", type: "date" },
   { name: "venue", label: "Venue", type: "text" },
@@ -28,6 +27,7 @@ const FIELDS: F[] = [
   { name: "fee", label: "Delegate fee", type: "text" },
   { name: "delegation_url", label: "Delegate registration link", type: "url" },
   { name: "chair_url", label: "Chair application link", type: "url" },
+  { name: "interest_url", label: "Interest form link", type: "url", wide: true, hint: "Leave blank to collect interest on Collex" },
   { name: "overview", label: "Overview", type: "textarea", wide: true },
 ];
 
@@ -38,6 +38,7 @@ const isUrl = (v: string) => /^https?:\/\/\S+\.\S+/.test(v);
 // Cover photos: the kinds and size the storage bucket accepts.
 const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const COVER_MAX = 5 * 1024 * 1024;
+const GUIDE_MAX = 10 * 1024 * 1024;
 
 // The fields an organiser can change on their listing, read back to fill the form.
 type Editing = Record<string, string | null> & { id: string; status: string; guides: Conference["guides"]; committees: Conference["committees"] };
@@ -58,7 +59,8 @@ export default function ListForm() {
   const [editing, setEditing] = useState<Editing | null | "missing">(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [committees, setCommittees] = useState<CommitteeRow[]>([]);
-  const [guides, setGuides] = useState<GuideRow[]>([]);
+  // Guides whose committee has since been removed or renamed: kept as they were.
+  const [stray, setStray] = useState<Conference["guides"]>([]);
   const [team, setTeam] = useState<Member[]>([]);
   useEffect(() => { setEditId(new URLSearchParams(location.search).get("edit")); }, []);
   // Who can edit: the database lists the team only to the people on it (and admins), so an empty team means no access.
@@ -72,7 +74,7 @@ export default function ListForm() {
     if (!editId || !session || !supabase) return;
     Promise.all([
       supabase.from("conferences")
-        .select("id, status, name, host, submitter_role, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, overview, committees, guides, cover_path")
+        .select("id, status, name, host, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, interest_url, overview, committees, guides, cover_path")
         .eq("id", editId).in("status", ["pending", "published"]).maybeSingle(),
       loadTeam(),
     ]).then(([{ data }, members]) => {
@@ -80,15 +82,15 @@ export default function ListForm() {
       setEditing(row ?? "missing");
       setFirstDay(row?.start_date ?? "");
       setLastDay(row?.end_date ?? "");
-      setCommittees(committeeRows(row?.committees ?? []));
-      setGuides(guideRows(row?.guides ?? []));
+      setCommittees(committeeRows(row?.committees ?? [], row?.guides ?? []));
+      setStray(strayGuides(row?.committees ?? [], row?.guides ?? []));
     });
   }, [editId, session, loadTeam]);
   const edit = editing && editing !== "missing" ? editing : null;
   // Other live listings on any of the same days. A heads-up only: two conferences can share a weekend.
   const listed = useConferences();
   const clashes = firstDay ? clashing(listed, firstDay, lastDay && lastDay >= firstDay ? lastDay : firstDay, edit?.id) : [];
-  const badGuides = guides.map((g, i) => (g.url.trim() && !webUrl(g.url) ? i : -1)).filter((i) => i >= 0);
+  const firstBadGuide = committees.findIndex(badGuide);
 
   const check = (v: (k: string) => string) => {
     const out: Record<string, string> = {};
@@ -97,10 +99,11 @@ export default function ListForm() {
     if (!v("contact")) out.contact = "Add an email so delegates can reach you.";
     else if (!/^\S+@\S+\.\S+$/.test(v("contact"))) out.contact = "That email doesn't look right.";
     if (v("start_date") && v("end_date") && v("end_date") < v("start_date")) out.end_date = "The last day is before the first day.";
-    for (const k of ["delegation_url", "chair_url"]) if (v(k) && !isUrl(v(k))) out[k] = "Use a full link starting with https://";
+    for (const k of ["delegation_url", "chair_url", "interest_url"]) if (v(k) && !isUrl(v(k))) out[k] = "Use a full link starting with https://";
     if (!v("publish")) out.publish = "Tick the box to confirm before sending.";
-    if (badGuides.length) out.guides = "Fix the guide links marked below.";
-    if (guides.some((g) => g.url.trim() && !g.committee)) out.guides = "Choose a committee for each guide.";
+    if (committees.some((r) => r.uploading)) out.guides = "Wait for the PDF to finish uploading.";
+    else if (firstBadGuide >= 0) out.guides = "Fix the guide link marked below.";
+    else if (committees.some((r) => r.guide.trim() && !r.name.trim())) out.guides = "Name the committee a guide belongs to.";
     return out;
   };
 
@@ -114,7 +117,7 @@ export default function ListForm() {
     setErrors(found);
     const first = Object.keys(found)[0];
     if (first) {
-      const el = (first === "guides" ? document.getElementById("guide-0-first") : form.elements.namedItem(first)) as HTMLElement | null;
+      const el = (first === "guides" ? document.getElementById(firstBadGuide >= 0 ? `committee-${firstBadGuide}-guide` : "committee-0-first") : form.elements.namedItem(first)) as HTMLElement | null;
       el?.focus({ preventScroll: true });
       el?.scrollIntoView({ block: "center", behavior: "smooth" });
       return;
@@ -128,10 +131,10 @@ export default function ListForm() {
       if (upError) { setBusy(false); return setErrors({ cover: "The photo didn't upload. Try again, or try a smaller one." }); }
       cover = { cover_path: path };
     }
+    const guideList = toGuides(committees, stray);
     const fields = {
       name: v("name"),
       host: v("host"),
-      submitter_role: v("submitter_role"),
       start_date: v("start_date") || null,
       end_date: v("end_date") || null,
       venue: v("venue"),
@@ -140,14 +143,15 @@ export default function ListForm() {
       fee: feeText(v("fee")),
       delegation_url: v("delegation_url") || null,
       chair_url: v("chair_url") || null,
+      interest_url: v("interest_url") || null,
       overview: v("overview"),
       committees: toCommittees(committees),
       ...cover,
     };
     // .select() returns the saved row, so an edit that changed nothing (no access any more) is caught, not shown as saved.
     const { data: saved, error } = edit
-      ? await supabase.from("conferences").update({ ...fields, guides: toGuides(guides) }).eq("id", edit.id).select("id")
-      : await supabase.from("conferences").insert({ ...fields, submitted_by: session.user.id }).select("id");
+      ? await supabase.from("conferences").update({ ...fields, guides: guideList }).eq("id", edit.id).select("id")
+      : await supabase.from("conferences").insert({ ...fields, ...(guideList.length ? { guides: guideList } : {}), submitted_by: session.user.id }).select("id");
     setBusy(false);
     if (!error && !saved?.length) return setErrors({ form: "You can't edit this listing any more. Ask the person who listed it." });
     // New links or guides on a live listing queue emails to its followers; this sends them.
@@ -158,6 +162,16 @@ export default function ListForm() {
     setSent(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+  // A committee's background guide as a PDF: into this account's own folder, and its public address comes back.
+  const uploadGuide: UploadGuide = async (file) => {
+    if (file.type !== "application/pdf") return { error: "Use a PDF file." };
+    if (file.size > GUIDE_MAX) return { error: "That PDF is over 10MB. Try a smaller one, or paste a link." };
+    const path = `${session!.user.id}/${crypto.randomUUID()}.pdf`;
+    const { error } = await supabase!.storage.from("guides").upload(path, file, { contentType: "application/pdf", cacheControl: "31536000" });
+    if (error) return { error: "The PDF didn't upload. Try again, or paste a link." };
+    return { url: supabase!.storage.from("guides").getPublicUrl(path).data.publicUrl };
+  };
 
   const savedCover = edit && !coverRemoved ? coverUrl(edit.cover_path) : null;
   const shownCover = coverPreview ?? savedCover;
@@ -272,7 +286,7 @@ export default function ListForm() {
                   name={f.name}
                   type={f.type}
                   className="control"
-                  maxLength={f.type === "url" ? 500 : f.type === "email" ? 254 : ["fee", "submitter_role"].includes(f.name) ? 120 : 200}
+                  maxLength={f.type === "url" ? 500 : f.type === "email" ? 254 : f.name === "fee" ? 120 : 200}
                   defaultValue={edit ? asText(edit, f.name) : f.name === "contact" ? session.user.email : undefined}
                   aria-invalid={Boolean(err)}
                   aria-describedby={hintId}
@@ -291,15 +305,9 @@ export default function ListForm() {
         })}
         <fieldset className={`field ${s.wide}`}>
           <legend>Committees <span className="muted">(optional)</span></legend>
-          <CommitteesEditor rows={committees} setRows={setCommittees} />
+          {errors.guides && <small key="err" className={`t-reveal ${s.error}`}>{errors.guides}</small>}
+          <CommitteesEditor rows={committees} setRows={(a) => { setCommittees(a); if (errors.guides) setErrors(({ guides: _, ...rest }) => rest); }} upload={uploadGuide} />
         </fieldset>
-        {edit && (
-          <fieldset className={`field ${s.wide} ${errors.guides ? s.invalid : ""}`}>
-            <legend>Background guides <span className="muted">(optional)</span></legend>
-            {errors.guides && <small key="err" className={`t-reveal ${s.error}`}>{errors.guides}</small>}
-            <GuidesEditor rows={guides} setRows={(r) => { setGuides(r); if (errors.guides) setErrors(({ guides: _, ...rest }) => rest); }} committees={toCommittees(committees).map((c) => c.name)} error={badGuides} />
-          </fieldset>
-        )}
         <div className={`field ${s.wide} ${errors.cover ? s.invalid : ""}`}>
           <label htmlFor="f-cover">Cover photo <span className="muted">(optional)</span></label>
           <label htmlFor="f-cover" className={s.coverPick} data-filled={Boolean(shownCover)}>
@@ -346,9 +354,11 @@ function clashing(list: Conference[], first: string, last: string, except?: stri
 // Polite, not blocking: it names the clash so the organiser can decide. Always in the page, so screen readers hear it appear.
 function ClashNote({ clashes }: { clashes: Conference[] }) {
   return (
-    <div className={`${s.wide} ${s.clashSlot}`} role="status">
+    <>
+      {/* Out of the layout, so an empty one adds no gap; it makes screen readers announce the note when it appears. */}
+      <div className="sr-only" role="status">{clashes.length > 0 ? `Heads up: ${clashes.length === 1 ? "another conference runs" : `${clashes.length} conferences run`} on these dates.` : ""}</div>
       {clashes.length > 0 && (
-        <div key={clashes.map((c) => c.id).join()} className={`t-reveal ${s.clash}`}>
+        <div key={clashes.map((c) => c.id).join()} className={`t-reveal ${s.wide} ${s.clash}`}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 2.2l6.2 11H1.8z" /><path d="M8 6.5v3M8 11.6v.1" /></svg>
           <p>
             {clashes.length === 1 ? <>Heads up: <Link href={`/conferences/${clashes[0].slug}`} className="link" target="_blank">{clashes[0].name}</Link> runs on {formatRange(clashes[0])}.</>
@@ -357,6 +367,6 @@ function ClashNote({ clashes }: { clashes: Conference[] }) {
           </p>
         </div>
       )}
-    </div>
+    </>
   );
 }

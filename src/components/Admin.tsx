@@ -20,7 +20,7 @@ import s from "@/app/admin.module.css";
 type Row = {
   id: string; slug: string; status: string; name: string; host: string; start_date: string | null; end_date: string | null;
   venue: string; level: string | null; contact: string; fee: string; overview: string; submitter_role: string;
-  delegation_url: string | null; chair_url: string | null; committees: { name: string; topic: string }[]; cover_path?: string | null;
+  delegation_url: string | null; chair_url: string | null; interest_url?: string | null; committees: { name: string; topic: string }[]; cover_path?: string | null;
   review_note: string; created_at: string; verified: boolean;
 };
 type User = { id: string; email: string; full_name: string; school: string; role: string; is_admin: boolean; created_at: string };
@@ -274,6 +274,7 @@ function ReviewCard({ r, i, onApprove, onReject }: { r: Row; i: number; onApprov
         {facts.filter(([, v]) => v).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
         {webUrl(r.delegation_url) && <div><dt>Registration</dt><dd><a className="link" href={webUrl(r.delegation_url)!} target="_blank" rel="noreferrer">Open link</a></dd></div>}
         {webUrl(r.chair_url) && <div><dt>Chair applications</dt><dd><a className="link" href={webUrl(r.chair_url)!} target="_blank" rel="noreferrer">Open link</a></dd></div>}
+        {webUrl(r.interest_url) && <div><dt>Interest form</dt><dd><a className="link" href={webUrl(r.interest_url)!} target="_blank" rel="noreferrer">Open link</a></dd></div>}
       </dl>
       <label className="check" style={{ marginTop: 16 }}>
         <input type="checkbox" checked={verified} onChange={(e) => setVerified(e.target.checked)} />

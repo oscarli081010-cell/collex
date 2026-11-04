@@ -53,7 +53,7 @@
   box-shadow: 0 18px 44px rgba(var(--shadow-rgb), 0.12);
   font-size: 14px;
   animation: nextIn var(--duration-very-slow) var(--ease-smooth-out) 200ms both;
-  transition: transform var(--duration-slow) var(--ease-smooth-out), box-shadow var(--duration-slow) var(--ease-smooth-out);
+  transition: transform var(--duration-fast) var(--ease-smooth-out), box-shadow var(--duration-fast) var(--ease-smooth-out);
 }
 .nextCard:hover { transform: translateY(-3px); box-shadow: 0 22px 52px rgba(var(--shadow-rgb), 0.16); }
 @keyframes nextIn { from { opacity: 0; transform: translateY(12px); } }

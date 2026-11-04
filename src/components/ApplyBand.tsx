@@ -52,8 +52,26 @@ export default function ApplyBand({ c }: { c: Conference }) {
   );
 }
 
-// An expression of interest: one tap tells the organisers someone is keen. Organisers see the count here instead.
+// Express interest: the organiser's own form when they linked one, otherwise Collex's one-tap version.
 function Interest({ c, say }: { c: Conference; say: Say }) {
+  return c.interestUrl ? <InterestLink url={c.interestUrl} /> : <BuiltInInterest c={c} say={say} />;
+}
+
+// Their own form (a Google Form, say): opens in a new tab, no account needed.
+function InterestLink({ url }: { url: string }) {
+  return (
+    <div className={s.applyOption} data-kind="interest">
+      <div>
+        <h2 className={s.applyTitle}>Express interest</h2>
+        <span className={s.applyStatus} data-open="true">Not ready to register? Let them know.</span>
+      </div>
+      <a href={url} className={`button ${s.applyBtn}`} target="_blank" rel="noreferrer">Express interest →</a>
+    </div>
+  );
+}
+
+// An expression of interest: one tap tells the organisers someone is keen. Organisers see the count here instead.
+function BuiltInInterest({ c, say }: { c: Conference; say: Say }) {
   const { ready, session } = useAuth();
   const [state, setState] = useState<{ sent: boolean; count: number | null } | null>(null);
   const [busy, setBusy] = useState(false);

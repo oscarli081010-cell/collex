@@ -33,6 +33,10 @@ export default function SeasonCalendar() {
   const onDay = (iso: string) => runningOn(conferences, iso);
   const listed = conferences.filter((c) => c.startDate?.startsWith(isoOf(y, m, 1).slice(0, 7)));
   const prevDays = new Date(y, m, 0).getDate();
+  // For an empty month: the first conference that starts after it, so there's somewhere to go next.
+  const monthEnd = isoOf(y, m, days);
+  const next = conferences.filter((c) => c.startDate && c.startDate > monthEnd).sort((a, b) => a.startDate!.localeCompare(b.startDate!))[0];
+  const nextWhen = next && new Date(next.startDate! + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long", ...(next.startDate!.slice(0, 4) !== String(y) && { year: "numeric" }) });
 
   // Conferences starting in each month of the year on show.
   const perMonth = MONTHS.map((_, i) => conferences.filter((c) => c.startDate?.startsWith(isoOf(y, i, 1).slice(0, 7))).length);
@@ -93,7 +97,8 @@ export default function SeasonCalendar() {
         </h2>
         {listed.length === 0 ? (
           <div key={`${y}-${m}`} className={`t-reveal ${board.empty}`}>
-            <p className={board.emptyTitle}>Nothing listed for {MONTHS[m]} {y}</p>
+            <p className={board.emptyTitle}>Nothing on in {MONTHS[m]}.</p>
+            {next && <Link href={`/conferences/${next.slug}`} className="link">The next conference is on {nextWhen} →</Link>}
             <Link href="/list" className="button secondary">List a conference</Link>
           </div>
         ) : (

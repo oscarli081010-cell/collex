@@ -3,7 +3,7 @@
 .brand { display: flex; flex-direction: column; gap: 8px; max-width: 280px; }
 .cols { display: grid; grid-template-columns: repeat(4, auto); gap: 56px; font-size: 14px; }
 .cols ul { display: flex; flex-direction: column; gap: 8px; }
-.cols a { color: var(--muted); transition: color 0.2s; }
+.cols a { color: var(--muted); transition: color var(--duration-quick) var(--ease-smooth-out); }
 .cols a:hover { color: var(--ink); }
 .head { font-weight: 500; margin-bottom: 4px; }
 .legal {

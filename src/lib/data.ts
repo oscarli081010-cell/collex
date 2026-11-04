@@ -6,7 +6,7 @@ import { coverUrl, NA, template, webUrl, type Conference } from "./conferences";
 type Row = {
   id: string; slug: string; name: string; short_name: string; host: string; start_date: string | null; end_date: string | null;
   venue: string; level: Conference["level"]; fee: string; delegates: string; overview: string; contact: string;
-  delegation_url: string | null; chair_url: string | null;
+  delegation_url: string | null; chair_url: string | null; interest_url?: string | null;
   key_dates: Conference["keyDates"]; committees: Conference["committees"]; guides: Conference["guides"];
   secretariat: Conference["secretariat"];
   verified?: boolean; updated_at?: string; cover_path?: string | null;
@@ -34,6 +34,7 @@ export const fromRow = (r: Row): Conference => ({
   contact: or(r.contact),
   delegationUrl: webUrl(r.delegation_url),
   chairUrl: webUrl(r.chair_url),
+  interestUrl: webUrl(r.interest_url),
   verified: r.verified ?? false,
   cover: coverUrl(r.cover_path),
   updatedAt: r.updated_at,

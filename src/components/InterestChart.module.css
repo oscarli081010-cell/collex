@@ -1,5 +1,5 @@
 .chart { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.head { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+.head { display: flex; align-items: center; gap: 12px; font-size: 14px; font-variant-numeric: tabular-nums; }
 .head small { display: block; color: var(--muted); font-size: 12.5px; }
 .total { font-family: var(--serif); font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
 .bars { display: grid; grid-template-columns: repeat(8, 1fr); align-items: end; gap: 6px; height: 64px; }
@@ -9,6 +9,6 @@
   animation-delay: calc(var(--i) * var(--duration-stagger));
 }
 .bar[data-empty="true"] { background: var(--line-strong); }
-.axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 @keyframes grow { from { transform: scaleY(0); } }
 @media (prefers-reduced-motion: reduce) { .bar { animation: none; } }

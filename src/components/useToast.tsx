@@ -13,7 +13,7 @@ export function useToast() {
     setToast({ text, hiding: false });
     timers.current = [
       window.setTimeout(() => setToast((t) => t && { ...t, hiding: true }), 2600),
-      window.setTimeout(() => setToast(null), 2950),
+      window.setTimeout(() => setToast(null), 2780), // after the 150ms fade-out
     ];
   };
 

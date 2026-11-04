@@ -67,12 +67,10 @@
   z-index: 0;
 }
 
-/* Page enter: every route fades up with a soft blur */
-@keyframes t-page-in {
-  from { opacity: 0; transform: translateY(var(--distance-medium)); filter: blur(var(--blur-medium)); }
-  to   { opacity: 1; transform: none; filter: blur(0); }
-}
-.t-page-enter { animation: t-page-in var(--duration-slow) var(--ease-smooth-out) backwards; }
+/* Page enter: a short plain fade. The browser already cross-fades pages (view transitions), so this one stays
+   light: a long fade with blur on top of that left pages half-faded for too long. */
+@keyframes t-page-in { from { opacity: 0; } }
+.t-page-enter { animation: t-page-in var(--duration-quick) var(--ease-smooth-out) backwards; }
 
 /* Month slide (page side-by-side): direction set by data-dir */
 @keyframes t-slide-from-right {
@@ -99,10 +97,10 @@
   to   { opacity: 1; transform: none; filter: blur(0); }
 }
 .t-stagger > * {
-  animation: t-rise var(--duration-very-slow) var(--ease-smooth-out) both;
+  animation: t-rise var(--duration-medium) var(--ease-smooth-out) both;
   animation-delay: calc(var(--i, 0) * var(--duration-stagger) * 2);
 }
-.t-reveal { animation: t-rise var(--duration-slow) var(--ease-smooth-out) both; }
+.t-reveal { animation: t-rise var(--duration-fast) var(--ease-smooth-out) both; }
 
 /* Toast */
 @keyframes t-toast-in {
@@ -117,9 +115,9 @@
   background: var(--ink); color: var(--on-ink); font-size: 14px; font-weight: 500;
   padding: 11px 16px; border-radius: 10px;
   box-shadow: 0 10px 30px rgba(var(--shadow-rgb), 0.2);
-  animation: t-toast-in var(--duration-slow) var(--ease-smooth-out) both;
+  animation: t-toast-in var(--duration-fast) var(--ease-smooth-out) both;
 }
-.t-toast.is-hiding { animation: t-toast-out var(--duration-medium) var(--ease-smooth-out) both; }
+.t-toast.is-hiding { animation: t-toast-out var(--duration-quick) var(--ease-smooth-out) both; }
 
 @media (prefers-reduced-motion: reduce) {
   .t-dropdown, .t-pill { transition: none !important; }

@@ -48,6 +48,21 @@ export function ics(list: Conference[], name?: string) {
   return lines.map(fold).join("\r\n") + "\r\n";
 }
 
+// A link that opens Google Calendar's "add event" screen with this conference filled in. All-day, so the last day
+// is given as the day after (Google's end date is exclusive).
+export function googleCalendarUrl(c: Conference) {
+  const url = `https://collex.au/conferences/${c.slug}`;
+  const p = new URLSearchParams({
+    action: "TEMPLATE",
+    text: c.name,
+    dates: `${ymd(c.startDate!)}/${ymd(c.endDate ?? c.startDate!, 1)}`,
+    ctz: "Australia/Sydney",
+    details: `Hosted by ${c.host}. Details: ${url}`,
+  });
+  if (c.venue !== NA) p.set("location", c.venue);
+  return `https://calendar.google.com/calendar/render?${p}`;
+}
+
 export const icsResponse = (body: string, file: string, inline = false) =>
   new Response(body, {
     headers: {

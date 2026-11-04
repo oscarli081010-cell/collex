@@ -27,7 +27,7 @@ export default function OrganiserPanel({ c }: { c: Conference }) {
     });
   }, [c.id, session]);
 
-  if (!data) return null;
+  if (!data || c.interestUrl) return null; // with their own form, Collex has no count to show
   return (
     <section className={`t-reveal panel ${s.organiser}`} aria-labelledby="organiser-h">
       <div className={s.organiserText}>

@@ -137,7 +137,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .container { width: 100%; max-width: var(--max); margin: 0 auto; padding-inline: var(--margin); }
 
 /* Text link */
-.link { color: var(--accent); font-weight: 500; transition: opacity 0.2s; }
+.link { color: var(--accent); font-weight: 500; transition: opacity var(--duration-quick) var(--ease-smooth-out); }
 .link:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* Touch screens: text links get a 44px tall target. Inline padding grows the target without moving the text. */
 @media (pointer: coarse) { .link { padding-block: 14px; } }
@@ -150,7 +150,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border: 1px solid var(--ink); border-radius: 8px;
   font-size: 14px; font-weight: 500; white-space: nowrap;
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-smooth-out), border-color var(--duration-fast), color var(--duration-fast), transform var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-fast);
+  transition: background-color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-quick) var(--ease-smooth-out);
 }
 .button:hover { background: var(--ink-hover); border-color: var(--ink-hover); }
 .button:active { transform: scale(0.97); }
@@ -169,6 +169,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
   font-size: 12px; font-weight: 500;
 }
 .badge.accent { background: var(--accent-soft); color: var(--accent); }
+/* The size of the big countdown pill beside it, on a conference's own page. */
+.badge.lg { height: 32px; padding: 0 14px; gap: 8px; font-size: 14px; }
 
 /* Panels */
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
@@ -181,7 +183,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   height: 44px; padding: 0 14px; width: 100%;
   background: var(--panel); border: 1px solid var(--line-strong); border-radius: 8px;
   font-size: 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-quick) var(--ease-smooth-out);
 }
 .control:hover { border-color: var(--faint); }
 .control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
@@ -296,6 +298,7 @@ select.control {
 
 /* "Starts in 4 days": a quiet pill next to a conference's name. */
 .countdown {
+  font-variant-numeric: tabular-nums;
   display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px;
   background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 500; white-space: nowrap;
   animation: skelIn var(--duration-fast) var(--ease-smooth-out) both;

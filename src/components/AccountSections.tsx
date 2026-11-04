@@ -179,7 +179,8 @@ export function ListingCard({ c, status, note, coOrganiser, interest, today }: {
       </div>
       {status === "pending" && <p className={s.listingNote}>The Collex team is reviewing it. Once approved, it gets its own page and joins the calendar.</p>}
       {(status === "rejected" || status === "unpublished") && note && <p className={s.listingNote} data-tone="danger">{note}</p>}
-      {live && interest && <InterestChart weeks={interest.weeks} total={interest.total} today={today} />}
+      {live && c.interestUrl && <p className={s.listingNote}>Interest goes to your own form, so there&rsquo;s no count here.</p>}
+      {live && interest && !c.interestUrl && <InterestChart weeks={interest.weeks} total={interest.total} today={today} />}
     </li>
   );
 }
