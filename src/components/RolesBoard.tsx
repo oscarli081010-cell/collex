@@ -20,6 +20,9 @@ export default function RolesBoard({ items }: { items: BoardItem[] }) {
   const [kind, setKind] = useState<RoleKind | "all">("all");
   const shown = items.filter((i) => kind === "all" || i.role.kind === kind);
   const count = (k: RoleKind) => items.filter((i) => i.role.kind === k).length;
+  // Only the kinds somebody is actually asking for; a row of empty filters says nothing. One kind needs no filter at all.
+  const kinds = ROLE_KINDS.filter((k) => count(k.id) > 0);
+  const groups = kinds.filter((k) => kind === "all" || k.id === kind).map((k) => ({ ...k, list: shown.filter((i) => i.role.kind === k.id) }));
   const hosts = new Set(items.map((i) => i.conference.slug)).size;
 
   return (
@@ -30,11 +33,11 @@ export default function RolesBoard({ items }: { items: BoardItem[] }) {
         lead={items.length ? "Chairs, crisis staff, press and more. See where Sydney conferences need a hand." : undefined}
         figures={[{ label: "Open roles", value: String(items.length) }, { label: "Conferences", value: String(hosts) }]}
       >
-        {items.length > 0 && (
+        {kinds.length > 1 && (
           <div className={s.chips} role="group" aria-label="Filter by kind of help">
             <button className={s.chip} aria-pressed={kind === "all"} onClick={() => setKind("all")}>All <small>{items.length}</small></button>
-            {ROLE_KINDS.map((k) => (
-              <button key={k.id} className={s.chip} aria-pressed={kind === k.id} data-empty={count(k.id) === 0 || undefined} onClick={() => setKind(k.id)}>
+            {kinds.map((k) => (
+              <button key={k.id} className={s.chip} aria-pressed={kind === k.id} onClick={() => setKind(k.id)}>
                 {k.label} <small>{count(k.id)}</small>
               </button>
             ))}
@@ -49,17 +52,19 @@ export default function RolesBoard({ items }: { items: BoardItem[] }) {
           <p className="muted">When a conference says it needs a hand, it appears here.</p>
           <Link href="/list" className="button secondary">Ask for help with your conference</Link>
         </div>
-      ) : shown.length === 0 ? (
-        <div className={board.empty}>
-          <p className={board.emptyTitle}>Nothing in this group right now</p>
-          <button className="button secondary" onClick={() => setKind("all")}>Show everything</button>
-        </div>
       ) : (
-        <div key={kind} className={`t-stagger ${s.grid}`} aria-live="polite">
-          {shown.map((i, n) => (
-            <div key={`${i.conference.slug}-${n}`} style={{ "--i": Math.min(n, 8) } as React.CSSProperties}>
-              <RoleCard role={i.role} conference={i.conference} when={i.when} apply={applyFor(i.role, i.conference)} />
-            </div>
+        <div key={kind} className={s.groups} aria-live="polite">
+          {groups.map((g) => (
+            <section key={g.id} aria-labelledby={`kind-${g.id}`}>
+              <h2 id={`kind-${g.id}`} className={s.groupHead}>{g.label} <small>{g.list.length}</small></h2>
+              <div className={`t-stagger ${s.grid}`}>
+                {g.list.map((i, n) => (
+                  <div key={`${i.conference.slug}-${n}`} style={{ "--i": Math.min(n, 8) } as React.CSSProperties}>
+                    <RoleCard role={i.role} conference={i.conference} when={i.when} apply={applyFor(i.role, i.conference)} />
+                  </div>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}
