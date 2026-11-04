@@ -90,7 +90,7 @@ export default function ListForm() {
       setCommittees(committeeRows(row?.committees ?? [], row?.guides ?? []));
       setSecretariat(secretariatRows((row?.secretariat as unknown as { role: string; name: string }[] | undefined) ?? []));
       setRoles(roleRows(row?.roles as unknown as Partial<Role>[] | undefined));
-      setKeyDates(keyDateRows(row?.key_dates as unknown as { label: string; date: string | null }[] | undefined));
+      setKeyDates(keyDateRows(row ? (row.key_dates as unknown as { label: string; date: string | null }[] | null) ?? [] : undefined));
       setStray(strayGuides(row?.committees ?? [], row?.guides ?? []));
     });
   }, [editId, userId, loadTeam]);
@@ -368,7 +368,7 @@ export default function ListForm() {
           {errors.publish && <p key="publish" id="publish-err" className={`t-reveal ${s.error}`}>{errors.publish}</p>}
           {errors.form && <p key={errors.form} className={`t-reveal ${s.error}`}>{errors.form}</p>}
           <button type="submit" className={`button lg ${auth.submit}`} disabled={busy}>
-            <span key={String(busy)} className="t-swap">{busy ? "Sending…" : "Send for review"}</span>
+            <span key={String(busy)} className="t-swap">{edit ? (busy ? "Saving…" : "Update") : busy ? "Sending…" : "Send for review"}</span>
           </button>
           <small className="muted" style={{ textAlign: "center" }}><span className={s.req} aria-hidden="true">*</span> Required</small>
         </div>

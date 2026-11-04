@@ -226,11 +226,10 @@ export function RolesEditor({ rows, setRows }: { rows: RoleRow[]; setRows: Dispa
 export type KeyDateRow = { label: string; date: string; key: string };
 const STANDARD_DATES = ["Delegation registration opens", "Chair applications close", "Country allocations sent", "Background guides released", "Position papers due", "Conference day"];
 
-/** The usual milestones in order, with whatever dates are saved; any other saved dates follow. */
-export const keyDateRows = (list: { label: string; date: string | null }[] = []): KeyDateRow[] => [
-  ...STANDARD_DATES.map((label) => ({ label, date: list.find((k) => k.label === label)?.date ?? "", key: key() })),
-  ...list.filter((k) => !STANDARD_DATES.includes(k.label)).map((k) => ({ label: k.label, date: k.date ?? "", key: key() })),
-];
+/** A new listing starts with the usual milestones in order. A saved one shows only what was saved, so a milestone that was removed stays removed. */
+export const keyDateRows = (list?: { label: string; date: string | null }[]): KeyDateRow[] =>
+  list ? list.map((k) => ({ label: k.label, date: k.date ?? "", key: key() }))
+    : STANDARD_DATES.map((label) => ({ label, date: "", key: key() }));
 /** Only dates that are filled in are kept; the page lists what's announced and leaves out the rest. */
 export const toKeyDates = (rows: KeyDateRow[]) => rows.filter((r) => r.label.trim() && r.date).map((r) => ({ label: r.label.trim(), date: r.date }));
 
