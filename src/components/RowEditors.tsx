@@ -151,22 +151,34 @@ export function CommitteesEditor({ rows, setRows, upload }: { rows: CommitteeRow
 
 // ---- Secretariat: who runs the conference ----
 
-export type SecretariatRow = { role: string; name: string; key: string };
+export type SecretariatRow = { role: string; name: string; key: string; photo?: string; uploading?: boolean; photoError?: string };
 const STANDARD_ROLES = ["Secretary-General", "Deputy Secretary-General", "Director-General", "Head of Chairs"];
 
 /** The usual four roles, in order, with whatever names are saved; any other saved roles follow. */
-export const secretariatRows = (list: { role: string; name: string }[] = []): SecretariatRow[] => {
+export const secretariatRows = (list: { role: string; name: string; photo?: string }[] = []): SecretariatRow[] => {
   const named = list.filter((p) => p.role && p.name && p.name !== NA);
   return [
-    ...STANDARD_ROLES.map((role) => ({ role, name: named.find((p) => p.role === role)?.name ?? "", key: key() })),
-    ...named.filter((p) => !STANDARD_ROLES.includes(p.role)).map((p) => ({ role: p.role, name: p.name, key: key() })),
+    ...STANDARD_ROLES.map((role) => {
+      const p = named.find((x) => x.role === role);
+      return { role, name: p?.name ?? "", photo: p?.photo, key: key() };
+    }),
+    ...named.filter((p) => !STANDARD_ROLES.includes(p.role)).map((p) => ({ role: p.role, name: p.name, photo: p.photo, key: key() })),
   ];
 };
 /** Only people with both a role and a name are kept; the page shows N/A for what's missing. */
 export const toSecretariat = (rows: SecretariatRow[]) =>
-  rows.filter((r) => r.role.trim() && r.name.trim()).map((r) => ({ role: r.role.trim(), name: r.name.trim() }));
+  rows.filter((r) => r.role.trim() && r.name.trim()).map((r) => ({ role: r.role.trim(), name: r.name.trim(), ...(r.photo ? { photo: r.photo } : {}) }));
 
-export function SecretariatEditor({ rows, setRows }: { rows: SecretariatRow[]; setRows: Dispatch<SetStateAction<SecretariatRow[]>> }) {
+const initialsOf = (name: string) => name.split(/\s+/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+
+export function SecretariatEditor({ rows, setRows, upload }: { rows: SecretariatRow[]; setRows: Dispatch<SetStateAction<SecretariatRow[]>>; upload: UploadGuide }) {
+  const pick = async (key: string, file: File | undefined) => {
+    if (!file) return;
+    const patch = (p: Partial<SecretariatRow>) => setRows((all) => all.map((x) => (x.key === key ? { ...x, ...p } : x)));
+    patch({ uploading: true, photoError: undefined });
+    const res = await upload(file);
+    patch("url" in res ? { uploading: false, photo: res.url } : { uploading: false, photoError: res.error });
+  };
   return (
     <>
       <datalist id="secretariat-roles">{STANDARD_ROLES.map((r) => <option key={r} value={r} />)}</datalist>
@@ -175,8 +187,19 @@ export function SecretariatEditor({ rows, setRows }: { rows: SecretariatRow[]; s
         label={(r, i) => r.role.trim() || `person ${i + 1}`}
         make={() => ({ role: "", name: "", key: key() })}
         render={(r, i, set) => <>
+          <div className={s.photoField}>
+            <label className={s.photoPick} data-busy={r.uploading || undefined} title={r.photoError}>
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={r.uploading}
+                aria-label={`${r.photo ? "Change" : "Add"} photo for ${r.name.trim() || r.role.trim() || `person ${i + 1}`}`}
+                onChange={(e) => { pick(r.key, e.target.files?.[0]); e.target.value = ""; }} />
+              {/* eslint-disable-next-line @next/next/no-img-element -- a small saved photo */}
+              {r.photo ? <img src={r.photo} alt="" width={44} height={44} /> : initialsOf(r.name) || <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 6.5h2.2L6 4.5h6l1.3 2h2.2v7h-13z" /><circle cx="9" cy="9.8" r="2.4" /></svg>}
+            </label>
+            {r.photo && <button type="button" className={s.photoClear} aria-label={`Remove photo of ${r.name.trim() || r.role.trim() || "this person"}`} onClick={() => set({ photo: undefined })}>&times;</button>}
+          </div>
           <label><span>Role</span><input id={`secretariat-${i}-first`} className="control" list="secretariat-roles" value={r.role} maxLength={80} placeholder="For example, Secretary-General" onChange={(e) => set({ role: e.target.value })} /></label>
           <label><span>Name</span><input className="control" value={r.name} maxLength={120} onChange={(e) => set({ name: e.target.value })} /></label>
+          {r.photoError && <p role="alert" className={s.photoError}>{r.photoError}</p>}
         </>}
       />
     </>

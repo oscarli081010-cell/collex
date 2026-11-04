@@ -10,4 +10,4 @@ export const supabase = url && key ? createClient(url, key) : null;
 export type Role = "Delegate" | "Chair" | "Secretariat";
 export const ROLES: Role[] = ["Delegate", "Chair", "Secretariat"];
 
-export type Profile = { id: string; email: string; full_name: string; school: string; role: Role; is_admin: boolean; theme: Theme };
+export type Profile = { id: string; email: string; full_name: string; school: string; role: Role; is_admin: boolean; theme: Theme; avatar_url: string | null };

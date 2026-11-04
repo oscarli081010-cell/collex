@@ -139,6 +139,23 @@ a.listingName:hover { color: var(--accent); }
   width: clamp(88px, 8vw, 112px); aspect-ratio: 1; border-radius: 50%; flex: none; display: grid; place-items: center;
   background: var(--accent); color: var(--on-accent); font-size: clamp(32px, 3.2vw, 42px); font-weight: 500; letter-spacing: 0.02em;
 }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar { overflow: hidden; }
+/* The picture is a button: a soft cover with a camera appears over it on hover or keyboard focus (always, on touch). */
+.avatarEdit { position: relative; display: block; width: fit-content; flex: none; border-radius: 50%; cursor: pointer; }
+.avatarCover {
+  position: absolute; inset: 0; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: rgba(var(--shadow-rgb), 0.62); color: #fff; font-size: 12px; font-weight: 500; opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-smooth-out);
+}
+.avatarEdit:hover .avatarCover, .avatarEdit:focus-within .avatarCover, .avatarEdit[data-busy] .avatarCover { opacity: 1; }
+.avatarEdit:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
+.avatarEdit[data-busy] { cursor: progress; }
+@media (pointer: coarse) {
+  .avatarCover { inset: auto 0 0 0; top: auto; height: 34%; border-radius: 0 0 999px 999px; flex-direction: row; opacity: 1; }
+  .avatarCover span { display: none; }
+  .avatarCover svg { width: 16px; height: 16px; }
+}
 /* Email and school under the name, each with its icon. */
 .identity { display: flex; flex-direction: column; gap: 8px; }
 .identity li { display: flex; align-items: center; gap: 10px; min-width: 0; }

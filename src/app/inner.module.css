@@ -161,9 +161,10 @@
 .person { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
 .avatar {
   width: 36px; height: 36px; border-radius: 50%; background: var(--surface); flex: none;
-  display: grid; place-items: center; font-size: 12px; color: var(--muted);
+  display: grid; place-items: center; font-size: 12px; font-weight: 500; line-height: 1; color: var(--muted); overflow: hidden;
 }
-.person span { display: flex; flex-direction: column; font-size: 14px; font-weight: 500; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.person > span:not(.avatar) { display: flex; flex-direction: column; font-size: 14px; font-weight: 500; }
 .person small { font-weight: 400; color: var(--muted); font-size: 12.5px; }
 .applyBand {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; scroll-margin-top: 96px;
@@ -267,7 +268,9 @@
 }
 
 /* Follow a conference */
-.follow { min-height: 44px; min-width: 168px; }
+/* One width for both states (follow / following), with the label centred, so the button doesn't jump when it's pressed. */
+.follow { display: inline-flex; min-height: 44px; min-width: 188px; }
+.follow > :global(.button) { flex: 1; width: 100%; justify-content: center; text-align: center; }
 
 /* Calendar subscription: the shared callout box, set apart from the month's list above it. */
 .subscribe { margin-top: 56px; }
@@ -322,6 +325,23 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 .editRowInline .editActions { flex-direction: row; padding-top: 0; }
 .editRowInline .editFields { grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr); }
 /* A row with a date picker needs room for the whole date. */
+.editRowInline .editFields:has(.photoField) { grid-template-columns: 44px minmax(0, 1.9fr) minmax(0, 1fr); }
+.photoField { position: relative; align-self: end; width: 44px; height: 44px; }
+.photoPick {
+  position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line-strong); color: var(--muted); font-size: 13px; font-weight: 500; line-height: 1;
+  transition: border-color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out);
+}
+.photoPick:hover { border-color: var(--ink); }
+.photoPick:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.photoPick[data-busy] { opacity: 0.5; cursor: progress; }
+.photoPick img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photoClear {
+  position: absolute; top: -4px; right: -4px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--ink); color: var(--on-ink); font-size: 14px; line-height: 1; padding: 0; border: 0; cursor: pointer;
+}
+.photoClear::after { content: ""; position: absolute; inset: -12px; }
+.photoError { grid-column: 1 / -1; font-size: 13px; color: var(--danger); }
 .editRowInline .editFields:has(input[type="date"]) { grid-template-columns: minmax(0, 1fr) minmax(165px, 0.8fr); }
 
 /* Organisers of a listing, under the edit form. */
@@ -333,6 +353,8 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 @media (max-width: 560px) {
   .editRow { grid-template-columns: 1fr; gap: 10px; }
   .editFields, .editRowInline .editFields { grid-template-columns: 1fr; }
+  .editRowInline .editFields:has(.photoField) { grid-template-columns: 44px minmax(0, 1fr); }
+  .editRowInline .editFields:has(.photoField) > label { grid-column: 1 / -1; }
   .guideRow { flex-direction: column; }
   .guideRow :global(.control) { flex: none; }
   .uploadBtn { width: 100%; }

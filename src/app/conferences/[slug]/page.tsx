@@ -263,7 +263,10 @@ export default async function ConferencePage({ params }: Props) {
                 <div className={s.people}>
                   {c.secretariat.map((p) => (
                     <div key={p.role} className={`panel ${s.person}`}>
-                      <span className={s.avatar} aria-hidden="true">{initials(p.name)}</span>
+                      <span className={s.avatar} aria-hidden="true">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- a small saved photo */}
+                        {p.photo ? <img src={p.photo} alt="" width={36} height={36} loading="lazy" /> : initials(p.name)}
+                      </span>
                       <span>{p.name}<small>{p.role}</small></span>
                     </div>
                   ))}

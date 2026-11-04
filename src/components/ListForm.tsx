@@ -8,6 +8,7 @@ import { coverUrl, formatRange, webUrl, type Conference, type Role } from "@/lib
 import { useConferences } from "./ConferencesContext";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
+import { uploadPhoto } from "@/lib/photo";
 import { useAuth } from "./AuthProvider";
 import { badGuide, badRole, CommitteesEditor, committeeRows, KeyDatesEditor, keyDateRows, RolesEditor, roleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toKeyDates, toRoles, toSecretariat, type CommitteeRow, type KeyDateRow, type RoleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
 import Team, { type Member } from "./Team";
@@ -88,7 +89,7 @@ export default function ListForm() {
       setFirstDay(row?.start_date ?? "");
       setLastDay(row?.end_date ?? "");
       setCommittees(committeeRows(row?.committees ?? [], row?.guides ?? []));
-      setSecretariat(secretariatRows((row?.secretariat as unknown as { role: string; name: string }[] | undefined) ?? []));
+      setSecretariat(secretariatRows((row?.secretariat as unknown as { role: string; name: string; photo?: string }[] | undefined) ?? []));
       setRoles(roleRows(row?.roles as unknown as Partial<Role>[] | undefined));
       setKeyDates(keyDateRows(row ? (row.key_dates as unknown as { label: string; date: string | null }[] | null) ?? [] : undefined));
       setStray(strayGuides(row?.committees ?? [], row?.guides ?? []));
@@ -331,7 +332,7 @@ export default function ListForm() {
         </fieldset>
         <fieldset className={`field ${s.wide}`}>
           <legend>Secretariat <span className="muted">(optional)</span></legend>
-          <SecretariatEditor rows={secretariat} setRows={setSecretariat} />
+          <SecretariatEditor rows={secretariat} setRows={setSecretariat} upload={(file) => uploadPhoto(file, session!.user.id)} />
         </fieldset>
         <fieldset className={`field ${s.wide}`}>
           <legend>Help wanted <span className="muted">(optional)</span></legend>

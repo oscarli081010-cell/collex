@@ -170,7 +170,6 @@ export function ActivityBody({ data }: { data: Loaded }) {
       <section className={`panel ${s.card}`} style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="interest-h">
         <div className={s.cardHead}>
           <h2 id="interest-h" className={s.cardTitle}>Interest over time</h2>
-          <p className="muted">Only the people who run this listing see this. It never shows who.</p>
         </div>
         {ownForm
           ? <p className={s.note}>People are sent to your own interest form, so Collex has no count to show. Clear the link in the listing to use Collex&rsquo;s button instead.</p>
@@ -181,8 +180,7 @@ export function ActivityBody({ data }: { data: Loaded }) {
 
       <section className={`panel ${s.card}`} style={{ "--i": 2 } as React.CSSProperties} aria-labelledby="history-h">
         <div className={s.cardHead}>
-          <h2 id="history-h" className={s.cardTitle}>Who changed what</h2>
-          <p className="muted">Newest first. Edits list what was changed, not what it said.</p>
+          <h2 id="history-h" className={s.cardTitle}>Audit log</h2>
         </div>
         {history === null ? <p className={s.note}>Couldn&rsquo;t load the history. Try again in a moment.</p>
           : history.length === 0 ? <p className={s.note}>Nothing recorded yet.</p>

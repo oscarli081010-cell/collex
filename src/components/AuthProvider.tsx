@@ -33,7 +33,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     current.current.session = same ? prev : s;
     setSession(same ? prev : s);
     if (!s || !supabase) { current.current.profile = null; setProfile(null); applyTheme("light"); return; } // visitors and signed-out users see light
-    const { data } = await supabase.from("profiles").select("id, email, full_name, school, role, is_admin, theme").eq("id", s.user.id).maybeSingle();
+    const { data } = await supabase.from("profiles").select("id, email, full_name, school, role, is_admin, theme, avatar_url").eq("id", s.user.id).maybeSingle();
     // Still read it again on a refocus (a theme or admin change made elsewhere shows up), but only touch the page if it differs.
     if (same && !force && JSON.stringify(data) === JSON.stringify(current.current.profile)) return;
     current.current.profile = data as Profile | null;

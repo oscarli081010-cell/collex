@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { uploadPhoto } from "@/lib/photo";
 import { supabase } from "@/lib/supabase";
 import { applyTheme, THEMES, type Theme } from "@/lib/theme";
 import { useAuth } from "./AuthProvider";
@@ -307,6 +308,32 @@ export function AccountTabs({ tab, setTab, invites = 0 }: { tab: AccountTab; set
   );
 }
 
+// The account picture. Hover (or focus) it to change it; on a touch screen the camera is always showing.
+export function AvatarEditor({ userId, url, initials, onChange, onError }: { userId: string; url: string | null; initials: string; onChange: (url: string) => Promise<void>; onError: (m: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy(true);
+    const res = await uploadPhoto(file, userId);
+    if ("error" in res) onError(res.error); else await onChange(res.url);
+    setBusy(false);
+  };
+  return (
+    <label className={s.avatarEdit} data-busy={busy || undefined}>
+      <span className={s.avatar} aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element -- the account photo */}
+        {url ? <img src={url} alt="" /> : initials}
+      </span>
+      <span className={s.avatarCover} aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6.5h2.2L6 4.5h6l1.3 2h2.2v7h-13z" /><circle cx="9" cy="9.8" r="2.4" /></svg>
+        <span>{busy ? "Saving" : "Change"}</span>
+      </span>
+      <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} aria-label="Change your profile picture"
+        onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
+    </label>
+  );
+}
+
 export function AccountView() {
   const { ready, session, profile, recovering, refresh } = useAuth();
   const router = useRouter();
@@ -317,10 +344,17 @@ export function AccountView() {
   const [invites, setInvites] = useState(0);
   // The open tab lives in the address (#conferences), so a refresh or a link from elsewhere lands on the right one.
   const [tab, setTab] = useState<AccountTab>("profile");
-  useEffect(() => { if (location.hash === "#conferences") setTab("conferences"); }, []);
+  useEffect(() => {
+    const read = () => setTab(location.hash === "#conferences" ? "conferences" : "profile");
+    if (location.hash === "#conferences") setTab("conferences");
+    window.addEventListener("hashchange", read);
+    window.addEventListener("collex:hash", read); // the top bar's Your listings link
+    return () => { window.removeEventListener("hashchange", read); window.removeEventListener("collex:hash", read); };
+  }, []);
   const choose = useCallback((t: AccountTab) => {
     setTab(t);
-    history.replaceState(null, "", location.pathname + (t === "conferences" ? "#conferences" : ""));
+    history.replaceState(history.state, "", location.pathname + (t === "conferences" ? "#conferences" : ""));
+    window.dispatchEvent(new Event("collex:hash")); // so the top bar marks the right link
   }, []);
 
   // Arriving from a password-reset email: the password form is on Profile, so go there.
@@ -389,7 +423,12 @@ export function AccountView() {
   return (
     <Banded band={{
       title: name,
-      media: <span className={s.avatar} aria-hidden="true">{initials}</span>,
+      media: <AvatarEditor userId={session.user.id} url={profile?.avatar_url ?? null} initials={initials} onChange={async (url) => {
+        const { error } = await supabase!.from("profiles").update({ avatar_url: url }).eq("id", session.user.id);
+        if (error) return say("Couldn't save the photo. Try again.");
+        await refresh();
+        say("Photo updated");
+      }} onError={say} />,
       lead: (
         <ul className={s.identity}>
           <li>{META_ICONS.mail}<span>{session.user.email}</span></li>
@@ -430,7 +469,7 @@ export function AccountView() {
         <form ref={pwRef} className={`panel ${s.card} ${recovering ? s.highlight : ""}`} onSubmit={savePassword} style={{ "--i": 2 } as React.CSSProperties}>
           <h2 className={s.cardTitle}>Password</h2>
           <label className="field"><span>New password</span><Password name="password" label="New password" autoComplete="new-password" /></label>
-          <button className="button secondary" disabled={busy === "password"}>
+          <button className="button" disabled={busy === "password"}>
             <span key={String(busy === "password")} className="t-swap">{busy === "password" ? "Updating…" : "Update password"}</span>
           </button>
         </form>

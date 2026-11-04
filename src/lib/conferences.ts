@@ -44,7 +44,7 @@ export type Conference = {
   guides: { committee: string; released: string | null; url: string | null }[];
   /** Roles the conference needs filled; empty for most. */
   roles?: Role[];
-  secretariat: { role: string; name: string }[];
+  secretariat: { role: string; name: string; photo?: string }[];
   contact: string;
   /** Application form links; null until applications open. */
   delegationUrl?: string | null;

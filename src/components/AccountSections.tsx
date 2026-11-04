@@ -116,12 +116,12 @@ function Saved() {
 
   return (
     <section className={`panel ${s.card}`} style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="saved-h">
-      <h2 id="saved-h" className={s.cardTitle}>Saved</h2>
+      <div>
+        <h2 id="saved-h" className={s.cardTitle}>Saved</h2>
+        {saved !== null && list.length === 0 && <p className="muted">Follow a conference, or send it your interest, and it shows up here with its next key date.</p>}
+      </div>
       {saved === null ? <RowsSkeleton rows={2} height={52} /> : list.length === 0 ? (
-        <div className={s.emptyState}>
-          <p className="muted">Follow a conference, or send it your interest, and it shows up here with its next key date.</p>
-          <Link href="/conferences" className="button secondary">Browse conferences</Link>
-        </div>
+        <Link href="/conferences" className="button secondary">Browse conferences</Link>
       ) : (
         <ul className={s.saved}>
           {list.map((c) => {
