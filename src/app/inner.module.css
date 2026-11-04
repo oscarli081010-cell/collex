@@ -310,6 +310,10 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 .invalid :global(.control):focus { box-shadow: 0 0 0 3px var(--danger-soft); }
 .editActions { display: flex; flex-direction: column; gap: 6px; padding-top: 20px; }
 .addRow { align-self: stretch; }
+/* One line of fields: the three buttons run along the bottom edge of the inputs, so the card is only as tall as they are. */
+.editRowInline { align-items: end; }
+.editRowInline .editActions { flex-direction: row; padding-top: 0; }
+.editRowInline .editFields { grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr); }
 
 /* Organisers of a listing, under the edit form. */
 .team { width: 100%; max-width: 600px; margin-top: 32px; padding: 28px; display: flex; flex-direction: column; gap: 18px; }
@@ -319,7 +323,7 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 .inviteRow .control { flex: 1; min-width: 0; }
 @media (max-width: 560px) {
   .editRow { grid-template-columns: 1fr; gap: 10px; }
-  .editFields { grid-template-columns: 1fr; }
+  .editFields, .editRowInline .editFields { grid-template-columns: 1fr; }
   .guideRow { flex-direction: column; }
   .guideRow :global(.control) { flex: none; }
   .uploadBtn { width: 100%; }

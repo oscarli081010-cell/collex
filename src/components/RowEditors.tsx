@@ -53,9 +53,11 @@ function move<T>(list: T[], from: number, to: number) {
 }
 
 // The add / reorder / remove frame around the rows.
-function Rows<T extends { key: string }>({ id, rows, setRows, label, addLabel, make, render, max }: {
+function Rows<T extends { key: string }>({ id, rows, setRows, label, addLabel, make, render, max, inline }: {
   id: string; rows: T[]; setRows: Dispatch<SetStateAction<T[]>>; label: (r: T, i: number) => string;
-  addLabel: string; make: () => T; max?: number; render: (r: T, i: number, set: (patch: Partial<T>) => void) => React.ReactNode;
+  addLabel: string; make: () => T; max?: number;
+  /** Rows that are a single line of fields: the buttons sit beside the inputs instead of in a tall column. */
+  inline?: boolean; render: (r: T, i: number, set: (patch: Partial<T>) => void) => React.ReactNode;
 }) {
   const shift = (i: number, by: number, button: "up" | "down") => {
     // Render the move straight away, then keep focus on the same button of the row that moved,
@@ -72,7 +74,7 @@ function Rows<T extends { key: string }>({ id, rows, setRows, label, addLabel, m
     <div className={s.rowsEditor}>
       <ol className={s.rowsList}>
         {rows.map((r, i) => (
-          <li key={r.key} className={`t-reveal ${s.editRow}`}>
+          <li key={r.key} className={`t-reveal ${s.editRow} ${inline ? s.editRowInline : ""}`}>
             {/* By the row's key, not its place or the list as it was when a slow upload started, so a late result can't undo other edits. */}
             <div className={s.editFields}>{render(r, i, (patch) => setRows((all) => all.map((x) => (x.key === r.key ? { ...x, ...patch } : x))))}</div>
             <div className={s.editActions}>
@@ -169,7 +171,7 @@ export function SecretariatEditor({ rows, setRows }: { rows: SecretariatRow[]; s
     <>
       <datalist id="secretariat-roles">{STANDARD_ROLES.map((r) => <option key={r} value={r} />)}</datalist>
       <Rows<SecretariatRow>
-        id="secretariat" rows={rows} setRows={setRows} addLabel="Add a person" max={20}
+        id="secretariat" rows={rows} setRows={setRows} addLabel="Add a person" max={20} inline
         label={(r, i) => r.role.trim() || `person ${i + 1}`}
         make={() => ({ role: "", name: "", key: key() })}
         render={(r, i, set) => <>
