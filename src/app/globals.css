@@ -289,13 +289,9 @@ select.control {
 @keyframes skelIn { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .skel, .skelWrap { animation: none; } }
 
-/* Page changes cross-fade where the browser supports view transitions. */
+/* Page changes cross-fade where the browser supports view transitions. The whole page fades as one (never as its own
+   layer, which would paint over the sticky top bar); only a cover and a title morph between pages. */
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--duration-fast); }
-::view-transition-group(page) { animation-duration: var(--duration-fast); }
-::view-transition-old(page) { animation: vtOut var(--duration-quick) var(--ease-in-out) both; }
-::view-transition-new(page) { animation: vtIn var(--duration-fast) var(--ease-smooth-out) both; }
-@keyframes vtOut { to { opacity: 0; } }
-@keyframes vtIn { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }

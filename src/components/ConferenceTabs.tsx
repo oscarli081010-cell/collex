@@ -59,7 +59,8 @@ export default function ConferenceTabs({ tabs }: { tabs: readonly (readonly [str
     lock.current = Date.now() + (smooth ? 1100 : 1600);
     if (smooth) lenis!.scrollTo(top, { duration: 0.9, easing: (x: number) => 1 - Math.pow(1 - x, 4) });
     else window.scrollTo({ top, behavior: "smooth" });
-    history.replaceState(null, "", `#${id}`);
+    // The browser's own replaceState: the router's wrapper would treat this as a navigation and re-render the page.
+    History.prototype.replaceState.call(history, history.state, "", `#${id}`);
   };
 
   return (
