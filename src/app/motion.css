@@ -127,9 +127,10 @@
 /* Moving between a listing's Activity, public page and edit form plays no entrance at all: the page, its header and the
    cards inside it just appear, so nothing replays. (The tab highlight still slides, which is a transition.) */
 :root[data-listing-switch] .t-page-enter,
-:root[data-listing-switch] main *,
-:root[data-listing-switch] main *::before,
-:root[data-listing-switch] main *::after { animation: none !important; }
+/* (A loading skeleton keeps its short delay, so one that is replaced quickly is never seen.) */
+:root[data-listing-switch] main *:not(.skelWrap),
+:root[data-listing-switch] main *:not(.skelWrap)::before,
+:root[data-listing-switch] main *:not(.skelWrap)::after { animation: none !important; }
 :root[data-listing-switch]::view-transition-old(root),
 :root[data-listing-switch]::view-transition-new(root) { animation: none !important; }
 

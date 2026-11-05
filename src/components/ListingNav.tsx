@@ -51,6 +51,15 @@ export default function ListingNav({ id, slug, current, live, canEdit }: { id: s
     setTimeout(() => { delete document.documentElement.dataset.listingSwitch; }, 5000);
   };
 
+  // Moving between the tabs changes the address without loading a page (see ListingPages); modified clicks still open normally.
+  const open = (e: React.MouseEvent, i: { id: ListingView; href: string }) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    if (i.id === current) return;
+    going();
+    window.history.pushState(null, "", i.href);
+  };
+
   if (!tabs && !live) return null;
   return (
     <div className={`${s.listingNav} ${tabs && live ? "" : s.listingNavOne}`}>
@@ -58,7 +67,7 @@ export default function ListingNav({ id, slug, current, live, canEdit }: { id: s
         <nav ref={box} className={`${s.seg} ${s.segTwo}`} aria-label="This listing">
           <span ref={pill} className={`t-pill ${s.segPill}`} aria-hidden="true" />
           {items.map((i) => (
-            <Link key={i.id} href={i.href} data-view={i.id} className={s.segIcon} aria-current={i.id === current ? "page" : undefined} onClick={i.id === current ? undefined : going}>{i.icon}{i.label}</Link>
+            <Link key={i.id} href={i.href} data-view={i.id} className={s.segIcon} aria-current={i.id === current ? "page" : undefined} prefetch={false} onClick={(e) => open(e, i)}>{i.icon}{i.label}</Link>
           ))}
         </nav>
       )}
