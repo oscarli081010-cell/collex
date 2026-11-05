@@ -408,3 +408,6 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
   .day:has(.dayHit[aria-pressed="true"]) { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 }
 @media (min-width: 641px) { .dayCard { display: none; } }
+
+/* The Activity / View page / Edit listing switch above a public listing page, for the people who run it. */
+.listingBar { max-width: 460px; margin: 20px auto 0; }

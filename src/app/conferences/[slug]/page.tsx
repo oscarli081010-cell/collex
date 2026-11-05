@@ -10,6 +10,7 @@ import { getBySlug, getPublished } from "@/lib/data";
 import ApplyBand from "@/components/ApplyBand";
 import ConferenceActions from "@/components/ConferenceActions";
 import ConferenceTabs from "@/components/ConferenceTabs";
+import ListingBar from "@/components/ListingBar";
 import Countdown from "@/components/Countdown";
 import FollowButton from "@/components/FollowButton";
 import StickyApply from "@/components/StickyApply";
@@ -131,6 +132,7 @@ export default async function ConferencePage({ params }: Props) {
         {!c.isTemplate && c.startDate && (
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventSchema(c)).replace(/</g, "\\u003c") }} />
         )}
+        <ListingBar id={c.id} slug={c.slug} />
         <section className={s.confFirst}>
         <ViewTransition name={`cover-${c.slug}`} share="morph" default="none">
           <div className={s.cover}>

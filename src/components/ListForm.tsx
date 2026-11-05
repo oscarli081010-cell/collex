@@ -13,6 +13,7 @@ import { uploadPhoto } from "@/lib/photo";
 import { isoToSydney, sydneyToIso } from "@/lib/schedule";
 import { useAuth } from "./AuthProvider";
 import { badGuide, badRole, CommitteesEditor, committeeRows, KeyDatesEditor, keyDateRows, RolesEditor, roleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toKeyDates, toRoles, toSecretariat, type CommitteeRow, type KeyDateRow, type RoleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
+import ListingNav from "./ListingNav";
 import PanelTabs, { type PanelTab } from "./PanelTabs";
 import Team, { type Member } from "./Team";
 import auth from "@/app/auth.module.css";
@@ -95,7 +96,7 @@ export default function ListForm() {
     if (!editId || !userId || !supabase) return;
     Promise.all([
       supabase.from("conferences")
-        .select("id, status, name, host, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, delegation_opens_at, chair_opens_at, interest_url, overview, committees, guides, secretariat, roles, key_dates, cover_path")
+        .select("id, slug, status, name, host, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, delegation_opens_at, chair_opens_at, interest_url, overview, committees, guides, secretariat, roles, key_dates, cover_path")
         .eq("id", editId).in("status", ["pending", "published"]).maybeSingle(),
       loadTeam(),
     ]).then(([{ data }, members]) => {
@@ -244,7 +245,10 @@ export default function ListForm() {
     </>
   );
   const listBand: BandProps = editId
-    ? { title: "Edit your", accent: "listing", lead: edit ? (edit.status === "published" ? "Changes show on the live page straight away." : "It's still in review. Your changes go with it.") : undefined }
+    ? {
+        title: "Edit your", accent: "listing", lead: edit ? (edit.status === "published" ? "Changes show on the live page straight away." : "It's still in review. Your changes go with it.") : undefined,
+        children: edit ? <ListingNav id={edit.id} slug={asText(edit, "slug")} current="edit" live={edit.status === "published"} canEdit /> : undefined,
+      }
     : { title: "List a", accent: "conference", lead: "The Collex team reviews it before it goes live." };
 
   if (!ready || (editId && session && editing === null)) return page(listBand, <FormSkeleton fields={6} width={600} grid />);

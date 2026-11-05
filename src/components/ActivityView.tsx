@@ -12,6 +12,7 @@ import InterestChart, { type Week } from "./InterestChart";
 import PageBand, { type BandProps } from "./PageBand";
 import SearchBox from "./SearchBox";
 import { ConfirmIconButton, ICONS } from "./IconButton";
+import ListingNav from "./ListingNav";
 import { useToast } from "./useToast";
 import { ActivitySkeleton } from "./Skeleton";
 import auth from "@/app/auth.module.css";
@@ -159,12 +160,7 @@ export function ActivityBody({ data, onChanged }: { data: Loaded; onChanged?: ()
       { label: "Interested", value: ownForm ? "–" : num(interest.total) },
       { label: "Following", value: num(followers) },
     ],
-    aside: (
-      <div className="btnStack">
-        {live && <Link href={`/conferences/${c.slug}`} className="button secondary">View page</Link>}
-        {canEdit && <Link href={`/list?edit=${c.id}`} className="button secondary">Edit listing</Link>}
-      </div>
-    ),
+    children: <ListingNav id={c.id!} slug={c.slug} current="activity" live={live} canEdit={canEdit} />,
   },
     <div className={`t-stagger ${s.wrap}`}>
       <Link href="/listings" className={`link ${s.back}`}>&larr; Your listings</Link>
