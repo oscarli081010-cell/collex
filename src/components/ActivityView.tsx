@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatRange, todayInSydney, type Conference } from "@/lib/conferences";
 import { fromRow } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
 import InterestChart, { type Week } from "./InterestChart";
 import PageBand, { type BandProps } from "./PageBand";
+import SearchBox from "./SearchBox";
 import { ActivitySkeleton } from "./Skeleton";
 import auth from "@/app/auth.module.css";
 import s from "./Activity.module.css";
@@ -182,26 +183,61 @@ export function ActivityBody({ data }: { data: Loaded }) {
         <div className={s.cardHead}>
           <h2 id="history-h" className={s.cardTitle}>Audit log</h2>
         </div>
-        {history === null ? <p className={s.note}>Couldn&rsquo;t load the history. Try again in a moment.</p>
-          : history.length === 0 ? <p className={s.note}>Nothing recorded yet.</p>
-          : (
-            <ol className={s.history}>
-              {history.map((h, i) => {
-                const who = STAFF.has(h.action) ? "The Collex team" : h.who;
-                const say = SENTENCE[h.action]?.(h) ?? h.action;
-                return (
-                  <li key={`${h.at}-${i}`}>
-                    <span className={s.dot} data-tone={TONE[h.action] ?? (h.action === "edited" ? undefined : "accent")} aria-hidden="true" />
-                    <div>
-                      <p className={s.what}><strong>{who}</strong> {say}.</p>
-                      <time className={s.when} dateTime={h.at}>{when(h.at)}</time>
-                      {h.note && <span className={s.quote}>&ldquo;{h.note}&rdquo;</span>}
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
+        <AuditLog history={history} />
       </section>
     </div>);
+}
+
+const PER_PAGE = 10;
+
+// The history, newest first, ten to a page, with a search over who did it, what they did and when.
+function AuditLog({ history }: { history: Entry[] | null }) {
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(0);
+  const rows = useMemo(() => (history ?? []).map((h) => {
+    const who = STAFF.has(h.action) ? "The Collex team" : h.who;
+    const say = SENTENCE[h.action]?.(h) ?? h.action;
+    return { h, who, say, hay: `${who} ${say} ${h.note ?? ""} ${when(h.at)}`.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") };
+  }), [history]);
+  if (history === null) return <p className={s.note}>Couldn&rsquo;t load the history. Try again in a moment.</p>;
+  if (history.length === 0) return <p className={s.note}>Nothing recorded yet.</p>;
+
+  const words = q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/\s+/).filter(Boolean);
+  const shown = rows.filter((r) => words.every((w) => r.hay.includes(w)));
+  const pages = Math.max(1, Math.ceil(shown.length / PER_PAGE));
+  const at = Math.min(page, pages - 1);
+  const slice = shown.slice(at * PER_PAGE, (at + 1) * PER_PAGE);
+  const go = (n: number) => { setPage(n); document.getElementById("history-h")?.scrollIntoView({ block: "start", behavior: "smooth" }); };
+
+  return (
+    <>
+      <div className={s.logSearch} role="search">
+        <SearchBox label="Search the audit log" placeholder="Search by who, what or when" value={q} onChange={(v) => { setQ(v); setPage(0); }} />
+        <span className={`muted ${s.logCount}`} aria-live="polite">{q ? `${shown.length} of ${rows.length}` : `${rows.length} ${rows.length === 1 ? "entry" : "entries"}`}</span>
+      </div>
+      {shown.length === 0 ? (
+        <p className={s.note}>No matches. Try a different word, or clear the search.</p>
+      ) : (
+        <ol className={s.history}>
+          {slice.map(({ h, who, say }, i) => (
+            <li key={`${h.at}-${i}`}>
+              <span className={s.dot} data-tone={TONE[h.action] ?? (h.action === "edited" ? undefined : "accent")} aria-hidden="true" />
+              <div>
+                <p className={s.what}><strong>{who}</strong> {say}.</p>
+                <time className={s.when} dateTime={h.at}>{when(h.at)}</time>
+                {h.note && <span className={s.quote}>&ldquo;{h.note}&rdquo;</span>}
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+      {pages > 1 && (
+        <nav className={s.pager} aria-label="Audit log pages">
+          <button type="button" className="button secondary" onClick={() => go(at - 1)} disabled={at === 0}>Previous</button>
+          <span className="muted" aria-live="polite">Page {at + 1} of {pages}</span>
+          <button type="button" className="button secondary" onClick={() => go(at + 1)} disabled={at === pages - 1}>Next</button>
+        </nav>
+      )}
+    </>
+  );
 }
