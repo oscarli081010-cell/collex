@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { refreshSite } from "@/lib/refresh";
 import { formatRange, todayInSydney, type Conference } from "@/lib/conferences";
 import { fromRow } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -127,6 +129,7 @@ export default function ActivityView() {
 export function ActivityBody({ data, onChanged }: { data: Loaded; onChanged?: () => void }) {
   const { c, status, interest, followers, team, history } = data;
   const { say, node } = useToast();
+  const router = useRouter();
   const today = todayInSydney();
   const page = (band: BandProps, body: React.ReactNode) => (
     <>
@@ -195,6 +198,8 @@ export function ActivityBody({ data, onChanged }: { data: Loaded; onChanged?: ()
           const { error } = await supabase!.rpc("undo_edit", { entry: e.id });
           if (error) return say(error.message.includes("any more") ? "That change can\u2019t be undone any more." : "Couldn\u2019t undo that. Try again.");
           say("Change undone");
+          // A live listing's public pages show it straight away, including pages this browser already has.
+          if (data.status === "published") refreshSite().then(() => router.refresh());
           onChanged?.();
         }} />
       </section>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import PageBand, { type BandProps } from "./PageBand";
 import { FormSkeleton } from "./Skeleton";
 import { Fragment, useCallback, useEffect, useState } from "react";
@@ -28,9 +29,9 @@ const FIELDS: F[] = [
   { name: "contact", label: "Contact email", type: "email", required: true },
   { name: "fee", label: "Delegate fee", type: "text" },
   { name: "delegation_url", label: "Delegate registration link", type: "url" },
-  { name: "delegation_opens", label: "Registration opens", type: "datetime-local", hint: "Sydney time. The button stays shut until then. Blank opens it straight away." },
+  { name: "delegation_opens", label: "Registration opens", type: "datetime-local", },
   { name: "chair_url", label: "Chair application link", type: "url" },
-  { name: "chair_opens", label: "Chair applications open", type: "datetime-local", hint: "Sydney time. The button stays shut until then. Blank opens it straight away." },
+  { name: "chair_opens", label: "Chair applications open", type: "datetime-local", },
   { name: "interest_url", label: "Interest form link", type: "url", wide: true, hint: "Leave blank to collect interest on Collex" },
   { name: "overview", label: "Overview", type: "textarea", wide: true },
 ];
@@ -52,6 +53,7 @@ const OPENS: Record<string, string> = { delegation_opens: "delegation_opens_at",
 
 export default function ListForm() {
   const { ready, session } = useAuth();
+  const router = useRouter();
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -189,7 +191,7 @@ export default function ListForm() {
     // New links or guides on a live listing queue emails to its followers; this sends them.
     if (!error && edit) supabase.functions.invoke("notify").catch(() => {});
     // A live listing's page shows the edit straight away.
-    if (!error && edit?.status === "published") refreshSite();
+    if (!error && edit?.status === "published") refreshSite().then(() => router.refresh());
     if (error) return setErrors({ form: error.message.startsWith("Too many listings") ? "You've sent 5 listings today. Try again tomorrow." : "Couldn't send it. Check your connection and try again." });
     setSent(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -376,9 +378,9 @@ export default function ListForm() {
             ? <small key="err" id="f-cover-hint" className={`t-reveal ${s.error}`}>{errors.cover}</small>
             : <small id="f-cover-hint">JPG, PNG or WebP, up to 5MB.</small>}
           {shownCover && (
-            <div className={auth.row}>
+            <div className="btnStack">
               <label htmlFor="f-cover" className="button secondary">Change photo</label>
-              <button type="button" className={auth.textBtn} onClick={removeCover}>Remove</button>
+              <button type="button" className="button secondary" onClick={removeCover}>Remove photo</button>
             </div>
           )}
         </div>

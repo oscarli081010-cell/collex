@@ -333,6 +333,7 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
   background: var(--surface); border: 1px solid var(--line-strong); color: var(--muted); font-size: 13px; font-weight: 500; line-height: 1;
   transition: border-color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out);
 }
+.editFields .photoPick { display: grid; place-items: center; gap: 0; font-size: 13px; }
 .photoPick:hover { border-color: var(--ink); }
 .photoPick:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 .photoPick[data-busy] { opacity: 0.5; cursor: progress; }

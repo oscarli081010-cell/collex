@@ -151,23 +151,24 @@ export function CommitteesEditor({ rows, setRows, upload }: { rows: CommitteeRow
 
 // ---- Secretariat: who runs the conference ----
 
-export type SecretariatRow = { role: string; name: string; key: string; photo?: string; uploading?: boolean; photoError?: string };
+export type SecretariatRow = { role: string; name: string; key: string; /** A suggested role shown in grey until one is typed; it is used if only a name is given. */ hint?: string; photo?: string; uploading?: boolean; photoError?: string };
 const STANDARD_ROLES = ["Secretary-General", "Deputy Secretary-General", "Director-General", "Head of Chairs"];
 
-/** The usual four roles, in order, with whatever names are saved; any other saved roles follow. */
+/** The usual four roles, in order, with whatever names are saved (an empty one shows its role as a grey hint); any other saved roles follow. */
 export const secretariatRows = (list: { role: string; name: string; photo?: string }[] = []): SecretariatRow[] => {
   const named = list.filter((p) => p.role && p.name && p.name !== NA);
   return [
     ...STANDARD_ROLES.map((role) => {
       const p = named.find((x) => x.role === role);
-      return { role, name: p?.name ?? "", photo: p?.photo, key: key() };
+      return p ? { role, name: p.name, photo: p.photo, key: key() } : { role: "", hint: role, name: "", key: key() };
     }),
     ...named.filter((p) => !STANDARD_ROLES.includes(p.role)).map((p) => ({ role: p.role, name: p.name, photo: p.photo, key: key() })),
   ];
 };
-/** Only people with both a role and a name are kept; the page shows N/A for what's missing. */
+/** Only people with a name are kept; a row with no role typed takes its grey hint as the role. */
 export const toSecretariat = (rows: SecretariatRow[]) =>
-  rows.filter((r) => r.role.trim() && r.name.trim()).map((r) => ({ role: r.role.trim(), name: r.name.trim(), ...(r.photo ? { photo: r.photo } : {}) }));
+  rows.map((r) => ({ ...r, role: r.role.trim() || r.hint || "" })).filter((r) => r.role && r.name.trim())
+    .map((r) => ({ role: r.role, name: r.name.trim(), ...(r.photo ? { photo: r.photo } : {}) }));
 
 const initialsOf = (name: string) => name.split(/\s+/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
@@ -184,7 +185,7 @@ export function SecretariatEditor({ rows, setRows, upload }: { rows: Secretariat
       <datalist id="secretariat-roles">{STANDARD_ROLES.map((r) => <option key={r} value={r} />)}</datalist>
       <Rows<SecretariatRow>
         id="secretariat" rows={rows} setRows={setRows} addLabel="Add a person" max={20} inline
-        label={(r, i) => r.role.trim() || `person ${i + 1}`}
+        label={(r, i) => r.role.trim() || r.hint || `person ${i + 1}`}
         make={() => ({ role: "", name: "", key: key() })}
         render={(r, i, set) => <>
           <div className={s.photoField}>
@@ -197,7 +198,7 @@ export function SecretariatEditor({ rows, setRows, upload }: { rows: Secretariat
             </label>
             {r.photo && <button type="button" className={s.photoClear} aria-label={`Remove photo of ${r.name.trim() || r.role.trim() || "this person"}`} onClick={() => set({ photo: undefined })}>&times;</button>}
           </div>
-          <label><span>Role</span><input id={`secretariat-${i}-first`} className="control" list="secretariat-roles" value={r.role} maxLength={80} placeholder="For example, Secretary-General" onChange={(e) => set({ role: e.target.value })} /></label>
+          <label><span>Role</span><input id={`secretariat-${i}-first`} className="control" list="secretariat-roles" value={r.role} maxLength={80} placeholder={r.hint ?? "For example, Secretary-General"} onChange={(e) => set({ role: e.target.value })} /></label>
           <label><span>Name</span><input className="control" value={r.name} maxLength={120} onChange={(e) => set({ name: e.target.value })} /></label>
           {r.photoError && <p role="alert" className={s.photoError}>{r.photoError}</p>}
         </>}
@@ -246,24 +247,24 @@ export function RolesEditor({ rows, setRows }: { rows: RoleRow[]; setRows: Dispa
 
 // ---- Key dates: registration opens, papers due, conference day ----
 
-export type KeyDateRow = { label: string; date: string; key: string };
+export type KeyDateRow = { label: string; date: string; key: string; /** A suggested milestone shown in grey until one is typed; it is used if only a date is given. */ hint?: string };
 const STANDARD_DATES = ["Delegation registration opens", "Chair applications close", "Country allocations sent", "Background guides released", "Position papers due", "Conference day"];
 
 /** A new listing starts with the usual milestones in order. A saved one shows only what was saved, so a milestone that was removed stays removed. */
 export const keyDateRows = (list?: { label: string; date: string | null }[]): KeyDateRow[] =>
   list ? list.map((k) => ({ label: k.label, date: k.date ?? "", key: key() }))
-    : STANDARD_DATES.map((label) => ({ label, date: "", key: key() }));
+    : STANDARD_DATES.map((hint) => ({ label: "", hint, date: "", key: key() }));
 /** Only dates that are filled in are kept; the page lists what's announced and leaves out the rest. */
-export const toKeyDates = (rows: KeyDateRow[]) => rows.filter((r) => r.label.trim() && r.date).map((r) => ({ label: r.label.trim(), date: r.date }));
+export const toKeyDates = (rows: KeyDateRow[]) => rows.map((r) => ({ ...r, label: r.label.trim() || r.hint || "" })).filter((r) => r.label && r.date).map((r) => ({ label: r.label, date: r.date }));
 
 export function KeyDatesEditor({ rows, setRows }: { rows: KeyDateRow[]; setRows: Dispatch<SetStateAction<KeyDateRow[]>> }) {
   return (
     <Rows<KeyDateRow>
       id="keydate" rows={rows} setRows={setRows} addLabel="Add a date" max={20} inline
-      label={(r, i) => r.label.trim() || `date ${i + 1}`}
+      label={(r, i) => r.label.trim() || r.hint || `date ${i + 1}`}
       make={() => ({ label: "", date: "", key: key() })}
       render={(r, i, set) => <>
-        <label><span>What</span><input id={`keydate-${i}-first`} className="control" value={r.label} maxLength={80} placeholder="For example, Position papers due" onChange={(e) => set({ label: e.target.value })} /></label>
+        <label><span>What</span><input id={`keydate-${i}-first`} className="control" value={r.label} maxLength={80} placeholder={r.hint ?? "For example, Position papers due"} onChange={(e) => set({ label: e.target.value })} /></label>
         <label><span>When</span><input className="control" type="date" value={r.date} onChange={(e) => set({ date: e.target.value })} /></label>
       </>}
     />
