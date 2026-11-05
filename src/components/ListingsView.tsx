@@ -30,7 +30,7 @@ export default function ListingsView() {
   const num = (n: number | undefined) => (n === undefined ? "–" : String(n));
   return (
     <>
-      <PageBand title="Your" accent="listings" lead="Conferences you run or help run."
+      <PageBand title="Your" accent="listings"
         figures={[
           { label: "Listings", value: num(rows?.length) },
           { label: "Live", value: num(live) },

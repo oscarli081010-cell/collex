@@ -22,14 +22,13 @@ export default function RolesBoard({ items }: { items: BoardItem[] }) {
   const count = (k: RoleKind) => items.filter((i) => i.role.kind === k).length;
   // Only the kinds somebody is actually asking for; a row of empty filters says nothing. One kind needs no filter at all.
   const kinds = ROLE_KINDS.filter((k) => count(k.id) > 0);
-  const groups = kinds.filter((k) => kind === "all" || k.id === kind).map((k) => ({ ...k, list: shown.filter((i) => i.role.kind === k.id) }));
   const hosts = new Set(items.map((i) => i.conference.slug)).size;
 
   return (
     <>
       <PageBand
-        title="Get"
-        accent="involved"
+        title="Open"
+        accent="roles"
         lead={items.length ? "Chairs, crisis staff, press and more. See where Sydney conferences need a hand." : undefined}
         figures={[{ label: "Open roles", value: String(items.length) }, { label: "Conferences", value: String(hosts) }]}
       >
@@ -53,18 +52,11 @@ export default function RolesBoard({ items }: { items: BoardItem[] }) {
           <Link href="/list" className="button secondary">Ask for help with your conference</Link>
         </div>
       ) : (
-        <div key={kind} className={s.groups} aria-live="polite">
-          {groups.map((g) => (
-            <section key={g.id} aria-labelledby={`kind-${g.id}`}>
-              <h2 id={`kind-${g.id}`} className={s.groupHead}>{g.label} <small>{g.list.length}</small></h2>
-              <div className={`t-stagger ${s.grid}`}>
-                {g.list.map((i, n) => (
-                  <div key={`${i.conference.slug}-${n}`} style={{ "--i": Math.min(n, 8) } as React.CSSProperties}>
-                    <RoleCard role={i.role} conference={i.conference} when={i.when} apply={applyFor(i.role, i.conference)} />
-                  </div>
-                ))}
-              </div>
-            </section>
+        <div key={kind} className={`t-stagger ${s.grid}`} aria-live="polite">
+          {shown.map((i, n) => (
+            <div key={`${i.conference.slug}-${n}`} style={{ "--i": Math.min(n, 8) } as React.CSSProperties}>
+              <RoleCard role={i.role} conference={i.conference} when={i.when} apply={applyFor(i.role, i.conference)} />
+            </div>
           ))}
         </div>
       )}

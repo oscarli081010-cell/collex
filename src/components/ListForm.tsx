@@ -269,7 +269,7 @@ export default function ListForm() {
         title: "Edit your", accent: "listing", aside: edit ? <BandNote>{edit.status === "published" ? "Changes show on the live page straight away." : "It's still in review. Your changes go with it."}</BandNote> : undefined,
         children: edit ? <ListingNav id={edit.id} slug={asText(edit, "slug")} current="edit" live={edit.status === "published"} canEdit /> : undefined,
       }
-    : { title: "List a", accent: "conference", lead: "The Collex team reviews it before it goes live." };
+    : { title: "List a", accent: "conference" };
 
   // The whole loading state waits a beat before showing, so a listing that arrives quickly replaces it unseen.
   if (!ready || (editId && session && editing === null)) return <div className="skelWrap">{page(listBand, <FormSkeleton fields={6} width={600} grid />)}</div>;
@@ -430,7 +430,9 @@ export default function ListForm() {
           <button type="submit" className={`button lg ${auth.submit}`} disabled={busy}>
             <span key={String(busy)} className="t-swap">{edit ? (busy ? "Saving…" : "Update") : busy ? "Sending…" : "Send for review"}</span>
           </button>
-          <small className="muted" style={{ textAlign: "center" }}><span className={s.req} aria-hidden="true">*</span> Required</small>
+          <small className="muted" style={{ textAlign: "center" }}>
+            <span className={s.req} aria-hidden="true">*</span> is required{!edit && <> <span aria-hidden="true">&middot;</span> The Collex team will review it before it goes live</>}
+          </small>
         </div>
       </form>
     </div>

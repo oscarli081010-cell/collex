@@ -30,6 +30,10 @@ type Status = Reg["status"];
 const STATUSES: { id: Status; label: string }[] = [
   { id: "new", label: "New" }, { id: "accepted", label: "Accepted" }, { id: "waitlisted", label: "Waitlisted" }, { id: "declined", label: "Declined" },
 ];
+// One round button per answer, instead of three words.
+const FACES: { id: Exclude<Status, "new">; label: string; emoji: string }[] = [
+  { id: "accepted", label: "Accept", emoji: "\u2705" }, { id: "waitlisted", label: "Waitlist", emoji: "\u23F3" }, { id: "declined", label: "Decline", emoji: "\u274C" },
+];
 const label = (st: Status) => STATUSES.find((x) => x.id === st)!.label;
 
 const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
@@ -152,12 +156,9 @@ export function ManageBody({ data, regs, onChanged, onSet }: {
   };
 
   const on = Boolean(c.collexRegistration);
-  // One short line under the title: what the switch is doing right now, and the one thing that changes how it behaves.
-  const state = !on ? "Off. Turn it on to let schools register on your conference page."
-    : ownForm ? "On, but your own registration link is set, so Register goes there. Clear it in Edit listing to use this."
-    : !live ? "On. Schools can register once the listing is live."
-    : c.delegationOpensAt ? `On. Registration opens ${whenOpens(c.delegationOpensAt)} (Sydney time).`
-    : "On. Schools can register now.";
+  // Only what changes how it behaves: the organiser's own link wins, and nobody can register before the listing is live.
+  const warn = on && ownForm ? "Your own registration link is set, so Register goes there. Clear it in Edit listing to use this."
+    : on && !live ? "Schools can register once the listing is live." : null;
 
   return (
     <>
@@ -176,13 +177,14 @@ export function ManageBody({ data, regs, onChanged, onSet }: {
             <div className={s.cardTop}>
               <div className={s.cardHead}>
                 <h2 id="regs-h" className={s.cardTitle}>Registrations</h2>
-                <p className="muted" aria-live="polite">{state}</p>
+                <span className={s.state} aria-live="polite"><span className={s.dot} data-on={on} aria-hidden="true" />{on ? "On" : "Off"}</span>
               </div>
               <button type="button" className={`button ${on ? "secondary" : ""} ${s.switchBtn}`} onClick={toggle} disabled={switching || !canEdit} aria-pressed={on}>
                 <span key={String(on)} className="t-swap">{on ? "Turn off" : "Turn on"}</span>
               </button>
             </div>
 
+            {warn && <p className={s.note}>{warn}</p>}
             {regs === "error" ? <p className={s.note}>Couldn&rsquo;t load the registrations. Try again in a moment.</p>
               : regs === null ? <p className={s.note}>Loading…</p>
               : rows.length === 0 ? (
@@ -213,10 +215,12 @@ export function ManageBody({ data, regs, onChanged, onSet }: {
                             {r.notes && <span className={s.quote}>&ldquo;{r.notes}&rdquo;</span>}
                           </div>
                           <div className={s.regActions} role="group" aria-label={`Status for ${r.school}`}>
-                            {STATUSES.filter((x) => x.id !== "new").map((x) => (
-                              <button key={x.id} type="button" className={`button secondary ${s.statusBtn}`} data-on={r.status === x.id}
-                                aria-pressed={r.status === x.id} disabled={busy === r.id || !canEdit} onClick={() => setStatus(r, r.status === x.id ? "new" : x.id)}
-                                aria-label={`${x.label}: ${r.school}`}>{x.label}</button>
+                            {FACES.map((x) => (
+                              <span key={x.id} className="tip" data-tip={r.status === x.id ? `${x.label} (tap to undo)` : x.label}>
+                                <button type="button" className={s.face} data-status={x.id} data-on={r.status === x.id}
+                                  aria-pressed={r.status === x.id} disabled={busy === r.id || !canEdit} onClick={() => setStatus(r, r.status === x.id ? "new" : x.id)}
+                                  aria-label={`${x.label}: ${r.school}`}><span aria-hidden="true">{x.emoji}</span></button>
+                              </span>
                             ))}
                           </div>
                         </li>

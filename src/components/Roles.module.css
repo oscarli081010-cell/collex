@@ -50,10 +50,6 @@
 .chip small { font-size: 12.5px; opacity: 0.7; font-variant-numeric: tabular-nums; }
 @media (pointer: coarse) { .chip { height: 44px; } }
 
-.groups { display: flex; flex-direction: column; gap: 40px; margin-top: 8px; }
-.groupHead { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; font-family: var(--serif); font-weight: 400; font-size: 26px; letter-spacing: -0.01em; }
-.groupHead small { font-family: var(--sans); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.groups .grid { margin-top: 0; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; margin-top: 8px; }
 
 /* Cards in a row are the same height, with the Apply button at the foot. */

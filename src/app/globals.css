@@ -94,15 +94,6 @@
   }
 }
 
-/* Smooth cross-fade while the theme switches, then off again so it never slows other transitions. */
-.theme-switching, .theme-switching *, .theme-switching *::before, .theme-switching *::after {
-  transition: background-color 300ms var(--ease-out), border-color 300ms var(--ease-out), color 300ms var(--ease-out), fill 300ms var(--ease-out) !important;
-}
-/* Sliding pills keep their slide while the colours cross-fade, so the Appearance switch glides to the new choice. */
-.theme-switching .t-pill {
-  transition: transform var(--tabs-dur) var(--tabs-ease), width var(--tabs-dur) var(--tabs-ease), background-color 300ms var(--ease-out) !important;
-}
-
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 /* Keeps the page from shifting sideways when scrolling is locked (the search menu) and the scrollbar goes. */

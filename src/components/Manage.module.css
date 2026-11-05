@@ -8,7 +8,19 @@
 /* The title with the on/off button beside it. */
 .cardTop { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; }
 .cardTop .cardHead { flex: 1 1 260px; min-width: 0; }
-.switchBtn { flex: none; min-width: 112px; }
+/* On or off, with the same dot the status uses elsewhere: green with a soft ring for on, red for off. */
+.state { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; }
+.dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 4px var(--danger-soft); transition: background-color var(--duration-fast), box-shadow var(--duration-fast); }
+.dot[data-on="true"] { background: var(--ok); box-shadow: 0 0 0 4px var(--ok-soft); }
+/* The switch: a pill with a little lift, red-tinged on hover when it would turn registration off. */
+.switchBtn {
+  flex: none; min-width: 120px; height: 44px !important; padding: 0 24px !important; border-radius: 999px !important; font-weight: 500;
+  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.08), 0 8px 20px -10px rgba(var(--shadow-rgb), 0.35);
+  transition: transform var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-fast) var(--ease-smooth-out), background-color var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
+}
+.switchBtn:hover { transform: translateY(-1px); }
+.switchBtn:active { transform: scale(0.97); }
+.switchBtn[aria-pressed="true"]:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
 @media (max-width: 640px) { .cardTop .switchBtn { width: 100%; } }
 /* The status tabs are the admin's control; five of them need a little less padding to fit a phone. */
 .tabsFit.tabsFit button { padding: 0 12px; }
@@ -24,13 +36,24 @@
 .regSchool { font-size: 16px; font-weight: 500; overflow-wrap: anywhere; }
 .regMeta { font-size: 13.5px; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; }
 .quote { display: block; margin-top: 4px; padding: 8px 12px; border-radius: 8px; background: var(--surface); font-size: 13.5px; color: var(--muted); overflow-wrap: anywhere; }
-.regActions { display: flex; gap: 8px; flex: 0 1 auto; }
-.statusBtn { height: 40px !important; padding: 0 14px !important; font-size: 14px !important; }
-.statusBtn[data-on="true"] { background: var(--ink); border-color: var(--ink); color: var(--panel); }
-@media (pointer: coarse) { .statusBtn { height: 44px !important; } }
-
+.regActions { display: flex; gap: 10px; flex: 0 1 auto; }
+/* A round button holding one emoji; the chosen answer is tinted in its own colour. */
+.face {
+  display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border-radius: 50%; cursor: pointer; font-size: 20px; line-height: 1;
+  border: 1px solid var(--line-strong); background: var(--panel);
+  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.06);
+  transition: transform var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-fast) var(--ease-smooth-out), background-color var(--duration-fast), border-color var(--duration-fast), opacity var(--duration-fast);
+}
+.face span { filter: grayscale(1); opacity: 0.55; transition: filter var(--duration-fast), opacity var(--duration-fast); }
+.face:hover { transform: translateY(-2px); box-shadow: 0 8px 18px -8px rgba(var(--shadow-rgb), 0.3); }
+.face:hover span, .face[data-on="true"] span { filter: none; opacity: 1; }
+.face:active { transform: scale(0.94); }
+.face:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.face:disabled { cursor: not-allowed; opacity: 0.5; transform: none; box-shadow: none; }
+.face[data-on="true"][data-status="accepted"] { background: var(--ok-soft); border-color: var(--ok); }
+.face[data-on="true"][data-status="waitlisted"] { background: var(--warn-soft); border-color: var(--warn); }
+.face[data-on="true"][data-status="declined"] { background: var(--danger-soft); border-color: var(--danger); }
+@media (max-width: 640px) { .regActions { width: 100%; } }
 @media (max-width: 640px) {
   .card { padding: 20px; }
-  .regActions { width: 100%; }
-  .regActions .statusBtn { flex: 1 1 0; padding: 0 6px !important; }
 }
