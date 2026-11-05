@@ -63,11 +63,9 @@ const OPENS: Record<string, string> = { delegation_opens: "delegation_opens_at",
 
 const SECTIONS = [
   { id: "sec-details", label: "Details" }, { id: "sec-overview", label: "Overview" }, { id: "sec-keydates", label: "Key dates" },
-  { id: "sec-committees", label: "Committees" }, { id: "sec-guides", label: "Background guides" },
+  { id: "sec-committees", label: "Committees" },
   { id: "sec-secretariat", label: "Secretariat" }, { id: "sec-roles", label: "Help wanted" }, { id: "sec-cover", label: "Cover photo" },
 ];
-// Background guides live inside each committee, so there is no block of their own to watch.
-const WATCHED = SECTIONS.filter((x) => x.id !== "sec-guides");
 
 export default function ListForm() {
   const { ready, session } = useAuth();
@@ -321,10 +319,9 @@ export default function ListForm() {
       </div>);
   }
 
-  const guides = committees.map((c, i) => ({ index: i, name: c.name.trim() || `Committee ${i + 1}`, done: Boolean(c.guide.trim()) }));
   const formEl = (
     <div className={s.formWrap}>
-      <SectionNav sections={SECTIONS} spy={WATCHED} guides={guides} />
+      <SectionNav sections={SECTIONS} />
       <form key={edit?.id ?? "form"} className={`t-reveal ${s.listForm}`} onSubmit={submit} noValidate>
         {FIELDS.map((f) => {
           const id = `f-${f.name}`;
@@ -380,14 +377,14 @@ export default function ListForm() {
             </Fragment>
           );
         })}
+        <fieldset id="sec-keydates" className={`field ${s.wide}`}>
+          <legend>Key dates <span className="muted">(optional)</span></legend>
+          <KeyDatesEditor rows={keyDates} setRows={setKeyDates} />
+        </fieldset>
         <fieldset id="sec-committees" className={`field ${s.wide}`}>
           <legend>Committees <span className="muted">(optional)</span></legend>
           {errors.guides && <small key="err" className={`t-reveal ${s.error}`}>{errors.guides}</small>}
           <CommitteesEditor rows={committees} setRows={(a) => { setCommittees(a); if (errors.guides) setErrors(({ guides: _, ...rest }) => rest); }} upload={uploadGuide} />
-        </fieldset>
-        <fieldset id="sec-keydates" className={`field ${s.wide}`}>
-          <legend>Key dates <span className="muted">(optional)</span></legend>
-          <KeyDatesEditor rows={keyDates} setRows={setKeyDates} />
         </fieldset>
         <fieldset id="sec-secretariat" className={`field ${s.wide}`}>
           <legend>Secretariat <span className="muted">(optional)</span></legend>

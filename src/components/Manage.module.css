@@ -9,8 +9,7 @@
 .cardTop { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; }
 .cardTop .cardHead { flex: 1 1 260px; min-width: 0; }
 /* On or off, with the same dot the status uses elsewhere: green with a soft ring for on, red for off. */
-.state { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; }
-.dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 4px var(--danger-soft); transition: background-color var(--duration-fast), box-shadow var(--duration-fast); }
+.dot { display: inline-block; vertical-align: middle; margin-left: 10px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 4px var(--danger-soft); transition: background-color var(--duration-fast), box-shadow var(--duration-fast); }
 .dot[data-on="true"] { background: var(--ok); box-shadow: 0 0 0 4px var(--ok-soft); }
 /* The switch: a pill with a little lift, red-tinged on hover when it would turn registration off. */
 .switchBtn {
@@ -44,15 +43,15 @@
   box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.06);
   transition: transform var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-fast) var(--ease-smooth-out), background-color var(--duration-fast), border-color var(--duration-fast), opacity var(--duration-fast);
 }
-.face span { filter: grayscale(1); opacity: 0.55; transition: filter var(--duration-fast), opacity var(--duration-fast); }
-.face:hover { transform: translateY(-2px); box-shadow: 0 8px 18px -8px rgba(var(--shadow-rgb), 0.3); }
-.face:hover span, .face[data-on="true"] span { filter: none; opacity: 1; }
+.face { color: var(--muted); }
+.face svg { width: 20px; height: 20px; }
+.face:hover { color: var(--ink); transform: translateY(-2px); box-shadow: 0 8px 18px -8px rgba(var(--shadow-rgb), 0.3); }
 .face:active { transform: scale(0.94); }
 .face:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .face:disabled { cursor: not-allowed; opacity: 0.5; transform: none; box-shadow: none; }
-.face[data-on="true"][data-status="accepted"] { background: var(--ok-soft); border-color: var(--ok); }
-.face[data-on="true"][data-status="waitlisted"] { background: var(--warn-soft); border-color: var(--warn); }
-.face[data-on="true"][data-status="declined"] { background: var(--danger-soft); border-color: var(--danger); }
+.face[data-on="true"][data-status="accepted"] { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.face[data-on="true"][data-status="waitlisted"] { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+.face[data-on="true"][data-status="declined"] { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
 @media (max-width: 640px) { .regActions { width: 100%; } }
 @media (max-width: 640px) {
   .card { padding: 20px; }

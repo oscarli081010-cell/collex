@@ -145,7 +145,7 @@ function Saved() {
         </p>
       )}
       {saved === null ? <RowsSkeleton rows={2} height={52} /> : list.length === 0 ? (
-        <Link href="/conferences" className="button secondary">Browse conferences</Link>
+        <Link href="/conferences" className="button">Browse conferences</Link>
       ) : (
         <ul className={s.saved}>
           {list.map((c) => {

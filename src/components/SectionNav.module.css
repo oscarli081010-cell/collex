@@ -9,12 +9,8 @@
 }
 .link:hover { color: var(--ink); }
 .link[aria-current="true"] { background: var(--ink); border-color: var(--ink); color: var(--panel); }
-.link:focus-visible, .subLink:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.chev { transition: transform var(--duration-fast) var(--ease-smooth-out); }
-.chev[data-open="true"] { transform: rotate(180deg); }
+.link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (pointer: coarse) { .link { height: 44px; } }
-/* The committee list belongs to the wide layout; on a narrow screen the chip jumps to the committees. */
-.sub { display: none; }
 
 /* Wide screens: in the margin beside the form, so the form stays centred at its own width. */
 @media (min-width: 1180px) {
@@ -27,13 +23,4 @@
   }
   .link:hover { background: var(--surface); }
   .link[aria-current="true"] { background: none; color: var(--ink); font-weight: 500; border-left-color: var(--accent); }
-  .sub { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--duration-slow) var(--ease-smooth-out); }
-  .sub[data-open="true"] { grid-template-rows: 1fr; }
-  .sub > ul { overflow: hidden; display: flex; flex-direction: column; padding-left: 14px; }
-  .subLink { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 30px; padding: 0 10px; border: 0; background: none; border-radius: 6px; cursor: pointer; color: var(--muted); font-size: 13px; text-align: left; }
-  .subLink:hover { background: var(--surface); color: var(--ink); }
-  .subName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
-  .dot[data-done="true"] { background: var(--ok); }
 }
-@media (prefers-reduced-motion: reduce) { .sub, .chev { transition: none; } }

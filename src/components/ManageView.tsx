@@ -31,8 +31,8 @@ const STATUSES: { id: Status; label: string }[] = [
   { id: "new", label: "New" }, { id: "accepted", label: "Accepted" }, { id: "waitlisted", label: "Waitlisted" }, { id: "declined", label: "Declined" },
 ];
 // One round button per answer, instead of three words.
-const FACES: { id: Exclude<Status, "new">; label: string; emoji: string }[] = [
-  { id: "accepted", label: "Accept", emoji: "\u2705" }, { id: "waitlisted", label: "Waitlist", emoji: "\u23F3" }, { id: "declined", label: "Decline", emoji: "\u274C" },
+const FACES: { id: Exclude<Status, "new">; label: string; icon: React.ReactNode }[] = [
+  { id: "accepted", label: "Accept", icon: ICONS.check }, { id: "waitlisted", label: "Waitlist", icon: ICONS.clock }, { id: "declined", label: "Decline", icon: ICONS.close },
 ];
 const label = (st: Status) => STATUSES.find((x) => x.id === st)!.label;
 
@@ -176,8 +176,7 @@ export function ManageBody({ data, regs, onChanged, onSet }: {
           <section className={`panel ${s.card}`} style={{ "--i": 0 } as React.CSSProperties} aria-labelledby="regs-h">
             <div className={s.cardTop}>
               <div className={s.cardHead}>
-                <h2 id="regs-h" className={s.cardTitle}>Registrations</h2>
-                <span className={s.state} aria-live="polite"><span className={s.dot} data-on={on} aria-hidden="true" />{on ? "On" : "Off"}</span>
+                <h2 id="regs-h" className={s.cardTitle}>Registrations <span className={s.dot} data-on={on} aria-hidden="true" /><span className="sr-only" aria-live="polite">{on ? "On" : "Off"}</span></h2>
               </div>
               <button type="button" className={`button ${on ? "secondary" : ""} ${s.switchBtn}`} onClick={toggle} disabled={switching || !canEdit} aria-pressed={on}>
                 <span key={String(on)} className="t-swap">{on ? "Turn off" : "Turn on"}</span>
@@ -219,7 +218,7 @@ export function ManageBody({ data, regs, onChanged, onSet }: {
                               <span key={x.id} className="tip" data-tip={r.status === x.id ? `${x.label} (tap to undo)` : x.label}>
                                 <button type="button" className={s.face} data-status={x.id} data-on={r.status === x.id}
                                   aria-pressed={r.status === x.id} disabled={busy === r.id || !canEdit} onClick={() => setStatus(r, r.status === x.id ? "new" : x.id)}
-                                  aria-label={`${x.label}: ${r.school}`}><span aria-hidden="true">{x.emoji}</span></button>
+                                  aria-label={`${x.label}: ${r.school}`}>{x.icon}</button>
                               </span>
                             ))}
                           </div>

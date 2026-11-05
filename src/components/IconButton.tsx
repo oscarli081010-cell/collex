@@ -17,6 +17,7 @@ export const ICONS = {
   removeAdmin: icon(<><path d="M8 1.8l5 2v4c0 3.2-2.2 5.4-5 6.4-2.8-1-5-3.2-5-6.4v-4z" /><path d="M6 7.8h4" /></>),
   share: icon(<><path d="M8 10V2.5M5 5.5l3-3 3 3" /><path d="M5.5 7.5H4.5a1 1 0 00-1 1v4.5a1 1 0 001 1h7a1 1 0 001-1V8.5a1 1 0 00-1-1h-1" /></>),
   calendar: icon(<><rect x="2.5" y="3.5" width="11" height="10" rx="2" /><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" /></>),
+  clock: icon(<><circle cx="8" cy="8" r="5.8" /><path d="M8 4.8V8l2.2 1.4" /></>),
   check: icon(<path d="M3 8.5l3.2 3.2L13 4.8" />),
   chart: icon(<path d="M3.5 13.5V8.5M8 13.5V3M12.5 13.5V6" />),
   manage: icon(<><path d="M6.5 4.5H13M6.5 8H13M6.5 11.5H13" /><path d="M3.2 4.5h.1M3.2 8h.1M3.2 11.5h.1" /></>),
