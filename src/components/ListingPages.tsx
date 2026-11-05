@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import ActivityView from "./ActivityView";
 import ListForm from "./ListForm";
 
@@ -9,6 +9,8 @@ import ListForm from "./ListForm";
 // address with history.pushState, so moving between them never loads or re-enters a page: only this swaps.
 export default function ListingPages() {
   const activity = usePathname() === "/activity";
+  // Leaving these pages ends the no-entrance rule. Done as the new page is built, so it enters normally, once.
+  useLayoutEffect(() => () => { delete document.documentElement.dataset.listingSwitch; }, []);
   useEffect(() => { document.title = activity ? "Activity · Collex" : "List a conference · Collex"; }, [activity]);
   return activity ? <ActivityView /> : <ListForm />;
 }

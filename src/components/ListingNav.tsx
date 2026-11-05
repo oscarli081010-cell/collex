@@ -45,11 +45,9 @@ export default function ListingNav({ id, slug, current, live, canEdit }: { id: s
     return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); };
   }, [current, tabs]);
 
-  // The page that loads next doesn't re-enter; the flag clears itself once it has.
-  const going = () => {
-    document.documentElement.dataset.listingSwitch = "1";
-    setTimeout(() => { delete document.documentElement.dataset.listingSwitch; }, 5000);
-  };
+  // The page that swaps in doesn't re-enter. The flag stays until the listing pages are left (see ListingPages): taking it
+  // away while they're on screen would start every entrance animation again, a few seconds after the switch.
+  const going = () => { document.documentElement.dataset.listingSwitch = "1"; };
 
   // Moving between the tabs changes the address without loading a page (see ListingPages); modified clicks still open normally.
   const open = (e: React.MouseEvent, i: { id: ListingView; href: string }) => {
