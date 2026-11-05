@@ -7,7 +7,7 @@ import { fromRow } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { useConferences } from "./ConferencesContext";
 import { Thumb } from "./ConferenceRow";
-import IconButton, { ICONS } from "./IconButton";
+import { ICONS } from "./IconButton";
 import { RowsSkeleton } from "./Skeleton";
 import { useToast } from "./useToast";
 import s from "@/app/auth.module.css";
@@ -201,11 +201,11 @@ export function ListingCard({ c, status, note, coOrganiser, canEdit = true, toda
             <span>{c.startDate ? formatRange(c) : "Dates not set"}</span>
           </span>
         </div>
-        <span className={s.listingActions}>
-          <IconButton label={`Activity for ${c.name}`} tip="Activity" icon={ICONS.chart} href={`/activity?id=${c.id}`} />
-          {live && <IconButton label={`View ${c.name}`} tip="View page" icon={ICONS.view} href={`/conferences/${c.slug}`} />}
-          {editable && <IconButton label={`Edit ${c.name}`} tip="Edit listing" icon={ICONS.edit} href={`/list?edit=${c.id}`} />}
-        </span>
+      </div>
+      <div className={s.listingButtons}>
+        <Link href={`/activity?id=${c.id}`} className="button secondary">{ICONS.chart}Activity</Link>
+        {live && <Link href={`/conferences/${c.slug}`} className="button secondary">{ICONS.view}View page</Link>}
+        {editable && <Link href={`/list?edit=${c.id}`} className="button secondary">{ICONS.edit}Edit listing</Link>}
       </div>
       {status === "pending" && <p className={s.listingNote}>The Collex team is reviewing it. Once approved, it gets its own page and joins the calendar.</p>}
       {(status === "rejected" || status === "unpublished") && note && <p className={s.listingNote} data-tone="danger">{note}</p>}

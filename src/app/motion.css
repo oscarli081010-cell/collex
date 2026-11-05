@@ -124,6 +124,9 @@
 }
 .t-toast.is-hiding { animation: t-toast-out var(--duration-quick) var(--ease-smooth-out) both; }
 
+/* Moving between a listing's Activity, public page and edit form: the page doesn't re-enter, only the switch's highlight slides. */
+:root[data-listing-switch] .t-page-enter, :root[data-listing-switch] .t-reveal, :root[data-listing-switch] .t-stagger > * { animation: none; }
+
 @media (prefers-reduced-motion: reduce) {
   .t-dropdown, .t-pill { transition: none !important; }
   .t-page-enter, .t-slide, .t-swap, .t-stagger > *, .t-reveal, .t-toast { animation: none !important; }

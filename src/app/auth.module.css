@@ -87,7 +87,7 @@
 .listings li + li { border-top: 1px solid var(--line); }
 /* Each listing: its name, with its status and interest underneath; Edit on the right. */
 .listingMain { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
-.listingName { font-size: 16px; font-weight: 500; color: var(--ink); overflow-wrap: anywhere; }
+.listingName { font-size: 18px; font-weight: 500; color: var(--ink); overflow-wrap: anywhere; }
 a.listingName:hover { color: var(--accent); }
 .listingMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13px; color: var(--muted); }
 /* An invite to help run a listing: the details, then Decline and Accept as an equal pair across the card. */
@@ -102,7 +102,7 @@ a.listingName:hover { color: var(--accent); }
 /* Your listings: a card for each listing, then a dashed tile to add another. */
 .listingList { display: flex; flex-direction: column; gap: 12px; }
 .listing {
-  display: flex; flex-direction: column; gap: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  display: flex; flex-direction: column; gap: 20px; padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface);
   transition: border-color var(--duration-quick);
 }
 .listing:hover { border-color: var(--line-strong); }
@@ -110,20 +110,22 @@ a.listingName:hover { color: var(--accent); }
 .listingTop { flex-wrap: wrap; }
 .listingTop .listingMain { flex: 1 1 160px; }
 .listingThumb {
-  flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 10px; overflow: hidden;
+  flex: none; display: grid; place-items: center; width: 68px; height: 68px; border-radius: 12px; overflow: hidden;
   background: var(--accent-soft); color: var(--accent);
 }
 .listingThumb img { width: 100%; height: 100%; object-fit: cover; }
 :global(:root[data-theme="dark"]) .listingThumb img { filter: brightness(0.9); }
 @media (prefers-color-scheme: dark) { :global(:root[data-theme="system"]) .listingThumb img { filter: brightness(0.9); } }
-.listingThumb > span { font-size: 20px; line-height: 1; letter-spacing: 0.02em; }
-.listingActions { display: flex; gap: 6px; flex: none; margin-left: auto; }
+.listingThumb > span { font-size: 24px; line-height: 1; letter-spacing: 0.02em; }
+.listingButtons { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.listingButtons :global(.button) { height: 46px; gap: 8px; width: 100%; }
+@media (pointer: coarse) { .listingButtons :global(.button) { height: 48px; } }
 .listingNote { font-size: 13.5px; padding: 10px 12px; border-radius: 8px; background: var(--panel); color: var(--muted); }
 .listingNote[data-tone="danger"] { background: var(--danger-soft); color: var(--danger); }
 /* Pills and tags that are normally grey-on-grey need the panel colour to show on a listing's card. */
 .listing .tag, .listing .status:not([data-status="pending"], [data-status="published"], [data-status="rejected"]) { background: var(--panel); }
-.listing :global(.iconbtn) { background: var(--panel); }
-.listing :global(.iconbtn):hover { background: var(--surface-2); }
+.listing :global(.button.secondary) { background: var(--panel); }
+.listing :global(.button.secondary):hover { background: var(--surface-2); }
 .addTile {
   display: flex; align-items: center; gap: 14px; min-height: 72px; padding: 14px 16px; border: 1px dashed var(--line-strong); border-radius: 12px;
   transition: border-color var(--duration-quick), background-color var(--duration-quick);
@@ -187,7 +189,7 @@ a.listingName:hover { color: var(--accent); }
 @media (max-width: 560px) {
   .avatar { width: 76px; font-size: 28px; }
   .card { padding: 20px; }
-  .listing { padding: 14px; }
+  .listing { padding: 16px; }
 }
 
 /* 404 */
