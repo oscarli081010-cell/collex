@@ -8,14 +8,83 @@ import { useAuth } from "./AuthProvider";
 import { Wordmark } from "@/lib/brand";
 import CommandBar from "./CommandBar";
 
-type NavLink = { href: string; label: string; /** Your listings is a tab of the account page, so it is told apart by the address's #. */ hash?: string };
-// Home on its own; browsing together; then the things you do about a conference.
-export const NAV_GROUPS: NavLink[][] = [
-  [{ href: "/", label: "Home" }],
-  [{ href: "/calendar", label: "Calendar" }, { href: "/conferences", label: "Conferences" }],
-  [{ href: "/roles", label: "Get involved" }, { href: "/account#conferences", label: "Your listings", hash: "#conferences" }],
+type NavLink = { href: string; label: string; note?: string };
+type NavGroup = { label: string; items: NavLink[] };
+// Home on its own; then two menus: browsing, and the things you do about a conference.
+export const HOME: NavLink = { href: "/", label: "Home" };
+export const NAV_GROUPS: NavGroup[] = [
+  { label: "Browse", items: [
+    { href: "/calendar", label: "Calendar", note: "Every conference by date" },
+    { href: "/conferences", label: "Conferences", note: "Search and compare the list" },
+  ] },
+  { label: "Get involved", items: [
+    { href: "/roles", label: "Open roles", note: "Positions you can apply for" },
+    { href: "/list", label: "List a conference", note: "Add yours, free to list" },
+    { href: "/listings", label: "Your listings", note: "Edit what you run" },
+  ] },
 ];
-const ALL = NAV_GROUPS.flat();
+
+const Chevron = () => (
+  <svg className="navChevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5" /></svg>
+);
+
+// A menu in the bar. It opens on hover (with a pointer that can hover) or on click or Enter, and closes on Escape, a click elsewhere or leaving it.
+function NavMenu({ group, here, open, setOpen, onPick }: { group: NavGroup; here: (n: NavLink) => boolean; open: boolean; setOpen: (o: boolean) => void; onPick: () => void }) {
+  const box = useRef<HTMLSpanElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Opened just by the pointer resting on it: the click that follows keeps it open rather than closing it.
+  const byHover = useRef(false);
+  const id = `nav-${group.label.toLowerCase().replace(/\W+/g, "-")}`;
+  const active = group.items.some(here);
+  const hovers = () => window.matchMedia("(hover: hover)").matches;
+  const clear = () => clearTimeout(timer.current);
+  useEffect(() => clear, []);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [open, setOpen]);
+
+  return (
+    <span
+      ref={box}
+      className="navMenu"
+      onPointerEnter={(e) => { if (e.pointerType === "mouse" && hovers()) { clear(); if (!open) byHover.current = true; setOpen(true); } }}
+      onPointerLeave={(e) => { if (e.pointerType === "mouse") { clear(); byHover.current = false; timer.current = setTimeout(() => setOpen(false), 140); } }}
+      onBlur={(e) => { if (!box.current?.contains(e.relatedTarget as Node)) setOpen(false); }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && open) { e.stopPropagation(); setOpen(false); trigger.current?.focus(); }
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setOpen(true);
+          const links = [...box.current!.querySelectorAll<HTMLElement>(`#${id} a`)];
+          const i = links.indexOf(document.activeElement as HTMLElement);
+          setTimeout(() => links[(i + 1) % links.length]?.focus(), 0);
+        }
+        if (e.key === "ArrowUp" && open) {
+          e.preventDefault();
+          const links = [...box.current!.querySelectorAll<HTMLElement>(`#${id} a`)];
+          const i = links.indexOf(document.activeElement as HTMLElement);
+          links[(i <= 0 ? links.length : i) - 1]?.focus();
+        }
+      }}
+    >
+      <button ref={trigger} type="button" className="navTrigger" data-here={active || undefined} aria-expanded={open} aria-controls={id} onClick={() => { if (byHover.current) byHover.current = false; else setOpen(!open); }}>
+        {group.label}<Chevron />
+      </button>
+      <div id={id} className={`navDrop t-dropdown${open ? " is-open" : ""}`} data-origin="top-left" role="group" aria-label={group.label} inert={!open}>
+        {group.items.map((n) => (
+          <Link key={n.href} href={n.href} aria-current={here(n) ? "page" : undefined} onClick={onPick}>
+            <strong>{n.label}</strong>
+            {n.note && <small>{n.note}</small>}
+          </Link>
+        ))}
+      </div>
+    </span>
+  );
+}
 
 export default function TopBar() {
   // When Vercel refreshes the home page in the background it renders it as "/index", which would leave Home unmarked
@@ -27,24 +96,11 @@ export default function TopBar() {
   const initials = who.split(/[\s@]/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [menu, setMenu] = useState("");
   const navRef = useRef<HTMLElement>(null);
-  // The address's # (it changes without a page change when the account tabs are switched).
-  const [hash, setHash] = useState("");
-  useEffect(() => {
-    const read = () => setHash(location.hash);
-    read();
-    window.addEventListener("hashchange", read);
-    window.addEventListener("collex:hash", read);
-    return () => { window.removeEventListener("hashchange", read); window.removeEventListener("collex:hash", read); };
-  }, [pathname]);
-  const here = (n: NavLink) => {
-    const path = n.href.split("#")[0];
-    return n.hash ? pathname === path && hash === n.hash : pathname === path && !(path === "/account");
-  };
-  const current = ALL.find(here)?.href ?? "";
-  const pill = usePill(navRef, '[aria-current="page"]', current);
-  // Going to the listings tab from the account page itself is not a page change, so the page is told.
-  const go = (n: NavLink) => { if (n.hash && pathname === "/account") setTimeout(() => window.dispatchEvent(new Event("collex:hash")), 0); };
+  const here = (n: NavLink) => pathname === n.href;
+  const current = here(HOME) ? HOME.href : NAV_GROUPS.find((g) => g.items.some(here))?.label ?? "";
+  const pill = usePill(navRef, "[data-here]", current);
 
   const close = () => {
     if (!open || closing) return;
@@ -52,7 +108,7 @@ export default function TopBar() {
     setTimeout(() => { setOpen(false); setClosing(false); }, 150);
   };
 
-  useEffect(() => { setOpen(false); setClosing(false); }, [pathname]);
+  useEffect(() => { setOpen(false); setClosing(false); setMenu(""); }, [pathname]);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
@@ -66,19 +122,14 @@ export default function TopBar() {
         <Link href="/" className="wordmark" aria-label="Collex home"><Wordmark /></Link>
         <nav ref={navRef} className="navlinks" aria-label="Main">
           <span ref={pill} className="t-pill navPill" aria-hidden="true" />
+          <Link href={HOME.href} data-here={here(HOME) || undefined} aria-current={here(HOME) ? "page" : undefined}>{HOME.label}</Link>
           {NAV_GROUPS.map((g) => (
-            <span key={g[0].href} className="navGroup" role="group">
-              {g.map((n) => (
-                <Link key={n.href} href={n.href} aria-current={here(n) ? "page" : undefined} onClick={() => go(n)}>{n.label}</Link>
-              ))}
-            </span>
+            <NavMenu key={g.label} group={g} here={here} open={menu === g.label} setOpen={(o) => setMenu((m) => (o ? g.label : m === g.label ? "" : m))} onPick={() => setMenu("")} />
           ))}
         </nav>
         <div className="topbarEnd">
         <CommandBar />
         <div className="topbarRight" data-ready={ready}>
-          {/* Signed in, it sits with Admin as a solid button; signed out, Log in stays the one solid button. */}
-          <Link href="/list" className={`button ${session ? "" : "secondary"}`}>List a conference</Link>
           {profile?.is_admin && <Link href="/admin" className="button">Admin</Link>}
           {session ? (
             <Link href="/account" className="avatarLink" aria-label="Your account" title={who}>{/* eslint-disable-next-line @next/next/no-img-element -- the account photo */}{profile?.avatar_url ? <img src={profile.avatar_url} alt="" width={36} height={36} /> : initials}</Link>
@@ -103,17 +154,21 @@ export default function TopBar() {
         aria-label="Main"
         inert={!open || closing}
       >
-        {[
-          ...NAV_GROUPS,
-          [{ href: "/list", label: "List a conference" }, ...(profile?.is_admin ? [{ href: "/admin", label: "Admin" }] : []),
-            session ? { href: "/account", label: "Your account" } : { href: "/login", label: "Log in" }],
-        ].map((g) => (
-          <div key={g[0].href} className="mobileGroup" role="group">
-            {g.map((n: NavLink) => (
-              <Link key={n.href} href={n.href} aria-current={here(n) ? "page" : undefined} onClick={() => { go(n); close(); }}>{n.label}</Link>
+        <div className="mobileGroup" role="group">
+          <Link href={HOME.href} aria-current={here(HOME) ? "page" : undefined} onClick={close}>{HOME.label}</Link>
+        </div>
+        {NAV_GROUPS.map((g) => (
+          <div key={g.label} className="mobileGroup" role="group" aria-label={g.label}>
+            <span className="mobileHead" aria-hidden="true">{g.label}</span>
+            {g.items.map((n) => (
+              <Link key={n.href} href={n.href} aria-current={here(n) ? "page" : undefined} onClick={close}>{n.label}</Link>
             ))}
           </div>
         ))}
+        <div className="mobileGroup" role="group" aria-label="Account">
+          {profile?.is_admin && <Link href="/admin" onClick={close}>Admin</Link>}
+          {session ? <Link href="/account" aria-current={pathname === "/account" ? "page" : undefined} onClick={close}>Your account</Link> : <Link href="/login" onClick={close}>Log in</Link>}
+        </div>
       </nav>
     </header>
   );

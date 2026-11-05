@@ -211,19 +211,38 @@ select.control {
 .wordmark { display: inline-flex; align-items: center; color: var(--ink); line-height: 1; border-radius: 6px; }
 @media (pointer: coarse) { .wordmark { min-height: 44px; } }
 .navlinks { position: relative; display: flex; gap: 4px; flex: 1; align-items: center; }
-.navGroup { display: flex; align-items: center; gap: 4px; }
-/* A hairline between the groups of links. */
-.navGroup + .navGroup { position: relative; margin-left: 12px; padding-left: 12px; }
-.navGroup + .navGroup::before { content: ""; position: absolute; left: 0; top: 50%; height: 18px; margin-top: -9px; border-left: 1px solid var(--line-strong); }
-.navlinks a {
+/* Home, then the menus. Their panels hang below the bar, so the row itself never changes size. */
+.navlinks > a, .navTrigger {
   white-space: nowrap;
   position: relative; z-index: 1;
+  display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-radius: 999px; font-size: 14px; color: var(--muted);
   transition: color var(--duration-fast) var(--ease-smooth-out);
 }
-.navlinks a:hover, .navlinks a[aria-current="page"] { color: var(--ink); }
-.navlinks a[aria-current="page"] { font-weight: 500; }
+.navTrigger { background: none; border: 0; font: inherit; font-size: 14px; cursor: pointer; }
+.navlinks > a:hover, .navlinks > a[aria-current="page"], .navTrigger:hover, .navTrigger[aria-expanded="true"], .navTrigger[data-here] { color: var(--ink); }
+.navlinks > a[aria-current="page"], .navTrigger[data-here] { font-weight: 500; }
+.navChevron { transition: transform var(--duration-fast) var(--ease-smooth-out); }
+.navTrigger[aria-expanded="true"] .navChevron { transform: rotate(180deg); }
 .navPill { top: 50%; height: 36px; margin-top: -18px; border-radius: 999px; background: var(--surface-2); }
+.navMenu { position: relative; display: inline-flex; }
+/* The gap between the button and the panel belongs to the menu, so moving the pointer down to the panel doesn't close it. */
+.navMenu:has([aria-expanded="true"])::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 14px; }
+.navDrop {
+  position: absolute; top: calc(100% + 10px); left: 0; z-index: 40; min-width: 264px;
+  display: flex; flex-direction: column; gap: 2px; padding: 8px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: 0 18px 44px rgba(var(--shadow-rgb), 0.14);
+}
+.navDrop a {
+  display: flex; flex-direction: column; gap: 1px; padding: 10px 12px; border-radius: 10px; color: var(--ink);
+  transition: background-color var(--duration-quick);
+}
+.navDrop a strong { font-weight: 500; font-size: 14px; }
+.navDrop a small { font-size: 12.5px; color: var(--muted); }
+.navDrop a:hover, .navDrop a:focus-visible { background: var(--surface); }
+.navDrop a[aria-current="page"] { background: var(--accent-soft); }
+.navDrop a[aria-current="page"] strong { color: var(--accent); }
 .mobileNav {
   position: absolute; top: 64px; right: var(--margin); z-index: 40;
   display: none; flex-direction: column; gap: 2px; min-width: 220px;
@@ -234,6 +253,7 @@ select.control {
 .mobileGroup { display: flex; flex-direction: column; gap: 2px; }
 .mobileNav a { padding: 12px 12px; min-height: 44px; display: flex; align-items: center; border-radius: 8px; font-size: 15px; transition: background-color var(--duration-quick); }
 .mobileNav a:hover, .mobileNav a[aria-current="page"] { background: var(--surface); }
+.mobileHead { padding: 8px 12px 2px; font-size: 11.5px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
 /* Search and the account buttons sit together at the right end of the bar. */
 .topbarEnd { display: flex; align-items: center; gap: 10px; }
 .menu-toggle { display: none; }
@@ -264,8 +284,7 @@ select.control {
 
 @media (max-width: 1120px) {
   .topbarInner { gap: 16px; }
-  .navlinks a { padding-inline: 10px; }
-  .navGroup + .navGroup { margin-left: 8px; padding-left: 8px; }
+  .navlinks > a, .navTrigger { padding-inline: 10px; }
   .topbarRight .button { padding: 0 14px; }
 }
 /* The five links and the account buttons need about 920px; below that they fold into the menu. */

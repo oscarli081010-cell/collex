@@ -14,7 +14,7 @@ import s from "@/app/auth.module.css";
 
 const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Not approved", unpublished: "Taken down" };
 
-type Listing = { c: Conference; status: string; note: string; mine: boolean };
+export type Listing = { c: Conference; status: string; note: string; mine: boolean };
 type Invite = { conference_id: string; conference: string; invited_by: string };
 
 // The account page's Conferences tab: invites to help run a listing, conferences you saved, and the listings you run.
@@ -25,7 +25,7 @@ export default function ConferencesTab({ userId, onListings, onInvites }: { user
     <>
       <Invites onAccepted={reload} onCount={onInvites} />
       <Saved />
-      <MyListings userId={userId} version={version} onCount={onListings} />
+      <ListingsLink userId={userId} version={version} onCount={onListings} />
     </>
   );
 }
@@ -186,8 +186,8 @@ export function ListingCard({ c, status, note, coOrganiser, today }: { c: Confer
   );
 }
 
-// Listings you sent or help run, with their review status.
-function MyListings({ userId, version, onCount }: { userId: string; version: number; onCount: (n: number) => void }) {
+// The listings you sent or help run, with their review status. null while they load.
+export function useMyListings(userId: string, version = 0) {
   const [rows, setRows] = useState<Listing[] | null>(null);
   useEffect(() => {
     if (!supabase) return;
@@ -201,17 +201,35 @@ function MyListings({ userId, version, onCount }: { userId: string; version: num
       const list = ((data ?? []) as (Parameters<typeof fromRow>[0] & { status: string; review_note: string; submitted_by: string | null })[])
         .map((r) => ({ c: fromRow(r), status: r.status, note: r.review_note, mine: r.submitted_by === userId }));
       setRows(list);
-      onCount(list.length);
     })();
-  }, [userId, version, onCount]);
+  }, [userId, version]);
+  return rows;
+}
 
-  const today = todayInSydney();
+// The Conferences tab's way into the Your listings page.
+function ListingsLink({ userId, version, onCount }: { userId: string; version: number; onCount: (n: number) => void }) {
+  const rows = useMyListings(userId, version);
+  useEffect(() => { if (rows) onCount(rows.length); }, [rows, onCount]);
   return (
     <section className={`panel ${s.card}`} style={{ "--i": 2 } as React.CSSProperties} aria-labelledby="listings-h">
       <div>
         <h2 id="listings-h" className={s.cardTitle}>Your listings</h2>
-        <p className="muted">Conferences you run or help run.</p>
+        <p className="muted">
+          {rows === null ? "Conferences you run or help run."
+            : rows.length === 0 ? "You don\u2019t run a conference yet."
+            : `You run or help run ${rows.length} ${rows.length === 1 ? "conference" : "conferences"}. Edit them, see their activity and where they stand in review.`}
+        </p>
       </div>
+      <Link href="/listings" className="button block">{ICONS.view}See my listings</Link>
+    </section>
+  );
+}
+
+// The Your listings page: each listing you run, then a tile to add another.
+export function ListingsPanel({ rows }: { rows: Listing[] | null }) {
+  const today = todayInSydney();
+  return (
+    <section className={`panel ${s.card}`} style={{ "--i": 0 } as React.CSSProperties} aria-label="Your listings">
       {rows === null ? <RowsSkeleton rows={2} height={84} /> : (
         <>
           {rows.length > 0 && (

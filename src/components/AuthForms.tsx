@@ -348,13 +348,11 @@ export function AccountView() {
     const read = () => setTab(location.hash === "#conferences" ? "conferences" : "profile");
     if (location.hash === "#conferences") setTab("conferences");
     window.addEventListener("hashchange", read);
-    window.addEventListener("collex:hash", read); // the top bar's Your listings link
-    return () => { window.removeEventListener("hashchange", read); window.removeEventListener("collex:hash", read); };
+    return () => { window.removeEventListener("hashchange", read); };
   }, []);
   const choose = useCallback((t: AccountTab) => {
     setTab(t);
     history.replaceState(history.state, "", location.pathname + (t === "conferences" ? "#conferences" : ""));
-    window.dispatchEvent(new Event("collex:hash")); // so the top bar marks the right link
   }, []);
 
   // Arriving from a password-reset email: the password form is on Profile, so go there.

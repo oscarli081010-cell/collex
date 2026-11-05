@@ -37,7 +37,7 @@ export default function Team({ conf, name, me, team, reload }: { conf: string; n
   async function remove(m: Member) {
     const { error } = await supabase!.rpc("remove_organiser", { conf, target: m.user_id });
     if (error) return say(error.message);
-    if (m.user_id === me) { router.push("/account#conferences"); return; }
+    if (m.user_id === me) { router.push("/listings"); return; }
     say(`${who(m)} can no longer edit ${name}`);
     reload();
   }

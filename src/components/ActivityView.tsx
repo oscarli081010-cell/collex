@@ -108,7 +108,7 @@ export default function ActivityView() {
   if (!id || data === "missing" || !data) {
     return page({
       title: "Can’t open", accent: "that", lead: "Only the people who run a listing can see its activity. Pick one from your account.",
-      aside: <div className="btnStack one"><Link href="/account#conferences" className="button lg">Your listings</Link></div>,
+      aside: <div className="btnStack one"><Link href="/listings" className="button lg">Your listings</Link></div>,
     }, null);
   }
 
@@ -155,7 +155,7 @@ export function ActivityBody({ data }: { data: Loaded }) {
     ),
   },
     <div className={`t-stagger ${s.wrap}`}>
-      <Link href="/account#conferences" className={`link ${s.back}`}>&larr; Your listings</Link>
+      <Link href="/listings" className={`link ${s.back}`}>&larr; Your listings</Link>
 
       <div className={s.stats} style={{ "--i": 0 } as React.CSSProperties}>
         {tiles.map((t) => (
