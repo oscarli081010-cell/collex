@@ -19,6 +19,7 @@ export const ICONS = {
   calendar: icon(<><rect x="2.5" y="3.5" width="11" height="10" rx="2" /><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" /></>),
   check: icon(<path d="M3 8.5l3.2 3.2L13 4.8" />),
   chart: icon(<path d="M3.5 13.5V8.5M8 13.5V3M12.5 13.5V6" />),
+  manage: icon(<><path d="M6.5 4.5H13M6.5 8H13M6.5 11.5H13" /><path d="M3.2 4.5h.1M3.2 8h.1M3.2 11.5h.1" /></>),
   edit: icon(<path d="M10.5 2.5l3 3-7.5 7.5H3v-3zM9 4l3 3" />),
   up: icon(<path d="M8 12.5v-9M4.5 7L8 3.5 11.5 7" />),
   down: icon(<path d="M8 3.5v9M4.5 9L8 12.5 11.5 9" />),

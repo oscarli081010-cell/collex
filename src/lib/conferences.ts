@@ -54,6 +54,8 @@ export type Conference = {
   chairOpensAt?: string | null;
   /** The organiser's own interest form (Google Forms and the like). When set, it replaces Collex's interest button. */
   interestUrl?: string | null;
+  /** The organisers take registrations on Collex (their listing's Manage tab) rather than through their own form. */
+  collexRegistration?: boolean;
   isTemplate?: boolean;
   /** Set by an admin when the listing came from the conference's own secretariat. */
   verified?: boolean;

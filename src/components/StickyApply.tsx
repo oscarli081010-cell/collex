@@ -36,7 +36,7 @@ export default function StickyApply({ c }: { c: Conference }) {
         ? <a href={c.delegationUrl} className="button" target="_blank" rel="noreferrer">Register →</a>
         : c.delegationUrl && c.delegationOpensAt
           ? <a href="#apply" className="button">{open === "unknown" ? "Register" : `Opens ${whenOpens(c.delegationOpensAt)}`}</a>
-          : <a href="#apply" className="button">Express interest</a>}
+          : <a href="#apply" className="button">{c.collexRegistration && !c.delegationUrl ? "Register" : "Express interest"}</a>}
     </div>
   );
 }

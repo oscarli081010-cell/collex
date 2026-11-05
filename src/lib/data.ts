@@ -6,7 +6,7 @@ import { coverUrl, NA, ROLE_KINDS, template, webUrl, type Conference, type Role 
 type Row = {
   id: string; slug: string; name: string; short_name: string; host: string; start_date: string | null; end_date: string | null;
   venue: string; level: Conference["level"]; fee: string; delegates: string; overview: string; contact: string;
-  delegation_url: string | null; chair_url: string | null; delegation_opens_at?: string | null; chair_opens_at?: string | null; interest_url?: string | null;
+  delegation_url: string | null; chair_url: string | null; delegation_opens_at?: string | null; chair_opens_at?: string | null; interest_url?: string | null; collex_registration?: boolean;
   key_dates: Conference["keyDates"]; committees: Conference["committees"]; guides: Conference["guides"];
   secretariat: Conference["secretariat"]; roles?: Partial<Role>[] | null;
   verified?: boolean; updated_at?: string; cover_path?: string | null;
@@ -40,6 +40,7 @@ export const fromRow = (r: Row): Conference => ({
   delegationOpensAt: r.delegation_opens_at ?? null,
   chairOpensAt: r.chair_opens_at ?? null,
   interestUrl: webUrl(r.interest_url),
+  collexRegistration: r.collex_registration ?? false,
   verified: r.verified ?? false,
   cover: coverUrl(r.cover_path),
   updatedAt: r.updated_at,

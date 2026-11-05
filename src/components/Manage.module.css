@@ -1,0 +1,56 @@
+.wrap { width: 100%; max-width: 880px; display: flex; flex-direction: column; gap: 20px; }
+.back { align-self: flex-start; font-size: 14px; }
+.card { padding: 28px; display: flex; flex-direction: column; gap: 18px; }
+.cardHead { display: flex; flex-direction: column; gap: 6px; }
+.cardTitle { font-family: var(--serif); font-weight: 400; font-size: 26px; line-height: 1.1; scroll-margin-top: 96px; }
+.note { font-size: 14px; padding: 12px 14px; border-radius: 10px; background: var(--surface); color: var(--muted); }
+
+/* The on/off for taking registrations here: a real checkbox, drawn as a switch. */
+.switchRow { display: flex; align-items: center; gap: 14px; min-height: 44px; font-size: 15px; cursor: pointer; }
+.switchRow input {
+  appearance: none; flex: none; position: relative; width: 46px; height: 28px; margin: 0; border-radius: 999px; cursor: pointer;
+  background: var(--line-strong); transition: background-color var(--duration-fast) var(--ease-smooth-out);
+}
+.switchRow input::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--panel);
+  box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.25); transition: transform var(--duration-fast) var(--ease-smooth-out);
+}
+.switchRow input:checked { background: var(--accent); }
+.switchRow input:checked::after { transform: translateX(18px); }
+.switchRow input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.switchRow input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Show one status at a time. */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter {
+  display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line-strong); background: var(--panel); color: var(--muted); font-size: 14px;
+  transition: background-color var(--duration-quick), color var(--duration-quick), border-color var(--duration-quick);
+}
+.filter:hover { color: var(--ink); }
+.filter[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--panel); }
+.filter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.filterCount { font-variant-numeric: tabular-nums; opacity: 0.7; }
+@media (pointer: coarse) { .filter { height: 44px; } }
+
+.regList { display: flex; flex-direction: column; gap: 10px; }
+.reg {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px 20px; flex-wrap: wrap;
+  padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+}
+.reg[data-status="accepted"] { border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
+.reg[data-status="declined"] { opacity: 0.7; }
+.regMain { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 280px; }
+.regSchool { font-size: 16px; font-weight: 500; overflow-wrap: anywhere; }
+.regMeta { font-size: 13.5px; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; }
+.quote { display: block; margin-top: 4px; padding: 8px 12px; border-radius: 8px; background: var(--surface); font-size: 13.5px; color: var(--muted); overflow-wrap: anywhere; }
+.regActions { display: flex; gap: 8px; flex: 0 1 auto; }
+.statusBtn { height: 40px !important; padding: 0 14px !important; font-size: 14px !important; }
+.statusBtn[data-on="true"] { background: var(--ink); border-color: var(--ink); color: var(--panel); }
+@media (pointer: coarse) { .statusBtn { height: 44px !important; } }
+
+@media (max-width: 640px) {
+  .card { padding: 20px; }
+  .regActions { width: 100%; }
+  .regActions .statusBtn { flex: 1 1 0; padding: 0 6px !important; }
+}

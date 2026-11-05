@@ -5,10 +5,10 @@ import { useLayoutEffect, useRef } from "react";
 import { ICONS } from "./IconButton";
 import s from "@/app/auth.module.css";
 
-export type ListingView = "activity" | "edit";
+export type ListingView = "activity" | "manage" | "edit";
 const LAST = "collex:listing-tab";
 
-// A listing's Activity and edit form, one tap apart on the same sliding control as the account and edit tabs, with a
+// A listing's Activity, Manage and edit form, one tap apart on the same sliding control as the account and edit tabs, with a
 // button beside it to the listing's public page once it's live. Edit is only there for the people who can edit.
 //
 // Each page is its own route, so the control is rebuilt on every switch. To keep it feeling like one control, the
@@ -18,7 +18,10 @@ export default function ListingNav({ id, slug, current, live, canEdit }: { id: s
   const pill = useRef<HTMLSpanElement>(null);
   const items = [
     { id: "activity" as const, label: "Activity", href: `/activity?id=${id}`, icon: ICONS.chart },
-    ...(canEdit ? [{ id: "edit" as const, label: "Edit listing", href: `/list?edit=${id}`, icon: ICONS.edit }] : []),
+    ...(canEdit ? [
+      { id: "manage" as const, label: "Manage", href: `/manage?id=${id}`, icon: ICONS.manage },
+      { id: "edit" as const, label: "Edit listing", href: `/list?edit=${id}`, icon: ICONS.edit },
+    ] : []),
   ];
   const tabs = items.length > 1;
 
@@ -62,7 +65,7 @@ export default function ListingNav({ id, slug, current, live, canEdit }: { id: s
   return (
     <div className={`${s.listingNav} ${tabs && live ? "" : s.listingNavOne}`}>
       {tabs && (
-        <nav ref={box} className={`${s.seg} ${s.segTwo}`} aria-label="This listing">
+        <nav ref={box} className={`${s.seg} ${s.segThree}`} aria-label="This listing">
           <span ref={pill} className={`t-pill ${s.segPill}`} aria-hidden="true" />
           {items.map((i) => (
             <Link key={i.id} href={i.href} data-view={i.id} className={s.segIcon} aria-current={i.id === current ? "page" : undefined} prefetch={false} onClick={(e) => open(e, i)}>{i.icon}{i.label}</Link>

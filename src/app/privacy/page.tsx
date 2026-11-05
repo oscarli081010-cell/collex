@@ -31,6 +31,8 @@ export default function Privacy() {
 
         <h3>When you express interest in a conference</h3>
         <p>Which conferences you&rsquo;ve sent an expression of interest to. You choose to send it on the conference&rsquo;s page and can withdraw it there. The conference&rsquo;s organisers see only how many expressions of interest it has, and how many arrived each week, never who sent them.</p>
+        <h3>When you register a delegation</h3>
+        <p>If a conference takes registrations on Collex, the school or university you enter, a contact name and email, how many delegates, and any note you add. You choose to send it, and you can withdraw it on the conference&rsquo;s page, which deletes it. Only you, the people who run that conference and Collex admins can see it. Deleting your account deletes your registrations too.</p>
         <h3>When you help run a listing</h3>
         <p>If the person who listed a conference invites you as a co-organiser, we record the invite, who sent it, and when you accept, decline or leave. Invites only go to people who already have a Collex account, by the email on that account, and we don&rsquo;t email you about them: they wait on your account page.</p>
         <h3>A record of changes</h3>
@@ -56,7 +58,7 @@ export default function Privacy() {
         <h2>Who can see it</h2>
         <ul>
           <li><strong>Everyone</strong> can see approved listings, including the contact email and any cover photo added to them. Your account details are never shown publicly.</li>
-          <li><strong>The organisers of a listing</strong> (the person who listed it and the co-organisers they invite) can see each other&rsquo;s names and account emails, and that listing&rsquo;s interest numbers by week. They never see who expressed interest or who follows it.</li>
+          <li><strong>The organisers of a listing</strong> (the person who listed it and the co-organisers they invite) can see each other&rsquo;s names and account emails, and that listing&rsquo;s interest numbers by week. They never see who expressed interest or who follows it. If it takes registrations on Collex, they also see those registrations, with the contact details the school gave.</li>
           <li><strong>Collex admins</strong> can see accounts and listings so they can review submissions and answer requests.</li>
           <li><strong>Our service providers</strong> handle data only to run their part of Collex: Supabase (database and sign-in), Vercel (website hosting) and Resend (sending account and follow emails).</li>
           <li><strong>Authorities</strong>, only where the law requires us to share it.</li>

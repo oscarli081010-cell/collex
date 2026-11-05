@@ -52,8 +52,8 @@
   .side { width: 100%; align-items: stretch; }
   .note { max-width: none; text-align: left; }
   /* With figures, the note stays beside them rather than stacking above, so the band keeps the calendar's height. */
-  .side:has(.figures):has(.note) { align-items: flex-end; gap: 16px; }
-  .side:has(.figures):has(.note) .note { flex: 1 1 0; min-width: 0; font-size: 14px; }
+  .side:has(.figures):has(.note) { align-items: flex-end; flex-wrap: wrap; gap: 16px; }
+  .side:has(.figures):has(.note) .note { flex: 1 1 100px; min-width: 0; font-size: 14px; }
   .side:has(.figures):has(.note) .figures { width: auto; flex: none; gap: 12px; }
   .figures { width: 100%; justify-content: space-between; gap: 12px; }
   .figures > div + div { padding-left: 12px; }

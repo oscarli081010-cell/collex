@@ -32,7 +32,7 @@ export type Loaded = {
 const FIELD: Record<string, string> = {
   name: "the name", short_name: "the short name", host: "the host school", start_date: "the first day", end_date: "the last day",
   venue: "the venue", level: "the level", contact: "the contact email", fee: "the delegate fee", delegates: "the delegate count",
-  delegation_url: "the registration link", chair_url: "the chair application link", interest_url: "the interest form link",
+  delegation_url: "the registration link", collex_registration: "registering on Collex", chair_url: "the chair application link", interest_url: "the interest form link",
   overview: "the overview", committees: "the committees", guides: "the background guides", cover_path: "the cover photo",
   key_dates: "the key dates", delegation_opens_at: "when registration opens", chair_opens_at: "when chair applications open", roles: "the help wanted", secretariat: "the secretariat", submitter_role: "the submitter's role", verified: "the Verified badge",
 };
@@ -53,6 +53,12 @@ const SENTENCE: Record<string, (e: Entry) => string> = {
   "accepted organiser invite": () => "joined the team",
   "removed organiser": (e) => `removed ${e.subject ?? "someone"} from the team`,
   "left organisers": () => "left the team",
+  "registration received": () => "registered a delegation",
+  "registration accepted": () => "accepted a registration",
+  "registration waitlisted": () => "waitlisted a registration",
+  "registration declined": () => "declined a registration",
+  "registration new": () => "moved a registration back to new",
+  "registration withdrawn": () => "withdrew their registration",
 };
 const TONE: Record<string, string> = { approved: "ok", rejected: "bad", unpublished: "warn", submitted: "accent", reopened: "warn", "removed organiser": "bad", "left organisers": "warn" };
 

@@ -6,6 +6,7 @@ import type { Conference } from "@/lib/conferences";
 import { whenOpens } from "@/lib/schedule";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
+import { RegisterCard, RegisterForm, useMine } from "./Register";
 import { useOpen } from "./useOpen";
 import { useToast } from "./useToast";
 import s from "@/app/inner.module.css";
@@ -16,6 +17,10 @@ type Say = (msg: string) => void;
 // register, say they're interested, or apply to chair.
 export default function ApplyBand({ c }: { c: Conference }) {
   const { say, node } = useToast();
+  // The organisers either link their own form or take registrations here; their own form wins when both are set.
+  const here = Boolean(c.collexRegistration) && !c.delegationUrl;
+  const [mine, setMine] = useMine(c);
+  const [formOpen, setFormOpen] = useState(false);
   const options = [
     { title: "Register a delegation", url: c.delegationUrl, cta: "Register", at: c.delegationOpensAt, what: "Delegate registration" },
     { title: "Apply to chair", url: c.chairUrl, cta: "Apply", at: c.chairOpensAt, what: "Chair applications" },
@@ -23,9 +28,12 @@ export default function ApplyBand({ c }: { c: Conference }) {
 
   return (
     <section id="apply" className={s.applyBand} aria-label="Apply">
-      <ApplyCard o={options[0]} say={say} />
+      {here
+        ? <RegisterCard c={c} mine={mine} formOpen={formOpen} setFormOpen={setFormOpen} say={say} onWithdrawn={() => setMine(null)} />
+        : <ApplyCard o={options[0]} say={say} />}
       <Interest c={c} say={say} />
       <ApplyCard o={options[1]} say={say} />
+      {here && formOpen && !mine && <RegisterForm c={c} say={say} onDone={(m) => { setMine(m); setFormOpen(false); }} />}
       {node}
     </section>
   );
