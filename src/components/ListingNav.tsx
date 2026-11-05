@@ -69,7 +69,7 @@ export default function ListingNav({ id, slug, current, live, canEdit }: { id: s
           ))}
         </nav>
       )}
-      {live && <Link href={`/conferences/${slug}`} className={`button secondary ${s.viewListing}`}>{ICONS.view}View listing</Link>}
+      {live && <Link href={`/conferences/${slug}`} className={`button secondary ${s.viewListing}`} aria-label="View listing">{ICONS.view}<span className={s.viewText}>View listing</span></Link>}
     </div>
   );
 }

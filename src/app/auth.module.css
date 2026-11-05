@@ -60,7 +60,14 @@
 .listingNavOne { grid-template-columns: 1fr; }
 .listingNav .viewListing { height: 46px; border-radius: 10px; }
 @media (pointer: coarse) { .listingNav .viewListing { height: 52px; } }
-@media (max-width: 560px) { .listingNav { grid-template-columns: 1fr; } }
+/* On a phone the button to the public page shrinks to its icon and stays beside the tabs, so the band isn't a row taller. */
+@media (max-width: 560px) {
+  .listingNav { grid-template-columns: minmax(0, 1fr) 46px; }
+  .listingNavOne { grid-template-columns: 1fr; }
+  .listingNav .viewListing { padding: 0; }
+  .listingNav .viewText { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+@media (max-width: 560px) and (pointer: coarse) { .listingNav { grid-template-columns: minmax(0, 1fr) 52px; } }
 /* Touch screens: the control is a 44px target, like every other button. */
 @media (pointer: coarse) { .seg button, .seg a { height: 44px; } }
 /* One tab's worth of cards. hidden must still win over this display. */
