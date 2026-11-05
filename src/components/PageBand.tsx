@@ -43,6 +43,12 @@ export default function PageBand({ title, accent, lead, media, figures = [], asi
   );
 }
 
+// A short line of detail beside the title, on the right where other bands keep their figures. Listing pages use it
+// instead of a lead under the title, which would make their band taller than the calendar's.
+export function BandNote({ children }: { children: React.ReactNode }) {
+  return <div className={s.note}>{children}</div>;
+}
+
 // The next conference that hasn't started yet, as a figure.
 export function nextUp(list: Conference[]): Figure {
   const today = todayInSydney();

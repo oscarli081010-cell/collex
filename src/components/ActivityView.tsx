@@ -9,7 +9,7 @@ import { forgetListing, keptActivity, loadActivity, warmEditing } from "@/lib/li
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
 import InterestChart, { type Week } from "./InterestChart";
-import PageBand, { type BandProps } from "./PageBand";
+import PageBand, { BandNote, type BandProps } from "./PageBand";
 import SearchBox from "./SearchBox";
 import { ConfirmIconButton, ICONS } from "./IconButton";
 import ListingNav from "./ListingNav";
@@ -143,7 +143,7 @@ export function ActivityBody({ data, onChanged }: { data: Loaded; onChanged?: ()
 
   return page({
     title: "Activity",
-    lead: <>{live ? <Link href={`/conferences/${c.slug}`} className="link">{c.name}</Link> : c.name}<br />{c.startDate ? formatRange(c) : "Dates not set"}</>,
+    aside: <BandNote>{c.name}<br />{c.startDate ? formatRange(c) : "Dates not set"}</BandNote>,
     figures: [
       { label: "Interested", value: ownForm ? "–" : num(interest.total) },
       { label: "Following", value: num(followers) },

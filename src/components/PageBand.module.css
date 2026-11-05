@@ -28,6 +28,12 @@
 .lead { margin-top: 14px; font-size: 16px; line-height: 1.55; color: var(--muted); max-width: 52ch; overflow-wrap: anywhere; text-wrap: pretty; }
 .side { display: flex; flex-direction: column; align-items: flex-end; gap: 20px; }
 
+.note { max-width: 34ch; text-align: right; font-size: 15px; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; text-wrap: pretty; }
+.note a { color: inherit; }
+/* Figures and a note together sit side by side, the note first, so the pair is no taller than the title. */
+.side:has(.figures):has(.note) { flex-direction: row; align-items: flex-end; gap: clamp(20px, 3vw, 44px); }
+.side:has(.figures):has(.note) .note { order: -1; }
+
 .figures { display: flex; gap: clamp(20px, 3vw, 44px); }
 .figures > div { display: flex; flex-direction: column-reverse; gap: 6px; min-width: 0; }
 .figures > div + div { padding-left: clamp(20px, 3vw, 44px); border-left: 1px solid var(--line); }
@@ -44,6 +50,8 @@
   /* On a phone the calendar's figures sit under its title (32px gap, 70px tall), so its band is taller. */
   .band { min-height: calc(2 * 28px + 0.95 * 52px + 32px + 70px + 28px + 48px + 2px); }
   .side { width: 100%; align-items: stretch; }
+  .note { max-width: none; text-align: left; }
+  .side:has(.figures):has(.note) { flex-direction: column; align-items: stretch; gap: 20px; }
   .figures { width: 100%; justify-content: space-between; gap: 12px; }
   .figures > div + div { padding-left: 12px; }
   .figures dd { font-size: 26px; white-space: normal; }

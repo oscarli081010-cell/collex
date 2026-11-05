@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import PageBand, { type BandProps } from "./PageBand";
+import PageBand, { BandNote, type BandProps } from "./PageBand";
 import { FormSkeleton } from "./Skeleton";
 import { Fragment, useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { coverUrl, formatRange, webUrl, type Conference, type Role } from "@/lib/conferences";
@@ -257,7 +257,7 @@ export default function ListForm() {
   );
   const listBand: BandProps = editId
     ? {
-        title: "Edit your", accent: "listing", lead: edit ? (edit.status === "published" ? "Changes show on the live page straight away." : "It's still in review. Your changes go with it.") : undefined,
+        title: "Edit your", accent: "listing", aside: edit ? <BandNote>{edit.status === "published" ? "Changes show on the live page straight away." : "It's still in review. Your changes go with it."}</BandNote> : undefined,
         children: edit ? <ListingNav id={edit.id} slug={asText(edit, "slug")} current="edit" live={edit.status === "published"} canEdit /> : undefined,
       }
     : { title: "List a", accent: "conference", lead: "The Collex team reviews it before it goes live." };
