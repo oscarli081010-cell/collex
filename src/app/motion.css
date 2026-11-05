@@ -124,8 +124,14 @@
 }
 .t-toast.is-hiding { animation: t-toast-out var(--duration-quick) var(--ease-smooth-out) both; }
 
-/* Moving between a listing's Activity, public page and edit form: the page fades in once (the page-level entrance), and the cards inside it don't rise or stagger on top of that, so nothing plays twice. */
-:root[data-listing-switch] .t-reveal, :root[data-listing-switch] .t-stagger > * { animation: none; }
+/* Moving between a listing's Activity, public page and edit form plays no entrance at all: the page, its header and the
+   cards inside it just appear, so nothing replays. (The tab highlight still slides, which is a transition.) */
+:root[data-listing-switch] .t-page-enter,
+:root[data-listing-switch] main *,
+:root[data-listing-switch] main *::before,
+:root[data-listing-switch] main *::after { animation: none !important; }
+:root[data-listing-switch]::view-transition-old(root),
+:root[data-listing-switch]::view-transition-new(root) { animation: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
   .t-dropdown, .t-pill { transition: none !important; }

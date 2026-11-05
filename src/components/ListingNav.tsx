@@ -12,7 +12,7 @@ const LAST = "collex:listing-tab";
 // button beside it to the listing's public page once it's live. Edit is only there for the people who can edit.
 //
 // Each page is its own route, so the control is rebuilt on every switch. To keep it feeling like one control, the
-// highlight starts on the tab you came from and slides to this one, and the page itself skips its entrance (see motion.css).
+// highlight starts on the tab you came from and slides to this one, and the page itself plays no entrance (see motion.css).
 export default function ListingNav({ id, slug, current, live, canEdit }: { id: string; slug: string; current: ListingView; live: boolean; canEdit: boolean }) {
   const box = useRef<HTMLElement>(null);
   const pill = useRef<HTMLSpanElement>(null);
@@ -48,7 +48,7 @@ export default function ListingNav({ id, slug, current, live, canEdit }: { id: s
   // The page that loads next doesn't re-enter; the flag clears itself once it has.
   const going = () => {
     document.documentElement.dataset.listingSwitch = "1";
-    setTimeout(() => { delete document.documentElement.dataset.listingSwitch; }, 2500);
+    setTimeout(() => { delete document.documentElement.dataset.listingSwitch; }, 5000);
   };
 
   if (!tabs && !live) return null;
