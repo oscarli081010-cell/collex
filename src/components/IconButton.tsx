@@ -23,6 +23,7 @@ export const ICONS = {
   up: icon(<path d="M8 12.5v-9M4.5 7L8 3.5 11.5 7" />),
   down: icon(<path d="M8 3.5v9M4.5 9L8 12.5 11.5 9" />),
   close: icon(<path d="M4 4l8 8M12 4l-8 8" />),
+  undo: icon(<path d="M6 3.5L3 6.5l3 3M3 6.5h6.2a3.8 3.8 0 010 7.6H6.5" />),
   leave: icon(<><path d="M6.5 2.5h-3a1 1 0 00-1 1v9a1 1 0 001 1h3" /><path d="M10 5l3 3-3 3M13 8H6" /></>),
 };
 

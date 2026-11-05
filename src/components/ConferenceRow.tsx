@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ViewTransition } from "react";
 import { formatRange, monogram, NA, type Conference } from "@/lib/conferences";
 import Countdown from "./Countdown";
+import RowAction from "./RowAction";
 import Verified from "./Verified";
 import { META_ICONS } from "./MetaIcons";
 import s from "./board.module.css";
@@ -22,13 +23,6 @@ export function Thumb({ c, size }: { c: Conference; size?: "sm" }) {
 export default function ConferenceRow({ c, past = false }: { c: Conference; past?: boolean }) {
   const d = c.startDate ? new Date(c.startDate + "T00:00:00") : null;
   const page = `/conferences/${c.slug}`;
-  const action = (url: string | null | undefined, label: string, primary: boolean) =>
-    url ? (
-      <a href={url} target="_blank" rel="noreferrer" className={`button ${primary ? "" : "secondary"} ${s.rowBtn}`}>{label}</a>
-    ) : (
-      <Link href={page} className={`button ${primary ? "" : "secondary"} ${s.rowBtn}`}>{label}</Link>
-    );
-
   return (
     <div className={s.row}>
       <span className={s.lead}>
@@ -56,8 +50,8 @@ export default function ConferenceRow({ c, past = false }: { c: Conference; past
       <span className={s.rowActions}>
         {!past && (
           <span className={s.rowBtns}>
-            {action(c.delegationUrl, "Register", true)}
-            {action(c.chairUrl, "Apply to chair", false)}
+            <RowAction url={c.delegationUrl} label="Register" primary page={page} opensAt={c.delegationOpensAt} />
+            <RowAction url={c.chairUrl} label="Apply to chair" primary={false} page={page} opensAt={c.chairOpensAt} />
           </span>
         )}
         <Link href={page} className={s.go} aria-label={`Open ${c.name}`}>→</Link>

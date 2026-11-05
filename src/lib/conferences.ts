@@ -49,6 +49,9 @@ export type Conference = {
   /** Application form links; null until applications open. */
   delegationUrl?: string | null;
   chairUrl?: string | null;
+  /** When registration and chair applications open, if the organiser scheduled it (ISO timestamps). */
+  delegationOpensAt?: string | null;
+  chairOpensAt?: string | null;
   /** The organiser's own interest form (Google Forms and the like). When set, it replaces Collex's interest button. */
   interestUrl?: string | null;
   isTemplate?: boolean;

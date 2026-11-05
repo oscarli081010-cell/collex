@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { formatRange, type Conference } from "@/lib/conferences";
+import { whenOpens } from "@/lib/schedule";
+import { useOpen } from "./useOpen";
 import s from "@/app/inner.module.css";
 
 // Phones only: once the Register card has scrolled away, a slim bar keeps the main action in reach.
@@ -9,6 +11,7 @@ import s from "@/app/inner.module.css";
 export default function StickyApply({ c }: { c: Conference }) {
   const [past, setPast] = useState(false);
   const [atFoot, setAtFoot] = useState(false);
+  const open = useOpen(c.delegationOpensAt);
 
   useEffect(() => {
     const band = document.getElementById("apply");
@@ -29,9 +32,11 @@ export default function StickyApply({ c }: { c: Conference }) {
         <span className={s.stickyName}>{c.name}</span>
         <span className={s.stickyWhen}>{c.startDate ? formatRange(c) : `Hosted by ${c.host}`}</span>
       </div>
-      {c.delegationUrl
+      {c.delegationUrl && open === "open"
         ? <a href={c.delegationUrl} className="button" target="_blank" rel="noreferrer">Register →</a>
-        : <a href="#apply" className="button">Express interest</a>}
+        : c.delegationUrl && c.delegationOpensAt
+          ? <a href="#apply" className="button">{open === "unknown" ? "Register" : `Opens ${whenOpens(c.delegationOpensAt)}`}</a>
+          : <a href="#apply" className="button">Express interest</a>}
     </div>
   );
 }

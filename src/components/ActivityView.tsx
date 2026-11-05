@@ -9,16 +9,20 @@ import { useAuth } from "./AuthProvider";
 import InterestChart, { type Week } from "./InterestChart";
 import PageBand, { type BandProps } from "./PageBand";
 import SearchBox from "./SearchBox";
+import { ConfirmIconButton, ICONS } from "./IconButton";
+import { useToast } from "./useToast";
 import { ActivitySkeleton } from "./Skeleton";
 import auth from "@/app/auth.module.css";
 import s from "./Activity.module.css";
 
 const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Not approved", unpublished: "Taken down" };
 
-type Entry = { at: string; who: string; action: string; fields: string[]; note: string | null; subject: string | null };
+type Entry = { id: number; at: string; who: string; action: string; fields: string[]; note: string | null; subject: string | null; role: string | null; can_undo: boolean };
 export type Loaded = {
   c: Conference; status: string; createdAt: string;
   interest: { total: number; weeks: Week[] }; followers: number | null; team: number; history: Entry[] | null;
+  /** False for a co-organiser who can only view. */
+  canEdit?: boolean;
 };
 
 // What a changed column is called to a person.
@@ -27,7 +31,7 @@ const FIELD: Record<string, string> = {
   venue: "the venue", level: "the level", contact: "the contact email", fee: "the delegate fee", delegates: "the delegate count",
   delegation_url: "the registration link", chair_url: "the chair application link", interest_url: "the interest form link",
   overview: "the overview", committees: "the committees", guides: "the background guides", cover_path: "the cover photo",
-  key_dates: "the key dates", roles: "the help wanted", secretariat: "the secretariat", submitter_role: "the submitter's role", verified: "the Verified badge",
+  key_dates: "the key dates", delegation_opens_at: "when registration opens", chair_opens_at: "when chair applications open", roles: "the help wanted", secretariat: "the secretariat", submitter_role: "the submitter's role", verified: "the Verified badge",
 };
 const fieldName = (k: string) => FIELD[k] ?? `the ${k.replaceAll("_", " ")}`;
 const list = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
@@ -41,7 +45,8 @@ const SENTENCE: Record<string, (e: Entry) => string> = {
   unpublished: () => "took the listing down",
   reopened: () => "reopened the listing for review",
   edited: (e) => (e.fields.length ? `changed ${list(e.fields.map(fieldName))}` : "saved the listing"),
-  "invited organiser": (e) => `invited ${e.subject ?? "someone"} to help run it`,
+  "invited organiser": (e) => `invited ${e.subject ?? "someone"} to ${e.role === "viewer" ? "see its activity" : "help run it"}`,
+  "changed organiser role": (e) => `made ${e.subject ?? "someone"} ${e.role === "viewer" ? "view only" : "able to edit"}`,
   "accepted organiser invite": () => "joined the team",
   "removed organiser": (e) => `removed ${e.subject ?? "someone"} from the team`,
   "left organisers": () => "left the team",
@@ -61,6 +66,7 @@ const mondayOf = (today: string) => {
 
 // One listing's page for the people who run it: how many are interested and following, and who changed what.
 export default function ActivityView() {
+  const [version, setVersion] = useState(0);
   const { ready, session } = useAuth();
   const [id, setId] = useState<string | null | undefined>(undefined);
   const [data, setData] = useState<Loaded | "missing" | null>(null);
@@ -82,15 +88,16 @@ export default function ActivityView() {
       const total = Number(((counts.data ?? []) as { conference_id: string; interested: number }[]).find((r) => r.conference_id === id)?.interested ?? 0);
       const weeks = ((weekly.data ?? []) as { conference_id: string; week: string; interested: number }[])
         .filter((w) => w.conference_id === id).map((w) => ({ week: w.week, interested: Number(w.interested) }));
+      const me = ((team.data ?? []) as { user_id: string; is_owner: boolean; role: string }[]).find((m) => m.user_id === session.user.id);
       setData({
-        c: fromRow(row), status: row.status, createdAt: row.created_at,
+        c: fromRow(row), status: row.status, createdAt: row.created_at, canEdit: !me || me.is_owner || me.role === "editor",
         interest: { total, weeks }, followers: followers.error || followers.data == null ? null : Number(followers.data),
         team: ((team.data ?? []) as { accepted: boolean }[]).filter((m) => m.accepted).length,
         history: history.error ? null : ((history.data ?? []) as (Omit<Entry, "fields"> & { fields: string[] | null })[]).map((h) => ({ ...h, fields: h.fields ?? [] })),
       });
     })();
     return () => { live = false; };
-  }, [id, session]);
+  }, [id, session, version]);
 
   const page = (band: BandProps, body: React.ReactNode) => (
     <>
@@ -113,12 +120,13 @@ export default function ActivityView() {
     }, null);
   }
 
-  return <ActivityBody data={data} />;
+  return <ActivityBody data={data} onChanged={() => setVersion((v) => v + 1)} />;
 }
 
 // The page once its numbers are in. Kept apart from the loading so it can be looked at on its own.
-export function ActivityBody({ data }: { data: Loaded }) {
+export function ActivityBody({ data, onChanged }: { data: Loaded; onChanged?: () => void }) {
   const { c, status, interest, followers, team, history } = data;
+  const { say, node } = useToast();
   const today = todayInSydney();
   const page = (band: BandProps, body: React.ReactNode) => (
     <>
@@ -129,7 +137,7 @@ export function ActivityBody({ data }: { data: Loaded }) {
   const thisWeek = interest.weeks.find((w) => w.week === mondayOf(today))?.interested ?? 0;
   const ownForm = Boolean(c.interestUrl);
   const live = status === "published";
-  const canEdit = live || status === "pending";
+  const canEdit = (live || status === "pending") && data.canEdit !== false;
   const num = (n: number | null) => (n === null ? "–" : String(n));
 
   const tiles: { label: string; value: React.ReactNode; note?: string }[] = [
@@ -183,15 +191,21 @@ export function ActivityBody({ data }: { data: Loaded }) {
         <div className={s.cardHead}>
           <h2 id="history-h" className={s.cardTitle}>Audit log</h2>
         </div>
-        <AuditLog history={history} />
+        <AuditLog history={history} onUndo={async (e) => {
+          const { error } = await supabase!.rpc("undo_edit", { entry: e.id });
+          if (error) return say(error.message.includes("any more") ? "That change can\u2019t be undone any more." : "Couldn\u2019t undo that. Try again.");
+          say("Change undone");
+          onChanged?.();
+        }} />
       </section>
+      {node}
     </div>);
 }
 
 const PER_PAGE = 10;
 
 // The history, newest first, ten to a page, with a search over who did it, what they did and when.
-function AuditLog({ history }: { history: Entry[] | null }) {
+function AuditLog({ history, onUndo }: { history: Entry[] | null; onUndo: (e: Entry) => void }) {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(0);
   const rows = useMemo(() => (history ?? []).map((h) => {
@@ -227,6 +241,11 @@ function AuditLog({ history }: { history: Entry[] | null }) {
                 <time className={s.when} dateTime={h.at}>{when(h.at)}</time>
                 {h.note && <span className={s.quote}>&ldquo;{h.note}&rdquo;</span>}
               </div>
+              {h.can_undo && (
+                <span className={s.undo}>
+                  <ConfirmIconButton label="Undo this change" confirm="Click again to undo this change" icon={ICONS.undo} onConfirm={() => onUndo(h)} />
+                </span>
+              )}
             </li>
           ))}
         </ol>

@@ -8,7 +8,7 @@ import { useToast } from "./useToast";
 import auth from "@/app/auth.module.css";
 import s from "@/app/inner.module.css";
 
-export type Member = { user_id: string; name: string; email: string; is_owner: boolean; accepted: boolean };
+export type Member = { user_id: string; name: string; email: string; is_owner: boolean; accepted: boolean; role: "editor" | "viewer" };
 
 // Who runs a listing. The owner invites people who already have a Collex account (nobody is emailed:
 // the invite waits on their account page) and can remove them; co-organisers can leave.
@@ -18,6 +18,7 @@ export default function Team({ conf, name, me, team, reload }: { conf: string; n
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [role, setRole] = useState<Member["role"]>("editor");
   const owner = team.find((m) => m.is_owner)?.user_id === me;
   const who = (m: Member) => m.name || m.email;
 
@@ -26,11 +27,18 @@ export default function Team({ conf, name, me, team, reload }: { conf: string; n
     if (!supabase) return;
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setError("Add the email they use for Collex.");
     setBusy(true);
-    const { data, error } = await supabase.rpc("invite_organiser", { conf, invitee_email: email.trim() });
+    const { data, error } = await supabase.rpc("invite_organiser", { conf, invitee_email: email.trim(), as_role: role });
     setBusy(false);
     if (error) return setError(error.message);
     setEmail("");
     say(`Invited ${data}. They'll see it on their account page.`);
+    reload();
+  }
+
+  async function changeRole(m: Member, next: Member["role"]) {
+    const { error } = await supabase!.rpc("set_organiser_role", { conf, target: m.user_id, new_role: next });
+    if (error) return say(error.message);
+    say(`${who(m)} can now ${next === "editor" ? "edit" : "only view"} ${name}`);
     reload();
   }
 
@@ -47,8 +55,8 @@ export default function Team({ conf, name, me, team, reload }: { conf: string; n
       <div>
         <h2 id="team-h" className={s.teamTitle}>Organisers</h2>
         <p className="muted">{owner
-          ? "Invite people who help run the conference. Once they accept, they can edit this listing and see its interest, like you."
-          : "The people who can edit this listing. Only the person who listed it can invite or remove organisers."}</p>
+          ? "Invite people who help run the conference. Once they accept, they can see its activity, and edit it too if you let them."
+          : "The people who run this listing. Only the person who listed it can invite or remove organisers, or change what they can do."}</p>
       </div>
       <ul className={auth.listings}>
         {team.map((m) => (
@@ -58,8 +66,15 @@ export default function Team({ conf, name, me, team, reload }: { conf: string; n
               <span className={auth.listingMeta}>
                 {m.name && <span>{m.email}</span>}
                 <span className={auth.tag}>{m.is_owner ? "Listed it" : m.accepted ? "Co-organiser" : "Invited"}</span>
+                {!m.is_owner && m.role === "viewer" && <span className={auth.tag}>View only</span>}
               </span>
             </div>
+            {!m.is_owner && owner && (
+              <select className={`control ${s.roleSelect}`} value={m.role} aria-label={`What ${who(m)} can do`} onChange={(e) => changeRole(m, e.target.value as Member["role"])}>
+                <option value="editor">Can edit</option>
+                <option value="viewer">View only</option>
+              </select>
+            )}
             {!m.is_owner && (owner || m.user_id === me) && (
               m.user_id === me
                 ? <ConfirmIconButton label={`Leave ${name}`} confirm="Click again to stop editing this listing" icon={ICONS.leave} onConfirm={() => remove(m)} />
@@ -70,6 +85,13 @@ export default function Team({ conf, name, me, team, reload }: { conf: string; n
       </ul>
       {owner && (
         <form className={s.invite} onSubmit={invite} noValidate>
+          <label className="field">
+            <span>They can</span>
+            <select className="control" value={role} onChange={(e) => setRole(e.target.value as Member["role"])}>
+              <option value="editor">Edit the listing and see its activity</option>
+              <option value="viewer">Only see its activity</option>
+            </select>
+          </label>
           <label className={`field ${error ? s.invalid : ""}`}>
             <span>Invite by email</span>
             <span className={s.inviteRow}>

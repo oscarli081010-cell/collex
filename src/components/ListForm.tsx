@@ -9,13 +9,14 @@ import { useConferences } from "./ConferencesContext";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
 import { uploadPhoto } from "@/lib/photo";
+import { isoToSydney, sydneyToIso } from "@/lib/schedule";
 import { useAuth } from "./AuthProvider";
 import { badGuide, badRole, CommitteesEditor, committeeRows, KeyDatesEditor, keyDateRows, RolesEditor, roleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toKeyDates, toRoles, toSecretariat, type CommitteeRow, type KeyDateRow, type RoleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
 import Team, { type Member } from "./Team";
 import auth from "@/app/auth.module.css";
 import s from "@/app/inner.module.css";
 
-type F = { name: string; label: string; type: "text" | "date" | "email" | "url" | "select" | "textarea"; wide?: boolean; required?: boolean; hint?: string; options?: string[] };
+type F = { name: string; label: string; type: "text" | "date" | "email" | "url" | "select" | "textarea" | "datetime-local"; wide?: boolean; required?: boolean; hint?: string; options?: string[] };
 
 const FIELDS: F[] = [
   { name: "name", label: "Conference name", type: "text", wide: true, required: true },
@@ -27,7 +28,9 @@ const FIELDS: F[] = [
   { name: "contact", label: "Contact email", type: "email", required: true },
   { name: "fee", label: "Delegate fee", type: "text" },
   { name: "delegation_url", label: "Delegate registration link", type: "url" },
+  { name: "delegation_opens", label: "Registration opens", type: "datetime-local", hint: "Sydney time. The button stays shut until then. Blank opens it straight away." },
   { name: "chair_url", label: "Chair application link", type: "url" },
+  { name: "chair_opens", label: "Chair applications open", type: "datetime-local", hint: "Sydney time. The button stays shut until then. Blank opens it straight away." },
   { name: "interest_url", label: "Interest form link", type: "url", wide: true, hint: "Leave blank to collect interest on Collex" },
   { name: "overview", label: "Overview", type: "textarea", wide: true },
 ];
@@ -44,6 +47,8 @@ const GUIDE_MAX = 10 * 1024 * 1024;
 // The fields an organiser can change on their listing, read back to fill the form.
 type Editing = Record<string, string | null> & { id: string; status: string; guides: Conference["guides"]; committees: Conference["committees"] };
 const asText = (e: Editing, k: string) => (e[k] as string | null) ?? "";
+// The two scheduled buttons are typed as Sydney time but stored as instants.
+const OPENS: Record<string, string> = { delegation_opens: "delegation_opens_at", chair_opens: "chair_opens_at" };
 
 export default function ListForm() {
   const { ready, session } = useAuth();
@@ -57,7 +62,7 @@ export default function ListForm() {
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverRemoved, setCoverRemoved] = useState(false);
   // ?edit=<id> opens one of your own listings for editing instead of a blank form.
-  const [editing, setEditing] = useState<Editing | null | "missing">(null);
+  const [editing, setEditing] = useState<Editing | null | "missing" | "viewonly">(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [committees, setCommittees] = useState<CommitteeRow[]>([]);
   const [secretariat, setSecretariat] = useState<SecretariatRow[]>(() => secretariatRows());
@@ -80,12 +85,15 @@ export default function ListForm() {
     if (!editId || !userId || !supabase) return;
     Promise.all([
       supabase.from("conferences")
-        .select("id, status, name, host, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, interest_url, overview, committees, guides, secretariat, roles, key_dates, cover_path")
+        .select("id, status, name, host, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, delegation_opens_at, chair_opens_at, interest_url, overview, committees, guides, secretariat, roles, key_dates, cover_path")
         .eq("id", editId).in("status", ["pending", "published"]).maybeSingle(),
       loadTeam(),
     ]).then(([{ data }, members]) => {
-      const row = members.length ? (data as Editing | null) : null;
-      setEditing(row ?? "missing");
+      // A view-only co-organiser can open the listing's activity, not its form (the database would refuse the save anyway).
+      const me = members.find((m) => m.user_id === userId);
+      const viewOnly = Boolean(me && !me.is_owner && me.role === "viewer");
+      const row = members.length && !viewOnly ? (data as Editing | null) : null;
+      setEditing(viewOnly ? "viewonly" : row ?? "missing");
       setFirstDay(row?.start_date ?? "");
       setLastDay(row?.end_date ?? "");
       setCommittees(committeeRows(row?.committees ?? [], row?.guides ?? []));
@@ -95,7 +103,7 @@ export default function ListForm() {
       setStray(strayGuides(row?.committees ?? [], row?.guides ?? []));
     });
   }, [editId, userId, loadTeam]);
-  const edit = editing && editing !== "missing" ? editing : null;
+  const edit = editing && editing !== "missing" && editing !== "viewonly" ? editing : null;
   // Other live listings on any of the same days. A heads-up only: two conferences can share a weekend.
   const listed = useConferences();
   const clashes = firstDay ? clashing(listed, firstDay, lastDay && lastDay >= firstDay ? lastDay : firstDay, edit?.id) : [];
@@ -110,6 +118,10 @@ export default function ListForm() {
     else if (!/^\S+@\S+\.\S+$/.test(v("contact"))) out.contact = "That email doesn't look right.";
     if (v("start_date") && v("end_date") && v("end_date") < v("start_date")) out.end_date = "The last day is before the first day.";
     for (const k of ["delegation_url", "chair_url", "interest_url"]) if (v(k) && !isUrl(v(k))) out[k] = "Use a full link starting with https://";
+    for (const [k, link] of [["delegation_opens", "delegation_url"], ["chair_opens", "chair_url"]]) {
+      if (v(k) && !sydneyToIso(v(k))) out[k] = "That date and time doesn't look right.";
+      else if (v(k) && !v(link)) out[k] = "Add the link this button opens first.";
+    }
     if (!v("publish")) out.publish = "Tick the box to confirm before sending.";
     if (committees.some((r) => r.uploading)) out.guides = "Wait for the PDF to finish uploading.";
     else if (firstBadGuide >= 0) out.guides = "Fix the guide link marked below.";
@@ -158,6 +170,8 @@ export default function ListForm() {
       fee: feeText(v("fee")),
       delegation_url: v("delegation_url") || null,
       chair_url: v("chair_url") || null,
+      delegation_opens_at: v("delegation_opens") ? sydneyToIso(v("delegation_opens")) : null,
+      chair_opens_at: v("chair_opens") ? sydneyToIso(v("chair_opens")) : null,
       interest_url: v("interest_url") || null,
       overview: v("overview"),
       committees: toCommittees(committees),
@@ -228,6 +242,13 @@ export default function ListForm() {
     return page({
       title: "Can\u2019t edit that", accent: "listing", lead: "Only the people who run a listing can edit it, while it\u2019s in review or live. Ask its organiser to invite you.",
       aside: <div className="btnStack one"><Link href="/listings" className="button lg">Your listings</Link></div>,
+    }, null);
+  }
+
+  if (editId && editing === "viewonly") {
+    return page({
+      title: "View", accent: "only", lead: "The person who listed this conference set you to view only. You can see its activity, but not edit it.",
+      aside: <div className="btnStack"><Link href={`/activity?id=${editId}`} className="button lg">See activity</Link><Link href="/listings" className="button secondary lg">Your listings</Link></div>,
     }, null);
   }
 
@@ -304,8 +325,8 @@ export default function ListForm() {
                   name={f.name}
                   type={f.type}
                   className="control"
-                  maxLength={f.type === "url" ? 500 : f.type === "email" ? 254 : f.name === "fee" ? 120 : 200}
-                  defaultValue={edit ? asText(edit, f.name) : f.name === "contact" ? session.user.email : undefined}
+                  maxLength={f.type === "datetime-local" ? undefined : f.type === "url" ? 500 : f.type === "email" ? 254 : f.name === "fee" ? 120 : 200}
+                  defaultValue={edit ? (OPENS[f.name] ? isoToSydney(asText(edit, OPENS[f.name])) : asText(edit, f.name)) : f.name === "contact" ? session.user.email : undefined}
                   aria-invalid={Boolean(err)}
                   aria-describedby={hintId}
                   min={f.name === "end_date" ? firstDay || undefined : undefined}

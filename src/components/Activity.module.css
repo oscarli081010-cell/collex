@@ -50,3 +50,4 @@
 .pager .button { width: 100%; }
 @media (max-width: 480px) { .pager { gap: 8px; } }
 .cardTitle { scroll-margin-top: 96px; }
+.undo { margin-left: auto; flex: none; align-self: flex-start; }

@@ -188,3 +188,8 @@ a.listingName:hover { color: var(--accent); }
   font-size: clamp(120px, 18vw, 200px); line-height: 0.85; letter-spacing: -0.03em;
   color: transparent; -webkit-text-stroke: 1.5px var(--line-strong);
 }
+
+/* Saved: two upcoming conferences on the same days (or back to back) are called out. */
+.clashBanner { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: var(--warn-soft); color: var(--warn); font-size: 14px; line-height: 1.5; }
+.clashBanner svg { flex: none; margin-top: 3px; }
+.clashTag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; margin-top: 6px; border-radius: 6px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 500; }

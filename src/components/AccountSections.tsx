@@ -14,8 +14,8 @@ import s from "@/app/auth.module.css";
 
 const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Not approved", unpublished: "Taken down" };
 
-export type Listing = { c: Conference; status: string; note: string; mine: boolean };
-type Invite = { conference_id: string; conference: string; invited_by: string };
+export type Listing = { c: Conference; status: string; note: string; mine: boolean; canEdit: boolean };
+type Invite = { conference_id: string; conference: string; invited_by: string; role: "editor" | "viewer" };
 
 // The account page's Conferences tab: invites to help run a listing, conferences you saved, and the listings you run.
 export default function ConferencesTab({ userId, onListings, onInvites }: { userId: string; onListings: (n: number) => void; onInvites: (n: number) => void }) {
@@ -53,7 +53,7 @@ function Invites({ onAccepted, onCount }: { onAccepted: () => void; onCount: (n:
       : await supabase.rpc("remove_organiser", { conf: i.conference_id, target: user!.id });
     setBusy("");
     if (error) return say(error.message);
-    say(accept ? `You can now edit ${i.conference}` : "Invite declined");
+    say(accept ? (i.role === "viewer" ? `You can now see ${i.conference}'s activity` : `You can now edit ${i.conference}`) : "Invite declined");
     load();
     if (accept) onAccepted();
   };
@@ -67,7 +67,7 @@ function Invites({ onAccepted, onCount }: { onAccepted: () => void; onCount: (n:
           <li key={i.conference_id} className={s.invite}>
             <div className={s.listingMain}>
               <span className={s.listingName}>{i.conference}</span>
-              <span className={s.listingMeta}>{i.invited_by} invited you as a co-organiser. You&rsquo;ll be able to edit the listing and see its activity.</span>
+              <span className={s.listingMeta}>{i.invited_by} invited you as a co-organiser. {i.role === "viewer" ? "You\u2019ll be able to see the listing\u2019s activity." : "You\u2019ll be able to edit the listing and see its activity."}</span>
             </div>
             <div className={s.inviteActions}>
               <button className="button secondary" onClick={() => answer(i, false)} disabled={busy === i.conference_id}>
@@ -93,6 +93,21 @@ function nextKeyDate(c: Conference, today: string) {
   return k ? `${k.label} · ${new Date(k.date! + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })}` : null;
 }
 
+const shiftDay = (iso: string, n: number) => { const d = new Date(iso + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+
+// Other conferences in the list that run on the same days, or the day before or after: you can't be at both.
+function clashesOf(c: Conference, others: Conference[], today: string) {
+  if (!c.startDate) return [];
+  const [as, ae] = [c.startDate, c.endDate ?? c.startDate];
+  return others.flatMap((o) => {
+    if (o === c || !o.startDate || isPast(o, today)) return [];
+    const [bs, be] = [o.startDate, o.endDate ?? o.startDate];
+    if (as <= be && bs <= ae) return [{ o, overlap: true }];
+    if (as <= shiftDay(be, 1) && bs <= shiftDay(ae, 1)) return [{ o, overlap: false }];
+    return [];
+  });
+}
+
 // Conferences you follow or told the organisers you're interested in, soonest first.
 function Saved() {
   const conferences = useConferences();
@@ -114,12 +129,20 @@ function Saved() {
   const list = saved ? conferences.filter((c) => c.id && saved.has(c.id))
     .sort((a, b) => Number(isPast(a, today)) - Number(isPast(b, today)) || (a.startDate ?? "9").localeCompare(b.startDate ?? "9")) : [];
 
+  const upcoming = list.filter((c) => !isPast(c, today));
+  const clashing = upcoming.filter((c) => clashesOf(c, upcoming, today).length > 0);
   return (
     <section className={`panel ${s.card}`} style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="saved-h">
       <div>
         <h2 id="saved-h" className={s.cardTitle}>Saved</h2>
         {saved !== null && list.length === 0 && <p className="muted">Follow a conference, or send it your interest, and it shows up here with its next key date.</p>}
       </div>
+      {clashing.length > 0 && (
+        <p className={s.clashBanner} role="status">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 2.2l6.2 11H1.8z" /><path d="M8 6.5v3M8 11.6v.1" /></svg>
+          <span>{clashing.length === 2 ? "Two of your saved conferences" : `${clashing.length} of your saved conferences`} overlap or run back to back. Check you can make each one.</span>
+        </p>
+      )}
       {saved === null ? <RowsSkeleton rows={2} height={52} /> : list.length === 0 ? (
         <Link href="/conferences" className="button secondary">Browse conferences</Link>
       ) : (
@@ -137,6 +160,9 @@ function Saved() {
                     {next && <span>Next: {next}</span>}
                     {saved!.get(c.id!)!.map((t) => <span key={t} className={s.tag}>{t}</span>)}
                   </span>
+                  {!past && clashesOf(c, upcoming, today).map(({ o, overlap }) => (
+                    <span key={o.id} className={s.clashTag}>{overlap ? "Clashes with" : "Back to back with"} {o.shortName}</span>
+                  ))}
                 </div>
               </li>
             );
@@ -158,9 +184,9 @@ function ListingThumb({ c }: { c: Conference }) {
 }
 
 // One listing you run: where it stands, its dates, and the ways to open, edit or see its activity. Interest is on the Activity page.
-export function ListingCard({ c, status, note, coOrganiser, today }: { c: Conference; status: string; note: string; coOrganiser: boolean; today: string }) {
+export function ListingCard({ c, status, note, coOrganiser, canEdit = true, today }: { c: Conference; status: string; note: string; coOrganiser: boolean; canEdit?: boolean; today: string }) {
   const live = status === "published";
-  const editable = live || status === "pending";
+  const editable = (live || status === "pending") && canEdit;
   return (
     <li className={s.listing}>
       <div className={s.listingTop}>
@@ -170,6 +196,7 @@ export function ListingCard({ c, status, note, coOrganiser, today }: { c: Confer
           <span className={s.listingMeta}>
             <span className={s.status} data-status={status}>{STATUS[status] ?? status}</span>
             {coOrganiser && <span className={s.tag}>Co-organiser</span>}
+            {coOrganiser && !canEdit && <span className={s.tag}>View only</span>}
             {live && isPast(c, today) && <span className={s.tag}>Finished</span>}
             <span>{c.startDate ? formatRange(c) : "Dates not set"}</span>
           </span>
@@ -193,13 +220,14 @@ export function useMyListings(userId: string, version = 0) {
     if (!supabase) return;
     const db = supabase;
     (async () => {
-      const { data: team } = await db.from("organisers").select("conference_id").eq("user_id", userId).not("accepted_at", "is", null);
+      const { data: team } = await db.from("organisers").select("conference_id, role").eq("user_id", userId).not("accepted_at", "is", null);
       const ids = (team ?? []).map((t) => t.conference_id);
+      const roleOf = new Map((team ?? []).map((t) => [t.conference_id as string, t.role as string]));
       const base = db.from("conferences").select("*");
       const { data } = await (ids.length ? base.or(`submitted_by.eq.${userId},id.in.(${ids.join(",")})`) : base.eq("submitted_by", userId))
         .order("created_at", { ascending: false });
       const list = ((data ?? []) as (Parameters<typeof fromRow>[0] & { status: string; review_note: string; submitted_by: string | null })[])
-        .map((r) => ({ c: fromRow(r), status: r.status, note: r.review_note, mine: r.submitted_by === userId }));
+        .map((r) => ({ c: fromRow(r), status: r.status, note: r.review_note, mine: r.submitted_by === userId, canEdit: r.submitted_by === userId || roleOf.get(r.id) === "editor" }));
       setRows(list);
     })();
   }, [userId, version]);
@@ -234,7 +262,7 @@ export function ListingsPanel({ rows }: { rows: Listing[] | null }) {
         <>
           {rows.length > 0 && (
             <ul className={s.listingList}>
-              {rows.map((r) => <ListingCard key={r.c.id} c={r.c} status={r.status} note={r.note} coOrganiser={!r.mine} today={today} />)}
+              {rows.map((r) => <ListingCard key={r.c.id} c={r.c} status={r.status} note={r.note} coOrganiser={!r.mine} canEdit={r.canEdit} today={today} />)}
             </ul>
           )}
           <AddListing first={rows.length === 0} />

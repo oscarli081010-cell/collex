@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Conference } from "@/lib/conferences";
+import { whenOpens } from "@/lib/schedule";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
+import { useOpen } from "./useOpen";
 import { useToast } from "./useToast";
 import s from "@/app/inner.module.css";
 
@@ -15,38 +17,15 @@ type Say = (msg: string) => void;
 export default function ApplyBand({ c }: { c: Conference }) {
   const { say, node } = useToast();
   const options = [
-    { title: "Register a delegation", url: c.delegationUrl, cta: "Register" },
-    { title: "Apply to chair", url: c.chairUrl, cta: "Apply" },
+    { title: "Register a delegation", url: c.delegationUrl, cta: "Register", at: c.delegationOpensAt, what: "Delegate registration" },
+    { title: "Apply to chair", url: c.chairUrl, cta: "Apply", at: c.chairOpensAt, what: "Chair applications" },
   ];
-
-  const card = (o: (typeof options)[number]) => (
-    <div key={o.title} className={s.applyOption}>
-      <div>
-        <h2 className={s.applyTitle}>{o.title}</h2>
-        <span className={s.applyStatus} data-open={Boolean(o.url)}>
-          {o.url ? "Applications open" : "Applications not open yet"}
-        </span>
-      </div>
-      {o.url ? (
-        <a href={o.url} className={`button ${s.applyBtn}`} target="_blank" rel="noreferrer">{o.cta} →</a>
-      ) : (
-        <button
-          className={`button ${s.applyBtn}`}
-          aria-disabled="true"
-          data-closed
-          onClick={() => say(o.title === "Apply to chair" ? "Chair applications haven't opened yet. Check back soon." : "Delegate registration hasn't opened yet. Check back soon.")}
-        >
-          {o.cta} →
-        </button>
-      )}
-    </div>
-  );
 
   return (
     <section id="apply" className={s.applyBand} aria-label="Apply">
-      {card(options[0])}
+      <ApplyCard o={options[0]} say={say} />
       <Interest c={c} say={say} />
-      {card(options[1])}
+      <ApplyCard o={options[1]} say={say} />
       {node}
     </section>
   );
@@ -120,6 +99,39 @@ function BuiltInInterest({ c, say }: { c: Conference; say: Say }) {
       ) : (
         <button className={`button ${state.sent ? "secondary" : ""} ${s.applyBtn}`} onClick={toggle} disabled={busy} aria-pressed={state.sent}>
           <span key={String(state.sent)} className="t-swap">{state.sent ? "Interest sent ✓" : "Send interest →"}</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+type Option = { title: string; url?: string | null; cta: string; at?: string | null; what: string };
+
+// Register or apply. A scheduled button stays shut, and says when it opens, until that time arrives.
+function ApplyCard({ o, say }: { o: Option; say: Say }) {
+  const state = useOpen(o.at);
+  const open = Boolean(o.url) && state === "open";
+  const waiting = Boolean(o.url && o.at) && state === "closed";
+  const hold = state === "unknown" ? { visibility: "hidden" as const } : undefined;
+  return (
+    <div className={s.applyOption}>
+      <div>
+        <h2 className={s.applyTitle}>{o.title}</h2>
+        <span className={s.applyStatus} data-open={open} style={hold}>
+          {open ? "Applications open" : waiting ? `Opens ${whenOpens(o.at!)}` : "Applications not open yet"}
+        </span>
+      </div>
+      {open ? (
+        <a href={o.url!} className={`button ${s.applyBtn}`} target="_blank" rel="noreferrer">{o.cta} →</a>
+      ) : (
+        <button
+          className={`button ${s.applyBtn}`}
+          style={hold}
+          aria-disabled="true"
+          data-closed
+          onClick={() => say(waiting ? `${o.what} open ${whenOpens(o.at!)} (Sydney time).` : `${o.what} haven't opened yet. Check back soon.`)}
+        >
+          {o.cta} →
         </button>
       )}
     </div>

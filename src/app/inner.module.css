@@ -181,6 +181,7 @@
 .applyStatus::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
 .applyStatus[data-open="true"]::before { background: var(--ok); }
 .applyBtn { height: 56px !important; padding: 0 30px !important; font-size: 16px !important; border-radius: 12px !important; flex: none; width: 100%; }
+.applyBtn[data-closed], .applyBtn[data-closed]:hover { background: var(--surface); color: var(--muted); border-color: var(--line); cursor: not-allowed; transform: none; }
 /* The middle card, Express interest, carries a wash of the accent so it reads as the easy first step. */
 .applyOption[data-kind="interest"] { background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--panel); border-color: color-mix(in srgb, var(--accent) 22%, var(--line)); }
 
@@ -347,7 +348,11 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 /* Organisers of a listing, under the edit form. */
 .team { width: 100%; max-width: 600px; margin-top: 32px; padding: 28px; display: flex; flex-direction: column; gap: 18px; }
 .teamTitle { font-family: var(--serif); font-weight: 400; font-size: 26px; margin-bottom: 4px; }
-.invite { border-top: 1px solid var(--line); padding-top: 18px; }
+.invite { border-top: 1px solid var(--line); padding-top: 18px; display: flex; flex-direction: column; gap: 16px; }
+.team li { flex-wrap: wrap; }
+.team li > :first-child { flex: 1 1 160px; }
+.roleSelect { width: auto; flex: none; height: 40px; padding-block: 0; }
+@media (pointer: coarse) { .roleSelect { height: 44px; } }
 .inviteRow { display: flex; gap: 8px; }
 .inviteRow .control { flex: 1; min-width: 0; }
 @media (max-width: 560px) {
