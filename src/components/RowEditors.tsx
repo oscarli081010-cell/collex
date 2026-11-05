@@ -154,16 +154,11 @@ export function CommitteesEditor({ rows, setRows, upload }: { rows: CommitteeRow
 export type SecretariatRow = { role: string; name: string; key: string; /** A suggested role shown in grey until one is typed; it is used if only a name is given. */ hint?: string; photo?: string; uploading?: boolean; photoError?: string };
 const STANDARD_ROLES = ["Secretary-General", "Deputy Secretary-General", "Director-General", "Head of Chairs"];
 
-/** The usual four roles, in order, with whatever names are saved (an empty one shows its role as a grey hint); any other saved roles follow. */
+/** A new listing (or one with nobody saved yet) starts with the usual four roles as grey hints. Once people are saved, only they show, so a role that was removed stays removed. */
 export const secretariatRows = (list: { role: string; name: string; photo?: string }[] = []): SecretariatRow[] => {
   const named = list.filter((p) => p.role && p.name && p.name !== NA);
-  return [
-    ...STANDARD_ROLES.map((role) => {
-      const p = named.find((x) => x.role === role);
-      return p ? { role, name: p.name, photo: p.photo, key: key() } : { role: "", hint: role, name: "", key: key() };
-    }),
-    ...named.filter((p) => !STANDARD_ROLES.includes(p.role)).map((p) => ({ role: p.role, name: p.name, photo: p.photo, key: key() })),
-  ];
+  if (named.length) return named.map((p) => ({ role: p.role, name: p.name, photo: p.photo, key: key() }));
+  return STANDARD_ROLES.map((hint) => ({ role: "", hint, name: "", key: key() }));
 };
 /** Only people with a name are kept; a row with no role typed takes its grey hint as the role. */
 export const toSecretariat = (rows: SecretariatRow[]) =>
