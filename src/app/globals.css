@@ -221,10 +221,10 @@ select.control {
   padding: 8px 14px; border-radius: 999px; font-size: 14px; color: var(--muted);
   transition: color var(--duration-fast) var(--ease-smooth-out);
 }
-.navTrigger { padding-right: 20px; background: none; border: 0; font: inherit; font-size: 14px; cursor: pointer; }
+.navTrigger { background: none; border: 0; font: inherit; font-size: 14px; cursor: pointer; }
 .navlinks > a:hover, .navlinks > a[aria-current="page"], .navTrigger:hover, .navTrigger[aria-expanded="true"], .navTrigger[data-here] { color: var(--ink); }
 .navlinks > a[aria-current="page"], .navTrigger[data-here] { font-weight: 500; }
-.navChevron { position: absolute; right: 6px; top: 50%; margin-top: -5px; transition: transform var(--duration-fast) var(--ease-smooth-out); }
+.navChevron { transition: transform var(--duration-fast) var(--ease-smooth-out); }
 .navTrigger[aria-expanded="true"] .navChevron { transform: rotate(180deg); }
 .navPill { top: 50%; height: 36px; margin-top: -18px; border-radius: 999px; background: var(--surface-2); }
 .navMenu { position: relative; display: inline-flex; }
@@ -289,8 +289,6 @@ select.control {
 @media (max-width: 1120px) {
   .topbarInner { gap: 16px; }
   .navlinks > a, .navTrigger { padding-inline: 10px; }
-  .navTrigger { padding-right: 16px; }
-  .navChevron { right: 4px; }
   .topbarRight .button { padding: 0 14px; }
 }
 /* The five links and the account buttons need about 920px; below that they fold into the menu. */
@@ -328,10 +326,12 @@ select.control {
 
 /* Skeletons: a soft pulse in the surface colour. Real content then fades in with t-reveal. */
 .skel { display: block; background: var(--surface); animation: skelPulse 1.4s ease-in-out infinite; }
-.skelWrap { animation: skelIn var(--duration-fast) var(--ease-smooth-out) both; }
+/* A skeleton only shows when loading takes a moment. A page that arrives quickly replaces it before it's seen, so a
+   switch between pages is one fade, not a flash of the skeleton and then the page. */
+.skelWrap { animation: skelIn var(--duration-fast) var(--ease-smooth-out) 300ms both; }
 @keyframes skelPulse { 50% { opacity: 0.55; } }
 @keyframes skelIn { from { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .skel, .skelWrap { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .skel { animation: none; } .skelWrap { animation: skelIn 1ms 300ms both; } }
 
 /* Page changes cross-fade where the browser supports view transitions. The whole page fades as one (never as its own
    layer, which would paint over the sticky top bar); only a cover and a title morph between pages. */

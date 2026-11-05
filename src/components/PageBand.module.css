@@ -5,6 +5,10 @@
   margin: clamp(28px, 4vw, 48px) 0 clamp(36px, 4vw, 56px);
   padding: clamp(28px, 4vw, 48px);
   border: 1px solid var(--line); border-radius: 20px; background: var(--panel);
+  /* At least as tall as the calendar's band (padding, its title line, the gap and its 48px month strip), with a
+     shorter band's content centred in it, so every page opens on the same size panel. */
+  display: flex; flex-direction: column; justify-content: center;
+  min-height: calc(2 * clamp(28px, 4vw, 48px) + 0.95 * clamp(52px, 7.4vw, 104px) + clamp(28px, 3.4vw, 40px) + 48px + 2px);
   box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.04), 0 18px 48px -24px rgba(var(--shadow-rgb), 0.16);
 }
 /* A soft wash of the accent in one corner so the panel isn't a flat white box. */
@@ -23,8 +27,6 @@
 .headText { min-width: 0; }
 .lead { margin-top: 14px; font-size: 16px; line-height: 1.55; color: var(--muted); max-width: 52ch; overflow-wrap: anywhere; text-wrap: pretty; }
 .side { display: flex; flex-direction: column; align-items: flex-end; gap: 20px; }
-/* Smaller title for pages that are mostly a form (log in, account, list a conference). */
-.md .title { font-size: clamp(44px, 5.6vw, 80px); }
 
 .figures { display: flex; gap: clamp(20px, 3vw, 44px); }
 .figures > div { display: flex; flex-direction: column-reverse; gap: 6px; min-width: 0; }
@@ -39,8 +41,14 @@
 .foot { margin-top: clamp(28px, 3.4vw, 40px); }
 
 @media (max-width: 720px) {
+  /* On a phone the calendar's figures sit under its title (32px gap, 70px tall), so its band is taller. */
+  .band { min-height: calc(2 * 28px + 0.95 * 52px + 32px + 70px + 28px + 48px + 2px); }
   .side { width: 100%; align-items: stretch; }
   .figures { width: 100%; justify-content: space-between; gap: 12px; }
   .figures > div + div { padding-left: 12px; }
   .figures dd { font-size: 26px; white-space: normal; }
+}
+/* Touch screens: the calendar's month strip is a 54px target. */
+@media (max-width: 720px) and (pointer: coarse) {
+  .band { min-height: calc(2 * 28px + 0.95 * 52px + 32px + 70px + 28px + 54px + 2px); }
 }

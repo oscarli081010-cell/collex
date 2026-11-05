@@ -39,7 +39,7 @@
 }
 .seg button[aria-checked="true"] { color: var(--ink); font-weight: 500; }
 .seg button[aria-selected="true"] { color: var(--ink); font-weight: 500; }
-/* The same control made of links (a listing's Activity / View page / Edit listing). */
+/* The same control made of links (a listing's Activity / Edit listing). */
 .seg a {
   position: relative; z-index: 1; height: 38px; border-radius: 7px; font-size: 14px; color: var(--muted);
   transition: color var(--duration-fast) var(--ease-smooth-out);
@@ -55,6 +55,12 @@
   min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center;
   background: var(--accent); color: var(--on-accent); font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums;
 }
+/* A listing's Activity / Edit listing tabs, with the button to its public page beside them at the same height. */
+.listingNav { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; }
+.listingNavOne { grid-template-columns: 1fr; }
+.listingNav .viewListing { height: 46px; border-radius: 10px; }
+@media (pointer: coarse) { .listingNav .viewListing { height: 52px; } }
+@media (max-width: 560px) { .listingNav { grid-template-columns: 1fr; } }
 /* Touch screens: the control is a 44px target, like every other button. */
 @media (pointer: coarse) { .seg button, .seg a { height: 44px; } }
 /* One tab's worth of cards. hidden must still win over this display. */

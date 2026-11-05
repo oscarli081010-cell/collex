@@ -10,9 +10,12 @@ import CommandBar from "./CommandBar";
 
 type NavLink = { href: string; label: string };
 type NavGroup = { label: string; items: NavLink[] };
-// Home on its own; then two menus: browsing, and the things you do about a conference.
-export const HOME: NavLink = { href: "/", label: "Home" };
+// Three menus: the home page and what Collex is, browsing, and the things you do about a conference.
 export const NAV_GROUPS: NavGroup[] = [
+  { label: "Home", items: [
+    { href: "/", label: "Home" },
+    { href: "/about", label: "About us" },
+  ] },
   { label: "Browse", items: [
     { href: "/conferences", label: "Conferences" },
     { href: "/calendar", label: "Calendar" },
@@ -98,7 +101,7 @@ export default function TopBar() {
   const [menu, setMenu] = useState("");
   const navRef = useRef<HTMLElement>(null);
   const here = (n: NavLink) => pathname === n.href;
-  const current = here(HOME) ? HOME.href : NAV_GROUPS.find((g) => g.items.some(here))?.label ?? "";
+  const current = NAV_GROUPS.find((g) => g.items.some(here))?.label ?? "";
   const pill = usePill(navRef, "[data-here]", current);
 
   const close = () => {
@@ -121,7 +124,6 @@ export default function TopBar() {
         <Link href="/" className="wordmark" aria-label="Collex home"><Wordmark /></Link>
         <nav ref={navRef} className="navlinks" aria-label="Main">
           <span ref={pill} className="t-pill navPill" aria-hidden="true" />
-          <Link href={HOME.href} data-here={here(HOME) || undefined} aria-current={here(HOME) ? "page" : undefined}>{HOME.label}</Link>
           {NAV_GROUPS.map((g) => (
             <NavMenu key={g.label} group={g} here={here} open={menu === g.label} setOpen={(o) => setMenu((m) => (o ? g.label : m === g.label ? "" : m))} onPick={() => setMenu("")} />
           ))}
@@ -153,9 +155,6 @@ export default function TopBar() {
         aria-label="Main"
         inert={!open || closing}
       >
-        <div className="mobileGroup" role="group">
-          <Link href={HOME.href} aria-current={here(HOME) ? "page" : undefined} onClick={close}>{HOME.label}</Link>
-        </div>
         {NAV_GROUPS.map((g) => (
           <div key={g.label} className="mobileGroup" role="group" aria-label={g.label}>
             <span className="mobileHead" aria-hidden="true">{g.label}</span>

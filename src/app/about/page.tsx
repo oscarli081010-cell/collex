@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CONTACT } from "@/components/Footer";
+import PageBand from "@/components/PageBand";
 import s from "@/components/LegalPage.module.css";
 
 export const metadata: Metadata = { alternates: { canonical: "/about" },
@@ -10,7 +11,9 @@ export const metadata: Metadata = { alternates: { canonical: "/about" },
 
 export default function About() {
   return (
-    <main id="top" className={`container ${s.page}`}>
+    <main id="top" className="container">
+      <PageBand title="About" accent="us" />
+      <div className={`${s.page} ${s.afterBand}`}>
       <nav className={s.side} aria-label="About">
         <ul>
           <li><a href="#why" aria-current="page">About Collex</a></li>
@@ -24,13 +27,9 @@ export default function About() {
         <p className={s.contact}>Say hello <a href={`mailto:${CONTACT}`} className="link">{CONTACT}</a></p>
       </nav>
       <article className={s.body}>
-        <header className={s.head}>
-          <h1 className={`serif ${s.title}`}>One calendar for the Sydney circuit.</h1>
-          <p className={s.lead}>Collex puts the Model United Nations conferences in Sydney on one calendar, each with its own clear page: dates, host, committees and the links to apply.</p>
-        </header>
-
         <section id="why">
           <h2>Why it exists</h2>
+          <p>Collex puts the Model United Nations conferences in Sydney on one calendar, each with its own clear page: dates, host, committees and the links to apply.</p>
           <p>Conference details are often spread across school websites, social posts and group chats, which makes deadlines easy to miss and dates easy to clash. Collex gathers them in one place, in the same format, so the season can be seen at a glance.</p>
         </section>
 
@@ -65,6 +64,7 @@ export default function About() {
           <p>For questions, corrections or to get involved, email <a href={`mailto:${CONTACT}`}>{CONTACT}</a>. To fix a mistake on a listing, say which conference and what should change.</p>
         </section>
       </article>
+      </div>
     </main>
   );
 }

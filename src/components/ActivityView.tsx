@@ -91,12 +91,13 @@ export default function ActivityView() {
 
   const page = (band: BandProps, body: React.ReactNode) => (
     <>
-      <PageBand size="md" {...band} />
+      <PageBand {...band} />
       <div className={auth.body}>{body}</div>
     </>
   );
 
-  if (!ready || id === undefined || (id && session && data === null)) return page({ title: "Activity", lead: " " }, <ActivitySkeleton />);
+  // The whole loading state waits a beat before showing, so numbers that arrive quickly replace it unseen.
+  if (!ready || id === undefined || (id && session && data === null)) return <div className="skelWrap">{page({ title: "Activity", lead: " " }, <ActivitySkeleton />)}</div>;
   if (!session) {
     return page({
       title: "Activity", lead: "Log in to see how your listing is doing.",
@@ -121,7 +122,7 @@ export function ActivityBody({ data, onChanged }: { data: Loaded; onChanged?: ()
   const today = todayInSydney();
   const page = (band: BandProps, body: React.ReactNode) => (
     <>
-      <PageBand size="md" {...band} />
+      <PageBand {...band} />
       <div className={auth.body}>{body}</div>
     </>
   );

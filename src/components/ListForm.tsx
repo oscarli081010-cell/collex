@@ -250,7 +250,7 @@ export default function ListForm() {
   // The headline band above every state of this page, with the state's content centred underneath.
   const page = (band: BandProps, body: React.ReactNode, after?: React.ReactNode) => (
     <>
-      <PageBand size="md" {...band} />
+      <PageBand {...band} />
       <div className={auth.body}>{body}{after}</div>
     </>
   );
@@ -261,7 +261,8 @@ export default function ListForm() {
       }
     : { title: "List a", accent: "conference", lead: "The Collex team reviews it before it goes live." };
 
-  if (!ready || (editId && session && editing === null)) return page(listBand, <FormSkeleton fields={6} width={600} grid />);
+  // The whole loading state waits a beat before showing, so a listing that arrives quickly replaces it unseen.
+  if (!ready || (editId && session && editing === null)) return <div className="skelWrap">{page(listBand, <FormSkeleton fields={6} width={600} grid />)}</div>;
   if (editId && editing === "missing") {
     return page({
       title: "Can\u2019t edit that", accent: "listing", lead: "Only the people who run a listing can edit it, while it\u2019s in review or live. Ask its organiser to invite you.",

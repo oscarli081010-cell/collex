@@ -32,7 +32,7 @@ const origin = () => window.location.origin;
 function Banded({ band, children }: { band: BandProps; children: React.ReactNode }) {
   return (
     <>
-      <PageBand size="md" {...band} />
+      <PageBand {...band} />
       <div className={s.body}>{children}</div>
     </>
   );

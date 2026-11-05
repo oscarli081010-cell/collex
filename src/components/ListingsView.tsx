@@ -15,7 +15,7 @@ export default function ListingsView() {
   if (!ready) return <FormSkeleton fields={3} width={640} />;
   if (!session) {
     return (
-      <PageBand size="md" title="Your" accent="listings" lead="Log in to see the conferences you run."
+      <PageBand title="Your" accent="listings" lead="Log in to see the conferences you run."
         aside={(
           <div className="btnStack">
             <Link href="/login" className="button lg">Log in</Link>
@@ -30,7 +30,7 @@ export default function ListingsView() {
   const num = (n: number | undefined) => (n === undefined ? "–" : String(n));
   return (
     <>
-      <PageBand size="md" title="Your" accent="listings" lead="Conferences you run or help run."
+      <PageBand title="Your" accent="listings" lead="Conferences you run or help run."
         figures={[
           { label: "Listings", value: num(rows?.length) },
           { label: "Live", value: num(live) },

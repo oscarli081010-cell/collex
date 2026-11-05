@@ -5,12 +5,11 @@ import { useLayoutEffect, useRef } from "react";
 import { ICONS } from "./IconButton";
 import s from "@/app/auth.module.css";
 
-export type ListingView = "activity" | "view" | "edit";
+export type ListingView = "activity" | "edit";
 const LAST = "collex:listing-tab";
 
-// Activity, the public page and the edit form of one listing, one tap apart, on the same sliding control as the
-// account and edit tabs. The page you're on is marked; the others are links. The public page only exists once it's live,
-// and Edit only for the people who can edit.
+// A listing's Activity and edit form, one tap apart on the same sliding control as the account and edit tabs, with a
+// button beside it to the listing's public page once it's live. Edit is only there for the people who can edit.
 //
 // Each page is its own route, so the control is rebuilt on every switch. To keep it feeling like one control, the
 // highlight starts on the tab you came from and slides to this one, and the page itself skips its entrance (see motion.css).
@@ -19,10 +18,9 @@ export default function ListingNav({ id, slug, current, live, canEdit }: { id: s
   const pill = useRef<HTMLSpanElement>(null);
   const items = [
     { id: "activity" as const, label: "Activity", href: `/activity?id=${id}`, icon: ICONS.chart },
-    ...(live ? [{ id: "view" as const, label: "View page", href: `/conferences/${slug}`, icon: ICONS.view }] : []),
     ...(canEdit ? [{ id: "edit" as const, label: "Edit listing", href: `/list?edit=${id}`, icon: ICONS.edit }] : []),
   ];
-  const count = items.length;
+  const tabs = items.length > 1;
 
   useLayoutEffect(() => {
     const el = box.current, p = pill.current;
@@ -45,7 +43,7 @@ export default function ListingNav({ id, slug, current, live, canEdit }: { id: s
     const onResize = () => put(now, true);
     window.addEventListener("resize", onResize);
     return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); };
-  }, [current, count]);
+  }, [current, tabs]);
 
   // The page that loads next doesn't re-enter; the flag clears itself once it has.
   const going = () => {
@@ -53,13 +51,18 @@ export default function ListingNav({ id, slug, current, live, canEdit }: { id: s
     setTimeout(() => { delete document.documentElement.dataset.listingSwitch; }, 2500);
   };
 
-  if (count < 2) return null;
+  if (!tabs && !live) return null;
   return (
-    <nav ref={box} className={`${s.seg} ${count === 2 ? s.segTwo : ""}`} aria-label="This listing">
-      <span ref={pill} className={`t-pill ${s.segPill}`} aria-hidden="true" />
-      {items.map((i) => (
-        <Link key={i.id} href={i.href} data-view={i.id} className={s.segIcon} aria-current={i.id === current ? "page" : undefined} onClick={i.id === current ? undefined : going}>{i.icon}{i.label}</Link>
-      ))}
-    </nav>
+    <div className={`${s.listingNav} ${tabs && live ? "" : s.listingNavOne}`}>
+      {tabs && (
+        <nav ref={box} className={`${s.seg} ${s.segTwo}`} aria-label="This listing">
+          <span ref={pill} className={`t-pill ${s.segPill}`} aria-hidden="true" />
+          {items.map((i) => (
+            <Link key={i.id} href={i.href} data-view={i.id} className={s.segIcon} aria-current={i.id === current ? "page" : undefined} onClick={i.id === current ? undefined : going}>{i.icon}{i.label}</Link>
+          ))}
+        </nav>
+      )}
+      {live && <Link href={`/conferences/${slug}`} className={`button secondary ${s.viewListing}`}>{ICONS.view}View listing</Link>}
+    </div>
   );
 }

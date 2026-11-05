@@ -2,6 +2,9 @@
   display: grid; grid-template-columns: 220px minmax(0, 680px); gap: clamp(40px, 7vw, 112px);
   padding-block: clamp(56px, 8vw, 112px);
 }
+/* Under a page band, which already spaces itself from the top bar. */
+.afterBand { padding-top: 0; }
+.afterBand .body > section:first-child { padding-top: 0; }
 .side { position: sticky; top: 112px; align-self: start; display: flex; flex-direction: column; gap: 28px; }
 .side ul { display: flex; flex-direction: column; gap: 2px; }
 .side a:not(:global(.link)) {
