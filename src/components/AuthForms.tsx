@@ -14,6 +14,7 @@ import { FormSkeleton } from "./Skeleton";
 import ConferencesTab from "./AccountSections";
 import { ICONS } from "./IconButton";
 import { META_ICONS } from "./MetaIcons";
+import PanelTabs from "./PanelTabs";
 import { usePill } from "./usePill";
 import { useToast } from "./useToast";
 import s from "@/app/auth.module.css";
@@ -281,31 +282,8 @@ const ACCOUNT_TABS: { id: AccountTab; label: string; icon: React.ReactNode }[] =
 
 // Profile / Conferences on the same sliding control as Appearance. A badge on Conferences means an invite is waiting.
 export function AccountTabs({ tab, setTab, invites = 0 }: { tab: AccountTab; setTab: (t: AccountTab) => void; invites?: number }) {
-  const box = useRef<HTMLDivElement>(null);
-  const pill = usePill(box, '[aria-selected="true"]', tab);
-  // With two tabs, either arrow moves to the other one.
-  const onKey = (e: React.KeyboardEvent) => {
-    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-    e.preventDefault();
-    const next = tab === "profile" ? "conferences" : "profile";
-    setTab(next);
-    box.current?.querySelector<HTMLElement>(`#account-tab-${next}`)?.focus();
-  };
-  return (
-    <div ref={box} className={`${s.seg} ${s.segTwo}`} role="tablist" aria-label="Account" onKeyDown={onKey}>
-      <span ref={pill} className={`t-pill ${s.segPill}`} aria-hidden="true" />
-      {ACCOUNT_TABS.map((a) => (
-        <button key={a.id} id={`account-tab-${a.id}`} type="button" role="tab" aria-selected={tab === a.id} aria-controls={`account-panel-${a.id}`}
-          tabIndex={tab === a.id ? 0 : -1} onClick={() => setTab(a.id)} className={s.segIcon}>
-          {a.icon}{a.label}
-          {a.id === "conferences" && invites > 0 && (<>
-            <span className={s.segBadge} aria-hidden="true">{invites}</span>
-            <span className="sr-only">, {invites} {invites === 1 ? "invite" : "invites"} waiting</span>
-          </>)}
-        </button>
-      ))}
-    </div>
-  );
+  const tabs = ACCOUNT_TABS.map((a) => (a.id === "conferences" ? { ...a, badge: invites, badgeNote: `${invites} ${invites === 1 ? "invite" : "invites"} waiting` } : a));
+  return <PanelTabs tabs={tabs} tab={tab} setTab={setTab} label="Account" idPrefix="account" />;
 }
 
 // The account picture. Hover (or focus) it to change it; on a touch screen the camera is always showing.

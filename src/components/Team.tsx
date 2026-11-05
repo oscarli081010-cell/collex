@@ -51,40 +51,42 @@ export default function Team({ conf, name, me, team, reload }: { conf: string; n
   }
 
   return (
-    <section className={`panel ${s.team}`} aria-labelledby="team-h">
-      <div>
-        <h2 id="team-h" className={s.teamTitle}>Organisers</h2>
+    <div className={s.teamWrap}>
+      <fieldset className="field">
+        <legend>People who run this listing</legend>
         <p className="muted">{owner
           ? "Invite people who help run the conference. Once they accept, they can see its activity, and edit it too if you let them."
-          : "The people who run this listing. Only the person who listed it can invite or remove organisers, or change what they can do."}</p>
-      </div>
-      <ul className={auth.listings}>
-        {team.map((m) => (
-          <li key={m.user_id}>
-            <div className={auth.listingMain}>
-              <span className={auth.listingName}>{who(m)}{m.user_id === me && <span className="muted"> (you)</span>}</span>
-              <span className={auth.listingMeta}>
-                {m.name && <span>{m.email}</span>}
-                <span className={auth.tag}>{m.is_owner ? "Listed it" : m.accepted ? "Co-organiser" : "Invited"}</span>
-                {!m.is_owner && m.role === "viewer" && <span className={auth.tag}>View only</span>}
-              </span>
-            </div>
-            {!m.is_owner && owner && (
-              <select className={`control ${s.roleSelect}`} value={m.role} aria-label={`What ${who(m)} can do`} onChange={(e) => changeRole(m, e.target.value as Member["role"])}>
-                <option value="editor">Can edit</option>
-                <option value="viewer">View only</option>
-              </select>
-            )}
-            {!m.is_owner && (owner || m.user_id === me) && (
-              m.user_id === me
-                ? <ConfirmIconButton label={`Leave ${name}`} confirm="Click again to stop editing this listing" icon={ICONS.leave} onConfirm={() => remove(m)} />
-                : <ConfirmIconButton label={`Remove ${who(m)}`} confirm={`Click again to remove ${who(m)}`} icon={ICONS.trash} onConfirm={() => remove(m)} />
-            )}
-          </li>
-        ))}
-      </ul>
+          : "Only the person who listed this conference can invite or remove organisers, or change what they can do."}</p>
+        <ol className={s.rowsList}>
+          {team.map((m) => (
+            <li key={m.user_id} className={`${s.editRow} ${s.teamRow}`}>
+              <div className={auth.listingMain}>
+                <span className={auth.listingName}>{who(m)}{m.user_id === me && <span className="muted"> (you)</span>}</span>
+                <span className={auth.listingMeta}>
+                  {m.name && <span>{m.email}</span>}
+                  <span className={auth.tag}>{m.is_owner ? "Listed it" : m.accepted ? "Co-organiser" : "Invited"}</span>
+                  {!m.is_owner && m.role === "viewer" && <span className={auth.tag}>View only</span>}
+                </span>
+              </div>
+              {!m.is_owner && (owner || m.user_id === me) && (
+                <div className={s.teamActions}>
+                  {owner && (
+                    <select className={`control ${s.roleSelect}`} value={m.role} aria-label={`What ${who(m)} can do`} onChange={(e) => changeRole(m, e.target.value as Member["role"])}>
+                      <option value="editor">Can edit</option>
+                      <option value="viewer">View only</option>
+                    </select>
+                  )}
+                  {m.user_id === me
+                    ? <ConfirmIconButton label={`Leave ${name}`} confirm="Click again to stop editing this listing" icon={ICONS.leave} onConfirm={() => remove(m)} />
+                    : <ConfirmIconButton label={`Remove ${who(m)}`} confirm={`Click again to remove ${who(m)}`} icon={ICONS.trash} onConfirm={() => remove(m)} />}
+                </div>
+              )}
+            </li>
+          ))}
+        </ol>
+      </fieldset>
       {owner && (
-        <form className={s.invite} onSubmit={invite} noValidate>
+        <form className={s.teamInvite} onSubmit={invite} noValidate>
           <label className="field">
             <span>They can</span>
             <select className="control" value={role} onChange={(e) => setRole(e.target.value as Member["role"])}>
@@ -94,20 +96,18 @@ export default function Team({ conf, name, me, team, reload }: { conf: string; n
           </label>
           <label className={`field ${error ? s.invalid : ""}`}>
             <span>Invite by email</span>
-            <span className={s.inviteRow}>
-              <input type="email" className="control" value={email} autoComplete="off" placeholder="name@school.edu.au" maxLength={254}
-                aria-invalid={Boolean(error)} aria-describedby="invite-hint" onChange={(e) => { setEmail(e.target.value); setError(""); }} />
-              <button className="button" disabled={busy}>
-                <span key={String(busy)} className="t-swap">{busy ? "Inviting…" : "Invite"}</span>
-              </button>
-            </span>
+            <input type="email" className="control" value={email} autoComplete="off" placeholder="name@school.edu.au" maxLength={254}
+              aria-invalid={Boolean(error)} aria-describedby="invite-hint" onChange={(e) => { setEmail(e.target.value); setError(""); }} />
             {error
               ? <small key="err" id="invite-hint" className={`t-reveal ${s.error}`}>{error}</small>
               : <small id="invite-hint">They need a Collex account. We don&rsquo;t email anyone: the invite waits on their account page.</small>}
           </label>
+          <button className="button lg block" disabled={busy}>
+            <span key={String(busy)} className="t-swap">{busy ? "Inviting…" : "Invite"}</span>
+          </button>
         </form>
       )}
       {node}
-    </section>
+    </div>
   );
 }

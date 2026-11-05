@@ -29,7 +29,7 @@
 
   --margin: clamp(20px, 4vw, 56px);
   --max: 1280px;
-  --space-section: clamp(88px, 10vw, 136px);
+  --space-section: clamp(40px, 5vw, 64px);
   --radius: 10px;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 

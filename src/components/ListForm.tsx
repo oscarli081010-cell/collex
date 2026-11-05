@@ -13,9 +13,16 @@ import { uploadPhoto } from "@/lib/photo";
 import { isoToSydney, sydneyToIso } from "@/lib/schedule";
 import { useAuth } from "./AuthProvider";
 import { badGuide, badRole, CommitteesEditor, committeeRows, KeyDatesEditor, keyDateRows, RolesEditor, roleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toKeyDates, toRoles, toSecretariat, type CommitteeRow, type KeyDateRow, type RoleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
+import PanelTabs, { type PanelTab } from "./PanelTabs";
 import Team, { type Member } from "./Team";
 import auth from "@/app/auth.module.css";
 import s from "@/app/inner.module.css";
+
+type EditTab = "info" | "organisers";
+const EDIT_TABS: PanelTab<EditTab>[] = [
+  { id: "info", label: "Information", icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3.5 2.5h6l3 3v8h-9z" /><path d="M9.5 2.5v3h3M5.5 8.5h5M5.5 11h5" /></svg> },
+  { id: "organisers", label: "Organisers", icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="6" cy="5.5" r="2.3" /><path d="M1.8 13c.5-2.1 2.2-3.2 4.2-3.2s3.7 1.1 4.2 3.2M10.5 3.4a2.3 2.3 0 010 4.2M12 9.9c1.3.4 2.2 1.3 2.5 3.1" /></svg> },
+];
 
 type F = { name: string; label: string; type: "text" | "date" | "email" | "url" | "select" | "textarea" | "datetime-local"; wide?: boolean; required?: boolean; hint?: string; options?: string[] };
 
@@ -73,6 +80,7 @@ export default function ListForm() {
   // Guides whose committee has since been removed or renamed: kept as they were.
   const [stray, setStray] = useState<Conference["guides"]>([]);
   const [team, setTeam] = useState<Member[]>([]);
+  const [editTab, setEditTab] = useState<EditTab>("info");
   useEffect(() => { setEditId(new URLSearchParams(location.search).get("edit")); }, []);
   // Who can edit: the database lists the team only to the people on it (and admins), so an empty team means no access.
   const loadTeam = useCallback(async () => {
@@ -288,7 +296,7 @@ export default function ListForm() {
       </div>);
   }
 
-  return page(listBand,
+  const formEl = (
       <form key={edit?.id ?? "form"} className={`t-reveal ${s.listForm}`} onSubmit={submit} noValidate>
         {FIELDS.map((f) => {
           const id = `f-${f.name}`;
@@ -396,8 +404,17 @@ export default function ListForm() {
           </button>
           <small className="muted" style={{ textAlign: "center" }}><span className={s.req} aria-hidden="true">*</span> Required</small>
         </div>
-      </form>,
-      edit && session && <Team conf={edit.id} name={edit.name ?? "this listing"} me={session.user.id} team={team} reload={loadTeam} />);
+      </form>
+  );
+  if (!edit) return page(listBand, formEl);
+  return page(listBand,
+    <div className={s.editShell}>
+      <PanelTabs tabs={EDIT_TABS} tab={editTab} setTab={setEditTab} label="Edit your listing" idPrefix="edit" />
+      <div id="edit-panel-info" role="tabpanel" aria-labelledby="edit-tab-info" hidden={editTab !== "info"}>{formEl}</div>
+      <div id="edit-panel-organisers" role="tabpanel" aria-labelledby="edit-tab-organisers" hidden={editTab !== "organisers"}>
+        <Team conf={edit.id} name={edit.name ?? "this listing"} me={session.user.id} team={team} reload={loadTeam} />
+      </div>
+    </div>);
 }
 
 /** Live listings running on any day from first to last, except the one being edited. */

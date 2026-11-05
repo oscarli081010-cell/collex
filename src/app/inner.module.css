@@ -346,12 +346,15 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 .photoError { grid-column: 1 / -1; font-size: 13px; color: var(--danger); }
 .editRowInline .editFields:has(input[type="date"]) { grid-template-columns: minmax(0, 1fr) minmax(165px, 0.8fr); }
 
-/* Organisers of a listing, under the edit form. */
-.team { width: 100%; max-width: 600px; margin-top: 32px; padding: 28px; display: flex; flex-direction: column; gap: 18px; }
-.teamTitle { font-family: var(--serif); font-weight: 400; font-size: 26px; margin-bottom: 4px; }
-.invite { border-top: 1px solid var(--line); padding-top: 18px; display: flex; flex-direction: column; gap: 16px; }
-.team li { flex-wrap: wrap; }
-.team li > :first-child { flex: 1 1 160px; }
+/* Editing a listing: Information and Organisers tabs; the organisers' rows look like the form's other rows. */
+.teamWrap { width: 100%; display: flex; flex-direction: column; gap: 24px; }
+.teamWrap fieldset { gap: 12px; }
+.teamWrap fieldset legend { margin-bottom: 8px; }
+.teamRow { align-items: center; }
+.teamActions { display: flex; align-items: center; gap: 8px; }
+.teamInvite { display: flex; flex-direction: column; gap: 20px; }
+.editShell { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 28px; }
+.editShell [role="tabpanel"][hidden] { display: none; }
 .roleSelect { width: auto; flex: none; height: 40px; padding-block: 0; }
 @media (pointer: coarse) { .roleSelect { height: 44px; } }
 .inviteRow { display: flex; gap: 8px; }
@@ -365,8 +368,6 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
   .guideRow :global(.control) { flex: none; }
   .uploadBtn { width: 100%; }
   .editActions { flex-direction: row; justify-content: flex-end; padding-top: 0; }
-  .team { padding: 20px; }
-  .inviteRow { flex-direction: column; }
 }
 
 /* Phones: the main action stays in reach once the cards have scrolled away (StickyApply.tsx). */
