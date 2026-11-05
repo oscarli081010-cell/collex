@@ -9,7 +9,7 @@ import { coverUrl, formatRange, webUrl, type Conference, type Role } from "@/lib
 import { useConferences } from "./ConferencesContext";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
-import { forgetListing, keptEditing, loadEditing, warmActivity, type EditingData } from "@/lib/listingData";
+import { forgetListing, keptEditing, loadEditing, staleEditing, warmActivity, type EditingData } from "@/lib/listingData";
 import { uploadPhoto } from "@/lib/photo";
 import { isoToSydney, sydneyToIso } from "@/lib/schedule";
 import { useAuth } from "./AuthProvider";
@@ -110,13 +110,14 @@ export default function ListForm() {
     setStray(strayGuides(row?.committees ?? [], row?.guides ?? []));
   }, [userId]);
   // Layout effect, so a form whose listing was loaded a moment ago (from the Activity page) shows it on its first paint
-  // instead of a skeleton. A kept copy is used as it is: the form never reloads over what someone has started typing.
+  // instead of a skeleton. A kept copy is used as it is when it is recent: the form never reloads over what someone has
+  // started typing. An older one is shown at once too, then replaced by a fresh load that starts as the page opens.
   const [usedKept, setUsedKept] = useState(false);
   useLayoutEffect(() => {
     const id = new URLSearchParams(location.search).get("edit");
     setEditId(id);
     const kept = id && userId ? keptEditing(id) : undefined;
-    if (kept) { apply(kept); setUsedKept(true); }
+    if (kept) { apply(kept); setUsedKept(!staleEditing(id!)); }
   }, [apply, userId]);
   useEffect(() => {
     if (!editId || !userId || !supabase || usedKept) return;

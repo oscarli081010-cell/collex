@@ -8,20 +8,34 @@ import type { Member } from "@/components/Team";
 // are also started in the background from the other page, so the first switch is quick too. A saved edit drops the copies.
 
 const FRESH = 60_000;
+// A kept copy is shown however old it is (up to KEEP), and refreshed in the background once it is past FRESH.
+// Showing nothing while a stale copy reloads is what made the pages flash a skeleton when you'd been on one a while.
+const KEEP = 600_000;
 type Kept<T> = { at: number; value: T };
 const activity = new Map<string, Kept<Loaded | "missing">>();
 const editing = new Map<string, Kept<EditingData>>();
 
 export type EditingData = { row: Record<string, unknown> | null; members: Member[] };
 
-const fresh = <T,>(m: Map<string, Kept<T>>, id: string) => {
+const kept = <T,>(m: Map<string, Kept<T>>, id: string) => {
   const k = m.get(id);
-  return k && Date.now() - k.at < FRESH ? k.value : undefined;
+  return k && Date.now() - k.at < KEEP ? k.value : undefined;
+};
+const stale = <T,>(m: Map<string, Kept<T>>, id: string) => {
+  const k = m.get(id);
+  return !k || Date.now() - k.at >= FRESH;
 };
 
-export const keptActivity = (id: string) => fresh(activity, id);
-export const keptEditing = (id: string) => fresh(editing, id);
-export const forgetListing = (id: string) => { activity.delete(id); editing.delete(id); };
+export const keptActivity = (id: string) => kept(activity, id);
+export const keptEditing = (id: string) => kept(editing, id);
+export const staleEditing = (id: string) => stale(editing, id);
+// The form's copy is dropped (it must never show old values); the Activity copy is only marked old, so that page still
+// opens on what it had and fills in the new numbers a moment later.
+export const forgetListing = (id: string) => {
+  editing.delete(id);
+  const a = activity.get(id);
+  if (a) activity.set(id, { ...a, at: Math.min(a.at, Date.now() - FRESH) });
+};
 
 /** The Activity page's numbers for one listing, or "missing" when it isn't one the caller can see. */
 export async function loadActivity(id: string, uid: string): Promise<Loaded | "missing" | null> {
@@ -63,5 +77,5 @@ export async function loadEditing(id: string): Promise<EditingData | null> {
 }
 
 /** Starts the other page's load quietly, so it is ready by the time someone switches to it. */
-export const warmActivity = (id: string, uid: string) => { if (!keptActivity(id)) loadActivity(id, uid).catch(() => {}); };
-export const warmEditing = (id: string) => { if (!keptEditing(id)) loadEditing(id).catch(() => {}); };
+export const warmActivity = (id: string, uid: string) => { if (stale(activity, id)) loadActivity(id, uid).catch(() => {}); };
+export const warmEditing = (id: string) => { if (stale(editing, id)) loadEditing(id).catch(() => {}); };
