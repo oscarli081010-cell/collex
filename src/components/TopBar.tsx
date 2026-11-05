@@ -19,8 +19,8 @@ export const NAV_GROUPS: NavGroup[] = [
   ] },
   { label: "Get involved", items: [
     { href: "/list", label: "List a conference" },
-    { href: "/roles", label: "Open roles" },
     { href: "/listings", label: "Your listings" },
+    { href: "/roles", label: "Open roles" },
   ] },
 ];
 
