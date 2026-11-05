@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PageBand, { type BandProps } from "./PageBand";
 import { FormSkeleton } from "./Skeleton";
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { coverUrl, formatRange, webUrl, type Conference, type Role } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
+import { forgetListing, keptEditing, loadEditing, warmActivity, type EditingData } from "@/lib/listingData";
 import { uploadPhoto } from "@/lib/photo";
 import { isoToSydney, sydneyToIso } from "@/lib/schedule";
 import { useAuth } from "./AuthProvider";
@@ -82,38 +83,47 @@ export default function ListForm() {
   const [stray, setStray] = useState<Conference["guides"]>([]);
   const [team, setTeam] = useState<Member[]>([]);
   const [editTab, setEditTab] = useState<EditTab>("info");
-  useEffect(() => { setEditId(new URLSearchParams(location.search).get("edit")); }, []);
   // Who can edit: the database lists the team only to the people on it (and admins), so an empty team means no access.
   const loadTeam = useCallback(async () => {
     if (!editId || !supabase) return [];
+    forgetListing(editId); // the team changed, so kept copies of this listing are out of date
     const { data } = await supabase.rpc("organisers_of", { conf: editId });
     setTeam((data as Member[] | null) ?? []);
     return (data as Member[] | null) ?? [];
   }, [editId]);
   // Keyed on who is signed in, not on the session object, so a silent token refresh never reloads the form over unsaved edits.
   const userId = session?.user.id;
+  // Fills the form from a listing's row and team.
+  const apply = useCallback(({ row: data, members }: EditingData) => {
+    // A view-only co-organiser can open the listing's activity, not its form (the database would refuse the save anyway).
+    const me = members.find((m) => m.user_id === userId);
+    const viewOnly = Boolean(me && !me.is_owner && me.role === "viewer");
+    const row = members.length && !viewOnly ? (data as Editing | null) : null;
+    setTeam(members);
+    setEditing(viewOnly ? "viewonly" : row ?? "missing");
+    setFirstDay((row?.start_date as string | undefined) ?? "");
+    setLastDay((row?.end_date as string | undefined) ?? "");
+    setCommittees(committeeRows(row?.committees ?? [], row?.guides ?? []));
+    setSecretariat(secretariatRows((row?.secretariat as unknown as { role: string; name: string; photo?: string }[] | undefined) ?? []));
+    setRoles(roleRows(row?.roles as unknown as Partial<Role>[] | undefined));
+    setKeyDates(keyDateRows(row ? (row.key_dates as unknown as { label: string; date: string | null }[] | null) ?? [] : undefined));
+    setStray(strayGuides(row?.committees ?? [], row?.guides ?? []));
+  }, [userId]);
+  // Layout effect, so a form whose listing was loaded a moment ago (from the Activity page) shows it on its first paint
+  // instead of a skeleton. A kept copy is used as it is: the form never reloads over what someone has started typing.
+  const [usedKept, setUsedKept] = useState(false);
+  useLayoutEffect(() => {
+    const id = new URLSearchParams(location.search).get("edit");
+    setEditId(id);
+    const kept = id && userId ? keptEditing(id) : undefined;
+    if (kept) { apply(kept); setUsedKept(true); }
+  }, [apply, userId]);
   useEffect(() => {
-    if (!editId || !userId || !supabase) return;
-    Promise.all([
-      supabase.from("conferences")
-        .select("id, slug, status, name, host, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, delegation_opens_at, chair_opens_at, interest_url, overview, committees, guides, secretariat, roles, key_dates, cover_path")
-        .eq("id", editId).in("status", ["pending", "published"]).maybeSingle(),
-      loadTeam(),
-    ]).then(([{ data }, members]) => {
-      // A view-only co-organiser can open the listing's activity, not its form (the database would refuse the save anyway).
-      const me = members.find((m) => m.user_id === userId);
-      const viewOnly = Boolean(me && !me.is_owner && me.role === "viewer");
-      const row = members.length && !viewOnly ? (data as Editing | null) : null;
-      setEditing(viewOnly ? "viewonly" : row ?? "missing");
-      setFirstDay(row?.start_date ?? "");
-      setLastDay(row?.end_date ?? "");
-      setCommittees(committeeRows(row?.committees ?? [], row?.guides ?? []));
-      setSecretariat(secretariatRows((row?.secretariat as unknown as { role: string; name: string; photo?: string }[] | undefined) ?? []));
-      setRoles(roleRows(row?.roles as unknown as Partial<Role>[] | undefined));
-      setKeyDates(keyDateRows(row ? (row.key_dates as unknown as { label: string; date: string | null }[] | null) ?? [] : undefined));
-      setStray(strayGuides(row?.committees ?? [], row?.guides ?? []));
-    });
-  }, [editId, userId, loadTeam]);
+    if (!editId || !userId || !supabase || usedKept) return;
+    loadEditing(editId).then((r) => { if (r) apply(r); });
+  }, [editId, userId, usedKept, apply]);
+  // The Activity page is the likely next stop, so its numbers load quietly.
+  useEffect(() => { if (editId && userId) warmActivity(editId, userId); }, [editId, userId]);
   const edit = editing && editing !== "missing" && editing !== "viewonly" ? editing : null;
   // Other live listings on any of the same days. A heads-up only: two conferences can share a weekend.
   const listed = useConferences();
@@ -198,7 +208,7 @@ export default function ListForm() {
     setBusy(false);
     if (!error && !saved?.length) return setErrors({ form: "You can't edit this listing any more. Ask the person who listed it." });
     // New links or guides on a live listing queue emails to its followers; this sends them.
-    if (!error && edit) supabase.functions.invoke("notify").catch(() => {});
+    if (!error && edit) { forgetListing(edit.id); supabase.functions.invoke("notify").catch(() => {}); }
     // A live listing's page shows the edit straight away.
     if (!error && edit?.status === "published") refreshSite().then(() => router.refresh());
     if (error) return setErrors({ form: error.message.startsWith("Too many listings") ? "You've sent 5 listings today. Try again tomorrow." : "Couldn't send it. Check your connection and try again." });

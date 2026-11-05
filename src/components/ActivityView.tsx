@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { refreshSite } from "@/lib/refresh";
 import { formatRange, todayInSydney, type Conference } from "@/lib/conferences";
-import { fromRow } from "@/lib/data";
+import { forgetListing, keptActivity, loadActivity, warmEditing } from "@/lib/listingData";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
 import InterestChart, { type Week } from "./InterestChart";
@@ -20,7 +20,7 @@ import s from "./Activity.module.css";
 
 const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Not approved", unpublished: "Taken down" };
 
-type Entry = { id: number; at: string; who: string; action: string; fields: string[]; note: string | null; subject: string | null; role: string | null; can_undo: boolean };
+export type Entry = { id: number; at: string; who: string; action: string; fields: string[]; note: string | null; subject: string | null; role: string | null; can_undo: boolean };
 export type Loaded = {
   c: Conference; status: string; createdAt: string;
   interest: { total: number; weeks: Week[] }; followers: number | null; team: number; history: Entry[] | null;
@@ -73,34 +73,21 @@ export default function ActivityView() {
   const { ready, session } = useAuth();
   const [id, setId] = useState<string | null | undefined>(undefined);
   const [data, setData] = useState<Loaded | "missing" | null>(null);
-  useEffect(() => { setId(new URLSearchParams(location.search).get("id")); }, []);
+  // Layout effect, so a page whose numbers are already kept shows them on its first paint instead of a skeleton.
+  useLayoutEffect(() => {
+    const v = new URLSearchParams(location.search).get("id");
+    setId(v);
+    const kept = v ? keptActivity(v) : undefined;
+    if (kept) setData(kept);
+  }, []);
 
+  const uid = session?.user.id;
   useEffect(() => {
-    if (!id || !session || !supabase) return;
-    const db = supabase;
+    if (!id || !uid || !supabase) return;
     let live = true;
-    (async () => {
-      const { data: row } = await db.from("conferences").select("*").eq("id", id).maybeSingle();
-      if (!live) return;
-      if (!row) return setData("missing"); // not yours (or not there): the database only shows a listing to the people who edit it
-      const [counts, weekly, followers, team, history] = await Promise.all([
-        db.rpc("interest_counts"), db.rpc("interest_weekly"),
-        db.rpc("listing_followers", { conf: id }), db.rpc("organisers_of", { conf: id }), db.rpc("listing_history", { conf: id }),
-      ]);
-      if (!live) return;
-      const total = Number(((counts.data ?? []) as { conference_id: string; interested: number }[]).find((r) => r.conference_id === id)?.interested ?? 0);
-      const weeks = ((weekly.data ?? []) as { conference_id: string; week: string; interested: number }[])
-        .filter((w) => w.conference_id === id).map((w) => ({ week: w.week, interested: Number(w.interested) }));
-      const me = ((team.data ?? []) as { user_id: string; is_owner: boolean; role: string }[]).find((m) => m.user_id === session.user.id);
-      setData({
-        c: fromRow(row), status: row.status, createdAt: row.created_at, canEdit: !me || me.is_owner || me.role === "editor",
-        interest: { total, weeks }, followers: followers.error || followers.data == null ? null : Number(followers.data),
-        team: ((team.data ?? []) as { accepted: boolean }[]).filter((m) => m.accepted).length,
-        history: history.error ? null : ((history.data ?? []) as (Omit<Entry, "fields"> & { fields: string[] | null })[]).map((h) => ({ ...h, fields: h.fields ?? [] })),
-      });
-    })();
+    loadActivity(id, uid).then((r) => { if (live && r) { setData(r); warmEditing(id); } });
     return () => { live = false; };
-  }, [id, session, version]);
+  }, [id, uid, version]);
 
   const page = (band: BandProps, body: React.ReactNode) => (
     <>
@@ -194,6 +181,7 @@ export function ActivityBody({ data, onChanged }: { data: Loaded; onChanged?: ()
           const { error } = await supabase!.rpc("undo_edit", { entry: e.id });
           if (error) return say(error.message.includes("any more") ? "That change can\u2019t be undone any more." : "Couldn\u2019t undo that. Try again.");
           say("Change undone");
+          forgetListing(c.id!);
           // A live listing's public pages show it straight away, including pages this browser already has.
           if (data.status === "published") refreshSite().then(() => router.refresh());
           onChanged?.();

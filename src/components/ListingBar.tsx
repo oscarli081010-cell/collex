@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { warmActivity, warmEditing } from "@/lib/listingData";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
 import ListingNav from "./ListingNav";
@@ -20,7 +21,11 @@ export default function ListingBar({ id, slug }: { id?: string; slug: string }) 
       const team = (data ?? []) as { user_id: string; is_owner: boolean; role: "editor" | "viewer" }[];
       if (!live || !team.length) return;
       const me = team.find((m) => m.user_id === uid);
-      setRole(!me || me.is_owner ? "editor" : me.role);
+      const mine = !me || me.is_owner ? "editor" : me.role;
+      setRole(mine);
+      // The other two pages load quietly now, so switching to them is instant.
+      warmActivity(id, uid);
+      if (mine === "editor") warmEditing(id);
     });
     return () => { live = false; };
   }, [id, uid]);

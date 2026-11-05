@@ -16,6 +16,7 @@ import { usePill } from "./usePill";
 import { useToast } from "./useToast";
 import auth from "@/app/auth.module.css";
 import s from "@/app/admin.module.css";
+import act from "./Activity.module.css";
 
 type Row = {
   id: string; slug: string; status: string; name: string; host: string; start_date: string | null; end_date: string | null;
@@ -29,6 +30,10 @@ type Report = {
   conferences: { name: string; slug: string } | null;
 };
 type Log = { id: number; at: string; actor_email: string; action: string; target_type: string; target_label: string; detail: { note?: string } };
+
+const LOG_PER_PAGE = 10;
+// The dot's colour for what happened, as on a listing's own audit log.
+const LOG_TONE: Record<string, string> = { approved: "ok", rejected: "bad", unpublished: "warn", reopened: "warn", submitted: "accent", "removed organiser": "bad", "left organisers": "warn" };
 
 const TABS = ["Review", "Conferences", "Reports", "Users", "Audit log"] as const;
 const REASON: Record<string, string> = { details: "Wrong or out of date", link: "Broken link", inappropriate: "Shouldn\u2019t be here", other: "Something else" };
@@ -44,9 +49,12 @@ export default function Admin() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [users, setUsers] = useState<User[] | null>(null);
   const [log, setLog] = useState<Log[] | null>(null);
+  const [logPage, setLogPage] = useState(0);
   const [reports, setReports] = useState<Report[] | null>(null);
   // One search per tab, so switching tabs keeps what you typed in each.
   const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Reports: "", Users: "", "Audit log": "" });
+  // A new search starts on the first page of the audit log.
+  useEffect(() => { setLogPage(0); }, [find["Audit log"]]);
   const [statusFilter, setStatusFilter] = useState("any");
   const [reportFilter, setReportFilter] = useState("open");
   // Bulk actions: what's ticked on the open tab (ids as text), the reject reason being typed, and the two-step delete.
@@ -166,6 +174,9 @@ export default function Admin() {
   const shownReports = (reports ?? []).filter((r) => (reportFilter === "all" || r.status === reportFilter) && has(r.conferences?.name, REASON[r.reason], r.note, r.reply_to));
   const shownUsers = (users ?? []).filter((u) => has(u.full_name, u.email, u.school));
   const shownLog = (log ?? []).filter((e) => has(e.actor_email, e.action, e.target_label));
+  const logPages = Math.max(1, Math.ceil(shownLog.length / LOG_PER_PAGE));
+  const logAt = Math.min(logPage, logPages - 1);
+  const goLog = (n: number) => { setLogPage(n); document.getElementById("audit-list")?.scrollIntoView({ block: "start", behavior: "smooth" }); };
   const searching = Boolean(q) || (tab === "Conferences" && statusFilter !== "any") || (tab === "Reports" && reportFilter !== "open");
   const clearSearch = () => { setFind((f) => ({ ...f, [tab]: "" })); if (tab === "Conferences") setStatusFilter("any"); if (tab === "Reports") setReportFilter("open"); };
   const noMatches = <Empty title="No matches" body="Try a different word, or clear the search."><button className="button secondary" onClick={clearSearch}>Clear search</button></Empty>;
@@ -317,15 +328,27 @@ export default function Admin() {
           {tab === "Audit log" && (log!.length === 0 ? (
             <Empty title="No activity yet" body="Every submission, approval and access change is recorded here." />
           ) : shownLog.length === 0 ? noMatches : (
-            <ol className={s.log}>
-              {shownLog.map((e) => (
-                <li key={e.id}>
-                  <time>{when(e.at)}</time>
-                  <span><strong>{e.actor_email}</strong> <span className={s.action} data-action={e.action}>{e.action}</span> {e.target_label}</span>
-                  {e.detail?.note ? <small className="muted">“{e.detail.note}”</small> : null}
-                </li>
-              ))}
-            </ol>
+            <>
+              <ol id="audit-list" className={act.history} style={{ scrollMarginTop: 140 }}>
+                {shownLog.slice(logAt * LOG_PER_PAGE, (logAt + 1) * LOG_PER_PAGE).map((e) => (
+                  <li key={e.id}>
+                    <span className={act.dot} data-tone={LOG_TONE[e.action] ?? (e.action === "edited" ? undefined : "accent")} aria-hidden="true" />
+                    <div>
+                      <p className={act.what}><strong>{e.actor_email}</strong> {e.action} {e.target_label}.</p>
+                      <time className={act.when} dateTime={e.at}>{when(e.at)}</time>
+                      {e.detail?.note ? <span className={act.quote}>&ldquo;{e.detail.note}&rdquo;</span> : null}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              {logPages > 1 && (
+                <nav className={act.pager} aria-label="Audit log pages">
+                  <button type="button" className="button secondary" onClick={() => goLog(logAt - 1)} disabled={logAt === 0}>Previous</button>
+                  <span className="muted" aria-live="polite">Page {logAt + 1} of {logPages}</span>
+                  <button type="button" className="button secondary" onClick={() => goLog(logAt + 1)} disabled={logAt === logPages - 1}>Next</button>
+                </nav>
+              )}
+            </>
           ))}
         </div>
       )}
