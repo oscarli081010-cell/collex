@@ -8,24 +8,24 @@ import { useAuth } from "./AuthProvider";
 import { Wordmark } from "@/lib/brand";
 import CommandBar from "./CommandBar";
 
-type NavLink = { href: string; label: string; note?: string };
+type NavLink = { href: string; label: string };
 type NavGroup = { label: string; items: NavLink[] };
 // Home on its own; then two menus: browsing, and the things you do about a conference.
 export const HOME: NavLink = { href: "/", label: "Home" };
 export const NAV_GROUPS: NavGroup[] = [
   { label: "Browse", items: [
-    { href: "/calendar", label: "Calendar", note: "Every conference by date" },
-    { href: "/conferences", label: "Conferences", note: "Search and compare the list" },
+    { href: "/conferences", label: "Conferences" },
+    { href: "/calendar", label: "Calendar" },
   ] },
   { label: "Get involved", items: [
-    { href: "/roles", label: "Open roles", note: "Positions you can apply for" },
-    { href: "/list", label: "List a conference", note: "Add yours, free to list" },
-    { href: "/listings", label: "Your listings", note: "Edit what you run" },
+    { href: "/list", label: "List a conference" },
+    { href: "/roles", label: "Open roles" },
+    { href: "/listings", label: "Your listings" },
   ] },
 ];
 
 const Chevron = () => (
-  <svg className="navChevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5" /></svg>
+  <svg className="navChevron" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5" /></svg>
 );
 
 // A menu in the bar. It opens on hover (with a pointer that can hover) or on click or Enter, and closes on Escape, a click elsewhere or leaving it.
@@ -77,8 +77,7 @@ function NavMenu({ group, here, open, setOpen, onPick }: { group: NavGroup; here
       <div id={id} className={`navDrop t-dropdown${open ? " is-open" : ""}`} data-origin="top-left" role="group" aria-label={group.label} inert={!open}>
         {group.items.map((n) => (
           <Link key={n.href} href={n.href} aria-current={here(n) ? "page" : undefined} onClick={onPick}>
-            <strong>{n.label}</strong>
-            {n.note && <small>{n.note}</small>}
+            {n.label}
           </Link>
         ))}
       </div>
