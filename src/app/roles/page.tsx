@@ -4,7 +4,7 @@ import { getPublished } from "@/lib/data";
 import { isPast } from "@/lib/conferences";
 
 export const metadata: Metadata = { alternates: { canonical: "/roles" },
-  title: "Get involved · Collex",
+  title: "Open roles · Collex",
   description: "Chairs, crisis staff, press, photographers and more. See where Sydney Model UN conferences need a hand.",
 };
 export const revalidate = 60;

@@ -16,6 +16,7 @@ import { useAuth } from "./AuthProvider";
 import { badGuide, badRole, CommitteesEditor, committeeRows, KeyDatesEditor, keyDateRows, RolesEditor, roleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toKeyDates, toRoles, toSecretariat, type CommitteeRow, type KeyDateRow, type RoleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
 import ListingNav from "./ListingNav";
 import PanelTabs, { type PanelTab } from "./PanelTabs";
+import SectionNav from "./SectionNav";
 import Team, { type Member } from "./Team";
 import auth from "@/app/auth.module.css";
 import s from "@/app/inner.module.css";
@@ -59,6 +60,14 @@ type Editing = Record<string, string | null> & { id: string; status: string; gui
 const asText = (e: Editing, k: string) => (e[k] as string | null) ?? "";
 // The two scheduled buttons are typed as Sydney time but stored as instants.
 const OPENS: Record<string, string> = { delegation_opens: "delegation_opens_at", chair_opens: "chair_opens_at" };
+
+const SECTIONS = [
+  { id: "sec-details", label: "Details" }, { id: "sec-overview", label: "Overview" }, { id: "sec-keydates", label: "Key dates" },
+  { id: "sec-committees", label: "Committees" }, { id: "sec-guides", label: "Background guides" },
+  { id: "sec-secretariat", label: "Secretariat" }, { id: "sec-roles", label: "Help wanted" }, { id: "sec-cover", label: "Cover photo" },
+];
+// Background guides live inside each committee, so there is no block of their own to watch.
+const WATCHED = SECTIONS.filter((x) => x.id !== "sec-guides");
 
 export default function ListForm() {
   const { ready, session } = useAuth();
@@ -312,7 +321,10 @@ export default function ListForm() {
       </div>);
   }
 
+  const guides = committees.map((c, i) => ({ index: i, name: c.name.trim() || `Committee ${i + 1}`, done: Boolean(c.guide.trim()) }));
   const formEl = (
+    <div className={s.formWrap}>
+      <SectionNav sections={SECTIONS} spy={WATCHED} guides={guides} />
       <form key={edit?.id ?? "form"} className={`t-reveal ${s.listForm}`} onSubmit={submit} noValidate>
         {FIELDS.map((f) => {
           const id = `f-${f.name}`;
@@ -321,7 +333,7 @@ export default function ListForm() {
           const clear = () => err && setErrors(({ [f.name]: _, ...rest }) => rest);
           return (
             <Fragment key={f.name}>
-            <div className={`field ${f.wide ? s.wide : ""} ${err ? s.invalid : ""}`}>
+            <div id={f.name === "name" ? "sec-details" : f.name === "overview" ? "sec-overview" : undefined} className={`field ${f.wide ? s.wide : ""} ${err ? s.invalid : ""}`}>
               <label htmlFor={id}>{f.label}{f.required ? <span className={s.req} aria-hidden="true"> *</span> : <span className="muted"> (optional)</span>}</label>
               {f.type === "select" ? (
                 <select id={id} name={f.name} className="control" defaultValue={edit?.level ?? ""} onChange={clear}>
@@ -368,25 +380,25 @@ export default function ListForm() {
             </Fragment>
           );
         })}
-        <fieldset className={`field ${s.wide}`}>
+        <fieldset id="sec-committees" className={`field ${s.wide}`}>
           <legend>Committees <span className="muted">(optional)</span></legend>
           {errors.guides && <small key="err" className={`t-reveal ${s.error}`}>{errors.guides}</small>}
           <CommitteesEditor rows={committees} setRows={(a) => { setCommittees(a); if (errors.guides) setErrors(({ guides: _, ...rest }) => rest); }} upload={uploadGuide} />
         </fieldset>
-        <fieldset className={`field ${s.wide}`}>
+        <fieldset id="sec-keydates" className={`field ${s.wide}`}>
           <legend>Key dates <span className="muted">(optional)</span></legend>
           <KeyDatesEditor rows={keyDates} setRows={setKeyDates} />
         </fieldset>
-        <fieldset className={`field ${s.wide}`}>
+        <fieldset id="sec-secretariat" className={`field ${s.wide}`}>
           <legend>Secretariat <span className="muted">(optional)</span></legend>
           <SecretariatEditor rows={secretariat} setRows={setSecretariat} upload={(file) => uploadPhoto(file, session!.user.id)} />
         </fieldset>
-        <fieldset className={`field ${s.wide}`}>
+        <fieldset id="sec-roles" className={`field ${s.wide}`}>
           <legend>Help wanted <span className="muted">(optional)</span></legend>
           {errors.roles && <small key="err" className={`t-reveal ${s.error}`}>{errors.roles}</small>}
           <RolesEditor rows={roles} setRows={(a) => { setRoles(a); if (errors.roles) setErrors(({ roles: _, ...rest }) => rest); }} />
         </fieldset>
-        <div className={`field ${s.wide} ${errors.cover ? s.invalid : ""}`}>
+        <div id="sec-cover" className={`field ${s.wide} ${errors.cover ? s.invalid : ""}`}>
           <label htmlFor="f-cover">Cover photo <span className="muted">(optional)</span></label>
           <label htmlFor="f-cover" className={s.coverPick} data-filled={Boolean(shownCover)}>
             {shownCover
@@ -421,6 +433,7 @@ export default function ListForm() {
           <small className="muted" style={{ textAlign: "center" }}><span className={s.req} aria-hidden="true">*</span> Required</small>
         </div>
       </form>
+    </div>
   );
   if (!edit) return page(listBand, formEl);
   return page(listBand,

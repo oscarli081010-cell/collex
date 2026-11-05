@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { formatRange } from "@/lib/conferences";
 import { forgetListing, keptActivity, loadActivity } from "@/lib/listingData";
 import { refreshSite } from "@/lib/refresh";
@@ -12,9 +12,12 @@ import { useAuth } from "./AuthProvider";
 import { ICONS } from "./IconButton";
 import ListingNav from "./ListingNav";
 import PageBand, { BandNote, type BandProps } from "./PageBand";
+import SearchBox from "./SearchBox";
 import { ActivitySkeleton } from "./Skeleton";
+import { usePill } from "./usePill";
 import type { Loaded } from "./ActivityView";
 import { useToast } from "./useToast";
+import adm from "@/app/admin.module.css";
 import auth from "@/app/auth.module.css";
 import s from "./Manage.module.css";
 
@@ -100,6 +103,9 @@ export function ManageBody({ data, regs, onChanged, onSet }: {
   const router = useRouter();
   const [rows, setRows] = useState<Reg[]>([]);
   const [filter, setFilter] = useState<Status | "all">("all");
+  const [find, setFind] = useState("");
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const pill = usePill(tabsRef, '[aria-selected="true"]', filter);
   const [busy, setBusy] = useState<string | null>(null);
   const [switching, setSwitching] = useState(false);
   useEffect(() => { if (Array.isArray(regs)) setRows(regs); }, [regs]);
@@ -107,8 +113,11 @@ export function ManageBody({ data, regs, onChanged, onSet }: {
   const live = status === "published";
   const canEdit = (live || status === "pending") && data.canEdit !== false;
   const count = (st: Status) => rows.filter((r) => r.status === st).length;
-  const delegates = rows.filter((r) => r.status === "accepted").reduce((n, r) => n + r.delegates, 0);
-  const shown = useMemo(() => (filter === "all" ? rows : rows.filter((r) => r.status === filter)), [rows, filter]);
+  const q = find.trim().toLowerCase();
+  const shown = useMemo(
+    () => rows.filter((r) => (filter === "all" || r.status === filter) && (!q || [r.school, r.contact_name, r.contact_email, r.notes ?? ""].join(" ").toLowerCase().includes(q))),
+    [rows, filter, q],
+  );
   const ownForm = Boolean(c.delegationUrl);
 
   const setStatus = useCallback(async (r: Reg, next: Status) => {
@@ -142,12 +151,20 @@ export function ManageBody({ data, regs, onChanged, onSet }: {
     URL.revokeObjectURL(url);
   };
 
+  const on = Boolean(c.collexRegistration);
+  // One short line under the title: what the switch is doing right now, and the one thing that changes how it behaves.
+  const state = !on ? "Off. Turn it on to let schools register on your conference page."
+    : ownForm ? "On, but your own registration link is set, so Register goes there. Clear it in Edit listing to use this."
+    : !live ? "On. Schools can register once the listing is live."
+    : c.delegationOpensAt ? `On. Registration opens ${whenOpens(c.delegationOpensAt)} (Sydney time).`
+    : "On. Schools can register now.";
+
   return (
     <>
       <PageBand
         title="Manage"
         aside={<BandNote>{c.name}<br />{c.startDate ? formatRange(c) : "Dates not set"}</BandNote>}
-        figures={[{ label: "Schools", value: Array.isArray(regs) ? String(rows.length) : "–" }, { label: "Accepted", value: Array.isArray(regs) ? String(delegates) : "–", note: "delegates" }]}
+        figures={[{ label: "Schools", value: Array.isArray(regs) ? String(rows.length) : "\u2013" }, { label: "Accepted", value: Array.isArray(regs) ? String(count("accepted")) : "\u2013" }]}
       >
         <ListingNav id={c.id!} slug={c.slug} current="manage" live={live} canEdit={canEdit} />
       </PageBand>
@@ -155,41 +172,37 @@ export function ManageBody({ data, regs, onChanged, onSet }: {
         <div className={`t-stagger ${s.wrap}`}>
           <Link href="/listings" className={`link ${s.back}`}>&larr; Your listings</Link>
 
-          <section className={`panel ${s.card}`} style={{ "--i": 0 } as React.CSSProperties} aria-labelledby="reg-setup-h">
-            <div className={s.cardHead}>
-              <h2 id="reg-setup-h" className={s.cardTitle}>Registration on Collex</h2>
-              <p className="muted">Schools sign a delegation up on your conference page and you sort them here. Off, the Register button keeps going to your own form.</p>
+          <section className={`panel ${s.card}`} style={{ "--i": 0 } as React.CSSProperties} aria-labelledby="regs-h">
+            <div className={s.cardTop}>
+              <div className={s.cardHead}>
+                <h2 id="regs-h" className={s.cardTitle}>Registrations</h2>
+                <p className="muted" aria-live="polite">{state}</p>
+              </div>
+              <button type="button" className={`button ${on ? "secondary" : ""} ${s.switchBtn}`} onClick={toggle} disabled={switching || !canEdit} aria-pressed={on}>
+                <span key={String(on)} className="t-swap">{on ? "Turn off" : "Turn on"}</span>
+              </button>
             </div>
-            <label className={s.switchRow}>
-              <input type="checkbox" role="switch" checked={Boolean(c.collexRegistration)} onChange={toggle} disabled={switching || !canEdit} />
-              <span>{c.collexRegistration ? "Taking registrations on Collex" : "Not taking registrations on Collex"}</span>
-            </label>
-            {c.collexRegistration && ownForm && <p className={s.note}>Your own registration link is set, so the Register button goes there. Clear it in Edit listing to use Collex registration.</p>}
-            {c.collexRegistration && !ownForm && (
-              <p className={s.note}>{c.delegationOpensAt ? `Registration opens ${whenOpens(c.delegationOpensAt)} (Sydney time).` : "Registration is open as soon as the listing is live."} Change it in Edit listing.</p>
-            )}
-            {c.collexRegistration && !live && <p className={s.note}>Nobody can register until the listing is live.</p>}
-          </section>
 
-          <section className={`panel ${s.card}`} style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="regs-h">
-            <div className={s.cardHead}>
-              <h2 id="regs-h" className={s.cardTitle}>Registrations</h2>
-            </div>
             {regs === "error" ? <p className={s.note}>Couldn&rsquo;t load the registrations. Try again in a moment.</p>
               : regs === null ? <p className={s.note}>Loading…</p>
               : rows.length === 0 ? (
-                <p className={s.note}>{c.collexRegistration ? "No registrations yet. They appear here as schools send them." : "Nothing here yet. Turn on registration above to take them on Collex."}</p>
+                <p className={s.note}>{on ? "No registrations yet. They appear here as schools send them." : "Nothing here yet."}</p>
               ) : (
                 <>
-                  <div className={s.filters} role="group" aria-label="Show registrations">
-                    {([{ id: "all" as const, label: "All", n: rows.length }, ...STATUSES.map((x) => ({ ...x, n: count(x.id) }))]).map((f) => (
-                      <button key={f.id} type="button" className={s.filter} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
-                        {f.label}<span className={s.filterCount}>{f.n}</span>
+                  <div ref={tabsRef} className={`${adm.tabs} ${s.tabsFit}`} role="tablist" aria-label="Show registrations">
+                    <span ref={pill} className={`t-pill ${adm.tabPill}`} aria-hidden="true" />
+                    {([{ id: "all" as const, label: "All" }, ...STATUSES]).map((f) => (
+                      <button key={f.id} type="button" role="tab" aria-selected={filter === f.id} onClick={() => setFilter(f.id)}>
+                        {f.label}{f.id === "new" && count("new") > 0 ? <span className={adm.count}>{count("new")}</span> : null}
                       </button>
                     ))}
                   </div>
-                  {shown.length === 0 ? <p className={s.note}>None are {filter === "all" ? "" : label(filter).toLowerCase()} right now.</p> : (
-                    <ul className={s.regList}>
+                  <div className={adm.searchBar} role="search">
+                    <SearchBox label="Search registrations" placeholder="Search by school, contact or note" value={find} onChange={setFind} />
+                    <span key={`${filter}${q}`} className={`t-swap muted ${adm.searchCount}`} aria-live="polite">{q || filter !== "all" ? `${shown.length} shown` : ""}</span>
+                  </div>
+                  {shown.length === 0 ? <p className={s.note}>No matches. Try a different word, or another tab.</p> : (
+                    <ul key={filter} className={`t-reveal ${s.regList}`}>
                       {shown.map((r) => (
                         <li key={r.id} className={s.reg} data-status={r.status}>
                           <div className={s.regMain}>

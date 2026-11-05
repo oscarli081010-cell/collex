@@ -38,7 +38,7 @@ export default function ListingsView() {
         ]}
         aside={<div className="btnStack one"><Link href="/list" className="button secondary lg">List a conference</Link></div>} />
       <div className={s.body}>
-        <div className={s.account}><ListingsPanel rows={rows} /></div>
+        <div className={s.accountWide}><ListingsPanel rows={rows} /></div>
       </div>
     </>
   );

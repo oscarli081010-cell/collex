@@ -14,7 +14,7 @@ type Say = (msg: string) => void;
 export type Mine = { id: string; school: string; status: "new" | "accepted" | "waitlisted" | "declined" } | null;
 
 const SAYS: Record<string, string> = {
-  new: "Sent. The organisers will be in touch.", accepted: "Accepted", waitlisted: "On the waitlist", declined: "Not accepted",
+  new: "Delegation sent", accepted: "Delegation accepted", waitlisted: "Delegation waitlisted", declined: "Delegation not accepted",
 };
 
 /** The signed-in person's own registration for this conference, if they sent one. */
@@ -49,7 +49,7 @@ export function RegisterCard({ c, mine, formOpen, setFormOpen, say, onWithdrawn 
     onWithdrawn();
   };
 
-  const status = mine ? `${mine.school}: ${SAYS[mine.status].toLowerCase()}` : waiting ? `Opens ${whenOpens(c.delegationOpensAt!)}` : state === "open" ? "Registrations open" : "";
+  const status = mine ? SAYS[mine.status] : waiting ? `Opens ${whenOpens(c.delegationOpensAt!)}` : state === "open" ? "Registrations open" : "";
   return (
     <div className={s.applyOption}>
       <div>
@@ -98,7 +98,7 @@ export function RegisterForm({ c, say, onDone }: { c: Conference; say: Say; onDo
       setError(err.code === "23505" ? "You’ve already registered for this conference." : err.code === "42501" ? err.message : "That didn’t send. Try again.");
       return;
     }
-    say("Registration sent. The organisers will be in touch.");
+    say("Delegation sent");
     onDone({ id: data as string, school: text("school"), status: "new" });
   };
 

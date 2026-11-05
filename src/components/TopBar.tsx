@@ -10,7 +10,7 @@ import CommandBar from "./CommandBar";
 
 type NavLink = { href: string; label: string };
 type NavGroup = { label: string; items: NavLink[] };
-// Three menus: the home page and what Collex is, browsing, and the things you do about a conference.
+// Three menus: the home page and what Collex is, browsing (including the roles conferences need filled), and the tools for running a conference.
 export const NAV_GROUPS: NavGroup[] = [
   { label: "Home", items: [
     { href: "/", label: "Home" },
@@ -19,11 +19,11 @@ export const NAV_GROUPS: NavGroup[] = [
   { label: "Browse", items: [
     { href: "/conferences", label: "Conferences" },
     { href: "/calendar", label: "Calendar" },
+    { href: "/roles", label: "Open roles" },
   ] },
-  { label: "Get involved", items: [
+  { label: "Organisers", items: [
     { href: "/list", label: "List a conference" },
     { href: "/listings", label: "Your listings" },
-    { href: "/roles", label: "Open roles" },
   ] },
 ];
 
