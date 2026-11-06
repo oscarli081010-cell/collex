@@ -70,7 +70,6 @@ export default function ChamberDisplay() {
   const openNow = open ? [open.negotiation && "Negotiation Chamber open", open.amendments && "Amendments open", open.speakers && "Speakers\u2019 list open"].filter(Boolean).join(" \u00B7 ") : "";
   const tools = (
     <div className={s.dTools}>
-      {openNow && <span className={`${s.dBtn} ${s.dStatus}`} role="status">{openNow}</span>}
       <button type="button" className={s.dBtn} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}{full ? "Exit full screen" : "Full screen"}</button>
       <Link href={cloudId ? `/chambers?c=${cloudId}` : "/chambers"} className={s.dBtn}><Back />Console</Link>
     </div>
@@ -209,6 +208,7 @@ export default function ChamberDisplay() {
           {c?.topic && <p className={s.dTopic}>{c.topic}</p>}
           <p className={s.dBrand}>Powered by <Wordmark height={13} /></p>
         </div>
+        {openNow ? <span className={`${s.dBtn} ${s.dStatus}`} role="status">{openNow}</span> : <span className={s.dGap} />}
         {tools}
       </div>
       <main id="top" className={s.dMid}>{mid}</main>
