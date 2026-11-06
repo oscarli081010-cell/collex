@@ -7,7 +7,7 @@ export type Delegate = { id: string; name: string; present: boolean };
 // is always worked out from the clock, never counted down, so a throttled background tab can't drift.
 export type Timer = { label: string; total: number; endsAt: number | null; left: number };
 export type Majority = "simple" | "twoThirds";
-export type Vote = { title: string; needs: Majority; minutes: number | null; yes: number; no: number; abstain: number };
+export type Vote = { title: string; needs: Majority; secs: number | null; yes: number; no: number; abstain: number };
 export type Result = { title: string; needs: Majority; yes: number; no: number; abstain: number; passed: boolean };
 export type Entry = { at: number; text: string };
 
@@ -30,6 +30,12 @@ export type Chamber = {
 
 export const KEY = "collex:chamber";
 export const MAX_DELEGATES = 200;
+
+// Devices sharing a committee may disagree about the time. Whenever one hears from the database it learns how far its
+// clock is out, and every timestamp it writes or reads goes through now() so all of them count from the same moment.
+let skew = 0;
+export const setSkew = (ms: number) => { skew = ms; };
+export const now = () => Date.now() + skew;
 
 export const remaining = (t: Timer, now: number) => (t.endsAt === null ? t.left : Math.max(0, t.endsAt - now));
 export const running = (t: Timer | null) => !!t && t.endsAt !== null;
@@ -57,10 +63,10 @@ export function parseNames(text: string): string[] {
 
 export function create(name: string, topic: string, speakSecs: number, names: string[]): Chamber {
   const delegates = names.map((n) => ({ id: id(), name: n, present: false })).sort(byName);
-  return { v: 1, name: name.trim(), topic: topic.trim(), speakSecs, delegates, queue: [], speaker: null, timer: null, vote: null, result: null, log: [{ at: Date.now(), text: "Committee opened" }] };
+  return { v: 1, name: name.trim(), topic: topic.trim(), speakSecs, delegates, queue: [], speaker: null, timer: null, vote: null, result: null, log: [{ at: now(), text: "Committee opened" }] };
 }
 
-const note = (c: Chamber, text: string): Chamber => ({ ...c, log: [...c.log, { at: Date.now(), text }] });
+const note = (c: Chamber, text: string): Chamber => ({ ...c, log: [...c.log, { at: now(), text }] });
 export const nameOf = (c: Chamber, who: string | null) => c.delegates.find((d) => d.id === who)?.name ?? "";
 export const presentCount = (c: Chamber) => c.delegates.filter((d) => d.present).length;
 
@@ -129,15 +135,18 @@ export function nudgeTimer(c: Chamber, secs: number, now: number): Chamber {
 export function setTimer(c: Chamber, label: string, secs: number): Chamber {
   return note({ ...c, timer: timerFor(label, secs) }, `Timer set: ${label}, ${clock(secs * 1000)}`);
 }
+export function setSpeakSecs(c: Chamber, secs: number): Chamber {
+  return { ...c, speakSecs: secs };
+}
 export function clearTimer(c: Chamber): Chamber {
   return { ...c, timer: null, speaker: null };
 }
 
 /* Motions and voting */
-export function openVote(c: Chamber, title: string, needs: Majority, minutes: number | null): Chamber {
+export function openVote(c: Chamber, title: string, needs: Majority, secs: number | null): Chamber {
   const t = title.trim().slice(0, 140);
   if (!t) return c;
-  return note({ ...c, vote: { title: t, needs, minutes, yes: 0, no: 0, abstain: 0 }, result: null }, `Motion: ${t}`);
+  return note({ ...c, vote: { title: t, needs, secs, yes: 0, no: 0, abstain: 0 }, result: null }, `Motion: ${t}`);
 }
 export function tally(c: Chamber, which: "yes" | "no" | "abstain", by: 1 | -1): Chamber {
   if (!c.vote) return c;
@@ -155,7 +164,7 @@ export function decide(c: Chamber): Chamber {
   const passed = passes(v);
   const result: Result = { title: v.title, needs: v.needs, yes: v.yes, no: v.no, abstain: v.abstain, passed };
   let next: Chamber = { ...c, vote: null, result };
-  if (passed && v.minutes) next = { ...next, speaker: null, timer: timerFor(v.title, v.minutes * 60) };
+  if (passed && v.secs) next = { ...next, speaker: null, timer: timerFor(v.title, v.secs) };
   return note(next, `${v.title}: ${passed ? "passed" : "failed"} (${v.yes} for, ${v.no} against, ${v.abstain} abstaining)`);
 }
 export function dropVote(c: Chamber): Chamber {

@@ -3,25 +3,32 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "next/navigation";
 import * as ch from "@/lib/chamber";
-import type { Chamber } from "@/lib/chamber";
+import { isId, useChamber } from "@/lib/useChamber";
+import { useAuth } from "./AuthProvider";
+import { Wordmark } from "@/lib/brand";
 import { useNow } from "./Chambers";
 import s from "./Chambers.module.css";
 
 // What the room sees: the speaker and the time in very large type, the next few speakers, and any vote. It only reads
 // the committee the console saves, and redraws when the console changes it in another window.
+const Expand = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 2.5H2.5V6M10 2.5h3.5V6M6 13.5H2.5V10M10 13.5h3.5V10" /></svg>;
+const Shrink = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 6H6V2.5M13.5 6H10V2.5M2.5 10H6v3.5M13.5 10H10v3.5" /></svg>;
+const Back = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 8H3M7 4L3 8l4 4" /></svg>;
+
 export default function ChamberDisplay() {
-  const [c, setC] = useState<Chamber | null>(null);
-  const [ready, setReady] = useState(false);
+  const q = useSearchParams().get("c");
+  const cloudId = isId(q) ? q : null;
+  const { ready: authReady, session } = useAuth();
+  const { c, status } = useChamber(cloudId, { signedIn: !!session, authReady, readOnly: true });
   const [full, setFull] = useState(false);
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    setC(ch.load());
-    setReady(true);
-    const onStore = (e: StorageEvent) => { if (e.key === ch.KEY || e.key === null) setC(ch.load()); };
+    setMounted(true);
     const onFull = () => setFull(!!document.fullscreenElement);
-    window.addEventListener("storage", onStore);
     document.addEventListener("fullscreenchange", onFull);
-    return () => { window.removeEventListener("storage", onStore); document.removeEventListener("fullscreenchange", onFull); };
+    return () => document.removeEventListener("fullscreenchange", onFull);
   }, []);
 
   const now = useNow(ch.running(c?.timer ?? null));
@@ -30,15 +37,25 @@ export default function ChamberDisplay() {
 
   const tools = (
     <div className={s.dTools}>
-      <button type="button" className="button secondary" onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? "Exit full screen" : "Full screen"}</button>
-      <Link href="/chambers" className="button secondary">Back to console</Link>
+      <button type="button" className={s.dBtn} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}{full ? "Exit full screen" : "Full screen"}</button>
+      <Link href={cloudId ? `/chambers?c=${cloudId}` : "/chambers"} className={s.dBtn}><Back />Console</Link>
     </div>
   );
 
-  if (!ready) return null; // the saved committee is only known in the browser
+  if (!mounted) return null; // the saved committee is only known in the browser
 
   let mid: React.ReactNode;
-  if (!c) mid = (
+  if (!c) mid = status === "signin" ? (
+    <>
+      <h1 className={`serif ${s.dWho}`}>Log in to see this committee</h1>
+      <Link href="/login" className={s.dBtn}>Log in</Link>
+    </>
+  ) : status === "denied" ? (
+    <>
+      <h1 className={`serif ${s.dWho}`}>This committee isn&apos;t shared with you</h1>
+      <p className={s.dTag}>Ask the person who runs it to add the email on your Collex account.</p>
+    </>
+  ) : status === "loading" || cloudId ? null : (
     <>
       <h1 className={`serif ${s.dWho}`}>Nothing to show yet</h1>
       <p className={s.dTag}>Open a committee in the console, then keep this window open beside it.</p>
@@ -83,6 +100,7 @@ export default function ChamberDisplay() {
         <div>
           <p className={`serif ${s.dName}`}>{c?.name ?? "Chambers"}</p>
           {c && c.topic && c.timer && <p className={s.dSub}>{c.topic}</p>}
+          <p className={s.dBrand}>Powered by <Wordmark height={13} /></p>
         </div>
         {tools}
       </div>

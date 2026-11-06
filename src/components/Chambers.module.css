@@ -6,33 +6,69 @@
 .topic { color: var(--muted); font-size: 14.5px; margin-top: 4px; }
 .topActions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
-/* Floor, speakers and the tools side by side where there is room; the minutes run along the bottom. */
-.grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1.05fr); align-items: start; }
-.log { grid-column: 1 / -1; }
-@media (max-width: 1040px) {
-  .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .floor { grid-column: 1 / -1; }
-}
-@media (max-width: 680px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+/* Where the committee is kept, with a dot like the one a listing's registration switch uses. */
+.where { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--muted); }
+.where i { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+.where[data-state="live"] i { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+.where[data-state="offline"] { color: var(--danger); }
+.where[data-state="offline"] i { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
 
-.floor, .list, .side, .log { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+/* Manage: the timer runs the full width, with the speakers list and the tools as two equal halves beneath it. */
+.manage { display: flex; flex-direction: column; gap: 16px; }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+
+.floor { padding: 26px; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); gap: 18px 36px; align-items: center; }
+.floorMain { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.floorControls { display: flex; flex-direction: column; gap: 10px; }
+.bigBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bigBtns .button { width: 100%; height: 64px; font-size: 17px; }
+.track, .floorFoot { grid-column: 1 / -1; }
+.floorFoot { display: flex; flex-direction: column; gap: 10px; padding-top: 16px; border-top: 1px solid var(--line); }
+@media (max-width: 860px) {
+  .floor { grid-template-columns: minmax(0, 1fr); padding: 22px; }
+  .bigBtns .button { height: 54px; }
+}
+@media (max-width: 480px) { .bigBtns { grid-template-columns: minmax(0, 1fr); } }
+
+.list, .side, .log, .share, .notice { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
 .tag { font-size: 13px; font-weight: 500; color: var(--muted); }
-.who { font-size: clamp(26px, 3vw, 34px); overflow-wrap: anywhere; min-height: 1.1em; }
-.time { font-variant-numeric: tabular-nums; font-size: clamp(72px, 9vw, 120px); font-weight: 500; letter-spacing: -0.03em; line-height: 1; }
+.who { font-size: clamp(26px, 3vw, 36px); overflow-wrap: anywhere; min-height: 1.1em; }
+.time { font-variant-numeric: tabular-nums; font-size: clamp(88px, 12vw, 168px); font-weight: 500; letter-spacing: -0.035em; line-height: 0.95; }
 .time[data-state="paused"] { color: var(--muted); }
 .time[data-state="none"] { color: var(--faint); }
 .time[data-state="up"] { color: var(--danger); }
-.track { height: 6px; border-radius: 3px; background: var(--surface); overflow: hidden; }
+.track { height: 8px; border-radius: 4px; background: var(--surface); overflow: hidden; }
 .track i { display: block; height: 100%; background: var(--accent); transition: width 200ms linear; }
-.time[data-state="up"] + .track i { background: var(--danger); }
-.status { font-size: 14px; color: var(--muted); margin-top: -4px; }
+.floor[data-up] .track i { background: var(--danger); }
+.status { font-size: 14px; color: var(--muted); }
 .nudges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .nudges .button { width: 100%; }
 .keys { font-size: 12.5px; }
 @media (pointer: coarse) { .keys { display: none; } }
 
-.custom { padding-top: 14px; border-top: 1px solid var(--line); }
-.customRow { display: grid; grid-template-columns: minmax(0, 1fr) 72px auto; gap: 8px; }
+.custom { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: end; }
+.custom .button { height: 44px; }
+@media (max-width: 680px) { .custom { grid-template-columns: minmax(0, 1fr); } }
+.dur { display: flex; align-items: center; gap: 8px; }
+.dur .control { width: 72px; text-align: center; padding-inline: 8px; }
+.dur span { font-size: 13px; color: var(--muted); margin-right: 6px; }
+
+.share { gap: 16px; }
+.team { display: flex; flex-direction: column; }
+.team li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.team li:first-child { border-top: 0; }
+.team .tname { flex: 1; min-width: 0; }
+.notice { max-width: 560px; margin: 48px auto 0; padding: 28px; }
+.mine { display: flex; flex-direction: column; gap: 8px; }
+.mineBtn {
+  width: 100%; display: flex; flex-direction: column; gap: 2px; align-items: flex-start; padding: 12px 14px; cursor: pointer; text-align: left;
+  background: var(--panel); border: 1px solid var(--line-strong); border-radius: 10px;
+  transition: border-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out);
+}
+.mineBtn:hover { border-color: var(--faint); }
+.mineBtn:active { transform: scale(0.98); }
+.mineBtn small { color: var(--muted); font-size: 13px; }
 
 .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .h2 { font-size: 17px; font-weight: 500; }
@@ -83,14 +119,15 @@
 .tname { font-size: 14px; font-weight: 500; overflow-wrap: anywhere; line-height: 1.3; }
 .addRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 
-.entries { display: flex; flex-direction: column; max-height: 260px; overflow-y: auto; }
+.entries { display: flex; flex-direction: column; }
 .entries li { display: flex; gap: 14px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
 .entries li:first-child { border-top: 0; }
 .entries time { flex: none; width: 64px; color: var(--faint); }
 
 /* Setting a committee up */
 .setup { display: flex; flex-direction: column; gap: 20px; padding-bottom: 72px; }
-.setupCard { padding: 28px; display: flex; flex-direction: column; gap: 18px; max-width: 760px; }
+.setupStack { width: 100%; max-width: 760px; margin-inline: auto; display: flex; flex-direction: column; gap: 16px; }
+.setupCard { padding: 28px; display: flex; flex-direction: column; gap: 18px; }
 
 @media (prefers-reduced-motion: reduce) { .track i, .tile { transition: none; } }
 
@@ -102,7 +139,18 @@
 .dTop { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .dName { font-size: clamp(22px, 2.6vw, 34px); overflow-wrap: anywhere; }
 .dSub { color: var(--muted); font-size: clamp(14px, 1.4vw, 18px); margin-top: 4px; }
-.dTools { display: flex; gap: 10px; flex: none; }
+.dBrand { display: flex; align-items: center; gap: 7px; margin-top: 8px; font-size: clamp(11px, 1vw, 13px); color: var(--faint); }
+.dBrand svg { color: var(--muted); }
+.dTools { display: flex; gap: 8px; flex: none; }
+/* Quiet pills for the display's own controls: they stay out of the way of what the room is reading. */
+.dBtn {
+  display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 999px; cursor: pointer;
+  background: color-mix(in srgb, var(--panel) 70%, transparent); border: 1px solid var(--line); color: var(--muted); font-size: 14px; font-weight: 500; white-space: nowrap;
+  transition: color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out);
+}
+.dBtn:hover { color: var(--ink); background: var(--panel); border-color: var(--line-strong); }
+.dBtn:active { transform: scale(0.97); }
+@media (max-width: 520px) { .dBtn { padding: 0 14px; } }
 .dMid { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: clamp(12px, 2vw, 28px); min-height: 0; }
 .dTag { font-size: clamp(16px, 1.8vw, 24px); color: var(--muted); font-weight: 500; }
 .dWho { font-size: clamp(40px, 7vw, 108px); line-height: 1.02; overflow-wrap: anywhere; max-width: 100%; }
