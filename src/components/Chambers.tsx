@@ -325,7 +325,8 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
   const [nextRes, setNextRes] = useState("");
   const [anyWho, setAnyWho] = useState("");
   const [anySide, setAnySide] = useState<Side>("for");
-  useEffect(() => { setCallSecs(null); }, [c.speakSecs]);
+  // The time the chair allots is for one speech: the next one starts from the default again.
+  useEffect(() => { setCallSecs(null); }, [c.speakSecs, c.debate.run.length]);
   const secs = callSecs ?? c.speakSecs;
   const next = ch.nextCandidate(c);
   const aid = c.amend?.id ?? "";
@@ -418,7 +419,7 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
       case "opposer": return (<><button type="button" className="button" onClick={() => act(ch.callOpposer)}>Call {name(c.roles.opposer)} to oppose</button><p className={s.hint}>{HINT.opposer}</p></>);
       case "caucus": return (
         <>
-          {!ch.running(c.timer) && <Duration id="fl-cau" label="Caucus length" value={c.timer ? Math.round(c.timer.total / 1000) : ch.CAUCUS_SECS} min={5} max={10800}
+          {c.timer && !ch.running(c.timer) && c.timer.left === c.timer.total && <Duration id="fl-cau" label="Caucus length" value={c.timer ? Math.round(c.timer.total / 1000) : ch.CAUCUS_SECS} min={5} max={10800}
             onChange={(v, ok) => { if (ok && v !== null) act((x) => ch.setCaucusSecs(x, v)); }} />}
           {timerBtn("button")}
           <button type="button" className="button secondary" onClick={() => act(ch.endCaucus)}>End caucus</button>
