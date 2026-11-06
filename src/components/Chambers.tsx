@@ -83,8 +83,7 @@ export default function Chambers() {
   const router = useRouter();
   const { c, status, owner, act, setLocal } = useChamber(cloudId, { signedIn: !!session, authReady });
   const [live, setLive] = useState("");
-  const [view, setView] = useState<"manage" | "analytics">("manage");
-  const [sharing, setSharing] = useState(false);
+  const [view, setView] = useState<"manage" | "analytics" | "share">("manage");
   const { say, node } = useToast();
 
   const now = useNow(ch.running(c?.timer ?? null));
@@ -166,7 +165,7 @@ export default function Chambers() {
         <h1 className={`serif ${s.name}`}>{c.name}{c.topic && ` · ${c.topic}`}</h1>
         <div className={s.topActions}>
           <a className={`button secondary ${s.topBtn}`} href={display} target="_blank" rel="noopener">{MONITOR}Open display</a>
-          <button type="button" className={`button secondary ${s.topBtn}`} aria-expanded={sharing} aria-controls="ch-share" onClick={() => setSharing((x) => !x)}>
+          <button type="button" className={`button secondary ${s.topBtn}`} onClick={() => setView("share")}>
             {cloudId ? <i className={s.live} data-off={status === "offline"} aria-hidden="true" /> : ICONS.share}
             Share{status === "offline" && <span className="sr-only"> (offline, trying again)</span>}
           </button>
@@ -176,12 +175,10 @@ export default function Chambers() {
       </header>
       {status === "offline" && <p className={s.result} data-pass="false" role="alert">Offline: your changes are kept here and will be sent when the connection is back.</p>}
 
-      {sharing && <Share c={c} cloudId={cloudId} owner={owner} signedIn={!!session} meId={session?.user.id} say={say} setLocal={setLocal} />}
-
       <div className="sr-only" role="status" aria-live="polite">{live}</div>
 
       <PanelTabs idPrefix="chv" label="Committee" tab={view} setTab={setView}
-        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage }, { id: "analytics", label: "Analytics", icon: ICONS.chart }]} />
+        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage }, { id: "analytics", label: "Analytics", icon: ICONS.chart }, { id: "share", label: "Share", icon: ICONS.share }]} />
 
       {view === "manage" ? (
         <div id="chv-panel-manage" role="tabpanel" aria-labelledby="chv-tab-manage" className={s.manage}>
@@ -193,10 +190,14 @@ export default function Chambers() {
           {inDebate && (ch.listOpen(c)
             ? <div className={s.pair}><Lists c={c} act={act} /><Amendments c={c} act={act} /></div>
             : <Amendments c={c} act={act} />)}
-          {(c.step === "vote" || c.step === "closed") && <RollCall c={c} act={act} />}
+          {(c.step === "vote" || c.step === "closed" || c.step === "ended") && <RollCall c={c} act={act} />}
         </div>
-      ) : (
+      ) : view === "analytics" ? (
         <Analytics c={c} say={say} />
+      ) : (
+        <div id="chv-panel-share" role="tabpanel" aria-labelledby="chv-tab-share">
+          <Share c={c} cloudId={cloudId} owner={owner} signedIn={!!session} meId={session?.user.id} say={say} setLocal={setLocal} />
+        </div>
       )}
       {node}
     </main>
@@ -348,7 +349,7 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
   let sub: React.ReactNode = "";
   if (sp) {
     if (sp.phase === "ask") { title = name(sp.asker); sub = `Point of Information for ${name(sp.who)}`; }
-    else { title = name(sp.who); sub = sp.phase === "speech" ? "Speaking" : sp.phase === "after" ? "Takes a Point of Information, or yields to the chair" : "Replying to the Point of Information"; }
+    else { title = name(sp.who); sub = sp.phase === "speech" ? "Speaking" : sp.phase === "after" ? "" : "Replying to the Point of Information"; }
   }
   else if (c.step === "proposer") { title = name(c.roles.proposer); sub = "Proposes the resolution"; }
   else if (c.step === "seconder") { title = name(c.roles.seconder); sub = "Seconds the resolution"; }
@@ -357,6 +358,7 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
   else if (c.step === "floor") { title = "Amendments"; }
   else if (c.step === "closing") { title = "Closing speeches"; }
   else if (c.step === "vote") { title = "Roll call vote"; }
+  else if (c.step === "ended") { title = "Committee ended"; sub = "The analytics are still here."; }
   else if (c.step === "closed") { title = c.outcome?.passed ? "Resolution approved" : "Resolution not approved"; sub = c.outcome ? `${c.outcome.yes} for, ${c.outcome.no} against, ${c.outcome.abstain} abstaining` : ""; }
   else if (c.step === "amend" && c.amend?.stage === "read") { title = `Amendment from ${name(amendment?.by ?? null)}`; sub = amendment?.clause || "Read it to the council"; }
   else if (c.step === "amend" && c.amend?.stage === "ask") { title = "Debate this amendment?"; }
@@ -461,7 +463,11 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
             <button type="submit" className="button" disabled={!nextRes.trim()}>Start the next resolution</button>
           </form>
           <button type="button" className="button secondary" onClick={() => act(ch.reopenVote)}>Reopen the vote</button>
+          <button type="button" className="button secondary" onClick={() => act(ch.endCommittee)}>End the Committee</button>
         </>
+      );
+      case "ended": return (
+        <button type="button" className="button secondary" onClick={() => act(ch.reopenCommittee)}>Reopen the committee</button>
       );
       case "amend":
         if (c.amend?.stage === "read") return (
@@ -537,10 +543,10 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
         {sub && <p className={s.sub}>{sub}</p>}
         {amendment && c.step === "amend" && <p className={s.sub}>{amendment.text}</p>}
         {c.result && !c.poll && <p className={s.result} data-pass={c.result.passed}><strong>{c.result.passed ? "Passed" : "Failed"}:</strong> {c.result.yes} For, {c.result.no} Against, {c.result.abstain} Abstaining</p>}
-        {c.timer && c.step !== "closed" && <div className={s.time} data-state={state} role="timer">{ch.clock(left)}</div>}
+        {c.timer && c.step !== "closed" && c.step !== "ended" && <div className={s.time} data-state={state} role="timer">{ch.clock(left)}</div>}
       </div>
       <div className={s.actions}>{actions}</div>
-      {c.timer && c.step !== "closed" && <div className={s.track} aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>}
+      {c.timer && c.step !== "closed" && c.step !== "ended" && <div className={s.track} aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>}
       {c.timer && (
         <div className={s.floorFoot}>
           <div className={s.nudges}>
@@ -759,7 +765,7 @@ function Amendments({ c, act }: { c: Chamber; act: Act }) {
 function RollCall({ c, act }: { c: Chamber; act: Act }) {
   const n = ch.count(c);
   const need = ch.needed(c.delegates.length);
-  const closed = c.step === "closed";
+  const closed = c.step === "closed" || c.step === "ended";
   return (
     <section className={`panel ${s.side}`}>
       <div className={s.head}>

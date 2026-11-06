@@ -33,7 +33,7 @@ export type Poll = { title: string; kind: "debate" | "amendment"; yes: number; n
 export type Result = { title: string; passed: boolean; yes: number; no: number; abstain: number };
 export type Outcome = { passed: boolean; yes: number; no: number; abstain: number; needed: number };
 export type Entry = { at: number; text: string };
-export type Step = "welcome" | "roll" | "pick" | "proposer" | "seconder" | "opposer" | "caucus" | "floor" | "amend" | "closing" | "vote" | "closed";
+export type Step = "welcome" | "roll" | "pick" | "proposer" | "seconder" | "opposer" | "caucus" | "floor" | "amend" | "closing" | "vote" | "closed" | "ended";
 
 // Times are milliseconds. A running timer has `endsAt`; a paused one keeps what is left in `left`. The time on screen
 // is always worked out from the clock, never counted down, so a throttled background tab can't drift.
@@ -489,6 +489,13 @@ export function reopenVote(c: Chamber): Chamber {
   if (c.step !== "closed" || !c.outcome) return c;
   return note({ ...c, step: "vote", outcome: null }, "Vote reopened");
 }
+/** The chair closes the committee after the last resolution. Everything stays, so the analytics can still be read and it can be reopened. */
+export function endCommittee(c: Chamber): Chamber {
+  return c.step === "closed" ? note({ ...c, step: "ended", timer: null, speech: null }, "Committee ended") : c;
+}
+export function reopenCommittee(c: Chamber): Chamber {
+  return c.step === "ended" ? note({ ...c, step: "closed" }, "Committee reopened") : c;
+}
 // The states and minutes stay; the next resolution starts at the welcome.
 export function newResolution(c: Chamber, title: string): Chamber {
   const t = title.trim().slice(0, 160);
@@ -570,6 +577,7 @@ export function substep(c: Chamber): string {
     case "amend": return c.amend?.stage === "read" ? "Amendment read" : c.amend?.stage === "ask" ? "Vote on whether to debate" : c.amend?.stage === "debate" ? "Amendment debate" : "Vote on the amendment";
     case "closing": return "Closing speeches";
     case "vote": return "Roll call vote";
+    case "ended": return "Ended";
     default: return "Result";
   }
 }

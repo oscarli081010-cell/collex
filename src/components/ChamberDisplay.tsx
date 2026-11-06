@@ -145,6 +145,13 @@ export default function ChamberDisplay() {
         {!c.poll && timerView(true)}
       </>
     );
+  } else if (c.step === "ended") {
+    mid = (
+      <>
+        <h1 className={`serif ${s.dWho}`}>Thank you</h1>
+        <p className={s.dText}>The {bare(c.name)} has ended</p>
+      </>
+    );
   } else if (c.step === "vote" || c.step === "closed") {
     const n = ch.count(c);
     mid = (
