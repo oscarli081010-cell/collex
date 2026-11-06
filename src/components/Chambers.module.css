@@ -222,7 +222,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 }
 .dTop { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .dName { font-size: clamp(22px, 2.6vw, 34px); overflow-wrap: anywhere; }
-.dSub { color: var(--muted); font-size: clamp(14px, 1.4vw, 18px); margin-top: 4px; }
+.dTopic { color: var(--muted); font-size: clamp(14px, 1.4vw, 18px); margin-top: 4px; }
 .dBrand { display: flex; align-items: center; gap: 7px; margin-top: 8px; font-size: clamp(11px, 1vw, 13px); color: var(--faint); }
 .dBrand svg { color: var(--muted); }
 .dTools { display: flex; gap: 8px; flex: none; }
@@ -235,31 +235,31 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dBtn:hover { color: var(--ink); background: var(--panel); border-color: var(--line-strong); }
 .dBtn:active { transform: scale(0.97); }
 @media (max-width: 520px) { .dBtn { padding: 0 14px; } }
-.dMid { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: clamp(12px, 2vw, 28px); min-height: 0; }
-.dTag { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; font-size: clamp(16px, 1.8vw, 24px); color: var(--muted); font-weight: 500; }
-.dChip { display: inline-flex; align-items: center; height: clamp(28px, 2.6vw, 36px); padding: 0 clamp(12px, 1.2vw, 18px); border-radius: 999px; background: var(--surface); font-size: clamp(14px, 1.5vw, 20px); }
-.dChip[data-side="for"] { background: var(--ok-soft); color: var(--ok); }
-.dChip[data-side="against"] { background: var(--danger-soft); color: var(--danger); }
-.dWho { font-size: clamp(40px, 7vw, 108px); line-height: 1.02; overflow-wrap: anywhere; max-width: 100%; }
-.dWho.m { font-size: clamp(34px, 5vw, 76px); }
-.dText { font-family: var(--serif); font-size: clamp(26px, 3.6vw, 56px); line-height: 1.15; max-width: min(100%, 1100px); overflow-wrap: anywhere; white-space: pre-wrap; }
-.dTime { font-variant-numeric: tabular-nums; font-size: clamp(110px, 24vw, 380px); font-weight: 500; letter-spacing: -0.04em; line-height: 0.95; }
-.dTime.s { font-size: clamp(90px, 17vw, 260px); }
+
+/* Every screen is built the same way: a pill, a heading in the serif, lines of ordinary text, then what to look at. */
+.dMid { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: clamp(14px, 2.2vw, 30px); min-height: 0; }
+.dPill { display: inline-flex; align-items: center; justify-content: center; padding: 0.4em 1.1em; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: clamp(16px, 1.8vw, 26px); font-weight: 500; line-height: 1.25; max-width: 100%; }
+.dPill[data-side="for"] { background: var(--ok-soft); color: var(--ok); }
+.dPill[data-side="against"] { background: var(--danger-soft); color: var(--danger); }
+.dH { font-size: clamp(48px, 7.6vw, 116px); line-height: 1.02; overflow-wrap: anywhere; max-width: 100%; }
+.dH.m { font-size: clamp(36px, 5.2vw, 80px); line-height: 1.08; }
+.dH[data-pass="true"] { color: var(--ok); }
+.dH[data-pass="false"] { color: var(--danger); }
+.dLines { display: flex; flex-direction: column; gap: 0.4em; max-width: min(100%, 1100px); }
+.dSub { font-size: clamp(18px, 2.1vw, 30px); line-height: 1.35; color: var(--muted); overflow-wrap: anywhere; white-space: pre-wrap; }
+.dTime { font-variant-numeric: tabular-nums; font-size: clamp(100px, 19vw, 300px); font-weight: 500; letter-spacing: -0.04em; line-height: 0.95; }
 .dTime[data-state="paused"] { color: var(--muted); }
 .dTime[data-state="low"] { color: var(--warn); }
 .dTime[data-state="up"] { color: var(--danger); }
 .dTrack { width: min(100%, 900px); height: clamp(8px, 1vw, 14px); border-radius: 999px; background: var(--surface); overflow: hidden; }
 .dTrack i { display: block; height: 100%; background: var(--accent); transition: width 200ms linear; }
 .dTime[data-state="up"] ~ .dTrack i { background: var(--danger); }
-.dTallies { display: flex; gap: clamp(20px, 5vw, 80px); justify-content: center; flex-wrap: wrap; }
-.dTally { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.dTally span { font-size: clamp(16px, 1.8vw, 24px); color: var(--muted); font-weight: 500; }
-.dTally b { font-size: clamp(56px, 10vw, 160px); font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
-.dVerdict { font-size: clamp(36px, 7vw, 100px); font-family: var(--serif); line-height: 1.05; }
-.dVerdict[data-pass="true"] { color: var(--ok); }
-.dVerdict[data-pass="false"] { color: var(--danger); }
+.dTallies { display: flex; gap: clamp(28px, 6vw, 96px); justify-content: center; flex-wrap: wrap; }
+.dTally { display: flex; flex-direction: column; align-items: center; gap: 0.15em; }
+.dTally span { font-size: clamp(18px, 2.1vw, 30px); color: var(--muted); font-weight: 500; }
+.dTally b { font-size: clamp(64px, 11vw, 170px); font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
 .dBoard { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 16vw, 230px), 1fr)); gap: clamp(8px, 1vw, 14px); width: min(100%, 1400px); }
-.dSeat { display: flex; align-items: center; gap: 10px; padding: clamp(8px, 1vw, 14px) clamp(10px, 1.2vw, 16px); border-radius: 12px; background: var(--surface); font-size: clamp(14px, 1.4vw, 20px); font-weight: 500; text-align: left; border: 1px solid transparent; }
+.dSeat { display: flex; align-items: center; gap: 10px; padding: clamp(8px, 1vw, 14px) clamp(10px, 1.2vw, 16px); border-radius: 12px; background: var(--surface); font-size: clamp(15px, 1.6vw, 22px); font-weight: 500; text-align: left; border: 1px solid transparent; }
 .dSeat i { flex: none; width: clamp(10px, 1vw, 14px); height: clamp(10px, 1vw, 14px); border-radius: 50%; background: var(--line-strong); }
 .dSeat[data-b="for"] { background: var(--ok-soft); color: var(--ok); }
 .dSeat[data-b="for"] i { background: var(--ok); }
@@ -273,13 +273,14 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dSeat[data-a="abstain"] { background: var(--warn-soft); color: var(--warn); }
 .dSeat em { margin-left: auto; font-style: normal; font-size: 0.7em; opacity: 0.85; }
 .dSeat small { margin-left: auto; font-size: 0.7em; opacity: 0.8; }
-.dBottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px 32px; flex-wrap: wrap; font-size: clamp(14px, 1.5vw, 20px); }
-.dNext { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.dNext ol { display: flex; gap: 8px 20px; flex-wrap: wrap; }
+.dBottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px 32px; flex-wrap: wrap; font-size: clamp(16px, 1.7vw, 24px); }
+.dNext { display: flex; flex-direction: column; gap: 6px; min-width: 0; color: var(--muted); }
+.dNext ol { display: flex; gap: 8px 22px; flex-wrap: wrap; color: var(--ink); }
 .dNext li { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
-.dNext li i { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); }
+.dNext li i { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); }
 .dNext li[data-side="against"] i { background: var(--danger); }
-.dNote { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; color: var(--muted); text-align: right; }
+.dNote { color: var(--muted); text-align: right; margin-left: auto; }
+.dNote strong { color: var(--ink); font-weight: 500; }
 @media (prefers-reduced-motion: reduce) { .dTrack i { transition: none; } }
 
 /* Touch screens: every control the chair taps is at least 44px. */

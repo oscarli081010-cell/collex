@@ -478,10 +478,9 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
               <button type="button" className={sm} onClick={() => act((x) => ch.amendVote(x, aid))}>Straight to the vote</button>
             </div>
             <div className={s.btnRow}>
-              <button type="button" className={sm} onClick={() => act((x) => ch.setTimer(x, "Explanation", 30))}>30 second explanation</button>
               <button type="button" className={sm} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a caucus</button>
+              <button type="button" className={sm} onClick={() => act((x) => ch.backOutAmendment(x, aid))}>Set it aside for now</button>
             </div>
-            <button type="button" className={sm} onClick={() => act((x) => ch.backOutAmendment(x, aid))}>Set it aside for now</button>
           </>
         );
         if (c.amend?.stage === "ask" || c.amend?.stage === "vote") return <PollBox c={c} act={act} />;

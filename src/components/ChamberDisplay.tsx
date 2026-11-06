@@ -11,13 +11,30 @@ import { useAuth } from "./AuthProvider";
 import { bare, useNow } from "./Chambers";
 import s from "./Chambers.module.css";
 
-// What the room sees: the welcome and the roll call, then whoever has the floor and the time in very large type, the
-// amendment in hand, any vote and the roll-call vote. It only reads the committee the console keeps and redraws when that changes.
+// What the room sees. Every screen is built the same way, top to bottom: one pill saying what this moment is, a heading
+// in the serif, one or two lines of ordinary text under it, and then the thing to look at (the time, the votes or the
+// roll). The display only reads the committee the console keeps and redraws when that changes.
 const icon = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
 const Expand = () => icon(<path d="M6 2.5H2.5V6M10 2.5h3.5V6M6 13.5H2.5V10M10 13.5h3.5V10" />);
 const Shrink = () => icon(<path d="M2.5 6H6V2.5M13.5 6H10V2.5M2.5 10H6v3.5M13.5 10H10v3.5" />);
 const Back = () => icon(<path d="M13 8H3M7 4L3 8l4 4" />);
 const SIDE = { for: "In favour", against: "Against" } as const;
+
+/** One screen: a pill, a heading, lines of text, and whatever there is to look at. */
+function Screen({ pill, side, heading, long, pass, lines, children }: {
+  pill?: (string | false | null | undefined)[]; side?: ch.Side; heading?: React.ReactNode; long?: boolean; pass?: boolean; lines?: (React.ReactNode | false | null | undefined)[]; children?: React.ReactNode;
+}) {
+  const text = (pill ?? []).filter(Boolean).join(" · ");
+  const rows = (lines ?? []).filter(Boolean);
+  return (
+    <>
+      {text && <span className={s.dPill} data-side={side}>{text}</span>}
+      {heading && <h1 className={`serif ${s.dH} ${long ? s.m : ""}`} data-pass={pass}>{heading}</h1>}
+      {rows.length > 0 && <div className={s.dLines}>{rows.map((r, i) => <p key={i} className={s.dSub}>{r}</p>)}</div>}
+      {children}
+    </>
+  );
+}
 
 export default function ChamberDisplay() {
   const q = useSearchParams().get("c");
@@ -48,166 +65,107 @@ export default function ChamberDisplay() {
 
   const name = (id: string | null) => (c ? ch.nameOf(c, id) : "");
   const amendment = c?.amend ? c.amendments.find((a) => a.id === c.amend!.id) : undefined;
-  const timerView = (small = false) => c?.timer && (
+  const signatories = amendment && amendment.backers.length > 0 ? `Signatories: ${amendment.backers.map(name).join(", ")}` : null;
+  const timerView = () => c?.timer && (
     <>
-      <div className={`${s.dTime} ${small ? s.s : ""}`} data-state={state} role="timer">{ch.clock(left)}</div>
+      <div className={s.dTime} data-state={state} role="timer">{ch.clock(left)}</div>
       <div className={s.dTrack} aria-hidden="true"><i style={{ width: `${Math.min(100, (left / c.timer.total) * 100)}%` }} /></div>
     </>
   );
-  const welcome = c && (
-    <>
-      <h1 className={`serif ${s.dWho}`}>Welcome to the {bare(c.name)}</h1>
-      {c.topic && <p className={s.dText}>{c.topic}</p>}
-    </>
+  const tallies = (labels: [string, number][]) => (
+    <div className={s.dTallies}>
+      {labels.map(([label, n]) => <div key={label} className={s.dTally}><span>{label}</span><b>{n}</b></div>)}
+    </div>
   );
+  // What the speeches are about: the amendment in hand, or else the resolution.
+  const context = c ? (c.step === "amend" && amendment ? amendment.text : c.topic) : "";
 
   let mid: React.ReactNode;
   if (!c) {
     mid = status === "signin" ? (
-      <>
-        <h1 className={`serif ${s.dWho}`}>Log in to see this committee</h1>
-        <Link href="/login" className={s.dBtn}>Log in</Link>
-      </>
+      <Screen heading="Log in to see this committee"><Link href="/login" className={s.dBtn}>Log in</Link></Screen>
     ) : status === "denied" ? (
-      <>
-        <h1 className={`serif ${s.dWho}`}>This committee isn&apos;t shared with you</h1>
-        <p className={s.dTag}>Ask the person who runs it to add the email on your Collex account.</p>
-      </>
+      <Screen heading="This committee isn't shared with you" long lines={["Ask the person who runs it to add the email on your Collex account."]} />
     ) : status === "loading" || cloudId ? null : (
-      <>
-        <h1 className={`serif ${s.dWho}`}>Nothing to show yet</h1>
-        <p className={s.dTag}>Open a committee in the console, then keep this window open beside it.</p>
-      </>
+      <Screen heading="Nothing to show yet" lines={["Open a committee in the console, then keep this window open beside it."]} />
     );
   } else if (c.speech) {
     const sp = c.speech;
     mid = sp.phase === "ask" ? (
-      <>
-        <p className={s.dTag}><span className={s.dChip}>Point of Information</span><span className={s.dChip}>for {name(sp.who)}</span></p>
-        <h1 className={`serif ${s.dWho}`}>{name(sp.asker)}</h1>
-        {timerView()}
-      </>
+      <Screen pill={["Point of Information", `for ${name(sp.who)}`]} heading={name(sp.asker)}>{timerView()}</Screen>
     ) : sp.phase === "answer" ? (
-      <>
-        <p className={s.dTag}><span className={s.dChip}>Reply</span><span className={s.dChip}>to {name(sp.asker)}</span></p>
-        <h1 className={`serif ${s.dWho}`}>{name(sp.who)}</h1>
-        {timerView()}
-      </>
+      <Screen pill={["Reply", `to ${name(sp.asker)}`]} heading={name(sp.who)}>{timerView()}</Screen>
     ) : (
-      <>
-        <p className={s.dTag}><span className={s.dChip}>{ch.ROLE_LABEL[sp.role]}</span><span className={s.dChip} data-side={sp.side}>{SIDE[sp.side]}</span></p>
-        <h1 className={`serif ${s.dWho}`}>{name(sp.who)}</h1>
+      <Screen pill={[ch.ROLE_LABEL[sp.role], SIDE[sp.side]]} side={sp.side} heading={name(sp.who)}
+        lines={[sp.phase === "after" ? `Points of Information${sp.pois > 0 ? ` · ${sp.pois} taken` : ""}` : context]}>
         {sp.phase === "speech" && timerView()}
-        {sp.phase === "after" && <p className={`serif ${s.dVerdict}`}>Points of Information{sp.pois > 0 ? ` · ${sp.pois} taken` : ""}</p>}
-        {c.step === "amend" && amendment && <p className={s.dSub}>Amendment: {amendment.text}</p>}
-      </>
+      </Screen>
     );
   } else if (c.step === "welcome" || c.step === "pick") {
-    mid = (<>{welcome}{c.step === "pick" && <p className={s.dTag}>Choosing the speakers</p>}</>);
+    mid = <Screen pill={["Opening", c.step === "pick" && "Choosing the speakers"]} heading={`Welcome to the ${bare(c.name)}`} lines={[c.topic]} />;
   } else if (c.step === "roll") {
     const n = ch.rollCount(c);
     mid = (
-      <>
-        <p className={s.dTag}>Roll call</p>
-        <div className={s.dTallies}>
-          <div className={s.dTally}><span>Present</span><b>{n.present}</b></div>
-          <div className={s.dTally}><span>Present and Voting</span><b>{n.voting}</b></div>
-          <div className={s.dTally}><span>Abstain</span><b>{n.abstain}</b></div>
-        </div>
+      <Screen pill={["Opening", "Roll call"]} heading="Roll call">
+        {tallies([["Present", n.present], ["Present and Voting", n.voting], ["Abstain", n.abstain]])}
         <div className={s.dBoard}>
           {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-a={c.roll[d.id]}><i />{d.name}{c.roll[d.id] && <em>{ch.ATTEND_LABEL[c.roll[d.id]]}</em>}</div>)}
         </div>
-      </>
+      </Screen>
     );
   } else if (c.step === "caucus") {
-    mid = (
-      <>
-        <h1 className={`serif ${s.dWho}`}>Caucus</h1>
-        {timerView()}
-      </>
-    );
+    mid = <Screen pill={["Debate", "Caucus"]} heading="Caucus" lines={[c.topic]}>{timerView()}</Screen>;
   } else if (c.step === "amend" && amendment) {
+    const stage = c.amend?.stage;
     mid = (
-      <>
-        <p className={s.dTag}><span className={s.dChip}>Amendment</span>{amendment.clause && <span className={s.dChip}>{amendment.clause}</span>}<span className={s.dChip}>from {name(amendment.by)}</span></p>
-        <p className={s.dText}>{amendment.text}</p>
-        {amendment.backers.length > 0 && <p className={s.dSub}>Signatories: {amendment.backers.map(name).join(", ")}</p>}
-        {c.poll && (
-          <>
-            <p className={s.dTag}>{c.poll.title}</p>
-            <div className={s.dTallies}>
-              <div className={s.dTally}><span>For</span><b>{c.poll.yes}</b></div>
-              <div className={s.dTally}><span>Against</span><b>{c.poll.no}</b></div>
-              <div className={s.dTally}><span>Abstain</span><b>{c.poll.abstain}</b></div>
-            </div>
-          </>
-        )}
-        {!c.poll && timerView(true)}
-      </>
-    );
-  } else if (c.step === "ended") {
-    mid = (
-      <>
-        <h1 className={`serif ${s.dWho}`}>Thank you</h1>
-        <p className={s.dText}>The {bare(c.name)} has ended</p>
-      </>
+      <Screen pill={["Amendment", amendment.clause, `from ${name(amendment.by)}`]}
+        heading={stage === "ask" ? "Debate this amendment?" : stage === "vote" ? "Adopt this amendment?" : "Reading the amendment"} long
+        lines={[amendment.text, signatories]}>
+        {c.poll ? tallies([["For", c.poll.yes], ["Against", c.poll.no], ["Abstain", c.poll.abstain]]) : timerView()}
+      </Screen>
     );
   } else if (c.step === "vote" || c.step === "closed") {
     const n = ch.count(c);
     mid = (
-      <>
-        {c.step === "closed" && c.outcome ? (
-          <>
-            <p className={s.dTag}>{c.topic}</p>
-            <div className={s.dVerdict} data-pass={c.outcome.passed}>{c.outcome.passed ? "Resolution approved" : "Resolution not approved"}</div>
-            <p className={s.dTag}>{c.outcome.yes} for · {c.outcome.no} against · {c.outcome.abstain} abstaining{!c.outcome.passed ? ` · ${c.outcome.needed} needed` : ""}</p>
-          </>
-        ) : (
-          <>
-            <p className={s.dTag}>Roll call vote</p>
-            <div className={s.dTallies}>
-              <div className={s.dTally}><span>For</span><b>{n.yes}</b></div>
-              <div className={s.dTally}><span>Against</span><b>{n.no}</b></div>
-              <div className={s.dTally}><span>Abstain</span><b>{n.abstain}</b></div>
-            </div>
-          </>
-        )}
+      <Screen pill={["Closing", c.step === "closed" ? "Result" : "Roll call vote"]}
+        heading={c.step === "closed" && c.outcome ? (c.outcome.passed ? "Resolution approved" : "Resolution not approved") : "Roll call vote"}
+        pass={c.step === "closed" && c.outcome ? c.outcome.passed : undefined}
+        lines={c.step === "closed" && c.outcome
+          ? [c.topic, `${c.outcome.yes} For · ${c.outcome.no} Against · ${c.outcome.abstain} Abstaining${!c.outcome.passed ? ` · ${c.outcome.needed} needed` : ""}`]
+          : []}>
+        {c.step === "vote" && tallies([["For", n.yes], ["Against", n.no], ["Abstain", n.abstain]])}
         <div className={s.dBoard}>
           {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-b={c.ballots[d.id]}><i />{d.name}</div>)}
         </div>
-      </>
+      </Screen>
     );
+  } else if (c.step === "ended") {
+    mid = <Screen pill={["Closing", "Ended"]} heading="Thank you" lines={[`The ${bare(c.name)} has ended`]} />;
   } else if (c.step === "closing") {
-    const left = ch.closingRoles(c).filter((r) => !c.closers.includes(r.id));
+    const todo = ch.closingRoles(c).filter((r) => !c.closers.includes(r.id));
     mid = (
-      <>
-        <p className={s.dTag}><span className={s.dChip}>Closing speeches</span></p>
-        <h1 className={`serif ${s.dWho} ${s.m}`}>{left.length ? left.map((r) => name(r.id)).join(" · ") : "The vote is next"}</h1>
-        {left.length > 0 && <p className={s.dTag}>{left.map((r) => ch.ROLE_LABEL[r.role]).join(" · ")}</p>}
-      </>
+      <Screen pill={["Closing", "Closing speeches"]} heading={todo.length ? todo.map((r) => name(r.id)).join(" · ") : "The vote is next"} long
+        lines={[todo.length ? todo.map((r) => ch.ROLE_LABEL[r.role]).join(" · ") : c.topic]} />
     );
   } else {
     const who = c.step === "proposer" ? c.roles.proposer : c.step === "seconder" ? c.roles.seconder : c.step === "opposer" ? c.roles.opposer : null;
-    const label = c.step === "proposer" ? "Proposer" : c.step === "seconder" ? "Seconder" : c.step === "opposer" ? "Opposer" : "Debate";
-    const waiting = ch.waitingAmendments(c).length;
-    mid = (
-      <>
-        <p className={s.dTag}><span className={s.dChip}>{label}</span></p>
-        <h1 className={`serif ${s.dWho} ${who ? "" : s.m}`}>{who ? name(who) : waiting ? `${waiting} amendment${waiting === 1 ? "" : "s"} waiting` : "Amendments"}</h1>
-        {c.topic && <p className={s.dText}>{c.topic}</p>}
-      </>
+    const role = c.step === "proposer" ? "Proposer" : c.step === "seconder" ? "Seconder" : c.step === "opposer" ? "Opposer" : "";
+    mid = who ? (
+      <Screen pill={[role, c.step === "opposer" ? SIDE.against : SIDE.for]} side={c.step === "opposer" ? "against" : "for"} heading={name(who)} lines={[c.topic]} />
+    ) : (
+      <Screen pill={["Debate", "Amendments"]} heading="Amendments" lines={[c.topic]} />
     );
   }
 
-  const upNext = c && c.step === "amend" ? c.debate.list.slice(0, 4) : [];
   const first = c && c.step === "amend" ? ch.nextCandidate(c) : null;
-  const ordered = first ? [first, ...upNext.filter((x) => x.id !== first.id)] : upNext;
+  const rest = c && c.step === "amend" ? c.debate.list.slice(0, 4) : [];
+  const ordered = first ? [first, ...rest.filter((x) => x.id !== first.id)] : rest;
   const body = (
     <div className={s.display}>
       <div className={s.dTop}>
         <div>
           <p className={`serif ${s.dName}`}>{c?.name ?? "Chambers"}</p>
-          {c?.topic && c.step !== "welcome" && <p className={s.dSub}>{c.topic}</p>}
+          {c?.topic && c.step !== "welcome" && <p className={s.dTopic}>{c.topic}</p>}
           <p className={s.dBrand}>Powered by <Wordmark height={13} /></p>
         </div>
         {tools}
@@ -217,13 +175,13 @@ export default function ChamberDisplay() {
         <div className={s.dNext}>
           {c && ordered.length > 0 && (
             <>
-              <span className="muted">Up next</span>
+              <span>Up next</span>
               <ol>{ordered.map((x) => <li key={x.id} data-side={x.side}><i />{name(x.id)}</li>)}</ol>
             </>
           )}
         </div>
         {c && c.result && !c.poll && (
-          <div className={s.dNote}><span><strong>{c.result.passed ? "Passed" : "Failed"}:</strong> {c.result.yes} For, {c.result.no} Against, {c.result.abstain} Abstaining</span></div>
+          <p className={s.dNote}><strong>{c.result.passed ? "Passed" : "Failed"}:</strong> {c.result.yes} For, {c.result.no} Against, {c.result.abstain} Abstaining</p>
         )}
       </div>
     </div>
