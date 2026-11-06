@@ -122,7 +122,6 @@ export default function ChamberDisplay() {
   } else if (c.step === "caucus") {
     mid = (
       <>
-        <p className={s.dTag}>{c.timer?.label ?? "Caucus"}</p>
         <h1 className={`serif ${s.dWho}`}>Caucus</h1>
         {timerView()}
       </>
@@ -132,7 +131,7 @@ export default function ChamberDisplay() {
       <>
         <p className={s.dTag}><span className={s.dChip}>Amendment</span>{amendment.clause && <span className={s.dChip}>{amendment.clause}</span>}<span className={s.dChip}>from {name(amendment.by)}</span></p>
         <p className={s.dText}>{amendment.text}</p>
-        {amendment.backers.length > 0 && <p className={s.dSub}>Co-sponsors: {amendment.backers.map(name).join(", ")}</p>}
+        {amendment.backers.length > 0 && <p className={s.dSub}>Signatories: {amendment.backers.map(name).join(", ")}</p>}
         {c.poll && (
           <>
             <p className={s.dTag}>{c.poll.title}</p>
@@ -217,7 +216,7 @@ export default function ChamberDisplay() {
           )}
         </div>
         {c && c.result && !c.poll && (
-          <div className={s.dNote}><span>{c.result.title}: {c.result.passed ? "passed" : "failed"} ({c.result.yes}–{c.result.no}–{c.result.abstain})</span></div>
+          <div className={s.dNote}><span><strong>{c.result.passed ? "Passed" : "Failed"}:</strong> {c.result.yes} For, {c.result.no} Against, {c.result.abstain} Abstaining</span></div>
         )}
       </div>
     </div>

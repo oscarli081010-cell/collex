@@ -22,7 +22,11 @@ export type Phase = "speech" | "after" | "ask" | "answer";
 export type Speech = { who: string; side: Side; role: Role; phase: Phase; asker: string | null; pois: number };
 /** The speeches on the amendment in hand. */
 export type Debate = { list: Slot[]; run: Slot[] };
-export type Amendment = { id: string; by: string; clause: string; text: string; backers: string[]; status: "waiting" | "entertained" | "passed" | "failed" | "withdrawn" | "invalid" };
+/** `backers` are the amendment's signatories. `at` is when it was handed in. */
+export type Amendment = { id: string; by: string; clause: string; text: string; backers: string[]; at: number; status: "waiting" | "entertained" | "passed" | "failed" | "withdrawn" | "invalid" };
+/** What a state did, for the analytics: a speech of each kind, a Point of Information asked or answered, an amendment handed in or signed. */
+export type StatKind = "proposer" | "seconder" | "opposer" | "amender" | "speaker" | "closing" | "poi" | "reply" | "amendment" | "signatory";
+export type Stat = { at: number; who: string; kind: StatKind; secs: number; with?: string; res: string };
 export type AmendStage = "read" | "ask" | "debate" | "vote";
 /** A vote by placard: counts only. */
 export type Poll = { title: string; kind: "debate" | "amendment"; yes: number; no: number; abstain: number };
@@ -63,6 +67,7 @@ export type Chamber = {
   timer: Timer | null;
   ballots: Record<string, Ballot>;
   outcome: Outcome | null;
+  stats: Stat[];
   log: Entry[];
 };
 
@@ -113,7 +118,7 @@ export function create(name: string, resolution: string, speakSecs: number, name
     v: 1, rules: "evatt", rev: 2, name: name.trim(), topic: resolution.trim(), speakSecs, delegates,
     step: "welcome", after: null, roll: {}, roles: { proposer: null, seconder: null, opposer: null }, closers: [],
     debate: emptyDebate(), speech: null, amendments: [], amend: null, poll: null, result: null,
-    timer: null, ballots: {}, outcome: null, log: [{ at: now(), text: "Committee opened" }],
+    timer: null, ballots: {}, outcome: null, stats: [], log: [{ at: now(), text: "Committee opened" }],
   };
 }
 
@@ -125,7 +130,7 @@ export function normalise(x: unknown): Chamber | null {
   if (o.v !== 1 || !Array.isArray(o.delegates) || !Array.isArray(o.log)) return null;
   const ok = o.rules === "evatt" && o.rev === 2 && typeof o.step === "string" && o.debate && Array.isArray(o.debate.list) && Array.isArray(o.debate.run)
     && o.roll && typeof o.roll === "object" && o.roles && Array.isArray(o.closers) && Array.isArray(o.amendments) && o.ballots && typeof o.ballots === "object";
-  if (ok) return o as Chamber;
+  if (ok) return { ...(o as Chamber), stats: Array.isArray(o.stats) ? o.stats : [], amendments: (o.amendments as Amendment[]).map((a, i) => ({ ...a, at: a.at ?? i })) };
   const old = o.delegates as { id: string; name: string }[];
   const resolution = String(o.topic ?? "").trim() || String(o.resolution?.title ?? "").trim();
   const fresh = create(String(o.name ?? "Committee"), resolution, Number(o.speakSecs) || 120, [], []);
@@ -243,9 +248,9 @@ export function nextCandidate(c: Chamber): Slot | null {
 export function endSpeech(c: Chamber, at: number, who: string): Chamber {
   const sp = c.speech;
   if (!sp || sp.who !== who || sp.phase !== "speech") return c;
-  const paused = pauseTimer(c, at);
-  if (sp.role === "closer") return finish(paused); // no Points of Information in the closing
-  return { ...paused, speech: { ...sp, phase: "after" } };
+  const logged = record(pauseTimer(c, at), sp.who, SPEECH_KIND[sp.role], used(c, at), at);
+  if (sp.role === "closer") return finish(logged); // no Points of Information in the closing
+  return { ...logged, speech: { ...sp, phase: "after" } };
 }
 // A Point of Information: the chair picks a state, which has 30 seconds to ask; then the speaker has 30 to reply.
 export function askPoi(c: Chamber, asker: string, who: string, n: number): Chamber {
@@ -253,15 +258,15 @@ export function askPoi(c: Chamber, asker: string, who: string, n: number): Chamb
   if (!sp || sp.who !== who || sp.phase !== "after" || sp.pois !== n || !has(c, asker) || asker === who) return c;
   return note({ ...c, speech: { ...sp, phase: "ask", asker }, timer: timerFor(`${nameOf(c, asker)} asks`, POI_SECS) }, `${nameOf(c, asker)} asks ${nameOf(c, who)} a Point of Information`);
 }
-export function answerPoi(c: Chamber, who: string, asker: string, n: number): Chamber {
+export function answerPoi(c: Chamber, who: string, asker: string, n: number, at: number): Chamber {
   const sp = c.speech;
   if (!sp || sp.who !== who || sp.phase !== "ask" || sp.asker !== asker || sp.pois !== n) return c;
-  return { ...c, speech: { ...sp, phase: "answer" }, timer: timerFor(`${nameOf(c, who)} replies`, POI_SECS) };
+  return { ...record(c, asker, "poi", used(c, at), at, who), speech: { ...sp, phase: "answer" }, timer: timerFor(`${nameOf(c, who)} replies`, POI_SECS) };
 }
-export function donePoi(c: Chamber, who: string, asker: string, n: number): Chamber {
+export function donePoi(c: Chamber, who: string, asker: string, n: number, at: number): Chamber {
   const sp = c.speech;
   if (!sp || sp.who !== who || sp.phase !== "answer" || sp.asker !== asker || sp.pois !== n) return c;
-  return { ...c, speech: { ...sp, phase: "after", asker: null, pois: n + 1 }, timer: null };
+  return { ...record(c, who, "reply", used(c, at), at, asker), speech: { ...sp, phase: "after", asker: null, pois: n + 1 }, timer: null };
 }
 export function yieldToChair(c: Chamber, who: string, n: number): Chamber {
   const sp = c.speech;
@@ -314,14 +319,18 @@ export function endCaucus(c: Chamber): Chamber {
 
 /* Amendments */
 
-// Notes come in from the caucus on, and are taken one at a time once it is over.
+// Notes come in from the caucus on, and are taken one at a time once it is over. Signatories are the states that sign it.
 export function submitAmendment(c: Chamber, id: string, by: string, clause: string, text: string, backers: string[]): Chamber {
   const open = c.step === "caucus" || c.step === "floor" || c.step === "amend";
   const body = text.trim().slice(0, 600);
   if (!open || !body || !has(c, by) || c.amendments.some((a) => a.id === id)) return c;
   const ids = [...new Set(backers)].filter((b) => b !== by && has(c, b));
-  const a: Amendment = { id, by, clause: clause.trim().slice(0, 40), text: body, backers: ids, status: "waiting" };
-  return note({ ...c, amendments: [...c.amendments, a] }, `Amendment from ${nameOf(c, by)}${a.clause ? ` (${a.clause})` : ""}, ${ids.length} co-sponsor${ids.length === 1 ? "" : "s"}`);
+  // Each one is handed in after the last, even within the same millisecond, so "oldest first" is always well defined.
+  const at = Math.max(now(), ...c.amendments.map((x) => x.at + 1));
+  const a: Amendment = { id, by, clause: clause.trim().slice(0, 40), text: body, backers: ids, at, status: "waiting" };
+  let next: Chamber = record({ ...c, amendments: [...c.amendments, a] }, by, "amendment", 0, at);
+  for (const b of ids) next = record(next, b, "signatory", 0, at, by);
+  return note(next, `Amendment from ${nameOf(c, by)}${a.clause ? ` (${a.clause})` : ""}, ${ids.length} signator${ids.length === 1 ? "y" : "ies"}`);
 }
 const setAmendment = (c: Chamber, id: string, status: Amendment["status"]): Chamber => ({ ...c, amendments: c.amendments.map((a) => (a.id === id ? { ...a, status } : a)) });
 export function withdrawAmendment(c: Chamber, id: string): Chamber {
@@ -332,8 +341,26 @@ export function invalidAmendment(c: Chamber, id: string): Chamber {
   const a = c.amendments.find((x) => x.id === id);
   return a?.status === "waiting" ? note(setAmendment(c, id, "invalid"), `Amendment from ${nameOf(c, a.by)} ruled invalid`) : c;
 }
-// More co-sponsors first; the chair weighs how consequential each is.
-export const waitingAmendments = (c: Chamber) => c.amendments.filter((a) => a.status === "waiting").sort((a, b) => b.backers.length - a.backers.length);
+// The waiting ones in the order the chair will take them: as handed in, until the chair sorts or moves them.
+export const waitingAmendments = (c: Chamber) => c.amendments.filter((a) => a.status === "waiting");
+// Put the waiting amendments back into the places the waiting ones held, in a new order.
+const reorder = (c: Chamber, waiting: Amendment[]): Chamber => {
+  let i = 0;
+  return { ...c, amendments: c.amendments.map((a) => (a.status === "waiting" ? waiting[i++] : a)) };
+};
+/** Most signatories first (oldest first among equals), or oldest first. */
+export function sortAmendments(c: Chamber, how: "signatories" | "oldest"): Chamber {
+  const sorted = [...waitingAmendments(c)].sort((a, b) => (how === "signatories" ? b.backers.length - a.backers.length || a.at - b.at : a.at - b.at));
+  return reorder(c, sorted);
+}
+export function moveAmendment(c: Chamber, id: string, by: -1 | 1): Chamber {
+  const w = [...waitingAmendments(c)];
+  const at = w.findIndex((a) => a.id === id);
+  const to = at + by;
+  if (at < 0 || to < 0 || to >= w.length) return c;
+  [w[at], w[to]] = [w[to], w[at]];
+  return reorder(c, w);
+}
 
 export function entertain(c: Chamber, id: string): Chamber {
   const a = c.amendments.find((x) => x.id === id);
@@ -496,15 +523,29 @@ export function setTimer(c: Chamber, label: string, secs: number): Chamber {
   return note({ ...c, timer: timerFor(label, secs) }, `Timer set: ${label}, ${clock(secs * 1000)}`);
 }
 
-/* Minutes */
+/* Analytics: what each state did, and for how long */
 
-export function addNote(c: Chamber, text: string): Chamber {
-  const t = text.trim().slice(0, 300);
-  return t ? note(c, t) : c;
-}
-export function minutes(c: Chamber): string {
-  const when = (t: number) => new Date(t).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
-  return [c.name, ...(c.topic ? [`Resolution: ${c.topic}`] : []), "", ...c.log.map((e) => `${when(e.at)}  ${e.text}`)].join("\n");
+const used = (c: Chamber, at: number) => (c.timer ? Math.max(0, Math.round((c.timer.total - remaining(c.timer, at)) / 1000)) : 0);
+const record = (c: Chamber, who: string, kind: StatKind, secs: number, at: number, withWho?: string): Chamber =>
+  ({ ...c, stats: [...c.stats, { at, who, kind, secs, res: c.topic, ...(withWho ? { with: withWho } : {}) }] });
+const SPEECH_KIND: Record<Role, StatKind> = { proposer: "proposer", seconder: "seconder", opposer: "opposer", speaker: "speaker", amender: "amender", closer: "closing" };
+export const STAT_LABEL: Record<StatKind, string> = {
+  proposer: "Proposer", seconder: "Seconder", opposer: "Opposer", amender: "Amendment speech", speaker: "Speaker", closing: "Closing speech",
+  poi: "Point of Information asked", reply: "Point of Information answered", amendment: "Amendment submitted", signatory: "Amendment signed",
+};
+/** A speech, as opposed to a Point of Information or a note handed in. */
+export const isSpeech = (k: StatKind) => k === "proposer" || k === "seconder" || k === "opposer" || k === "amender" || k === "speaker" || k === "closing";
+export function summary(c: Chamber) {
+  return c.delegates.map((d) => {
+    const mine = c.stats.filter((s) => s.who === d.id);
+    const n = (k: StatKind) => mine.filter((s) => s.kind === k).length;
+    return {
+      id: d.id, name: d.name,
+      secs: mine.reduce((sum, s) => sum + s.secs, 0),
+      speeches: mine.filter((s) => isSpeech(s.kind)).length,
+      asked: n("poi"), answered: n("reply"), amendments: n("amendment"), signed: n("signatory"),
+    };
+  });
 }
 
 /* Where the council is: three parts, each with a step inside it */

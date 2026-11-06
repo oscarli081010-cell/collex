@@ -8,6 +8,7 @@ import type { Ballot, Chamber, Side } from "@/lib/chamber";
 import { supabase } from "@/lib/supabase";
 import { isId, useChamber } from "@/lib/useChamber";
 import { useAuth } from "./AuthProvider";
+import { usePill } from "./usePill";
 import IconButton, { ConfirmIconButton, ICONS } from "./IconButton";
 import PageBand from "./PageBand";
 import PanelTabs from "./PanelTabs";
@@ -82,7 +83,7 @@ export default function Chambers() {
   const router = useRouter();
   const { c, status, owner, act, setLocal } = useChamber(cloudId, { signedIn: !!session, authReady });
   const [live, setLive] = useState("");
-  const [view, setView] = useState<"manage" | "minutes">("manage");
+  const [view, setView] = useState<"manage" | "analytics">("manage");
   const [sharing, setSharing] = useState(false);
   const { say, node } = useToast();
 
@@ -180,7 +181,7 @@ export default function Chambers() {
       <div className="sr-only" role="status" aria-live="polite">{live}</div>
 
       <PanelTabs idPrefix="chv" label="Committee" tab={view} setTab={setView}
-        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage }, { id: "minutes", label: "Minutes", icon: ICONS.clock }]} />
+        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage }, { id: "analytics", label: "Analytics", icon: ICONS.chart }]} />
 
       {view === "manage" ? (
         <div id="chv-panel-manage" role="tabpanel" aria-labelledby="chv-tab-manage" className={s.manage}>
@@ -195,7 +196,7 @@ export default function Chambers() {
           {(c.step === "vote" || c.step === "closed") && <RollCall c={c} act={act} />}
         </div>
       ) : (
-        <Minutes c={c} act={act} say={say} />
+        <Analytics c={c} say={say} />
       )}
       {node}
     </main>
@@ -269,16 +270,13 @@ function RollCallOpen({ c, act }: { c: Chamber; act: Act }) {
         {c.delegates.map((d) => (
           <li key={d.id} className={s.ballot}>
             <span className={s.cname2}>{d.name}</span>
-            <div className={`${s.vote3} ${s.roll3}`} role="group" aria-label={`Roll call: ${d.name}`}>
-              {ATTEND.map((a) => (
-                <button key={a} type="button" data-a={a} aria-pressed={c.roll[d.id] === a} onClick={() => act((x) => ch.markRoll(x, d.id, c.roll[d.id] === a ? null : a))}>{ch.ATTEND_LABEL[a]}</button>
-              ))}
-            </div>
+            <Seg label={`Roll call: ${d.name}`} value={c.roll[d.id]} className={`${s.ballotSeg} ${s.rollSeg}`}
+              items={ATTEND.map((a) => ({ id: a, label: ch.ATTEND_LABEL[a] }))}
+              onPick={(a) => act((x) => ch.markRoll(x, d.id, c.roll[d.id] === a ? null : a))} />
           </li>
         ))}
       </ul>
       <button type="button" className="button lg block" onClick={() => act(ch.beginDebate)}>Begin Debate</button>
-      {n.unmarked > 0 && <p className={s.hint}>{n.unmarked} state{n.unmarked === 1 ? "" : "s"} not marked yet. They are noted as not marked in the minutes.</p>}
     </section>
   );
 }
@@ -325,6 +323,7 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
   const [nextRes, setNextRes] = useState("");
   const [anyWho, setAnyWho] = useState("");
   const [anySide, setAnySide] = useState<Side>("for");
+  const [anyOpen, setAnyOpen] = useState(false);
   // The time the chair allots is for one speech: the next one starts from the default again.
   useEffect(() => { setCallSecs(null); }, [c.speakSecs, c.debate.run.length]);
   const secs = callSecs ?? c.speakSecs;
@@ -334,7 +333,6 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
   const debateOpen = c.step === "amend" && c.amend?.stage === "debate";
   const waiting = ch.waitingAmendments(c);
   const pct = c.timer ? Math.min(100, (left / c.timer.total) * 100) : 0;
-  const idx = ch.stageIndex(c);
   const askers = sp ? c.delegates.filter((d) => d.id !== sp.who) : [];
   const askerId = asker && askers.some((d) => d.id === asker) ? asker : "";
   const spokeFromList = c.debate.run.length > 1;
@@ -355,21 +353,20 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
   else if (c.step === "proposer") { title = name(c.roles.proposer); sub = "Proposes the resolution"; }
   else if (c.step === "seconder") { title = name(c.roles.seconder); sub = "Seconds the resolution"; }
   else if (c.step === "opposer") { title = name(c.roles.opposer); sub = "Speaks against the resolution"; }
-  else if (c.step === "caucus") { title = c.timer?.label ?? "Caucus"; sub = "The debate begins with a caucus. States talk directly to each other, and amendments come in by note."; }
-  else if (c.step === "floor") { title = waiting.length ? "Amendments" : "No amendments waiting"; sub = waiting.length ? `${waiting.length} waiting. The one with the most co-sponsors is first.` : "Add the notes you are handed on the right, or close the debate."; }
-  else if (c.step === "closing") { title = "Closing speeches"; sub = "The Proposer, Seconder and Opposer each have a last speech. There are no Points of Information."; }
-  else if (c.step === "vote") { title = "Roll call vote"; sub = "Record every state's vote below"; }
+  else if (c.step === "caucus") { title = "Caucus"; }
+  else if (c.step === "floor") { title = "Amendments"; }
+  else if (c.step === "closing") { title = "Closing speeches"; }
+  else if (c.step === "vote") { title = "Roll call vote"; }
   else if (c.step === "closed") { title = c.outcome?.passed ? "Resolution approved" : "Resolution not approved"; sub = c.outcome ? `${c.outcome.yes} for, ${c.outcome.no} against, ${c.outcome.abstain} abstaining` : ""; }
   else if (c.step === "amend" && c.amend?.stage === "read") { title = `Amendment from ${name(amendment?.by ?? null)}`; sub = amendment?.clause || "Read it to the council"; }
-  else if (c.step === "amend" && c.amend?.stage === "ask") { title = "Debate this amendment?"; sub = "A show of placards: more for than against"; }
-  else if (c.step === "amend" && c.amend?.stage === "vote") { title = "Adopt this amendment?"; sub = "A show of placards: more for than against"; }
+  else if (c.step === "amend" && c.amend?.stage === "ask") { title = "Debate this amendment?"; }
+  else if (c.step === "amend" && c.amend?.stage === "vote") { title = "Adopt this amendment?"; }
   else if (debateOpen) {
     if (!c.debate.run.length) { title = name(amendment?.by ?? null); sub = "Speaks first on their amendment"; }
     else if (next) { title = name(next.id); sub = "Next on the speakers' list"; }
     else { title = "The speakers' list is empty"; sub = spokeFromList ? "Everyone listed has spoken. Vote on the amendment." : "Add states to the speakers' list, For or Against"; }
   }
 
-  const stageChip = ch.STAGES[idx];
   const chipSide: Side | null = sp ? sp.side : debateOpen && !sp && c.debate.run.length && next ? next.side : null;
 
   const actions = (() => {
@@ -378,7 +375,6 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
         <>
           {timerBtn("button")}
           <button type="button" className="button secondary" onClick={() => act((x) => ch.endSpeech(x, ch.now(), sp.who))}>End speech</button>
-          <p className={s.hint}>{HINT[sp.role]}</p>
         </>
       );
       if (sp.phase === "after") return (
@@ -393,49 +389,42 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
           <button type="button" className="button" disabled={!askerId} onClick={() => act((x) => ch.askPoi(x, askerId, sp.who, sp.pois))}>Take a Point of Information</button>
           <button type="button" className="button secondary" onClick={() => act((x) => ch.yieldToChair(x, sp.who, sp.pois))}>Yield to the chair</button>
           {sp.pois === 0 && c.timer && <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who, sp.pois))}>Back to the speech</button>}
-          <p className={s.hint}>{sp.pois ? `${sp.pois} Point${sp.pois === 1 ? "" : "s"} of Information taken. ` : ""}A state has {ch.POI_SECS} seconds to ask, then {name(sp.who)} has {ch.POI_SECS} seconds to reply.</p>
         </>
       );
       if (sp.phase === "ask") return (
         <>
           {timerBtn("button")}
-          <button type="button" className="button secondary" onClick={() => act((x) => ch.answerPoi(x, sp.who, sp.asker ?? "", sp.pois))}>Now {name(sp.who)} replies</button>
+          <button type="button" className="button secondary" onClick={() => act((x) => ch.answerPoi(x, sp.who, sp.asker ?? "", sp.pois, ch.now()))}>Now {name(sp.who)} replies</button>
           <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who, sp.pois))}>Cancel the question</button>
-          <p className={s.hint}>{name(sp.asker)} asks one brief question.</p>
         </>
       );
       return (
         <>
           {timerBtn("button")}
-          <button type="button" className="button secondary" onClick={() => act((x) => ch.donePoi(x, sp.who, sp.asker ?? "", sp.pois))}>Reply finished</button>
+          <button type="button" className="button secondary" onClick={() => act((x) => ch.donePoi(x, sp.who, sp.asker ?? "", sp.pois, ch.now()))}>Reply finished</button>
           <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who, sp.pois))}>Back to the question</button>
-          <p className={s.hint}>{name(sp.who)} gives one answer.</p>
         </>
       );
     }
     switch (c.step) {
-      case "proposer": return (<><button type="button" className="button" onClick={() => act(ch.callProposer)}>Call {name(c.roles.proposer)} to propose</button><p className={s.hint}>{HINT.proposer}</p></>);
-      case "seconder": return (<><button type="button" className="button" onClick={() => act(ch.callSeconder)}>Call {name(c.roles.seconder)} to second</button><p className={s.hint}>{HINT.seconder}</p></>);
-      case "opposer": return (<><button type="button" className="button" onClick={() => act(ch.callOpposer)}>Call {name(c.roles.opposer)} to oppose</button><p className={s.hint}>{HINT.opposer}</p></>);
+      case "proposer": return (<><button type="button" className="button" onClick={() => act(ch.callProposer)}>Call {name(c.roles.proposer)} to propose</button></>);
+      case "seconder": return (<><button type="button" className="button" onClick={() => act(ch.callSeconder)}>Call {name(c.roles.seconder)} to second</button></>);
+      case "opposer": return (<><button type="button" className="button" onClick={() => act(ch.callOpposer)}>Call {name(c.roles.opposer)} to oppose</button></>);
       case "caucus": return (
         <>
           {c.timer && !ch.running(c.timer) && c.timer.left === c.timer.total && <Duration id="fl-cau" label="Caucus length" value={c.timer ? Math.round(c.timer.total / 1000) : ch.CAUCUS_SECS} min={5} max={10800}
             onChange={(v, ok) => { if (ok && v !== null) act((x) => ch.setCaucusSecs(x, v)); }} />}
           {timerBtn("button")}
           <button type="button" className="button secondary" onClick={() => act(ch.endCaucus)}>End caucus</button>
-          <p className={s.hint}>The length is the chair&apos;s call. Amendments can be added on the right while states talk.</p>
         </>
       );
       case "floor": return (
         <>
           {waiting[0]
-            ? <button type="button" className="button" onClick={() => act((x) => ch.entertain(x, waiting[0].id))}>Entertain the next amendment</button>
+            ? <button type="button" className="button" onClick={() => act((x) => ch.entertain(x, waiting[0].id))}>Entertain the next Amendment</button>
             : null}
-          <div className={s.btnRow}>
-            <button type="button" className={sm} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a caucus</button>
-            <button type="button" className={waiting[0] ? sm : "button"} onClick={() => act(ch.closeDebate)}>Close the debate</button>
-          </div>
-          <p className={s.hint}>Closing the debate moves to the closing speeches and the vote on the resolution.</p>
+          <button type="button" className={waiting[0] ? "button secondary" : "button"} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a caucus</button>
+          <button type="button" className="button secondary" onClick={() => act(ch.closeDebate)}>Close the Debate</button>
         </>
       );
       case "closing": {
@@ -453,7 +442,6 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
               );
             })}
             <button type="button" className={all ? "button" : "button secondary sm"} onClick={() => act(ch.startVote)}>Go to the vote</button>
-            <p className={s.hint}>Any order. Each speaks once, and there are no Points of Information.</p>
           </>
         );
       }
@@ -512,20 +500,23 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
             <button type="button" className={sm} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a caucus</button>
           </div>
           {!first && (
-            <details>
-              <summary className={s.hint}>Call a state that isn&apos;t on the list</summary>
-              <div className={s.pickRow} style={{ marginTop: 8 }}>
-                <label htmlFor="fl-any" className="sr-only">State</label>
-                <select id="fl-any" className="control" value={anyWho} onChange={(e) => setAnyWho(e.target.value)}>
-                  <option value="">Choose a state</option>
-                  {c.delegates.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
-                <button type="button" className="button secondary sm" disabled={!anyWho} onClick={() => act((x) => ch.callSpeaker(x, anyWho, anySide, secs))}>Call</button>
-              </div>
-              <div style={{ marginTop: 8 }}><SideSwitch side={anySide} setSide={setAnySide} /></div>
-            </details>
+            <>
+              <button type="button" className={sm} aria-expanded={anyOpen} onClick={() => setAnyOpen((v) => !v)}>Call a State that isn&apos;t on the list</button>
+              {anyOpen && (
+                <div className={s.anyBox}>
+                  <div className={s.pickRow}>
+                    <label htmlFor="fl-any" className="sr-only">State</label>
+                    <select id="fl-any" className="control" value={anyWho} onChange={(e) => setAnyWho(e.target.value)}>
+                      <option value="">Choose a state</option>
+                      {c.delegates.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                    <button type="button" className="button secondary sm" disabled={!anyWho} onClick={() => { act((x) => ch.callSpeaker(x, anyWho, anySide, secs)); setAnyOpen(false); setAnyWho(""); }}>Call</button>
+                  </div>
+                  <SideSwitch side={anySide} setSide={setAnySide} />
+                </div>
+              )}
+            </>
           )}
-          <p className={s.hint}>{first ? "The amendment's proposer speaks first, then the chair puts states on the speakers' list, For or Against, with the time each gets." : "The sides alternate. When everyone listed has spoken, vote on the amendment."}</p>
         </>
       );
     }
@@ -535,51 +526,51 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
   return (
     <section className={`panel ${s.floor}`} aria-label="The floor" data-up={state === "up" || undefined}>
       <div className={s.floorMain}>
-        <div className={s.chips}>
-          <span className={s.chip} data-tone="accent">{sp ? ch.ROLE_LABEL[sp.role] : stageChip}</span>
-          {chipSide && <span className={s.chip} data-side={chipSide}>{SIDE[chipSide]}</span>}
-          {sp && sp.phase !== "speech" && <span className={s.chip}>Point of Information{sp.pois ? ` · ${sp.pois} taken` : ""}</span>}
-        </div>
-        {c.topic && <p className={s.res}>Resolution: {c.topic}</p>}
+        {(sp || chipSide) && (
+          <div className={s.chips}>
+            {sp && <span className={s.chip} data-tone="accent">{ch.ROLE_LABEL[sp.role]}</span>}
+            {chipSide && <span className={s.chip} data-side={chipSide}>{SIDE[chipSide]}</span>}
+            {sp && sp.phase !== "speech" && <span className={s.chip}>Point of Information{sp.pois ? ` · ${sp.pois} taken` : ""}</span>}
+          </div>
+        )}
         <h2 className={`serif ${s.who}`}>{title}</h2>
         {sub && <p className={s.sub}>{sub}</p>}
         {amendment && c.step === "amend" && <p className={s.sub}>{amendment.text}</p>}
-        {c.result && !c.poll && <p className={s.result} data-pass={c.result.passed}><strong>{c.result.title}</strong> {c.result.passed ? "passed" : "failed"}: {c.result.yes} for, {c.result.no} against, {c.result.abstain} abstaining.</p>}
+        {c.result && !c.poll && <p className={s.result} data-pass={c.result.passed}><strong>{c.result.passed ? "Passed" : "Failed"}:</strong> {c.result.yes} For, {c.result.no} Against, {c.result.abstain} Abstaining</p>}
         {c.timer && c.step !== "closed" && <div className={s.time} data-state={state} role="timer">{ch.clock(left)}</div>}
       </div>
       <div className={s.actions}>{actions}</div>
       {c.timer && c.step !== "closed" && <div className={s.track} aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>}
-      <div className={s.floorFoot}>
-        <div className={s.nudges}>
-          {c.timer && <>
+      {c.timer && (
+        <div className={s.floorFoot}>
+          <div className={s.nudges}>
             {!sp && c.step !== "caucus" && timerBtn("button secondary")}
             <button type="button" className="button secondary" onClick={() => act((x) => ch.nudgeTimer(x, -15, ch.now()))} aria-label="Take 15 seconds off">−15s</button>
             <button type="button" className="button secondary" onClick={() => act((x) => ch.nudgeTimer(x, 15, ch.now()))} aria-label="Add 15 seconds">+15s</button>
             <button type="button" className="button secondary" onClick={() => act(ch.resetTimer)}>Reset</button>
-          </>}
-          {!c.timer && <span className={`${s.keys} muted`}>Each speech is {ch.clock(c.speakSecs * 1000)}.</span>}
+          </div>
         </div>
-        <p className={`${s.keys} muted`}>Space starts or pauses · N calls the next speaker</p>
-      </div>
+      )}
     </section>
   );
 }
 
-const HINT: Record<ch.Role, string> = {
-  proposer: "The Proposer speaks in favour. Then a state may ask a Point of Information, or they yield to the chair. They cannot yield to another state.",
-  seconder: "The Seconder speaks in favour. Then a Point of Information, or they yield to the chair.",
-  opposer: "The Opposer speaks against. Then a Point of Information, or they yield to the chair. The debate begins with a caucus.",
-  speaker: "A Point of Information, or yield to the chair.",
-  amender: "The amendment's proposer speaks in favour of it. Then a Point of Information, or they yield to the chair.",
-  closer: "A last speech. There are no Points of Information.",
-};
-
-function SideSwitch({ side, setSide }: { side: Side; setSide: (s: Side) => void }) {
+// Two or three choices in one pill, with a highlight that slides to the one picked like every other tab control on the site.
+function Seg<T extends string>({ items, value, onPick, label, className, disabled }: {
+  items: { id: T; label: string }[]; value: T | null | undefined; onPick: (id: T) => void; label: string; className?: string; disabled?: boolean;
+}) {
+  const box = useRef<HTMLDivElement>(null);
+  const pill = usePill(box, '[aria-pressed="true"]', value ?? "");
   return (
-    <div className={s.segmini} role="group" aria-label="Side">
-      {(["for", "against"] as const).map((k) => <button key={k} type="button" data-side={k} aria-pressed={side === k} onClick={() => setSide(k)}>{SIDE[k]}</button>)}
+    <div ref={box} className={`${s.seg3} ${className ?? ""}`} role="group" aria-label={label}>
+      <span ref={pill} className={`t-pill ${s.segPill}`} aria-hidden="true" />
+      {items.map((i) => <button key={i.id} type="button" data-v={i.id} aria-pressed={value === i.id} disabled={disabled} onClick={() => onPick(i.id)}>{i.label}</button>)}
     </div>
   );
+}
+
+function SideSwitch({ side, setSide }: { side: Side; setSide: (s: Side) => void }) {
+  return <Seg label="Side" value={side} onPick={setSide} className={s.sideSeg} items={[{ id: "for", label: SIDE.for }, { id: "against", label: SIDE.against }]} />;
 }
 
 // A vote by placard: counts for, against and abstaining. More for than against passes; the President may overrule it.
@@ -604,7 +595,7 @@ function PollBox({ c, act }: { c: Chamber; act: Act }) {
           </div>
         ))}
       </div>
-      <p className={s.verdict}>Abstentions don&apos;t count. {cast ? <strong data-pass={would}>{would ? "Would pass" : "Would fail"}</strong> : null}</p>
+      {cast > 0 && <p className={s.verdict}><strong data-pass={would}>{would ? "Would pass" : "Would fail"}</strong></p>}
       <button type="button" className="button" onClick={() => act((x) => decide(x, false, id))}>Record the result</button>
       <button type="button" className="button secondary sm" onClick={() => act((x) => decide(x, true, id))}>Overrule: record the opposite</button>
     </>
@@ -666,8 +657,9 @@ function Lists({ c, act }: { c: Chamber; act: Act }) {
 }
 
 const STATUS: Record<ch.Amendment["status"], string> = { waiting: "Waiting", entertained: "Being considered", passed: "Passed", failed: "Failed", withdrawn: "Withdrawn", invalid: "Ruled invalid" };
+const signs = (n: number) => `${n} signator${n === 1 ? "y" : "ies"}`;
 
-/* Amendments, set out like the speakers' list: the ones waiting in the order they will be taken. */
+/* Amendments, set out like the speakers' list: the waiting ones in the order the chair will take them. */
 function Amendments({ c, act }: { c: Chamber; act: Act }) {
   const [by, setBy] = useState("");
   const [clause, setClause] = useState("");
@@ -697,16 +689,16 @@ function Amendments({ c, act }: { c: Chamber; act: Act }) {
           </div>
           <div className="field">
             <label htmlFor="am-cl" className="sr-only">Clause</label>
-            <input id="am-cl" className="control" value={clause} onChange={(e) => setClause(e.target.value)} placeholder="Operative clause 2" maxLength={40} />
+            <input id="am-cl" className="control" value={clause} onChange={(e) => setClause(e.target.value)} placeholder="E.g., Operative Clause 1" maxLength={40} />
           </div>
         </div>
         <div className="field">
           <label htmlFor="am-tx" className="sr-only">What it changes</label>
           <textarea id="am-tx" className="control" rows={2} value={text} onChange={(e) => setText(e.target.value)} maxLength={600} placeholder="What the amendment changes. The preamble can't be amended." />
         </div>
-        <details>
-          <summary className={s.hint}>Co-sponsors{backers.length ? ` (${backers.length})` : ""}</summary>
-          <div className={s.backers} style={{ marginTop: 8 }}>
+        <fieldset className={s.procedure}>
+          <legend>Signatories</legend>
+          <div className={s.backers}>
             {c.delegates.filter((d) => d.id !== by).map((d) => (
               <label key={d.id} className={s.check}>
                 <input type="checkbox" checked={backers.includes(d.id)} onChange={(e) => setBackers((b) => (e.target.checked ? [...b, d.id] : b.filter((x) => x !== d.id)))} />
@@ -714,18 +706,24 @@ function Amendments({ c, act }: { c: Chamber; act: Act }) {
               </label>
             ))}
           </div>
-        </details>
+        </fieldset>
         <button type="submit" className="button secondary block" disabled={!ready}>Add amendment</button>
       </form>
 
-      {(live || waiting.length > 0) ? (
+      {waiting.length > 1 && (
+        <div className={s.sortRow} role="group" aria-label="Sort the waiting amendments">
+          <button type="button" className="button secondary sm" onClick={() => act((x) => ch.sortAmendments(x, "signatories"))}>Most signatories first</button>
+          <button type="button" className="button secondary sm" onClick={() => act((x) => ch.sortAmendments(x, "oldest"))}>Oldest first</button>
+        </div>
+      )}
+      {(live || waiting.length > 0) && (
         <ol className={s.queue}>
           {live && (
             <li data-next="true" className={s.amRow}>
               <span className={s.amMain}>
                 <span className={s.qname}>{name(live.by)}{live.clause && ` · ${live.clause}`}</span>
                 <span className={s.amText}>{live.text}</span>
-                <span className={s.qtag}>Being considered{live.backers.length > 0 && ` · co-sponsors: ${live.backers.map(name).join(", ")}`}</span>
+                <span className={s.qtag}>Being considered{live.backers.length > 0 && ` · ${signs(live.backers.length)}: ${live.backers.map(name).join(", ")}`}</span>
               </span>
             </li>
           )}
@@ -734,18 +732,19 @@ function Amendments({ c, act }: { c: Chamber; act: Act }) {
               <span className={s.amMain}>
                 <span className={s.qname}>{name(a.by)}{a.clause && ` · ${a.clause}`}</span>
                 <span className={s.amText}>{a.text}</span>
-                <span className="muted" style={{ fontSize: 12.5 }}>{a.backers.length} co-sponsor{a.backers.length === 1 ? "" : "s"}{a.backers.length > 0 && `: ${a.backers.map(name).join(", ")}`}</span>
+                <span className="muted" style={{ fontSize: 12.5 }}>{signs(a.backers.length)}{a.backers.length > 0 && `: ${a.backers.map(name).join(", ")}`}</span>
               </span>
               <span className={s.rowBtns}>
                 <button type="button" className="button secondary sm" disabled={!canEntertain} onClick={() => act((x) => ch.entertain(x, a.id))}>Entertain</button>
+                <IconButton label={`Move ${name(a.by)}'s amendment up`} icon={ICONS.up} onClick={() => act((x) => ch.moveAmendment(x, a.id, -1))} disabled={i === 0} />
+                <IconButton label={`Move ${name(a.by)}'s amendment down`} icon={ICONS.down} onClick={() => act((x) => ch.moveAmendment(x, a.id, 1))} disabled={i === waiting.length - 1} />
                 <IconButton label={`Rule ${name(a.by)}'s amendment invalid`} icon={ICONS.hide} onClick={() => act((x) => ch.invalidAmendment(x, a.id))} />
                 <IconButton label={`Withdraw ${name(a.by)}'s amendment`} icon={ICONS.close} onClick={() => act((x) => ch.withdrawAmendment(x, a.id))} />
               </span>
             </li>
           ))}
         </ol>
-      ) : <p className={s.empty}>No amendments waiting.</p>}
-      {!canEntertain && waiting.length > 0 && !live && <p className={s.hint}>Amendments are taken between speeches, once the caucus is over.</p>}
+      )}
 
       {done.length > 0 && (
         <ul className={s.states}>
@@ -779,17 +778,14 @@ function RollCall({ c, act }: { c: Chamber; act: Act }) {
         <span className={s.chip} data-side="against">Against {n.no}</span>
         <span className={s.chip}>Abstain {n.abstain}</span>
       </div>
-      <p className={s.hint}>Needs at least {need} in favour, which is three-fifths of all {c.delegates.length} states, whoever is present. An abstention counts as neither for nor against.</p>
+      <p className={s.hint}>Needs at least {need} in favour</p>
       <ul className={s.ballots}>
         {c.delegates.map((d) => (
           <li key={d.id} className={s.ballot}>
             <span className={s.cname2}>{d.name}</span>
-            <div className={s.vote3} role="group" aria-label={`Vote of ${d.name}`}>
-              {([["for", "For"], ["against", "Against"], ["abstain", "Abstain"]] as const).map(([b, label]) => (
-                <button key={b} type="button" data-b={b} aria-pressed={c.ballots[d.id] === b} disabled={closed}
-                  onClick={() => act((x) => ch.cast(x, d.id, c.ballots[d.id] === b ? null : (b as Ballot)))}>{label}</button>
-              ))}
-            </div>
+            <Seg label={`Vote of ${d.name}`} value={c.ballots[d.id]} disabled={closed} className={s.ballotSeg}
+              items={[{ id: "for", label: "For" }, { id: "against", label: "Against" }, { id: "abstain", label: "Abstain" }]}
+              onPick={(b) => act((x) => ch.cast(x, d.id, c.ballots[d.id] === b ? null : (b as Ballot)))} />
           </li>
         ))}
       </ul>
@@ -797,25 +793,88 @@ function RollCall({ c, act }: { c: Chamber; act: Act }) {
   );
 }
 
-function Minutes({ c, act, say }: { c: Chamber; act: Act; say: (t: string) => void }) {
-  const [text, setText] = useState("");
+const PER_PAGE = 10;
+
+/* Analytics: what each state did and for how long, to help decide awards. */
+function Analytics({ c, say }: { c: Chamber; say: (t: string) => void }) {
+  const [tab, setTab] = useState<"states" | "activity">("states");
+  const [kind, setKind] = useState<"" | ch.StatKind>("");
+  const [sat, setSat] = useState(0);
+  const [aat, setAat] = useState(0);
+  const name = (id: string) => ch.nameOf(c, id) || "A removed state";
+  const rows = ch.summary(c).sort((a, b) => b.secs - a.secs || b.speeches - a.speeches || a.name.localeCompare(b.name));
+  const feed = [...c.stats].reverse().filter((x) => !kind || x.kind === kind);
+  const sPages = Math.max(1, Math.ceil(rows.length / PER_PAGE));
+  const aPages = Math.max(1, Math.ceil(feed.length / PER_PAGE));
+  const sp = Math.min(sat, sPages - 1);
+  const ap = Math.min(aat, aPages - 1);
+  const when = (t: number) => new Date(t).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
+  const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  const csv = () => {
+    const q = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const lines = [["Time", "State", "What", "Seconds", "With", "Resolution"].join(","), ...c.stats.map((x) => [when(x.at), q(name(x.who)), q(ch.STAT_LABEL[x.kind]), x.secs, q(x.with ? name(x.with) : ""), q(x.res)].join(","))];
+    navigator.clipboard?.writeText(lines.join("\n")).then(() => say("Copied as CSV"), () => say("Couldn't copy"));
+  };
+
   return (
-    <section id="chv-panel-minutes" role="tabpanel" aria-labelledby="chv-tab-minutes" className={`panel ${s.log}`}>
+    <section id="chv-panel-analytics" role="tabpanel" aria-labelledby="chv-tab-analytics" className={`panel ${s.log}`}>
       <div className={s.head}>
-        <h2 className={s.h2}>Minutes</h2>
-        <button type="button" className="button secondary" onClick={() => navigator.clipboard?.writeText(ch.minutes(c)).then(() => say("Minutes copied"), () => say("Couldn't copy"))}>Copy minutes</button>
+        <h2 className={s.h2}>Analytics</h2>
+        <button type="button" className="button secondary" onClick={csv} disabled={!c.stats.length}>Copy as CSV</button>
       </div>
-      <form className={s.addRow2} onSubmit={(e) => { e.preventDefault(); act((x) => ch.addNote(x, text)); setText(""); }}>
-        <label htmlFor="mn-t" className="sr-only">Add to the minutes</label>
-        <input id="mn-t" className="control" value={text} onChange={(e) => setText(e.target.value)} placeholder="Note a ruling or point of order" maxLength={300} />
-        <button type="submit" className="button secondary" disabled={!text.trim()}>Add</button>
-      </form>
-      <ol className={s.entries}>
-        {[...c.log].reverse().map((e, i) => (
-          <li key={`${e.at}-${i}`}><time className="num">{new Date(e.at).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" })}</time><span>{e.text}</span></li>
-        ))}
-      </ol>
+      <PanelTabs idPrefix="cha" label="Analytics views" tab={tab} setTab={setTab}
+        tabs={[{ id: "states", label: "By state", icon: ICONS.chart }, { id: "activity", label: "Activity", icon: ICONS.clock }]} />
+      {tab === "states" ? (
+        <div id="cha-panel-states" role="tabpanel" aria-labelledby="cha-tab-states" className={s.panelBody}>
+          <ol className={s.entries}>
+            {rows.slice(sp * PER_PAGE, (sp + 1) * PER_PAGE).map((r) => (
+              <li key={r.id} className={s.statRow}>
+                <span className={s.statMain}>
+                  <strong>{r.name}</strong>
+                  <small>{plural(r.speeches, "speech")} · {r.asked} asked, {r.answered} answered · {plural(r.amendments, "amendment")} · {plural(r.signed, "signature")}</small>
+                </span>
+                <span className={`${s.statTime} num`}>{ch.clock(r.secs * 1000)}</span>
+              </li>
+            ))}
+          </ol>
+          {sPages > 1 && <Pager at={sp} pages={sPages} go={setSat} label="By state pages" />}
+        </div>
+      ) : (
+        <div id="cha-panel-activity" role="tabpanel" aria-labelledby="cha-tab-activity" className={s.panelBody}>
+          <div className="field">
+            <label htmlFor="an-kind" className="sr-only">Show</label>
+            <select id="an-kind" className="control" value={kind} onChange={(e) => { setKind(e.target.value as "" | ch.StatKind); setAat(0); }}>
+              <option value="">Everything</option>
+              {(Object.keys(ch.STAT_LABEL) as ch.StatKind[]).map((k) => <option key={k} value={k}>{ch.STAT_LABEL[k]}</option>)}
+            </select>
+          </div>
+          {feed.length === 0 ? <p className={s.empty}>Nothing yet.</p> : (
+            <ol className={s.entries}>
+              {feed.slice(ap * PER_PAGE, (ap + 1) * PER_PAGE).map((x, i) => (
+                <li key={`${x.at}-${i}`} className={s.statRow}>
+                  <span className={s.statMain}>
+                    <strong>{name(x.who)}</strong>
+                    <small>{ch.STAT_LABEL[x.kind]}{x.with ? (x.kind === "signatory" ? ` on ${name(x.with)}'s` : ` to ${name(x.with)}`) : ""} · {when(x.at)}</small>
+                  </span>
+                  <span className={`${s.statTime} num`}>{x.kind === "amendment" || x.kind === "signatory" ? "" : ch.clock(x.secs * 1000)}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+          {aPages > 1 && <Pager at={ap} pages={aPages} go={setAat} label="Activity pages" />}
+        </div>
+      )}
     </section>
+  );
+}
+
+function Pager({ at, pages, go, label }: { at: number; pages: number; go: (n: number) => void; label: string }) {
+  return (
+    <nav className={s.pager} aria-label={label}>
+      <button type="button" className="button secondary" onClick={() => go(at - 1)} disabled={at === 0}>Previous</button>
+      <span className="muted" aria-live="polite">Page {at + 1} of {pages}</span>
+      <button type="button" className="button secondary" onClick={() => go(at + 1)} disabled={at === pages - 1}>Next</button>
+    </nav>
   );
 }
 

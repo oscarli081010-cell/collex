@@ -102,17 +102,26 @@
 .spoken { font-size: 13px; color: var(--muted); line-height: 1.5; }
 .addRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .addRow .addWho { grid-column: 1 / -1; }
-.addRow .segmini { width: 100%; }
+.addRow .seg3 { width: 100%; }
 .addRow .button { height: 44px; min-width: 96px; }
 .addRow2 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
-/* A small two-way switch for For and Against, in the site's own tab style. */
-.segmini { display: inline-grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: 10px; background: var(--surface); }
-.segmini button { height: 38px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer;
-  transition: background-color var(--duration-quick), color var(--duration-quick), transform var(--duration-quick); }
-.segmini button:active { transform: scale(0.97); }
-.segmini button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.12); }
-.segmini button[aria-pressed="true"][data-side="for"] { color: var(--ok); }
-.segmini button[aria-pressed="true"][data-side="against"] { color: var(--danger); }
+/* One pill with two or three choices and a highlight that slides to the one picked, like the site's other tab controls. */
+.seg3 { position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 4px; border-radius: 10px; background: var(--surface); }
+.seg3 button { position: relative; z-index: 1; min-height: 38px; padding: 0 14px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer; transition: color var(--duration-fast) var(--ease-smooth-out); }
+.seg3 button[aria-pressed="true"] { color: var(--ink); }
+.seg3 button[aria-pressed="true"][data-v="for"], .seg3 button[aria-pressed="true"][data-v="voting"] { color: var(--ok); }
+.seg3 button[aria-pressed="true"][data-v="against"] { color: var(--danger); }
+.seg3 button[aria-pressed="true"][data-v="abstain"] { color: var(--warn); }
+.seg3 button:disabled { cursor: not-allowed; }
+.segPill { top: 4px; bottom: 4px; border-radius: 7px; background: var(--panel); box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.1); }
+.sideSeg { width: 100%; }
+.ballotSeg { grid-template-columns: repeat(3, minmax(64px, auto)); }
+.rollSeg { grid-template-columns: repeat(3, auto); }
+.rollSeg button { padding: 0 12px; }
+@media (max-width: 560px) {
+  .ballotSeg, .rollSeg { width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rollSeg button { padding: 0 4px; font-size: 12.5px; white-space: normal; line-height: 1.15; }
+}
 
 .panelBody { display: flex; flex-direction: column; gap: 14px; }
 .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
@@ -157,15 +166,6 @@
 button.pbadge { height: 30px; padding: 0 12px; border: 1px dashed var(--line-strong); background: transparent; color: var(--faint); cursor: pointer; }
 button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); color: var(--accent); }
 .ballots { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); column-gap: 28px; }
-.vote3 { display: grid; grid-template-columns: repeat(3, minmax(64px, auto)); gap: 4px; padding: 3px; border-radius: 10px; background: var(--surface); }
-.vote3 button { height: 40px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 13.5px; font-weight: 500; cursor: pointer;
-  transition: background-color var(--duration-quick), color var(--duration-quick), transform var(--duration-quick); }
-.vote3 button:active { transform: scale(0.97); }
-.vote3 button[aria-pressed="true"] { background: var(--panel); box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.12); color: var(--ink); }
-.vote3 button[aria-pressed="true"][data-b="for"] { color: var(--ok); }
-.vote3 button[aria-pressed="true"][data-b="against"] { color: var(--danger); }
-.vote3 button[aria-pressed="true"][data-b="abstain"] { color: var(--warn); }
-@media (max-width: 480px) { .ballot { flex-wrap: wrap; } .vote3 { width: 100%; grid-template-columns: repeat(3, 1fr); } }
 .tally { display: flex; gap: 8px; flex-wrap: wrap; }
 .banner { padding: 16px; border-radius: 12px; font-size: 15px; line-height: 1.5; background: var(--surface); }
 .banner[data-pass="true"] { background: var(--ok-soft); color: var(--ok); }
@@ -213,7 +213,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .procText strong { font-family: var(--serif); font-weight: 400; font-size: 28px; line-height: 1.05; }
 .procText small { font-size: 13.5px; color: var(--muted); line-height: 1.45; }
 
-@media (prefers-reduced-motion: reduce) { .track i, .dot, .proc, .segmini button, .vote3 button { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .track i, .dot, .proc, .seg3 button { transition: none; } }
 
 /* The display window: the whole screen, with no site chrome, for a projector. */
 .display {
@@ -284,7 +284,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 
 /* Touch screens: every control the chair taps is at least 44px. */
 @media (pointer: coarse) {
-  .vote3 button, .segmini button, .check, button.pbadge, .nudges .button, .amendCard .button { min-height: 44px; height: 44px; }
+  .seg3 button, .check, button.pbadge, .nudges .button, .amendCard .button, .sortRow .button { min-height: 44px; height: 44px; }
   .check { height: auto; }
   .amendCard .button { width: 100%; }
 }
@@ -295,11 +295,6 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .resBox { display: flex; flex-direction: column; gap: 8px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
 .resText { font-size: clamp(22px, 2.6vw, 32px); line-height: 1.2; overflow-wrap: anywhere; }
 .three { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
-.roll3 { grid-template-columns: repeat(3, auto); }
-.roll3 button { padding: 0 12px; }
-.roll3 button[aria-pressed="true"][data-a="voting"] { color: var(--ok); }
-.roll3 button[aria-pressed="true"][data-a="abstain"] { color: var(--warn); }
-@media (max-width: 560px) { .roll3 { grid-template-columns: repeat(3, 1fr); } .roll3 button { padding: 0 4px; font-size: 12.5px; white-space: normal; line-height: 1.15; } }
 .nextRes { display: flex; flex-direction: column; gap: 10px; }
 
 /* An amendment in the list, set out like a speaker in the speakers' list. */
@@ -307,3 +302,16 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .amMain { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .amText { font-size: 14px; line-height: 1.45; color: var(--ink); overflow-wrap: anywhere; white-space: pre-wrap; }
 .queue li.amRow .rowBtns { align-items: center; flex-wrap: wrap; }
+
+/* Sorting the waiting amendments, calling a state off the list, and the analytics pages */
+.sortRow { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 8px; }
+.sortRow .button { width: 100%; }
+.anyBox { display: flex; flex-direction: column; gap: 8px; }
+.statRow { align-items: center; justify-content: space-between; gap: 16px; }
+.statMain { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.statMain strong { font-weight: 500; overflow-wrap: anywhere; }
+.statMain small { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.statTime { flex: none; font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.pager { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding-top: 4px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.pager .button { width: 100%; }
+@media (max-width: 480px) { .pager { gap: 8px; } }

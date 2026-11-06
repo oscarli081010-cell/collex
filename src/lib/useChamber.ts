@@ -74,7 +74,7 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chambers", filter: `id=eq.${cloudId}` },
         (p) => { const r = p.new as { state: Chamber; version: number }; if (!pending.current.length && r.version > ver.current) { ver.current = r.version; show(ch.normalise(r.state)); } })
       .subscribe();
-    const poll = setInterval(() => { if (!pushing.current) void open(cur.current === null); }, 5000);
+    const poll = setInterval(() => { if (!pushing.current) void open(cur.current === null); }, 3000);
     return () => { alive.current = false; clearInterval(poll); void db.removeChannel(live); };
   }, [cloudId, o.signedIn, o.authReady, o.readOnly, show]);
 
