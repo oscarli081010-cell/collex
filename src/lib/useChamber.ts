@@ -53,7 +53,7 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
       learn(r);
       if (pending.current.length || r.version <= ver.current) return; // our own change is on its way; it will be rebased
       ver.current = r.version;
-      show(r.state);
+      show(ch.normalise(r.state));
     };
     const open = async (first: boolean) => {
       const { data, error } = await db.rpc("open_chamber", { cid: cloudId });
@@ -72,7 +72,7 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
 
     const live = db.channel(`chamber-${cloudId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chambers", filter: `id=eq.${cloudId}` },
-        (p) => { const r = p.new as { state: Chamber; version: number }; if (!pending.current.length && r.version > ver.current) { ver.current = r.version; show(r.state); } })
+        (p) => { const r = p.new as { state: Chamber; version: number }; if (!pending.current.length && r.version > ver.current) { ver.current = r.version; show(ch.normalise(r.state)); } })
       .subscribe();
     const poll = setInterval(() => { if (!pushing.current) void open(cur.current === null); }, 5000);
     return () => { alive.current = false; clearInterval(poll); void db.removeChannel(live); };
@@ -100,7 +100,10 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
         learn(r);
         ver.current = r.version;
         if (r.ok) { pending.current.splice(0, n); setStatus("ready"); }
-        else show(pending.current.reduce((s, f) => f(s), r.state as Chamber)); // someone saved first: our changes go on top of theirs
+        else { // someone saved first: our changes go on top of theirs
+          const theirs = ch.normalise(r.state);
+          if (theirs) show(pending.current.reduce((s, f) => f(s), theirs));
+        }
       }
     } finally { pushing.current = false; }
   }, [cloudId, show]);
