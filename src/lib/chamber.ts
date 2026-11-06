@@ -194,11 +194,19 @@ export function beginDebate(c: Chamber): Chamber {
   const n = rollCount(c);
   return note({ ...c, step: "pick" }, `Roll call: ${n.present} present, ${n.voting} present and voting, ${n.abstain} abstaining${n.unmarked ? `, ${n.unmarked} not marked` : ""}`);
 }
-export function chooseSpeakers(c: Chamber, proposer: string, seconder: string, opposer: string): Chamber {
+/** The chair picks each of the three as they go, so the display shows the choice at once. A state holds one role at a time. */
+export function pickRole(c: Chamber, role: "proposer" | "seconder" | "opposer", who: string | null): Chamber {
+  if (c.step !== "pick" || (who !== null && !has(c, who))) return c;
+  const roles = { ...c.roles };
+  if (who) for (const k of ["proposer", "seconder", "opposer"] as const) if (k !== role && roles[k] === who) roles[k] = null;
+  roles[role] = who;
+  return { ...c, roles };
+}
+export function startSpeeches(c: Chamber): Chamber {
+  const { proposer, seconder, opposer } = c.roles;
   if (c.step !== "pick" || !has(c, proposer) || !has(c, seconder) || !has(c, opposer)) return c;
   if (proposer === seconder || proposer === opposer || seconder === opposer) return c;
-  return note({ ...c, step: "proposer", roles: { proposer, seconder, opposer } },
-    `Proposer ${nameOf(c, proposer)}, seconder ${nameOf(c, seconder)}, opposer ${nameOf(c, opposer)}`);
+  return note({ ...c, step: "proposer" }, `Proposer ${nameOf(c, proposer)}, seconder ${nameOf(c, seconder)}, opposer ${nameOf(c, opposer)}`);
 }
 
 /* Speeches */
@@ -554,6 +562,18 @@ export function summary(c: Chamber) {
       asked: n("poi"), answered: n("reply"), amendments: n("amendment"), signed: n("signatory"),
     };
   });
+}
+
+/* What is open right now, for the display: the negotiation chamber (Evatt rule 40 opens it before the seconder is called; rule 42 closes it
+   during a caucus and while an amendment is read, explained and voted on; it stays closed from the closing speeches on), notes with amendments
+   (from the first caucus of the debate until the closing), and the speakers' list (once the council has voted to debate an amendment). */
+export function rooms(c: Chamber) {
+  const speakers = c.amend?.stage === "debate" && (c.step === "amend" || (c.step === "caucus" && c.after === "amend"));
+  return {
+    negotiation: c.step === "seconder" || c.step === "opposer" || c.step === "floor" || (c.step === "amend" && c.amend?.stage === "debate"),
+    amendments: c.step === "caucus" || c.step === "floor" || c.step === "amend",
+    speakers,
+  };
 }
 
 /* Where the council is: three parts, each with a step inside it */

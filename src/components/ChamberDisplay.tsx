@@ -21,7 +21,14 @@ const Back = () => icon(<path d="M13 8H3M7 4L3 8l4 4" />);
 const SIDE = { for: "In favour", against: "Against" } as const;
 
 // A long heading (an amendment's own words, say) steps down in size so it always fits the screen.
-const fit = (text: string) => { const n = text.length; return n <= 28 ? 1 : n <= 44 ? 0.78 : n <= 80 ? 0.58 : n <= 160 ? 0.44 : n <= 300 ? 0.34 : 0.28; };
+// A heading with nothing else on the screen is bigger still.
+const fit = (text: string, solo: boolean) => {
+  const n = text.length;
+  if (solo && n <= 14) return 1.45;
+  if (solo && n <= 22) return 1.15;
+  if (solo && n <= 30) return 0.92;
+  return n <= 28 ? 1 : n <= 44 ? 0.78 : n <= 80 ? 0.58 : n <= 160 ? 0.44 : n <= 300 ? 0.34 : 0.28;
+};
 
 /** One screen: an optional pill, a heading, optional lines of text, and whatever there is to look at. */
 function Screen({ pill, side, heading, pass, lines, children }: {
@@ -32,7 +39,7 @@ function Screen({ pill, side, heading, pass, lines, children }: {
   return (
     <>
       {text && <span className={s.dPill} data-side={side}>{text}</span>}
-      {heading && <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": fit(heading) } as React.CSSProperties}>{heading}</h1>}
+      {heading && <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": fit(heading, !children) } as React.CSSProperties}>{heading}</h1>}
       {rows.length > 0 && <div className={s.dLines}>{rows.map((r, i) => <p key={i} className={s.dSub}>{r}</p>)}</div>}
       {children}
     </>
@@ -59,8 +66,11 @@ export default function ChamberDisplay() {
 
   if (!mounted) return null; // the saved committee is only known in the browser
 
+  const open = c ? ch.rooms(c) : null;
+  const openNow = open ? [open.negotiation && "Negotiation Chamber open", open.amendments && "Amendments open", open.speakers && "Speakers\u2019 list open"].filter(Boolean).join(" \u00B7 ") : "";
   const tools = (
     <div className={s.dTools}>
+      {openNow && <span className={`${s.dBtn} ${s.dStatus}`} role="status">{openNow}</span>}
       <button type="button" className={s.dBtn} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}{full ? "Exit full screen" : "Full screen"}</button>
       <Link href={cloudId ? `/chambers?c=${cloudId}` : "/chambers"} className={s.dBtn}><Back />Console</Link>
     </div>
@@ -113,7 +123,15 @@ export default function ChamberDisplay() {
   } else if (c.step === "welcome") {
     mid = <Screen heading={`Welcome to ${c.name}`} />;
   } else if (c.step === "pick") {
-    mid = <Screen heading="Choosing the speakers" />;
+    mid = (
+      <Screen heading="Choosing the speakers">
+        <div className={s.dRoles}>
+          {([["proposer", "Proposer"], ["seconder", "Seconder"], ["opposer", "Opposer"]] as const).map(([k, label]) => (
+            <div key={k} className={s.dRole}><span>{label}</span><b data-empty={!c.roles[k]}>{c.roles[k] ? name(c.roles[k]) : "\u2014"}</b></div>
+          ))}
+        </div>
+      </Screen>
+    );
   } else if (c.step === "roll") {
     const n = ch.rollCount(c);
     mid = (
@@ -177,7 +195,7 @@ export default function ChamberDisplay() {
     const role = c.step === "proposer" ? "Proposer" : c.step === "seconder" ? "Seconder" : "Opposer";
     mid = who
       ? <Screen pill={[role, c.step === "opposer" ? SIDE.against : SIDE.for]} side={c.step === "opposer" ? "against" : "for"} heading={name(who)} />
-      : <Screen heading="Amendments" />;
+      : <Screen heading="Amendments" lines={["Send amendments to the chair's desk"]} />;
   }
 
   const first = c && c.step === "amend" ? ch.nextCandidate(c) : null;

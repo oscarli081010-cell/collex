@@ -279,33 +279,30 @@ function RollCallOpen({ c, act }: { c: Chamber; act: Act }) {
   );
 }
 
-/* Opening, 3: the chair chooses the Proposer, Seconder and Opposer. */
+/* Opening, 3: the chair chooses the Proposer, Seconder and Opposer. Each choice is saved as it is made, so the display shows it at once. */
+const PICK = [["proposer", "Proposer"], ["seconder", "Seconder"], ["opposer", "Opposer"]] as const;
 function Pick({ c, act }: { c: Chamber; act: Act }) {
-  const [prop, setProp] = useState("");
-  const [sec, setSec] = useState("");
-  const [opp, setOpp] = useState("");
   const here = c.delegates.filter((d) => c.roll[d.id]);
   const pool = here.length ? here : c.delegates;
-  const field = (id: string, label: string, value: string, set: (v: string) => void, taken: string[]) => (
-    <div className="field">
-      <label htmlFor={id}>{label}</label>
-      <select id={id} className="control" value={value} onChange={(e) => set(e.target.value)}>
-        <option value="">Choose a state</option>
-        {pool.filter((d) => !taken.includes(d.id)).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-      </select>
-    </div>
-  );
-  const ok = prop && sec && opp;
+  const ok = !!(c.roles.proposer && c.roles.seconder && c.roles.opposer);
   return (
-    <form className={`panel ${s.opening}`} onSubmit={(e) => { e.preventDefault(); if (ok) act((x) => ch.chooseSpeakers(x, prop, sec, opp)); }}>
-      <div>
+    <form className={`panel ${s.opening}`} onSubmit={(e) => { e.preventDefault(); if (ok) act(ch.startSpeeches); }}>
+      <div className={s.head}>
         <h2 className={`serif ${s.who}`}>Choose the speakers</h2>
-        <p className={s.sub}>The Proposer and Seconder are in favour of the resolution, and the Opposer is against it. Each speaks in turn.</p>
       </div>
       <div className={s.three}>
-        {field("pk-p", "Proposer", prop, setProp, [sec, opp])}
-        {field("pk-s", "Seconder", sec, setSec, [prop, opp])}
-        {field("pk-o", "Opposer", opp, setOpp, [prop, sec])}
+        {PICK.map(([role, label]) => {
+          const taken = PICK.filter(([k]) => k !== role).map(([k]) => c.roles[k]);
+          return (
+            <div key={role} className="field">
+              <label htmlFor={`pk-${role}`}>{label}</label>
+              <select id={`pk-${role}`} className="control" value={c.roles[role] ?? ""} onChange={(e) => act((x) => ch.pickRole(x, role, e.target.value || null))}>
+                <option value="">Choose a state</option>
+                {pool.filter((d) => !taken.includes(d.id)).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
+          );
+        })}
       </div>
       <button type="submit" className="button lg block" disabled={!ok}>Start the speeches</button>
     </form>
@@ -414,7 +411,7 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
           {c.timer && !ch.running(c.timer) && c.timer.left === c.timer.total && <Duration id="fl-cau" label="Caucus length" value={c.timer ? Math.round(c.timer.total / 1000) : ch.CAUCUS_SECS} min={5} max={10800}
             onChange={(v, ok) => { if (ok && v !== null) act((x) => ch.setCaucusSecs(x, v)); }} />}
           {timerBtn("button")}
-          <button type="button" className="button secondary" onClick={() => act(ch.endCaucus)}>End caucus</button>
+          <button type="button" className="button secondary" onClick={() => act(ch.endCaucus)}>End Caucus</button>
         </>
       );
       case "floor": return (
@@ -422,7 +419,7 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
           {waiting[0]
             ? <button type="button" className="button" onClick={() => act((x) => ch.entertain(x, waiting[0].id))}>Entertain the next Amendment</button>
             : null}
-          <button type="button" className={waiting[0] ? "button secondary" : "button"} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a caucus</button>
+          <button type="button" className={waiting[0] ? "button secondary" : "button"} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a Caucus</button>
           <button type="button" className="button secondary" onClick={() => act(ch.closeDebate)}>Close the Debate</button>
         </>
       );
@@ -471,12 +468,12 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
           <>
             <button type="button" className="button" onClick={() => act((x) => ch.amendAsk(x, aid))}>Vote on whether to debate it</button>
             <div className={s.btnRow}>
-              <button type="button" className={sm} onClick={() => act((x) => ch.amendDebate(x, aid))}>Debate it now</button>
-              <button type="button" className={sm} onClick={() => act((x) => ch.amendVote(x, aid))}>Straight to the vote</button>
+              <button type="button" className={sm} onClick={() => act((x) => ch.amendDebate(x, aid))}>Debate Immediately</button>
+              <button type="button" className={sm} onClick={() => act((x) => ch.amendVote(x, aid))}>Vote Immediately</button>
             </div>
             <div className={s.btnRow}>
-              <button type="button" className={sm} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a caucus</button>
-              <button type="button" className={sm} onClick={() => act((x) => ch.backOutAmendment(x, aid))}>Set it aside for now</button>
+              <button type="button" className={sm} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a Caucus</button>
+              <button type="button" className={sm} onClick={() => act((x) => ch.backOutAmendment(x, aid))}>Set Aside</button>
             </div>
           </>
         );
@@ -499,7 +496,7 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
           {primary}
           <div className={s.btnRow}>
             {!votePrimary && <button type="button" className={sm} onClick={() => act((x) => ch.amendVote(x, aid))}>Vote on the amendment</button>}
-            <button type="button" className={sm} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a caucus</button>
+            <button type="button" className={sm} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a Caucus</button>
           </div>
           {!first && (
             <>

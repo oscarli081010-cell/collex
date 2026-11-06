@@ -225,7 +225,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dTopic { color: var(--muted); font-size: clamp(14px, 1.4vw, 18px); margin-top: 4px; }
 .dBrand { display: flex; align-items: center; gap: 7px; margin-top: 8px; font-size: clamp(11px, 1vw, 13px); color: var(--faint); }
 .dBrand svg { color: var(--muted); }
-.dTools { display: flex; gap: 8px; flex: none; }
+.dTools { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; min-width: 0; }
 /* Quiet pills for the display's own controls: they stay out of the way of what the room is reading. */
 .dBtn {
   display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 999px; cursor: pointer;
@@ -234,19 +234,25 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 }
 .dBtn:hover { color: var(--ink); background: var(--panel); border-color: var(--line-strong); }
 .dBtn:active { transform: scale(0.97); }
+/* The same pill as the buttons, but only a message: what is open right now. */
+.dStatus { cursor: default; color: var(--ink); }
+.dStatus:hover { color: var(--ink); background: color-mix(in srgb, var(--panel) 70%, transparent); border-color: var(--line); }
+.dStatus:active { transform: none; }
 @media (max-width: 520px) { .dBtn { padding: 0 14px; } }
 
 /* Every screen is built the same way: a pill, a heading in the serif, lines of ordinary text, then what to look at. */
 .dMid { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: clamp(14px, 2.2vw, 30px); min-height: 0; }
-.dPill { display: inline-flex; align-items: center; justify-content: center; padding: 0.4em 1.1em; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: clamp(16px, 1.8vw, 26px); font-weight: 500; line-height: 1.25; max-width: 100%; }
+/* Nothing on the screen may be squeezed smaller, or a progress bar disappears. */
+.dMid > * { flex: none; }
+.dPill { display: inline-flex; align-items: center; justify-content: center; padding: 0.42em 1.2em; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: clamp(20px, min(2.5vw, 4vh), 38px); font-weight: 500; line-height: 1.25; max-width: 100%; }
 .dPill[data-side="for"] { background: var(--ok-soft); color: var(--ok); }
 .dPill[data-side="against"] { background: var(--danger-soft); color: var(--danger); }
-.dH { font-size: calc(clamp(60px, 10.4vw, 160px) * var(--k, 1)); line-height: 1.02; overflow-wrap: anywhere; max-width: 100%; }
+.dH { font-size: calc(clamp(60px, min(10.4vw, 17vh), 160px) * var(--k, 1)); line-height: 1.02; overflow-wrap: anywhere; max-width: 100%; }
 .dH[data-pass="true"] { color: var(--ok); }
 .dH[data-pass="false"] { color: var(--danger); }
 .dLines { display: flex; flex-direction: column; gap: 0.4em; max-width: min(100%, 1100px); }
 .dSub { font-size: clamp(18px, 2.1vw, 30px); line-height: 1.35; color: var(--muted); overflow-wrap: anywhere; white-space: pre-wrap; }
-.dTime { font-variant-numeric: tabular-nums; font-size: clamp(100px, 19vw, 300px); font-weight: 500; letter-spacing: -0.04em; line-height: 0.95; }
+.dTime { font-variant-numeric: tabular-nums; font-size: clamp(100px, min(19vw, 28vh), 300px); font-weight: 500; letter-spacing: -0.04em; line-height: 0.95; }
 .dTime[data-state="paused"] { color: var(--muted); }
 .dTime[data-state="low"] { color: var(--warn); }
 .dTime[data-state="up"] { color: var(--danger); }
@@ -257,10 +263,16 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dTally { display: flex; flex-direction: column; align-items: center; gap: 0.15em; }
 .dTally span { font-size: clamp(18px, 2.1vw, 30px); color: var(--muted); font-weight: 500; }
 /* The states that signed an amendment: tiles under a label, like the votes. */
-.dSigs { display: flex; flex-direction: column; align-items: center; gap: 0.5em; max-width: min(100%, 1300px); }
+.dSigs { display: flex; flex-direction: column; align-items: center; gap: 0.5em; max-width: min(100%, 1300px); margin-top: clamp(10px, 2.4vw, 40px); }
 .dSigs > span { font-size: clamp(18px, 2.1vw, 30px); color: var(--muted); font-weight: 500; }
 .dSigs ul { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(8px, 1vw, 14px); }
-.dSigs li { padding: 0.3em 0.9em; border-radius: 999px; background: var(--surface); font-size: clamp(16px, 1.8vw, 26px); font-weight: 500; }
+.dSigs li { padding: 0.3em 0.9em; border-radius: 999px; background: var(--surface); font-size: clamp(18px, 2vw, 30px); font-weight: 500; }
+/* The three chosen speakers: a label over a tile, like the signatories. */
+.dRoles { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(20px, 4vw, 64px); margin-top: clamp(6px, 1.4vw, 24px); }
+.dRole { display: flex; flex-direction: column; align-items: center; gap: 0.5em; }
+.dRole > span { font-size: clamp(18px, 2.1vw, 30px); color: var(--muted); font-weight: 500; }
+.dRole b { padding: 0.3em 1em; border-radius: 999px; background: var(--surface); font-size: clamp(22px, 2.6vw, 40px); font-weight: 500; min-width: 4.5em; text-align: center; }
+.dRole b[data-empty="true"] { color: var(--faint); }
 .dTally b { font-size: clamp(64px, 11vw, 170px); font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
 .dBoard { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 16vw, 230px), 1fr)); gap: clamp(8px, 1vw, 14px); width: min(100%, 1400px); }
 .dSeat { display: flex; align-items: center; gap: 10px; padding: clamp(8px, 1vw, 14px) clamp(10px, 1.2vw, 16px); border-radius: 12px; background: var(--surface); font-size: clamp(15px, 1.6vw, 22px); font-weight: 500; text-align: left; border: 1px solid transparent; }
