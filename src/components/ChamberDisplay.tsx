@@ -8,11 +8,11 @@ import * as ch from "@/lib/chamber";
 import { Wordmark } from "@/lib/brand";
 import { isId, useChamber } from "@/lib/useChamber";
 import { useAuth } from "./AuthProvider";
-import { useNow } from "./Chambers";
+import { bare, useNow } from "./Chambers";
 import s from "./Chambers.module.css";
 
-// What the room sees: whoever has the floor and the time in very large type, the next speakers, the amendment in hand,
-// any vote and then the roll call. It only reads the committee the console keeps and redraws when that changes.
+// What the room sees: the welcome and the roll call, then whoever has the floor and the time in very large type, the
+// amendment in hand, any vote and the roll-call vote. It only reads the committee the console keeps and redraws when that changes.
 const icon = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
 const Expand = () => icon(<path d="M6 2.5H2.5V6M10 2.5h3.5V6M6 13.5H2.5V10M10 13.5h3.5V10" />);
 const Shrink = () => icon(<path d="M2.5 6H6V2.5M13.5 6H10V2.5M2.5 10H6v3.5M13.5 10H10v3.5" />);
@@ -54,6 +54,12 @@ export default function ChamberDisplay() {
       <div className={s.dTrack} aria-hidden="true"><i style={{ width: `${Math.min(100, (left / c.timer.total) * 100)}%` }} /></div>
     </>
   );
+  const welcome = c && (
+    <>
+      <h1 className={`serif ${s.dWho}`}>Welcome to the {bare(c.name)}</h1>
+      {c.topic && <p className={s.dText}>{c.topic}</p>}
+    </>
+  );
 
   let mid: React.ReactNode;
   if (!c) {
@@ -75,21 +81,49 @@ export default function ChamberDisplay() {
     );
   } else if (c.speech) {
     const sp = c.speech;
-    mid = (
+    mid = sp.phase === "ask" ? (
+      <>
+        <p className={s.dTag}><span className={s.dChip}>Point of Information</span><span className={s.dChip}>for {name(sp.who)}</span></p>
+        <h1 className={`serif ${s.dWho}`}>{name(sp.asker)}</h1>
+        {timerView()}
+      </>
+    ) : sp.phase === "answer" ? (
+      <>
+        <p className={s.dTag}><span className={s.dChip}>Reply</span><span className={s.dChip}>to {name(sp.asker)}</span></p>
+        <h1 className={`serif ${s.dWho}`}>{name(sp.who)}</h1>
+        {timerView()}
+      </>
+    ) : (
       <>
         <p className={s.dTag}><span className={s.dChip}>{ch.ROLE_LABEL[sp.role]}</span><span className={s.dChip} data-side={sp.side}>{SIDE[sp.side]}</span></p>
         <h1 className={`serif ${s.dWho}`}>{name(sp.who)}</h1>
         {sp.phase === "speech" && timerView()}
-        {sp.phase === "questions" && <p className={`serif ${s.dVerdict}`}>Points of information{sp.pois > 0 ? ` · ${sp.pois}` : ""}</p>}
-        {sp.phase === "yield" && <p className={`serif ${s.dVerdict}`}>Yielding the floor</p>}
+        {sp.phase === "after" && <p className={`serif ${s.dVerdict}`}>Points of Information{sp.pois > 0 ? ` · ${sp.pois} taken` : ""}</p>}
         {c.step === "amend" && amendment && <p className={s.dSub}>Amendment: {amendment.text}</p>}
+      </>
+    );
+  } else if (c.step === "welcome" || c.step === "pick") {
+    mid = (<>{welcome}{c.step === "pick" && <p className={s.dTag}>Choosing the speakers</p>}</>);
+  } else if (c.step === "roll") {
+    const n = ch.rollCount(c);
+    mid = (
+      <>
+        <p className={s.dTag}>Roll call</p>
+        <div className={s.dTallies}>
+          <div className={s.dTally}><span>Present</span><b>{n.present}</b></div>
+          <div className={s.dTally}><span>Present and Voting</span><b>{n.voting}</b></div>
+          <div className={s.dTally}><span>Abstain</span><b>{n.abstain}</b></div>
+        </div>
+        <div className={s.dBoard}>
+          {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-a={c.roll[d.id]}><i />{d.name}{c.roll[d.id] && <em>{ch.ATTEND_LABEL[c.roll[d.id]]}</em>}</div>)}
+        </div>
       </>
     );
   } else if (c.step === "caucus") {
     mid = (
       <>
-        <p className={s.dTag}>Negotiation room closed</p>
-        <h1 className={`serif ${s.dWho}`}>{c.timer?.label ?? "Caucus"}</h1>
+        <p className={s.dTag}>{c.timer?.label ?? "Caucus"}</p>
+        <h1 className={`serif ${s.dWho}`}>Caucus</h1>
         {timerView()}
       </>
     );
@@ -118,9 +152,9 @@ export default function ChamberDisplay() {
       <>
         {c.step === "closed" && c.outcome ? (
           <>
-            <p className={s.dTag}>{c.resolution.title}</p>
+            <p className={s.dTag}>{c.topic}</p>
             <div className={s.dVerdict} data-pass={c.outcome.passed}>{c.outcome.passed ? "Resolution approved" : "Resolution not approved"}</div>
-            <p className={s.dTag}>{c.outcome.yes} for · {c.outcome.no} against · {c.outcome.abstain} abstaining{c.outcome.vetoed.length ? ` · vetoed by ${c.outcome.vetoed.join(", ")}` : !c.outcome.passed ? ` · ${c.outcome.needed} needed` : ""}</p>
+            <p className={s.dTag}>{c.outcome.yes} for · {c.outcome.no} against · {c.outcome.abstain} abstaining{!c.outcome.passed ? ` · ${c.outcome.needed} needed` : ""}</p>
           </>
         ) : (
           <>
@@ -133,39 +167,41 @@ export default function ChamberDisplay() {
           </>
         )}
         <div className={s.dBoard}>
-          {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-b={c.ballots[d.id]}><i />{d.name}{d.permanent && <small>P</small>}</div>)}
+          {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-b={c.ballots[d.id]}><i />{d.name}</div>)}
         </div>
       </>
     );
-  } else if (c.step === "open") {
+  } else if (c.step === "closing") {
+    const left = ch.closingRoles(c).filter((r) => !c.closers.includes(r.id));
     mid = (
       <>
-        <h1 className={`serif ${s.dWho}`}>{c.topic || c.name}</h1>
-        <p className={s.dTag}>Waiting for the resolution</p>
+        <p className={s.dTag}><span className={s.dChip}>Closing speeches</span></p>
+        <h1 className={`serif ${s.dWho} ${s.m}`}>{left.length ? left.map((r) => name(r.id)).join(" · ") : "The vote is next"}</h1>
+        {left.length > 0 && <p className={s.dTag}>{left.map((r) => ch.ROLE_LABEL[r.role]).join(" · ")}</p>}
       </>
     );
   } else {
-    const next = ch.nextCandidate(c);
-    const label = c.step === "proposer" ? "Proposer" : c.step === "seconder" ? "Seconder" : c.step === "reply" ? "Right of Reply" : c.step === "opposer" ? "First against" : "Up next";
-    const who = c.step === "proposer" ? c.resolution.proposer : c.step === "seconder" ? c.resolution.seconder : c.step === "reply" ? ch.replyBy(c) : c.step === "floor" ? next?.id ?? null : null;
+    const who = c.step === "proposer" ? c.roles.proposer : c.step === "seconder" ? c.roles.seconder : c.step === "opposer" ? c.roles.opposer : null;
+    const label = c.step === "proposer" ? "Proposer" : c.step === "seconder" ? "Seconder" : c.step === "opposer" ? "Opposer" : "Debate";
+    const waiting = ch.waitingAmendments(c).length;
     mid = (
       <>
         <p className={s.dTag}><span className={s.dChip}>{label}</span></p>
-        <h1 className={`serif ${s.dWho} ${who ? "" : s.m}`}>{who ? name(who) : c.step === "opposer" ? "A state against the resolution" : "Debate continues"}</h1>
-        {c.resolution.title && <p className={s.dText}>{c.resolution.title}</p>}
+        <h1 className={`serif ${s.dWho} ${who ? "" : s.m}`}>{who ? name(who) : waiting ? `${waiting} amendment${waiting === 1 ? "" : "s"} waiting` : "Amendments"}</h1>
+        {c.topic && <p className={s.dText}>{c.topic}</p>}
       </>
     );
   }
 
-  // The same order the console calls them in: whoever was yielded to, then the next on the alternating list.
-  const first = c && c.step !== "open" && c.step !== "vote" && c.step !== "closed" && !c.debate.yielded ? ch.nextCandidate(c) : null;
-  const upNext = c && c.step !== "open" && c.step !== "vote" && c.step !== "closed" ? [...(first ? [first] : []), ...c.debate.list.filter((x) => x.id !== first?.id)].slice(0, 4) : [];
+  const upNext = c && c.step === "amend" ? c.debate.list.slice(0, 4) : [];
+  const first = c && c.step === "amend" ? ch.nextCandidate(c) : null;
+  const ordered = first ? [first, ...upNext.filter((x) => x.id !== first.id)] : upNext;
   const body = (
     <div className={s.display}>
       <div className={s.dTop}>
         <div>
           <p className={`serif ${s.dName}`}>{c?.name ?? "Chambers"}</p>
-          {c?.resolution.title && <p className={s.dSub}>{c.resolution.title}</p>}
+          {c?.topic && c.step !== "welcome" && <p className={s.dSub}>{c.topic}</p>}
           <p className={s.dBrand}>Powered by <Wordmark height={13} /></p>
         </div>
         {tools}
@@ -173,21 +209,15 @@ export default function ChamberDisplay() {
       <main id="top" className={s.dMid}>{mid}</main>
       <div className={s.dBottom}>
         <div className={s.dNext}>
-          {(c?.debate.yielded || upNext.length > 0) && c && (
+          {c && ordered.length > 0 && (
             <>
               <span className="muted">Up next</span>
-              <ol>
-                {c.debate.yielded && <li data-side={c.debate.yielded.side}><i />{name(c.debate.yielded.id)} (yielded to)</li>}
-                {upNext.map((x) => <li key={x.id} data-side={x.side}><i />{name(x.id)}</li>)}
-              </ol>
+              <ol>{ordered.map((x) => <li key={x.id} data-side={x.side}><i />{name(x.id)}</li>)}</ol>
             </>
           )}
         </div>
-        {c && (
-          <div className={s.dNote}>
-            {c.result && !c.poll && <span>{c.result.title}: {c.result.passed ? "passed" : "failed"} ({c.result.yes}–{c.result.no}–{c.result.abstain})</span>}
-            {c.step !== "open" && c.step !== "vote" && c.step !== "closed" && <span>Negotiation room {c.negotiation ? "open" : "closed"}</span>}
-          </div>
+        {c && c.result && !c.poll && (
+          <div className={s.dNote}><span>{c.result.title}: {c.result.passed ? "passed" : "failed"} ({c.result.yes}–{c.result.no}–{c.result.abstain})</span></div>
         )}
       </div>
     </div>

@@ -72,6 +72,9 @@ function Duration({ id, label, value, onChange, min, max, optional }: {
   );
 }
 
+// "Welcome to the UNSC", not "the The UNSC".
+export const bare = (name: string) => name.replace(/^the\s+/i, "");
+
 export default function Chambers() {
   const q = useSearchParams().get("c");
   const cloudId = isId(q) ? q : null;
@@ -98,16 +101,15 @@ export default function Chambers() {
   const sp = c?.speech;
   useEffect(() => {
     if (!c) return;
-    setLive(sp ? `${ch.ROLE_LABEL[sp.role]} ${ch.nameOf(c, sp.who)}: ${sp.phase === "speech" ? "speech" : sp.phase === "questions" ? "points of information" : "yield"}` : ch.STAGES[ch.stageIndex(c)]);
+    setLive(sp ? `${ch.ROLE_LABEL[sp.role]} ${ch.nameOf(c, sp.who)}: ${sp.phase === "speech" ? "speech" : sp.phase === "after" ? "Points of Information or yield" : sp.phase === "ask" ? `Point of Information from ${ch.nameOf(c, sp.asker)}` : "reply"}` : ch.substep(c));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sp?.who, sp?.phase, c?.step]);
+  }, [sp?.who, sp?.phase, sp?.asker, c?.step, c?.amend?.stage]);
 
   const toggle = () => act((x) => (ch.running(x.timer) ? ch.pauseTimer(x, ch.now()) : ch.startTimer(x, ch.now())));
   // Space starts or pauses the timer. N calls the next speaker, and only when no one is speaking, so a stray key can't end a speech.
   const callNext = () => {
-    if (!c || c.speech || (c.step !== "floor" && !(c.step === "amend" && c.amend?.stage === "debate"))) return;
-    // An amendment's own proposer speaks first.
-    if (c.step === "amend" && !c.debate.run.length) { act(ch.callAmender); return; }
+    if (!c || c.speech || c.step !== "amend" || c.amend?.stage !== "debate") return;
+    if (!c.debate.run.length) { act((x) => ch.callAmender(x)); return; }
     const n = ch.nextCandidate(c);
     if (n) act((x) => ch.callSpeaker(x, n.id, n.side));
   };
@@ -143,7 +145,6 @@ export default function Chambers() {
   if (!c) return <Setup signedIn={!!session} onCreate={(x) => { setLocal(x); say("Committee opened"); }} />;
 
   const display = cloudId ? `/chambers/display?c=${cloudId}` : "/chambers/display";
-  const idx = ch.stageIndex(c);
 
   const finish = async (fn: () => PromiseLike<{ error: { message: string } | null }>) => {
     const { error } = await fn();
@@ -155,6 +156,8 @@ export default function Chambers() {
     if (!supabase) return;
     return owner ? finish(() => supabase!.rpc("delete_chamber", { cid: cloudId })) : leave();
   };
+
+  const inDebate = c.step === "caucus" || c.step === "floor" || c.step === "amend";
 
   return (
     <main id="top" className={`container ${s.page}`}>
@@ -181,11 +184,15 @@ export default function Chambers() {
 
       {view === "manage" ? (
         <div id="chv-panel-manage" role="tabpanel" aria-labelledby="chv-tab-manage" className={s.manage}>
-          <Rail idx={idx} />
-          {c.step === "open" ? <Opening c={c} act={act} /> : <Floor c={c} act={act} left={left} state={state} toggle={toggle} />}
-          {c.step === "vote" || c.step === "closed"
-            ? <Workspace c={c} act={act} />
-            : <div className={s.pair}><Lists c={c} act={act} /><Workspace c={c} act={act} /></div>}
+          <Rail c={c} />
+          {c.step === "welcome" ? <Welcome c={c} act={act} />
+            : c.step === "roll" ? <RollCallOpen c={c} act={act} />
+            : c.step === "pick" ? <Pick c={c} act={act} />
+            : <Floor c={c} act={act} left={left} state={state} toggle={toggle} />}
+          {inDebate && (ch.listOpen(c)
+            ? <div className={s.pair}><Lists c={c} act={act} /><Amendments c={c} act={act} /></div>
+            : <Amendments c={c} act={act} />)}
+          {(c.step === "vote" || c.step === "closed") && <RollCall c={c} act={act} />}
         </div>
       ) : (
         <Minutes c={c} act={act} say={say} />
@@ -195,55 +202,116 @@ export default function Chambers() {
   );
 }
 
-function Rail({ idx }: { idx: number }) {
+/* The three parts of the debate, and the step inside the one we're in. */
+function Rail({ c }: { c: Chamber }) {
+  const idx = ch.stageIndex(c);
   return (
-    <div>
-      <ol className={s.rail} aria-label="Where the council is">
-        {ch.STAGES.map((label, i) => (
-          <li key={label} data-state={i < idx ? "done" : i === idx ? "now" : "next"} aria-current={i === idx ? "step" : undefined}>
-            <span className={s.dot}>{i < idx ? ICONS.check : i + 1}</span>
+    <ol className={s.rail} aria-label="Where the council is">
+      {ch.STAGES.map((label, i) => (
+        <li key={label} data-state={i < idx ? "done" : i === idx ? "now" : "next"} aria-current={i === idx ? "step" : undefined}>
+          <span className={s.dot}>{i < idx ? ICONS.check : i + 1}</span>
+          <span className={s.railText}>
             <span className={s.railLabel}>{label}</span>
-          </li>
-        ))}
-      </ol>
-      <p className={s.railNow}>Step {idx + 1} of {ch.STAGES.length} · {ch.STAGES[idx]}</p>
-    </div>
+            {i === idx && <span className={s.railSub}>{ch.substep(c)}</span>}
+          </span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
-/* Opening: the President announces the resolution and calls a proposer and a seconder. */
-function Opening({ c, act }: { c: Chamber; act: Act }) {
-  const [title, setTitle] = useState("");
+/* Opening, 1: the welcome, with the resolution. */
+function Welcome({ c, act }: { c: Chamber; act: Act }) {
+  const [text, setText] = useState("");
+  return (
+    <section className={`panel ${s.welcome}`} aria-label="Welcome">
+      <h2 className={`serif ${s.welcomeTitle}`}>Welcome to the {bare(c.name)}</h2>
+      {c.topic ? (
+        <div className={s.resBox}>
+          <span className={s.tag}>Resolution</span>
+          <p className={`serif ${s.resText}`}>{c.topic}</p>
+        </div>
+      ) : (
+        <form className={s.resBox} onSubmit={(e) => { e.preventDefault(); act((x) => ch.setResolution(x, text)); }}>
+          <div className="field">
+            <label htmlFor="wl-res">Resolution</label>
+            <input id="wl-res" className="control" value={text} onChange={(e) => setText(e.target.value)} maxLength={160} placeholder="The resolution being debated" />
+          </div>
+          <button type="submit" className="button secondary" disabled={!text.trim()}>Save the resolution</button>
+        </form>
+      )}
+      <button type="button" className="button lg block" disabled={!c.topic} onClick={() => act(ch.startRoll)}>Start Roll Call</button>
+    </section>
+  );
+}
+
+/* Opening, 2: the roll call. */
+const ATTEND: ch.Attend[] = ["present", "voting", "abstain"];
+function RollCallOpen({ c, act }: { c: Chamber; act: Act }) {
+  const n = ch.rollCount(c);
+  return (
+    <section className={`panel ${s.opening}`} aria-labelledby="rc-h">
+      <div className={s.head}>
+        <h2 id="rc-h" className={`serif ${s.who}`}>Roll call</h2>
+        <span className="badge">{c.delegates.length - n.unmarked} of {c.delegates.length}</span>
+      </div>
+      <div className={s.tally}>
+        <span className={s.chip} data-tone="ok">Present and Voting {n.voting}</span>
+        <span className={s.chip}>Present {n.present}</span>
+        <span className={s.chip} data-tone="warn">Abstain {n.abstain}</span>
+        {n.unmarked > 0 && <span className={s.chip}>Not marked {n.unmarked}</span>}
+      </div>
+      <div className={s.btnRow}>
+        <button type="button" className="button secondary" onClick={() => act((x) => ch.markAllRoll(x, "present"))}>Everyone Present</button>
+        <button type="button" className="button secondary" onClick={() => act((x) => ch.markAllRoll(x, "voting"))}>Everyone Present and Voting</button>
+      </div>
+      <ul className={s.ballots}>
+        {c.delegates.map((d) => (
+          <li key={d.id} className={s.ballot}>
+            <span className={s.cname2}>{d.name}</span>
+            <div className={`${s.vote3} ${s.roll3}`} role="group" aria-label={`Roll call: ${d.name}`}>
+              {ATTEND.map((a) => (
+                <button key={a} type="button" data-a={a} aria-pressed={c.roll[d.id] === a} onClick={() => act((x) => ch.markRoll(x, d.id, c.roll[d.id] === a ? null : a))}>{ch.ATTEND_LABEL[a]}</button>
+              ))}
+            </div>
+          </li>
+        ))}
+      </ul>
+      <button type="button" className="button lg block" onClick={() => act(ch.beginDebate)}>Begin Debate</button>
+      {n.unmarked > 0 && <p className={s.hint}>{n.unmarked} state{n.unmarked === 1 ? "" : "s"} not marked yet. They are noted as not marked in the minutes.</p>}
+    </section>
+  );
+}
+
+/* Opening, 3: the chair chooses the Proposer, Seconder and Opposer. */
+function Pick({ c, act }: { c: Chamber; act: Act }) {
   const [prop, setProp] = useState("");
   const [sec, setSec] = useState("");
-  const ok = title.trim() && prop && sec && prop !== sec;
+  const [opp, setOpp] = useState("");
+  const here = c.delegates.filter((d) => c.roll[d.id]);
+  const pool = here.length ? here : c.delegates;
+  const field = (id: string, label: string, value: string, set: (v: string) => void, taken: string[]) => (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      <select id={id} className="control" value={value} onChange={(e) => set(e.target.value)}>
+        <option value="">Choose a state</option>
+        {pool.filter((d) => !taken.includes(d.id)).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+      </select>
+    </div>
+  );
+  const ok = prop && sec && opp;
   return (
-    <form className={`panel ${s.opening}`} onSubmit={(e) => { e.preventDefault(); if (ok) act((x) => ch.announce(x, title, prop, sec)); }}>
+    <form className={`panel ${s.opening}`} onSubmit={(e) => { e.preventDefault(); if (ok) act((x) => ch.chooseSpeakers(x, prop, sec, opp)); }}>
       <div>
-        <h2 className={`serif ${s.who}`}>Announce the resolution</h2>
-        <p className={s.sub}>The President names the resolution and calls on one state in favour to propose it and a different state in favour to second it.</p>
+        <h2 className={`serif ${s.who}`}>Choose the speakers</h2>
+        <p className={s.sub}>The Proposer and Seconder are in favour of the resolution, and the Opposer is against it. Each speaks in turn.</p>
       </div>
-      <div className="field">
-        <label htmlFor="op-t">Resolution</label>
-        <input id="op-t" className="control" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={140} placeholder="The topic of the resolution" />
+      <div className={s.three}>
+        {field("pk-p", "Proposer", prop, setProp, [sec, opp])}
+        {field("pk-s", "Seconder", sec, setSec, [prop, opp])}
+        {field("pk-o", "Opposer", opp, setOpp, [prop, sec])}
       </div>
-      <div className={s.two}>
-        <div className="field">
-          <label htmlFor="op-p">Proposer</label>
-          <select id="op-p" className="control" value={prop} onChange={(e) => setProp(e.target.value)}>
-            <option value="">Choose a state</option>
-            {c.delegates.filter((d) => d.id !== sec).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor="op-s">Seconder</label>
-          <select id="op-s" className="control" value={sec} onChange={(e) => setSec(e.target.value)}>
-            <option value="">Choose a state</option>
-            {c.delegates.filter((d) => d.id !== prop).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-        </div>
-      </div>
-      <button type="submit" className="button lg block" disabled={!ok}>Begin debate</button>
+      <button type="submit" className="button lg block" disabled={!ok}>Start the speeches</button>
     </form>
   );
 }
@@ -252,23 +320,24 @@ function Opening({ c, act }: { c: Chamber; act: Act }) {
 function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: number; state: string; toggle: () => void }) {
   const sp = c.speech;
   const name = (id: string | null) => ch.nameOf(c, id);
-  const [opp, setOpp] = useState("");
-  const [rep, setRep] = useState("");
+  const [asker, setAsker] = useState("");
+  const [callSecs, setCallSecs] = useState<number | null>(null);
+  const [nextRes, setNextRes] = useState("");
   const [anyWho, setAnyWho] = useState("");
   const [anySide, setAnySide] = useState<Side>("for");
+  useEffect(() => { setCallSecs(null); }, [c.speakSecs]);
+  const secs = callSecs ?? c.speakSecs;
   const next = ch.nextCandidate(c);
-  const amendment = c.amend ? c.amendments.find((a) => a.id === c.amend!.id) : undefined;
   const aid = c.amend?.id ?? "";
-  const amendLive = c.step === "amend" && c.amend?.stage === "debate";
-  const debating = c.step === "floor" || amendLive;
-  const against = c.debate.list.filter((x) => x.side === "against").map((x) => x.id);
-  const oppOptions = [...against, ...c.delegates.filter((d) => !against.includes(d.id) && d.id !== c.resolution.proposer && d.id !== c.resolution.seconder).map((d) => d.id)];
-  const oppId = opp && oppOptions.includes(opp) ? opp : oppOptions[0] ?? "";
-  const favour = [...new Set([ch.replyBy(c) ?? "", ...ch.inFavour(c).map((d) => d.id)].filter(Boolean))];
-  const repOptions = favour;
-  const repId = rep && repOptions.includes(rep) ? rep : repOptions[0] ?? "";
+  const amendment = c.amend ? c.amendments.find((a) => a.id === c.amend!.id) : undefined;
+  const debateOpen = c.step === "amend" && c.amend?.stage === "debate";
+  const waiting = ch.waitingAmendments(c);
   const pct = c.timer ? Math.min(100, (left / c.timer.total) * 100) : 0;
   const idx = ch.stageIndex(c);
+  const askers = sp ? c.delegates.filter((d) => d.id !== sp.who) : [];
+  const askerId = asker && askers.some((d) => d.id === asker) ? asker : "";
+  const spokeFromList = c.debate.run.length > 1;
+  const timeField = <Duration id="fl-secs" label="Time for this speech" value={c.speakSecs} min={5} max={3600} onChange={(v, ok) => setCallSecs(ok ? v : null)} />;
 
   const timerBtn = (cls = "button") => state === "up"
     ? <button type="button" className={cls} onClick={() => act(ch.resetTimer)}>Reset time</button>
@@ -279,116 +348,114 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
   let title: React.ReactNode = "";
   let sub: React.ReactNode = "";
   if (sp) {
-    title = name(sp.who);
-    sub = sp.phase === "speech" ? "Speaking" : sp.phase === "questions" ? "Taking points of information" : "Yielding the floor";
-  } else if (c.step === "proposer") { title = name(c.resolution.proposer); sub = "Proposes the resolution"; }
-  else if (c.step === "seconder") { title = name(c.resolution.seconder); sub = "Seconds the resolution"; }
-  else if (c.step === "opposer") { title = "The first state against"; sub = "Choose who speaks against the resolution"; }
-  else if (c.step === "caucus") { title = c.timer?.label ?? "Caucus"; sub = "Debate stops while states talk directly to each other"; }
-  else if (c.step === "reply") { title = "Right of Reply"; sub = "The proposer, or a state in favour, speaks last"; }
-  else if (c.step === "vote") { title = "Roll call vote"; sub = "Record every state's vote on the right"; }
+    if (sp.phase === "ask") { title = name(sp.asker); sub = `Point of Information for ${name(sp.who)}`; }
+    else { title = name(sp.who); sub = sp.phase === "speech" ? "Speaking" : sp.phase === "after" ? "Takes a Point of Information, or yields to the chair" : "Replying to the Point of Information"; }
+  }
+  else if (c.step === "proposer") { title = name(c.roles.proposer); sub = "Proposes the resolution"; }
+  else if (c.step === "seconder") { title = name(c.roles.seconder); sub = "Seconds the resolution"; }
+  else if (c.step === "opposer") { title = name(c.roles.opposer); sub = "Speaks against the resolution"; }
+  else if (c.step === "caucus") { title = c.timer?.label ?? "Caucus"; sub = "The debate begins with a caucus. States talk directly to each other, and amendments come in by note."; }
+  else if (c.step === "floor") { title = waiting.length ? "Amendments" : "No amendments waiting"; sub = waiting.length ? `${waiting.length} waiting. The one with the most co-sponsors is first.` : "Add the notes you are handed on the right, or close the debate."; }
+  else if (c.step === "closing") { title = "Closing speeches"; sub = "The Proposer, Seconder and Opposer each have a last speech. There are no Points of Information."; }
+  else if (c.step === "vote") { title = "Roll call vote"; sub = "Record every state's vote below"; }
   else if (c.step === "closed") { title = c.outcome?.passed ? "Resolution approved" : "Resolution not approved"; sub = c.outcome ? `${c.outcome.yes} for, ${c.outcome.no} against, ${c.outcome.abstain} abstaining` : ""; }
   else if (c.step === "amend" && c.amend?.stage === "read") { title = `Amendment from ${name(amendment?.by ?? null)}`; sub = amendment?.clause || "Read it to the council"; }
   else if (c.step === "amend" && c.amend?.stage === "ask") { title = "Debate this amendment?"; sub = "A show of placards: more for than against"; }
   else if (c.step === "amend" && c.amend?.stage === "vote") { title = "Adopt this amendment?"; sub = "A show of placards: more for than against"; }
-  else if (debating) {
-    if (amendLive && !c.debate.run.length) { title = name(amendment?.by ?? null); sub = "Speaks first on their amendment"; }
-    else if (next) { title = name(next.id); sub = c.debate.yielded ? "Yielded to, speaks next" : "Next on the list"; }
-    else { title = "The list is empty"; sub = "Add states to the speakers' list, or call one below"; }
+  else if (debateOpen) {
+    if (!c.debate.run.length) { title = name(amendment?.by ?? null); sub = "Speaks first on their amendment"; }
+    else if (next) { title = name(next.id); sub = "Next on the speakers' list"; }
+    else { title = "The speakers' list is empty"; sub = spokeFromList ? "Everyone listed has spoken. Vote on the amendment." : "Add states to the speakers' list, For or Against"; }
   }
 
-  const stageChip = c.step === "amend" ? "Amendment" : ch.STAGES[idx];
-  const chipSide: Side | null = sp ? sp.side : debating && !sp && next ? next.side : null;
-  const showNeg = c.step !== "open" && c.step !== "vote" && c.step !== "closed";
+  const stageChip = ch.STAGES[idx];
+  const chipSide: Side | null = sp ? sp.side : debateOpen && !sp && c.debate.run.length && next ? next.side : null;
 
   const actions = (() => {
     if (sp) {
       if (sp.phase === "speech") return (
         <>
           {timerBtn("button")}
-          <button type="button" className="button secondary" onClick={() => act((x) => ch.endSpeech(x, ch.now(), sp.who))}>{sp.role === "reply" ? "Finish Right of Reply" : "End speech"}</button>
+          <button type="button" className="button secondary" onClick={() => act((x) => ch.endSpeech(x, ch.now(), sp.who))}>End speech</button>
           <p className={s.hint}>{HINT[sp.role]}</p>
         </>
       );
-      if (sp.phase === "questions") return (
+      if (sp.phase === "after") return (
         <>
-          <div className={s.stepper}>
-            <button type="button" className="button secondary" onClick={() => act((x) => ch.poi(x, -1, sp.who))} aria-label="One fewer question" disabled={!sp.pois}>−</button>
-            <output aria-live="polite">{sp.pois}<small>points of information</small></output>
-            <button type="button" className="button secondary" onClick={() => act((x) => ch.poi(x, 1, sp.who))} aria-label="One more question">+</button>
+          <div className="field">
+            <label htmlFor="fl-ask">Who asks the Point of Information?</label>
+            <select id="fl-ask" className="control" value={askerId} onChange={(e) => setAsker(e.target.value)}>
+              <option value="">Choose a state</option>
+              {askers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
           </div>
-          <button type="button" className="button" onClick={() => act((x) => ch.endQuestions(x, sp.who))}>End questions</button>
-          <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who))}>Back to the speech</button>
-          <p className={s.hint}>The President decides how many to take, usually one or two. Each is a single brief question with a single answer.</p>
+          <button type="button" className="button" disabled={!askerId} onClick={() => act((x) => ch.askPoi(x, askerId, sp.who, sp.pois))}>Take a Point of Information</button>
+          <button type="button" className="button secondary" onClick={() => act((x) => ch.yieldToChair(x, sp.who, sp.pois))}>Yield to the chair</button>
+          {sp.pois === 0 && c.timer && <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who, sp.pois))}>Back to the speech</button>}
+          <p className={s.hint}>{sp.pois ? `${sp.pois} Point${sp.pois === 1 ? "" : "s"} of Information taken. ` : ""}A state has {ch.POI_SECS} seconds to ask, then {name(sp.who)} has {ch.POI_SECS} seconds to reply.</p>
         </>
       );
-      const targets = ch.yieldTargets(c);
-      const sameSide = c.debate.list.filter((x) => x.side === sp.side);
+      if (sp.phase === "ask") return (
+        <>
+          {timerBtn("button")}
+          <button type="button" className="button secondary" onClick={() => act((x) => ch.answerPoi(x, sp.who, sp.asker ?? "", sp.pois))}>Now {name(sp.who)} replies</button>
+          <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who, sp.pois))}>Cancel the question</button>
+          <p className={s.hint}>{name(sp.asker)} asks one brief question.</p>
+        </>
+      );
       return (
         <>
-          <button type="button" className="button" onClick={() => act((x) => ch.yieldTo(x, null, sp.who))}>Yield to the chair</button>
-          {targets.length > 0 && (
-            <div className={s.targets}>
-              {targets.map((t) => <button key={t.id} type="button" className={sm} onClick={() => act((x) => ch.yieldTo(x, t.id, sp.who))}>Yield to {name(t.id)}</button>)}
-            </div>
-          )}
-          <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who))}>Back to questions</button>
-          <p className={s.hint}>
-            {sameSide.length && !targets.length
-              ? "Four speakers in a row on one side isn't in order, so the floor goes back to the chair."
-              : "To the chair, and the other side speaks next. Or to a state on the same side of the list who hasn't spoken."}
-          </p>
+          {timerBtn("button")}
+          <button type="button" className="button secondary" onClick={() => act((x) => ch.donePoi(x, sp.who, sp.asker ?? "", sp.pois))}>Reply finished</button>
+          <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who, sp.pois))}>Back to the question</button>
+          <p className={s.hint}>{name(sp.who)} gives one answer.</p>
         </>
       );
     }
     switch (c.step) {
-      case "proposer": return (
-        <>
-          <button type="button" className="button" onClick={() => act(ch.callProposer)}>Call {name(c.resolution.proposer)} to propose</button>
-          <p className={s.hint}>{HINT.proposer}</p>
-        </>
-      );
-      case "seconder": return (
-        <>
-          <button type="button" className="button" onClick={() => act(ch.callSeconder)}>Call {name(c.resolution.seconder)} to second</button>
-          <p className={s.hint}>{HINT.seconder}</p>
-        </>
-      );
-      case "opposer": return (
-        <>
-          <div className="field">
-            <label htmlFor="fl-opp" className="sr-only">State to speak against</label>
-            <select id="fl-opp" className="control" value={oppId} onChange={(e) => setOpp(e.target.value)}>
-              {oppOptions.map((id) => <option key={id} value={id}>{name(id)}{against.includes(id) ? " (on the list)" : ""}</option>)}
-            </select>
-          </div>
-          <button type="button" className="button" disabled={!oppId} onClick={() => act((x) => ch.callOpposer(x, oppId))}>Call to speak against</button>
-          <p className={s.hint}>{HINT.opposer}</p>
-        </>
-      );
+      case "proposer": return (<><button type="button" className="button" onClick={() => act(ch.callProposer)}>Call {name(c.roles.proposer)} to propose</button><p className={s.hint}>{HINT.proposer}</p></>);
+      case "seconder": return (<><button type="button" className="button" onClick={() => act(ch.callSeconder)}>Call {name(c.roles.seconder)} to second</button><p className={s.hint}>{HINT.seconder}</p></>);
+      case "opposer": return (<><button type="button" className="button" onClick={() => act(ch.callOpposer)}>Call {name(c.roles.opposer)} to oppose</button><p className={s.hint}>{HINT.opposer}</p></>);
       case "caucus": return (
         <>
+          {!ch.running(c.timer) && <Duration id="fl-cau" label="Caucus length" value={c.timer ? Math.round(c.timer.total / 1000) : ch.CAUCUS_SECS} min={5} max={10800}
+            onChange={(v, ok) => { if (ok && v !== null) act((x) => ch.setCaucusSecs(x, v)); }} />}
           {timerBtn("button")}
           <button type="button" className="button secondary" onClick={() => act(ch.endCaucus)}>End caucus</button>
-          <p className={s.hint}>The negotiation room is closed. Delegates stand up and talk directly. Set the time with the buttons below.</p>
+          <p className={s.hint}>The length is the chair&apos;s call. Amendments can be added on the right while states talk.</p>
         </>
       );
-      case "reply": return (
+      case "floor": return (
         <>
-          {repId ? <button type="button" className="button" onClick={() => act((x) => ch.callReply(x, repId))}>Call {name(repId)} for the Right of Reply</button>
-            : <p className={s.hint}>No one is in favour, so the Right of Reply doesn&apos;t take place.</p>}
-          <button type="button" className={repId ? "button secondary" : "button"} onClick={() => act(ch.skipReply)}>{repId ? "No Right of Reply" : "Go to the vote"}</button>
-          {repOptions.length > 1 && (
-            <div className="field">
-              <label htmlFor="fl-rep">Another state in favour</label>
-              <select id="fl-rep" className="control" value={repId} onChange={(e) => setRep(e.target.value)}>
-                {repOptions.map((id) => <option key={id} value={id}>{name(id)}</option>)}
-              </select>
-            </div>
-          )}
-          <p className={s.hint}>{HINT.reply}</p>
+          {waiting[0]
+            ? <button type="button" className="button" onClick={() => act((x) => ch.entertain(x, waiting[0].id))}>Entertain the next amendment</button>
+            : null}
+          <div className={s.btnRow}>
+            <button type="button" className={sm} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a caucus</button>
+            <button type="button" className={waiting[0] ? sm : "button"} onClick={() => act(ch.closeDebate)}>Close the debate</button>
+          </div>
+          <p className={s.hint}>Closing the debate moves to the closing speeches and the vote on the resolution.</p>
         </>
       );
+      case "closing": {
+        const roles = ch.closingRoles(c);
+        const all = roles.every((r) => c.closers.includes(r.id));
+        const nextRole = roles.find((r) => !c.closers.includes(r.id));
+        return (
+          <>
+            {roles.map((r) => {
+              const done = c.closers.includes(r.id);
+              return (
+                <button key={r.role} type="button" className={r === nextRole ? "button" : "button secondary"} disabled={done} onClick={() => act((x) => ch.callCloser(x, r.id))}>
+                  {done ? `${ch.ROLE_LABEL[r.role]} ${name(r.id)} has spoken` : `Call the ${ch.ROLE_LABEL[r.role]}: ${name(r.id)}`}
+                </button>
+              );
+            })}
+            <button type="button" className={all ? "button" : "button secondary sm"} onClick={() => act(ch.startVote)}>Go to the vote</button>
+            <p className={s.hint}>Any order. Each speaks once, and there are no Points of Information.</p>
+          </>
+        );
+      }
       case "vote": return (
         <>
           <button type="button" className="button" disabled={ch.count(c).left > 0} onClick={() => act(ch.finishVote)}>Record the result</button>
@@ -397,7 +464,13 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
       );
       case "closed": return (
         <>
-          <button type="button" className="button" onClick={() => act(ch.newResolution)}>Next resolution</button>
+          <form className={s.nextRes} onSubmit={(e) => { e.preventDefault(); act((x) => ch.newResolution(x, nextRes)); setNextRes(""); }}>
+            <div className="field">
+              <label htmlFor="fl-next">Next resolution</label>
+              <input id="fl-next" className="control" value={nextRes} onChange={(e) => setNextRes(e.target.value)} maxLength={160} placeholder="The next resolution to debate" />
+            </div>
+            <button type="submit" className="button" disabled={!nextRes.trim()}>Start the next resolution</button>
+          </form>
           <button type="button" className="button secondary" onClick={() => act(ch.reopenVote)}>Reopen the vote</button>
         </>
       );
@@ -414,40 +487,47 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
               <button type="button" className={sm} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a caucus</button>
             </div>
             <button type="button" className={sm} onClick={() => act((x) => ch.backOutAmendment(x, aid))}>Set it aside for now</button>
-            <p className={s.hint}>The negotiation room is closed while an amendment is read, explained and voted on.</p>
           </>
         );
         if (c.amend?.stage === "ask" || c.amend?.stage === "vote") return <PollBox c={c} act={act} />;
         break;
     }
-    if (debating) return (
-      <>
-        {amendLive && !c.debate.run.length
-          ? <button type="button" className="button" onClick={() => act(ch.callAmender)}>Call {name(amendment?.by ?? null)} to speak</button>
-          : next
-            ? <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, next.id, next.side))}>Call {name(next.id)}</button>
-            : null}
-        <div className={s.btnRow}>
-          <button type="button" className={sm} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a caucus</button>
-          {amendLive
-            ? <button type="button" className={sm} disabled={!!sp} onClick={() => act((x) => ch.amendVote(x, aid))}>Close and vote</button>
-            : <button type="button" className={sm} onClick={() => act(ch.closeDebate)}>Close debate</button>}
-        </div>
-        <details>
-          <summary className={s.hint}>Call a state that isn&apos;t on the list</summary>
-          <div className={s.pickRow} style={{ marginTop: 8 }}>
-            <label htmlFor="fl-any" className="sr-only">State</label>
-            <select id="fl-any" className="control" value={anyWho} onChange={(e) => setAnyWho(e.target.value)}>
-              <option value="">Choose a state</option>
-              {c.delegates.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
-            <button type="button" className="button secondary sm" disabled={!anyWho} onClick={() => act((x) => ch.callSpeaker(x, anyWho, anySide))}>Call</button>
+    if (debateOpen) {
+      const first = !c.debate.run.length;
+      const primary = first
+        ? <button type="button" className="button" onClick={() => act((x) => ch.callAmender(x, secs))}>Call {name(amendment?.by ?? null)} to speak</button>
+        : next
+          ? <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, next.id, next.side, secs))}>Call {name(next.id)}</button>
+          : spokeFromList
+            ? <button type="button" className="button" onClick={() => act((x) => ch.amendVote(x, aid))}>Vote on the amendment</button>
+            : null;
+      const votePrimary = !first && !next && spokeFromList;
+      return (
+        <>
+          {(first || next) && timeField}
+          {primary}
+          <div className={s.btnRow}>
+            {!votePrimary && <button type="button" className={sm} onClick={() => act((x) => ch.amendVote(x, aid))}>Vote on the amendment</button>}
+            <button type="button" className={sm} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a caucus</button>
           </div>
-          <div style={{ marginTop: 8 }}><SideSwitch side={anySide} setSide={setAnySide} /></div>
-        </details>
-        <p className={s.hint}>{amendLive ? "After the amendment's proposer, the other side speaks. Closing the debate goes to the vote." : "The sides alternate, unless a state was yielded to. Close debate for the final caucus, then the Right of Reply."}</p>
-      </>
-    );
+          {!first && (
+            <details>
+              <summary className={s.hint}>Call a state that isn&apos;t on the list</summary>
+              <div className={s.pickRow} style={{ marginTop: 8 }}>
+                <label htmlFor="fl-any" className="sr-only">State</label>
+                <select id="fl-any" className="control" value={anyWho} onChange={(e) => setAnyWho(e.target.value)}>
+                  <option value="">Choose a state</option>
+                  {c.delegates.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+                <button type="button" className="button secondary sm" disabled={!anyWho} onClick={() => act((x) => ch.callSpeaker(x, anyWho, anySide, secs))}>Call</button>
+              </div>
+              <div style={{ marginTop: 8 }}><SideSwitch side={anySide} setSide={setAnySide} /></div>
+            </details>
+          )}
+          <p className={s.hint}>{first ? "The amendment's proposer speaks first, then the chair puts states on the speakers' list, For or Against, with the time each gets." : "The sides alternate. When everyone listed has spoken, vote on the amendment."}</p>
+        </>
+      );
+    }
     return null;
   })();
 
@@ -457,9 +537,9 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
         <div className={s.chips}>
           <span className={s.chip} data-tone="accent">{sp ? ch.ROLE_LABEL[sp.role] : stageChip}</span>
           {chipSide && <span className={s.chip} data-side={chipSide}>{SIDE[chipSide]}</span>}
-          {showNeg && <span className={s.chip} data-tone={c.negotiation ? "ok" : undefined}>Negotiation room {c.negotiation ? "open" : "closed"}</span>}
+          {sp && sp.phase !== "speech" && <span className={s.chip}>Point of Information{sp.pois ? ` · ${sp.pois} taken` : ""}</span>}
         </div>
-        {c.resolution.title && <p className={s.res}>Resolution: {c.resolution.title}</p>}
+        {c.topic && <p className={s.res}>Resolution: {c.topic}</p>}
         <h2 className={`serif ${s.who}`}>{title}</h2>
         {sub && <p className={s.sub}>{sub}</p>}
         {amendment && c.step === "amend" && <p className={s.sub}>{amendment.text}</p>}
@@ -476,7 +556,7 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
             <button type="button" className="button secondary" onClick={() => act((x) => ch.nudgeTimer(x, 15, ch.now()))} aria-label="Add 15 seconds">+15s</button>
             <button type="button" className="button secondary" onClick={() => act(ch.resetTimer)}>Reset</button>
           </>}
-          {!c.timer && <span className={`${s.keys} muted`}>Each speech is {ch.clock(c.speakSecs * 1000)}. Change it under the speakers&apos; list.</span>}
+          {!c.timer && <span className={`${s.keys} muted`}>Each speech is {ch.clock(c.speakSecs * 1000)}.</span>}
         </div>
         <p className={`${s.keys} muted`}>Space starts or pauses · N calls the next speaker</p>
       </div>
@@ -485,12 +565,12 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
 }
 
 const HINT: Record<ch.Role, string> = {
-  proposer: "The proposer speaks in favour, then takes one or two points of information. They cannot yield.",
-  seconder: "The seconder speaks in favour and takes points of information. They cannot yield. The speakers' list opens now.",
-  opposer: "The first state against may yield to the chair, or to another state against who speaks after the caucus.",
-  speaker: "Points of information next, then they yield to the chair or to a state on their side who hasn't spoken.",
-  amender: "The amendment's proposer speaks in favour of it and may yield.",
-  reply: "The last speech, in favour. No points of information. Notes end and the negotiation room stays closed.",
+  proposer: "The Proposer speaks in favour. Then a state may ask a Point of Information, or they yield to the chair. They cannot yield to another state.",
+  seconder: "The Seconder speaks in favour. Then a Point of Information, or they yield to the chair.",
+  opposer: "The Opposer speaks against. Then a Point of Information, or they yield to the chair. The debate begins with a caucus.",
+  speaker: "A Point of Information, or yield to the chair.",
+  amender: "The amendment's proposer speaks in favour of it. Then a Point of Information, or they yield to the chair.",
+  closer: "A last speech. There are no Points of Information.",
 };
 
 function SideSwitch({ side, setSide }: { side: Side; setSide: (s: Side) => void }) {
@@ -530,41 +610,33 @@ function PollBox({ c, act }: { c: Chamber; act: Act }) {
   );
 }
 
-/* The speakers' list: two sides, in the order they will be called. */
+/* The speakers' list for the amendment in hand: For and Against, in the order they will be called. */
 function Lists({ c, act }: { c: Chamber; act: Act }) {
   const [who, setWho] = useState("");
   const [side, setSide] = useState<Side>("for");
-  const open = ch.listOpen(c);
   const next = ch.nextCandidate(c);
   const options = c.delegates.filter((d) => ch.canAdd(c, d.id, side));
   const pick = options.some((d) => d.id === who) ? who : "";
   const col = (k: Side) => c.debate.list.filter((x) => x.side === k);
-  const spoken = c.debate.run.map((x) => `${ch.nameOf(c, x.id)}${c.debate.run.filter((y) => y.id === x.id).length > 1 ? ` (${x.side})` : ""}`);
+  const spoken = c.debate.run.map((x) => ch.nameOf(c, x.id));
 
   return (
     <section className={`panel ${s.list}`} aria-labelledby="ch-list">
       <div className={s.head}>
-        <h2 id="ch-list" className={s.h2}>{c.step === "amend" ? "Amendment speakers' list" : "Speakers' list"}</h2>
+        <h2 id="ch-list" className={s.h2}>Speakers&apos; list</h2>
         <span className="badge">{c.debate.list.length}</span>
       </div>
       <Duration id="ch-sp" label="Time per speech" value={c.speakSecs} min={5} max={3600}
         onChange={(secs, ok) => { if (ok && secs !== null) act((x) => ch.setSpeakSecs(x, secs)); }} />
-      {!open ? <p className={s.hint}>The list opens when the seconder begins. States join by note, saying whether they are for or against.</p> : (
-        <form className={s.addRow} onSubmit={(e) => { e.preventDefault(); if (pick) { act((x) => ch.addToList(x, pick, side)); setWho(""); } }}>
-          <label htmlFor="ch-add" className="sr-only">Add a state to the list</label>
-          <select id="ch-add" className={`control ${s.addWho}`} value={pick} onChange={(e) => setWho(e.target.value)}>
-            <option value="">{options.length ? "Add a state…" : "No one else can join this side"}</option>
-            {options.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-          <SideSwitch side={side} setSide={setSide} />
-          <button type="submit" className="button secondary" disabled={!pick}>Add</button>
-        </form>
-      )}
-      {c.debate.yielded && (
-        <ul className={s.queue}>
-          <li data-next="true"><span className={s.qname}>{ch.nameOf(c, c.debate.yielded.id)}</span><span className={s.qtag}>Yielded to · speaks next</span></li>
-        </ul>
-      )}
+      <form className={s.addRow} onSubmit={(e) => { e.preventDefault(); if (pick) { act((x) => ch.addToList(x, pick, side)); setWho(""); } }}>
+        <label htmlFor="ch-add" className="sr-only">Add a state to the list</label>
+        <select id="ch-add" className={`control ${s.addWho}`} value={pick} onChange={(e) => setWho(e.target.value)}>
+          <option value="">{options.length ? "Add a state…" : "No one else can join this side"}</option>
+          {options.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+        <SideSwitch side={side} setSide={setSide} />
+        <button type="submit" className="button secondary" disabled={!pick}>Add</button>
+      </form>
       <div className={s.sides}>
         {(["for", "against"] as const).map((k) => (
           <div key={k} className={s.sideCol}>
@@ -572,7 +644,7 @@ function Lists({ c, act }: { c: Chamber; act: Act }) {
             {col(k).length ? (
               <ol className={s.queue}>
                 {col(k).map((x) => (
-                  <li key={x.id} data-next={!c.debate.yielded && next?.id === x.id}>
+                  <li key={x.id} data-next={next?.id === x.id}>
                     <span className={s.qname}>{ch.nameOf(c, x.id)}</span>
                     <span className={s.rowBtns}>
                       <IconButton label={`Move ${ch.nameOf(c, x.id)} up`} icon={ICONS.up} onClick={() => act((y) => ch.shiftList(y, x.id, -1))} />
@@ -592,23 +664,9 @@ function Lists({ c, act }: { c: Chamber; act: Act }) {
   );
 }
 
-/* What sits beside the list changes with the step: amendments and the council, the amendment in hand, or the roll call. */
-function Workspace({ c, act }: { c: Chamber; act: Act }) {
-  const [tab, setTab] = useState<"amendments" | "council">("amendments");
-  if (c.step === "vote" || c.step === "closed") return <section className={`panel ${s.side}`}><RollCall c={c} act={act} /></section>;
-  return (
-    <section className={`panel ${s.side}`}>
-      <PanelTabs idPrefix="chw" label="Committee tools" tab={tab} setTab={setTab}
-        tabs={[{ id: "amendments", label: "Amendments", icon: ICONS.edit, badge: ch.waitingAmendments(c).length || undefined, badgeNote: "waiting" }, { id: "council", label: "Council", icon: ICONS.check }]} />
-      <div id={`chw-panel-${tab}`} role="tabpanel" aria-labelledby={`chw-tab-${tab}`} className={s.panelBody}>
-        {tab === "amendments" ? <Amendments c={c} act={act} /> : <Council c={c} act={act} />}
-      </div>
-    </section>
-  );
-}
-
 const STATUS: Record<ch.Amendment["status"], string> = { waiting: "Waiting", entertained: "Being considered", passed: "Passed", failed: "Failed", withdrawn: "Withdrawn", invalid: "Ruled invalid" };
 
+/* Amendments, set out like the speakers' list: the ones waiting in the order they will be taken. */
 function Amendments({ c, act }: { c: Chamber; act: Act }) {
   const [by, setBy] = useState("");
   const [clause, setClause] = useState("");
@@ -617,64 +675,37 @@ function Amendments({ c, act }: { c: Chamber; act: Act }) {
   const waiting = ch.waitingAmendments(c);
   const live = c.amendments.find((a) => a.id === c.amend?.id);
   const done = c.amendments.filter((a) => a.status !== "waiting" && a.status !== "entertained");
-  const notes = c.step === "seconder" || c.step === "opposer" || c.step === "caucus" || c.step === "floor" || c.step === "amend";
   const name = (id: string) => ch.nameOf(c, id);
-  const ready = notes && !!by && text.trim().length > 0;
+  const ready = !!by && text.trim().length > 0;
   const canEntertain = c.step === "floor" && !c.speech && !c.amend;
 
   return (
-    <>
-      {live && (
-        <div className={s.amendCard} data-live="true">
-          <span className={s.chip} data-tone="accent">Being considered</span>
-          <p className={s.amendText}>{live.text}</p>
-          <p className={s.amendMeta}>From {name(live.by)}{live.clause && ` · ${live.clause}`}{live.backers.length > 0 && ` · Co-sponsors: ${live.backers.map(name).join(", ")}`}</p>
-        </div>
-      )}
-      {waiting.length > 0 && (
-        <ul className={s.states} style={{ gap: 10 }}>
-          {waiting.map((a) => (
-            <li key={a.id} style={{ display: "block" }}>
-              <div className={s.amendCard}>
-                <p className={s.amendText}>{a.text}</p>
-                <p className={s.amendMeta}>From {name(a.by)}{a.clause && ` · ${a.clause}`} · {a.backers.length} co-sponsor{a.backers.length === 1 ? "" : "s"}{a.backers.length > 0 && `: ${a.backers.map(name).join(", ")}`}</p>
-                <div className="btnStack">
-                  <button type="button" className="button" disabled={!canEntertain} onClick={() => act((x) => ch.entertain(x, a.id))}>Entertain</button>
-                  <button type="button" className="button secondary" onClick={() => act((x) => ch.invalidAmendment(x, a.id))}>Rule invalid</button>
-                  <button type="button" className="button secondary" onClick={() => act((x) => ch.withdrawAmendment(x, a.id))}>Withdraw</button>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-      {!canEntertain && waiting.length > 0 && !live && <p className={s.hint}>Amendments are entertained between speeches, after the first caucus. More co-sponsors first.</p>}
-      {!waiting.length && !live && <p className={s.empty}>No amendments waiting.</p>}
-
+    <section className={`panel ${s.list}`} aria-labelledby="ch-am">
+      <div className={s.head}>
+        <h2 id="ch-am" className={s.h2}>Amendments</h2>
+        <span className="badge">{waiting.length}</span>
+      </div>
       <form className={s.panelBody} onSubmit={(e) => { e.preventDefault(); if (!ready) return; act((x) => ch.submitAmendment(x, uid(), by, clause, text, backers)); setText(""); setClause(""); setBackers([]); }}>
-        <h3 className={s.h2}>Take an amendment</h3>
-        {!notes && <p className={s.hint}>Amendments come by note once the proposer has spoken.</p>}
         <div className={s.two}>
           <div className="field">
-            <label htmlFor="am-by">From</label>
-            <select id="am-by" className="control" value={by} onChange={(e) => { setBy(e.target.value); setBackers((b) => b.filter((x) => x !== e.target.value)); }} disabled={!notes}>
-              <option value="">Choose a state</option>
+            <label htmlFor="am-by" className="sr-only">Amendment from</label>
+            <select id="am-by" className="control" value={by} onChange={(e) => { setBy(e.target.value); setBackers((b) => b.filter((x) => x !== e.target.value)); }}>
+              <option value="">From which state?</option>
               {c.delegates.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           </div>
           <div className="field">
-            <label htmlFor="am-cl">Clause</label>
-            <input id="am-cl" className="control" value={clause} onChange={(e) => setClause(e.target.value)} placeholder="Operative clause 2" maxLength={40} disabled={!notes} />
+            <label htmlFor="am-cl" className="sr-only">Clause</label>
+            <input id="am-cl" className="control" value={clause} onChange={(e) => setClause(e.target.value)} placeholder="Operative clause 2" maxLength={40} />
           </div>
         </div>
         <div className="field">
-          <label htmlFor="am-tx">What it changes</label>
-          <textarea id="am-tx" className="control" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={600} disabled={!notes} />
-          <small>One operative clause, or one new clause. The preamble can&apos;t be amended.</small>
+          <label htmlFor="am-tx" className="sr-only">What it changes</label>
+          <textarea id="am-tx" className="control" rows={2} value={text} onChange={(e) => setText(e.target.value)} maxLength={600} placeholder="What the amendment changes. The preamble can't be amended." />
         </div>
-        <fieldset className={s.procedure} disabled={!notes || !by}>
-          <legend>Co-sponsors</legend>
-          <div className={s.backers}>
+        <details>
+          <summary className={s.hint}>Co-sponsors{backers.length ? ` (${backers.length})` : ""}</summary>
+          <div className={s.backers} style={{ marginTop: 8 }}>
             {c.delegates.filter((d) => d.id !== by).map((d) => (
               <label key={d.id} className={s.check}>
                 <input type="checkbox" checked={backers.includes(d.id)} onChange={(e) => setBackers((b) => (e.target.checked ? [...b, d.id] : b.filter((x) => x !== d.id)))} />
@@ -682,53 +713,45 @@ function Amendments({ c, act }: { c: Chamber; act: Act }) {
               </label>
             ))}
           </div>
-        </fieldset>
+        </details>
         <button type="submit" className="button secondary block" disabled={!ready}>Add amendment</button>
       </form>
+
+      {(live || waiting.length > 0) ? (
+        <ol className={s.queue}>
+          {live && (
+            <li data-next="true" className={s.amRow}>
+              <span className={s.amMain}>
+                <span className={s.qname}>{name(live.by)}{live.clause && ` · ${live.clause}`}</span>
+                <span className={s.amText}>{live.text}</span>
+                <span className={s.qtag}>Being considered{live.backers.length > 0 && ` · co-sponsors: ${live.backers.map(name).join(", ")}`}</span>
+              </span>
+            </li>
+          )}
+          {waiting.map((a, i) => (
+            <li key={a.id} className={s.amRow} data-next={!live && i === 0}>
+              <span className={s.amMain}>
+                <span className={s.qname}>{name(a.by)}{a.clause && ` · ${a.clause}`}</span>
+                <span className={s.amText}>{a.text}</span>
+                <span className="muted" style={{ fontSize: 12.5 }}>{a.backers.length} co-sponsor{a.backers.length === 1 ? "" : "s"}{a.backers.length > 0 && `: ${a.backers.map(name).join(", ")}`}</span>
+              </span>
+              <span className={s.rowBtns}>
+                <button type="button" className="button secondary sm" disabled={!canEntertain} onClick={() => act((x) => ch.entertain(x, a.id))}>Entertain</button>
+                <IconButton label={`Rule ${name(a.by)}'s amendment invalid`} icon={ICONS.hide} onClick={() => act((x) => ch.invalidAmendment(x, a.id))} />
+                <IconButton label={`Withdraw ${name(a.by)}'s amendment`} icon={ICONS.close} onClick={() => act((x) => ch.withdrawAmendment(x, a.id))} />
+              </span>
+            </li>
+          ))}
+        </ol>
+      ) : <p className={s.empty}>No amendments waiting.</p>}
+      {!canEntertain && waiting.length > 0 && !live && <p className={s.hint}>Amendments are taken between speeches, once the caucus is over.</p>}
 
       {done.length > 0 && (
         <ul className={s.states}>
           {done.map((a) => <li key={a.id}><span>{name(a.by)}{a.clause && ` · ${a.clause}`}</span><span className={s.chip} data-tone={a.status === "passed" ? "ok" : a.status === "failed" || a.status === "invalid" ? "bad" : undefined}>{STATUS[a.status]}</span></li>)}
         </ul>
       )}
-    </>
-  );
-}
-
-function Council({ c, act }: { c: Chamber; act: Act }) {
-  const [edit, setEdit] = useState(false);
-  const [name, setName] = useState("");
-  const between = c.step === "open" || c.step === "closed";
-  return (
-    <>
-      <div className={s.head}>
-        <p className={s.hint}>{c.delegates.length} states · {c.delegates.filter((d) => d.permanent).length} permanent. Three-fifths of {c.delegates.length} is {ch.needed(c.delegates.length)}.</p>
-        <button type="button" className="button secondary" onClick={() => setEdit((e) => !e)} aria-pressed={edit}>{edit ? "Done" : "Edit"}</button>
-      </div>
-      <ul className={s.council}>
-        {c.delegates.map((d) => {
-          const stance = c.resolution.stance[d.id];
-          return (
-            <li key={d.id}>
-              <span className={s.cname2}>{d.name}</span>
-              {edit
-                ? <button type="button" className={s.pbadge} aria-pressed={d.permanent} onClick={() => act((x) => ch.setPermanent(x, d.id, !d.permanent))}>{d.permanent ? "Permanent" : "Make permanent"}</button>
-                : d.permanent && <span className={s.pbadge}>Permanent</span>}
-              {!edit && stance && <span className={s.chip} data-side={stance}>{SIDE[stance]}</span>}
-              {edit && between && <IconButton label={`Remove ${d.name}`} icon={ICONS.close} onClick={() => act((x) => ch.removeDelegate(x, d.id))} />}
-            </li>
-          );
-        })}
-      </ul>
-      {edit && (
-        <form className={s.addRow2} onSubmit={(e) => { e.preventDefault(); act((x) => ch.addDelegate(x, uid(), name)); setName(""); }}>
-          <label htmlFor="co-add" className="sr-only">Add a state</label>
-          <input id="co-add" className="control" value={name} onChange={(e) => setName(e.target.value)} placeholder="Add a state" maxLength={60} />
-          <button type="submit" className="button secondary" disabled={!name.trim()}>Add</button>
-        </form>
-      )}
-      {!between && edit && <p className={s.hint}>States can only be removed between resolutions.</p>}
-    </>
+    </section>
   );
 }
 
@@ -738,30 +761,28 @@ function RollCall({ c, act }: { c: Chamber; act: Act }) {
   const need = ch.needed(c.delegates.length);
   const closed = c.step === "closed";
   return (
-    <>
+    <section className={`panel ${s.side}`}>
       <div className={s.head}>
-        <h2 className={s.h2}>Roll call</h2>
+        <h2 className={s.h2}>Roll call vote</h2>
         <span className="badge">{c.delegates.length - n.left} of {c.delegates.length}</span>
       </div>
       {closed && c.outcome && (
         <p className={s.banner} data-pass={c.outcome.passed}>
           <strong>{c.outcome.passed ? "Approved" : "Not approved"}</strong>
           {c.outcome.yes} for, {c.outcome.no} against, {c.outcome.abstain} abstaining.
-          {c.outcome.vetoed.length > 0 ? ` Vetoed by ${c.outcome.vetoed.join(", ")}.` : !c.outcome.passed ? ` ${c.outcome.needed} votes in favour were needed.` : ""}
+          {!c.outcome.passed ? ` ${c.outcome.needed} votes in favour were needed.` : ""}
         </p>
       )}
       <div className={s.tally}>
         <span className={s.chip} data-side="for">For {n.yes}</span>
         <span className={s.chip} data-side="against">Against {n.no}</span>
         <span className={s.chip}>Abstain {n.abstain}</span>
-        {n.vetoed.length > 0 && <span className={s.chip} data-tone="bad">Veto: {n.vetoed.join(", ")}</span>}
       </div>
-      <p className={s.hint}>Needs at least {need} in favour (three-fifths of all {c.delegates.length}) and no vote against from a permanent member. An abstention counts as neither.</p>
+      <p className={s.hint}>Needs at least {need} in favour, which is three-fifths of all {c.delegates.length} states, whoever is present. An abstention counts as neither for nor against.</p>
       <ul className={s.ballots}>
         {c.delegates.map((d) => (
           <li key={d.id} className={s.ballot}>
             <span className={s.cname2}>{d.name}</span>
-            {d.permanent && <span className={s.pbadge}>Permanent</span>}
             <div className={s.vote3} role="group" aria-label={`Vote of ${d.name}`}>
               {([["for", "For"], ["against", "Against"], ["abstain", "Abstain"]] as const).map(([b, label]) => (
                 <button key={b} type="button" data-b={b} aria-pressed={c.ballots[d.id] === b} disabled={closed}
@@ -771,7 +792,7 @@ function RollCall({ c, act }: { c: Chamber; act: Act }) {
           </li>
         ))}
       </ul>
-    </>
+    </section>
   );
 }
 
@@ -887,14 +908,13 @@ type Mine = { id: string; name: string; is_owner: boolean; owner_name: string };
 function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedIn: boolean }) {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [topic, setTopic] = useState("");
+  const [resolution, setResolution] = useState("");
   const [speak, setSpeak] = useState<number | null>(120);
   const [speakOk, setSpeakOk] = useState(true);
   const [text, setText] = useState("");
   const [mine, setMine] = useState<Mine[]>([]);
   const names = ch.parseNames(text);
-  const ok = name.trim().length >= 2 && speakOk && speak !== null && names.length > 0;
-  const perm = names.filter(ch.isPermanent);
+  const ok = name.trim().length >= 2 && resolution.trim().length >= 2 && speakOk && speak !== null && names.length > 0;
 
   useEffect(() => {
     if (!signedIn || !supabase) return;
@@ -905,7 +925,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
 
   return (
     <main id="top" className={`container ${s.setup}`}>
-      <PageBand title="Chambers" lead="Run a Security Council debate under the Evatt rules: the speakers' list, timer, amendments and the vote, with a display for the projector." />
+      <PageBand title="Chambers" lead="Run a Security Council debate under the Evatt rules: roll call, speeches, amendments and the vote, with a display for the projector." />
       <div className={s.setupStack}>
         {mine.length > 0 && (
           <section className={`panel ${s.setupCard}`} aria-labelledby="cs-mine">
@@ -922,7 +942,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
             </ul>
           </section>
         )}
-        <form className={`panel ${s.setupCard}`} onSubmit={(e) => { e.preventDefault(); if (ok && speak !== null) onCreate(ch.create(name, topic, speak, names, names.map(uid))); }}>
+        <form className={`panel ${s.setupCard}`} onSubmit={(e) => { e.preventDefault(); if (ok && speak !== null) onCreate(ch.create(name, resolution, speak, names, names.map(uid))); }}>
           <fieldset className={s.procedure}>
             <legend>Procedure</legend>
             <div role="radiogroup" aria-label="Procedure">
@@ -930,7 +950,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
                 <span className={s.procMark}>{ICONS.check}</span>
                 <span className={s.procText}>
                   <strong>Evatt</strong>
-                  <small>UN Youth Australia&apos;s Security Council debate: a proposer and seconder, amendments, caucus and a roll-call vote.</small>
+                  <small>UN Youth Australia&apos;s Security Council debate: an opening, a debate on amendments, and a closing with a roll-call vote.</small>
                 </span>
               </button>
             </div>
@@ -943,13 +963,13 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
             <Duration id="cs-sp" label="Speaking time" value={120} min={5} max={3600} onChange={(v, good) => { setSpeak(v); setSpeakOk(good); }} />
           </div>
           <div className="field">
-            <label htmlFor="cs-topic">Topic <span className="muted">(optional)</span></label>
-            <input id="cs-topic" className="control" value={topic} onChange={(e) => setTopic(e.target.value)} maxLength={160} />
+            <label htmlFor="cs-res">Resolution</label>
+            <input id="cs-res" className="control" value={resolution} onChange={(e) => setResolution(e.target.value)} maxLength={160} required />
           </div>
           <div className="field">
             <label htmlFor="cs-names">Member states</label>
             <textarea id="cs-names" className="control" value={text} onChange={(e) => setText(e.target.value)} rows={8} placeholder="One per line, or separated by commas" />
-            {names.length > 0 && <small>{names.length} {names.length === 1 ? "state" : "states"}{perm.length > 0 ? `, ${perm.length} permanent (${perm.join(", ")}). You can change who is permanent once it's open.` : ". None are permanent members yet; you can set them once it's open."}</small>}
+            {names.length > 0 && <small>{names.length} {names.length === 1 ? "state" : "states"}</small>}
           </div>
           <button type="submit" className="button lg block" disabled={!ok}>Open Committee</button>
           <p className={`${s.keys} muted`}>It is saved in this browser until you share it with other chairs.</p>
