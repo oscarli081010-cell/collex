@@ -8,28 +8,31 @@ import * as ch from "@/lib/chamber";
 import { Wordmark } from "@/lib/brand";
 import { isId, useChamber } from "@/lib/useChamber";
 import { useAuth } from "./AuthProvider";
-import { bare, useNow } from "./Chambers";
+import { useNow } from "./Chambers";
 import s from "./Chambers.module.css";
 
-// What the room sees. Every screen is built the same way, top to bottom: one pill saying what this moment is, a heading
-// in the serif, one or two lines of ordinary text under it, and then the thing to look at (the time, the votes or the
-// roll). The display only reads the committee the console keeps and redraws when that changes.
+// What the room sees. Every screen is built the same way, top to bottom: a pill only when it says something the heading
+// doesn't, a big heading in the serif, then the thing to look at (the time, the votes, the signatories or the roll). The
+// display only reads the committee the console keeps and redraws when that changes.
 const icon = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
 const Expand = () => icon(<path d="M6 2.5H2.5V6M10 2.5h3.5V6M6 13.5H2.5V10M10 13.5h3.5V10" />);
 const Shrink = () => icon(<path d="M2.5 6H6V2.5M13.5 6H10V2.5M2.5 10H6v3.5M13.5 10H10v3.5" />);
 const Back = () => icon(<path d="M13 8H3M7 4L3 8l4 4" />);
 const SIDE = { for: "In favour", against: "Against" } as const;
 
-/** One screen: a pill, a heading, lines of text, and whatever there is to look at. */
-function Screen({ pill, side, heading, long, pass, lines, children }: {
-  pill?: (string | false | null | undefined)[]; side?: ch.Side; heading?: React.ReactNode; long?: boolean; pass?: boolean; lines?: (React.ReactNode | false | null | undefined)[]; children?: React.ReactNode;
+// A long heading (an amendment's own words, say) steps down in size so it always fits the screen.
+const fit = (text: string) => { const n = text.length; return n <= 28 ? 1 : n <= 44 ? 0.78 : n <= 80 ? 0.58 : n <= 160 ? 0.44 : n <= 300 ? 0.34 : 0.28; };
+
+/** One screen: an optional pill, a heading, optional lines of text, and whatever there is to look at. */
+function Screen({ pill, side, heading, pass, lines, children }: {
+  pill?: (string | false | null | undefined)[]; side?: ch.Side; heading?: string; pass?: boolean; lines?: (React.ReactNode | false | null | undefined)[]; children?: React.ReactNode;
 }) {
   const text = (pill ?? []).filter(Boolean).join(" · ");
   const rows = (lines ?? []).filter(Boolean);
   return (
     <>
       {text && <span className={s.dPill} data-side={side}>{text}</span>}
-      {heading && <h1 className={`serif ${s.dH} ${long ? s.m : ""}`} data-pass={pass}>{heading}</h1>}
+      {heading && <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": fit(heading) } as React.CSSProperties}>{heading}</h1>}
       {rows.length > 0 && <div className={s.dLines}>{rows.map((r, i) => <p key={i} className={s.dSub}>{r}</p>)}</div>}
       {children}
     </>
@@ -65,7 +68,6 @@ export default function ChamberDisplay() {
 
   const name = (id: string | null) => (c ? ch.nameOf(c, id) : "");
   const amendment = c?.amend ? c.amendments.find((a) => a.id === c.amend!.id) : undefined;
-  const signatories = amendment && amendment.backers.length > 0 ? `Signatories: ${amendment.backers.map(name).join(", ")}` : null;
   const timerView = () => c?.timer && (
     <>
       <div className={s.dTime} data-state={state} role="timer">{ch.clock(left)}</div>
@@ -77,15 +79,22 @@ export default function ChamberDisplay() {
       {labels.map(([label, n]) => <div key={label} className={s.dTally}><span>{label}</span><b>{n}</b></div>)}
     </div>
   );
-  // What the speeches are about: the amendment in hand, or else the resolution.
-  const context = c ? (c.step === "amend" && amendment ? amendment.text : c.topic) : "";
+  // The states that signed an amendment, as a row of tiles under a small label.
+  const signatories = (a?: ch.Amendment) => a && a.backers.length > 0 && (
+    <div className={s.dSigs}>
+      <span>Signatories</span>
+      <ul>{a.backers.map((id) => <li key={id}>{name(id)}</li>)}</ul>
+    </div>
+  );
+  const amendPill = (a: ch.Amendment) => ["Amendment", a.clause, `from ${name(a.by)}`];
+  const votes = (r: { yes: number; no: number; abstain: number }) => tallies([["For", r.yes], ["Against", r.no], ["Abstain", r.abstain]]);
 
   let mid: React.ReactNode;
   if (!c) {
     mid = status === "signin" ? (
       <Screen heading="Log in to see this committee"><Link href="/login" className={s.dBtn}>Log in</Link></Screen>
     ) : status === "denied" ? (
-      <Screen heading="This committee isn't shared with you" long lines={["Ask the person who runs it to add the email on your Collex account."]} />
+      <Screen heading="This committee isn't shared with you" lines={["Ask the person who runs it to add the email on your Collex account."]} />
     ) : status === "loading" || cloudId ? null : (
       <Screen heading="Nothing to show yet" lines={["Open a committee in the console, then keep this window open beside it."]} />
     );
@@ -97,16 +106,18 @@ export default function ChamberDisplay() {
       <Screen pill={["Reply", `to ${name(sp.asker)}`]} heading={name(sp.who)}>{timerView()}</Screen>
     ) : (
       <Screen pill={[ch.ROLE_LABEL[sp.role], SIDE[sp.side]]} side={sp.side} heading={name(sp.who)}
-        lines={[sp.phase === "after" ? `Points of Information${sp.pois > 0 ? ` · ${sp.pois} taken` : ""}` : context]}>
+        lines={[sp.phase === "after" ? `Points of Information${sp.pois > 0 ? ` · ${sp.pois} taken` : ""}` : c.step === "amend" && amendment ? amendment.text : null]}>
         {sp.phase === "speech" && timerView()}
       </Screen>
     );
-  } else if (c.step === "welcome" || c.step === "pick") {
-    mid = <Screen pill={["Opening", c.step === "pick" && "Choosing the speakers"]} heading={`Welcome to the ${bare(c.name)}`} lines={[c.topic]} />;
+  } else if (c.step === "welcome") {
+    mid = <Screen heading={`Welcome to ${c.name}`} />;
+  } else if (c.step === "pick") {
+    mid = <Screen heading="Choosing the speakers" />;
   } else if (c.step === "roll") {
     const n = ch.rollCount(c);
     mid = (
-      <Screen pill={["Opening", "Roll call"]} heading="Roll call">
+      <Screen heading="Roll call">
         {tallies([["Present", n.present], ["Present and Voting", n.voting], ["Abstain", n.abstain]])}
         <div className={s.dBoard}>
           {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-a={c.roll[d.id]}><i />{d.name}{c.roll[d.id] && <em>{ch.ATTEND_LABEL[c.roll[d.id]]}</em>}</div>)}
@@ -114,47 +125,59 @@ export default function ChamberDisplay() {
       </Screen>
     );
   } else if (c.step === "caucus") {
-    mid = <Screen pill={["Debate", "Caucus"]} heading="Caucus" lines={[c.topic]}>{timerView()}</Screen>;
+    mid = <Screen heading="Caucus">{timerView()}</Screen>;
   } else if (c.step === "amend" && amendment) {
     const stage = c.amend?.stage;
-    mid = (
-      <Screen pill={["Amendment", amendment.clause, `from ${name(amendment.by)}`]}
-        heading={stage === "ask" ? "Debate this amendment?" : stage === "vote" ? "Adopt this amendment?" : "Reading the amendment"} long
-        lines={[amendment.text, signatories]}>
-        {c.poll ? tallies([["For", c.poll.yes], ["Against", c.poll.no], ["Abstain", c.poll.abstain]]) : timerView()}
+    const r = c.result && c.result.amendment === amendment.id && c.result.kind === "debate" ? c.result : null;
+    mid = c.poll ? (
+      <Screen pill={amendPill(amendment)} heading={stage === "ask" ? "Debate this amendment?" : "Adopt this amendment?"}>
+        {votes(c.poll)}
+        {signatories(amendment)}
+      </Screen>
+    ) : r ? (
+      <Screen pill={amendPill(amendment)} heading={r.passed ? "Debate approved" : "Debate not approved"} pass={r.passed}>
+        {votes(r)}
+        {signatories(amendment)}
+      </Screen>
+    ) : (
+      <Screen pill={amendPill(amendment)} heading={`“${amendment.text}”`}>
+        {signatories(amendment)}
       </Screen>
     );
   } else if (c.step === "vote" || c.step === "closed") {
     const n = ch.count(c);
+    const done = c.step === "closed" && c.outcome;
     mid = (
-      <Screen pill={["Closing", c.step === "closed" ? "Result" : "Roll call vote"]}
-        heading={c.step === "closed" && c.outcome ? (c.outcome.passed ? "Resolution approved" : "Resolution not approved") : "Roll call vote"}
-        pass={c.step === "closed" && c.outcome ? c.outcome.passed : undefined}
-        lines={c.step === "closed" && c.outcome
-          ? [c.topic, `${c.outcome.yes} For · ${c.outcome.no} Against · ${c.outcome.abstain} Abstaining${!c.outcome.passed ? ` · ${c.outcome.needed} needed` : ""}`]
-          : []}>
-        {c.step === "vote" && tallies([["For", n.yes], ["Against", n.no], ["Abstain", n.abstain]])}
+      <Screen heading={done ? (c.outcome!.passed ? "Resolution approved" : "Resolution not approved") : "Roll call vote"} pass={done ? c.outcome!.passed : undefined}
+        lines={done ? [`${c.outcome!.yes} For · ${c.outcome!.no} Against · ${c.outcome!.abstain} Abstaining${!c.outcome!.passed ? ` · ${c.outcome!.needed} needed` : ""}`] : []}>
+        {c.step === "vote" && votes(n)}
         <div className={s.dBoard}>
           {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-b={c.ballots[d.id]}><i />{d.name}</div>)}
         </div>
       </Screen>
     );
   } else if (c.step === "ended") {
-    mid = <Screen pill={["Closing", "Ended"]} heading="Thank you" lines={[`The ${bare(c.name)} has ended`]} />;
+    mid = <Screen heading="Thank you" lines={[`${c.name} has ended`]} />;
   } else if (c.step === "closing") {
     const todo = ch.closingRoles(c).filter((r) => !c.closers.includes(r.id));
     mid = (
-      <Screen pill={["Closing", "Closing speeches"]} heading={todo.length ? todo.map((r) => name(r.id)).join(" · ") : "The vote is next"} long
-        lines={[todo.length ? todo.map((r) => ch.ROLE_LABEL[r.role]).join(" · ") : c.topic]} />
+      <Screen pill={["Closing speeches"]} heading={todo.length ? todo.map((r) => name(r.id)).join(" · ") : "The vote is next"}
+        lines={[todo.length ? todo.map((r) => ch.ROLE_LABEL[r.role]).join(" · ") : null]} />
+    );
+  } else if (c.step === "floor" && c.result?.kind === "amendment" && c.amendments.some((a) => a.id === c.result?.amendment)) {
+    const a = c.amendments.find((x) => x.id === c.result!.amendment)!;
+    mid = (
+      <Screen pill={amendPill(a)} heading={c.result.passed ? "This amendment passes" : "This amendment fails"} pass={c.result.passed}>
+        {votes(c.result)}
+        {signatories(a)}
+      </Screen>
     );
   } else {
     const who = c.step === "proposer" ? c.roles.proposer : c.step === "seconder" ? c.roles.seconder : c.step === "opposer" ? c.roles.opposer : null;
-    const role = c.step === "proposer" ? "Proposer" : c.step === "seconder" ? "Seconder" : c.step === "opposer" ? "Opposer" : "";
-    mid = who ? (
-      <Screen pill={[role, c.step === "opposer" ? SIDE.against : SIDE.for]} side={c.step === "opposer" ? "against" : "for"} heading={name(who)} lines={[c.topic]} />
-    ) : (
-      <Screen pill={["Debate", "Amendments"]} heading="Amendments" lines={[c.topic]} />
-    );
+    const role = c.step === "proposer" ? "Proposer" : c.step === "seconder" ? "Seconder" : "Opposer";
+    mid = who
+      ? <Screen pill={[role, c.step === "opposer" ? SIDE.against : SIDE.for]} side={c.step === "opposer" ? "against" : "for"} heading={name(who)} />
+      : <Screen heading="Amendments" />;
   }
 
   const first = c && c.step === "amend" ? ch.nextCandidate(c) : null;
@@ -165,7 +188,7 @@ export default function ChamberDisplay() {
       <div className={s.dTop}>
         <div>
           <p className={`serif ${s.dName}`}>{c?.name ?? "Chambers"}</p>
-          {c?.topic && c.step !== "welcome" && <p className={s.dTopic}>{c.topic}</p>}
+          {c?.topic && <p className={s.dTopic}>{c.topic}</p>}
           <p className={s.dBrand}>Powered by <Wordmark height={13} /></p>
         </div>
         {tools}
@@ -180,9 +203,6 @@ export default function ChamberDisplay() {
             </>
           )}
         </div>
-        {c && c.result && !c.poll && (
-          <p className={s.dNote}><strong>{c.result.passed ? "Passed" : "Failed"}:</strong> {c.result.yes} For, {c.result.no} Against, {c.result.abstain} Abstaining</p>
-        )}
       </div>
     </div>
   );

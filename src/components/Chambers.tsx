@@ -73,9 +73,6 @@ function Duration({ id, label, value, onChange, min, max, optional }: {
   );
 }
 
-// "Welcome to the UNSC", not "the The UNSC".
-export const bare = (name: string) => name.replace(/^the\s+/i, "");
-
 export default function Chambers() {
   const q = useSearchParams().get("c");
   const cloudId = isId(q) ? q : null;
@@ -227,7 +224,7 @@ function Welcome({ c, act }: { c: Chamber; act: Act }) {
   const [text, setText] = useState("");
   return (
     <section className={`panel ${s.welcome}`} aria-label="Welcome">
-      <h2 className={`serif ${s.welcomeTitle}`}>Welcome to the {bare(c.name)}</h2>
+      <h2 className={`serif ${s.welcomeTitle}`}>Welcome to {c.name}</h2>
       {c.topic ? (
         <div className={s.resBox}>
           <span className={s.tag}>Resolution</span>

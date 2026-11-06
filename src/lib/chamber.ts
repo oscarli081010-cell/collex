@@ -30,7 +30,8 @@ export type Stat = { at: number; who: string; kind: StatKind; secs: number; with
 export type AmendStage = "read" | "ask" | "debate" | "vote";
 /** A vote by placard: counts only. */
 export type Poll = { title: string; kind: "debate" | "amendment"; yes: number; no: number; abstain: number };
-export type Result = { title: string; passed: boolean; yes: number; no: number; abstain: number };
+/** `kind` says which vote it was (whether to debate an amendment, or whether to adopt it) and `amendment` which one. */
+export type Result = { title: string; kind: "debate" | "amendment"; amendment?: string; passed: boolean; yes: number; no: number; abstain: number };
 export type Outcome = { passed: boolean; yes: number; no: number; abstain: number; needed: number };
 export type Entry = { at: number; text: string };
 export type Step = "welcome" | "roll" | "pick" | "proposer" | "seconder" | "opposer" | "caucus" | "floor" | "amend" | "closing" | "vote" | "closed" | "ended";
@@ -396,7 +397,7 @@ export function decideAsk(c: Chamber, overrule: boolean, id: string): Chamber {
   const p = c.poll;
   if (c.step !== "amend" || c.amend?.id !== id || c.amend.stage !== "ask" || p?.kind !== "debate") return c;
   const yes = overrule ? !passes(p) : passes(p);
-  const result: Result = { title: p.title, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain };
+  const result: Result = { title: p.title, kind: "debate", amendment: id, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain };
   const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}`;
   if (yes) return note({ ...c, amend: { ...c.amend, stage: "debate" }, poll: null, result }, `Amendment to be debated (${tail})`);
   return note({ ...c, amend: { ...c.amend, stage: "vote" }, poll: poll("Adopt this amendment?", "amendment"), result }, `Not to be debated (${tail}); straight to the vote`);
@@ -406,7 +407,7 @@ export function decideAmendment(c: Chamber, overrule: boolean, id: string): Cham
   const a = c.amendments.find((x) => x.id === c.amend?.id);
   if (c.step !== "amend" || c.amend?.id !== id || c.amend.stage !== "vote" || p?.kind !== "amendment" || !a) return c;
   const yes = overrule ? !passes(p) : passes(p);
-  const result: Result = { title: `Amendment from ${nameOf(c, a.by)}`, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain };
+  const result: Result = { title: `Amendment from ${nameOf(c, a.by)}`, kind: "amendment", amendment: a.id, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain };
   const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}`;
   // On to the next amendment.
   const next: Chamber = { ...setAmendment(c, a.id, yes ? "passed" : "failed"), step: "floor", amend: null, poll: null, debate: emptyDebate(), result, timer: null };

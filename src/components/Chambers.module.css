@@ -241,8 +241,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dPill { display: inline-flex; align-items: center; justify-content: center; padding: 0.4em 1.1em; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: clamp(16px, 1.8vw, 26px); font-weight: 500; line-height: 1.25; max-width: 100%; }
 .dPill[data-side="for"] { background: var(--ok-soft); color: var(--ok); }
 .dPill[data-side="against"] { background: var(--danger-soft); color: var(--danger); }
-.dH { font-size: clamp(48px, 7.6vw, 116px); line-height: 1.02; overflow-wrap: anywhere; max-width: 100%; }
-.dH.m { font-size: clamp(36px, 5.2vw, 80px); line-height: 1.08; }
+.dH { font-size: calc(clamp(60px, 10.4vw, 160px) * var(--k, 1)); line-height: 1.02; overflow-wrap: anywhere; max-width: 100%; }
 .dH[data-pass="true"] { color: var(--ok); }
 .dH[data-pass="false"] { color: var(--danger); }
 .dLines { display: flex; flex-direction: column; gap: 0.4em; max-width: min(100%, 1100px); }
@@ -257,6 +256,11 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dTallies { display: flex; gap: clamp(28px, 6vw, 96px); justify-content: center; flex-wrap: wrap; }
 .dTally { display: flex; flex-direction: column; align-items: center; gap: 0.15em; }
 .dTally span { font-size: clamp(18px, 2.1vw, 30px); color: var(--muted); font-weight: 500; }
+/* The states that signed an amendment: tiles under a label, like the votes. */
+.dSigs { display: flex; flex-direction: column; align-items: center; gap: 0.5em; max-width: min(100%, 1300px); }
+.dSigs > span { font-size: clamp(18px, 2.1vw, 30px); color: var(--muted); font-weight: 500; }
+.dSigs ul { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(8px, 1vw, 14px); }
+.dSigs li { padding: 0.3em 0.9em; border-radius: 999px; background: var(--surface); font-size: clamp(16px, 1.8vw, 26px); font-weight: 500; }
 .dTally b { font-size: clamp(64px, 11vw, 170px); font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
 .dBoard { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 16vw, 230px), 1fr)); gap: clamp(8px, 1vw, 14px); width: min(100%, 1400px); }
 .dSeat { display: flex; align-items: center; gap: 10px; padding: clamp(8px, 1vw, 14px) clamp(10px, 1.2vw, 16px); border-radius: 12px; background: var(--surface); font-size: clamp(15px, 1.6vw, 22px); font-weight: 500; text-align: left; border: 1px solid transparent; }
