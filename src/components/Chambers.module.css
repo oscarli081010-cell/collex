@@ -85,8 +85,8 @@
 
 .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .h2 { font-size: 17px; font-weight: 500; }
-.sides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-@media (max-width: 520px) { .sides { grid-template-columns: minmax(0, 1fr); } }
+/* One list under the other: the panel is only half the page wide, and a name needs room beside its four buttons. */
+.sides { display: flex; flex-direction: column; gap: 14px; }
 .sideCol { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .sideHead { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 500; }
 .queue { display: flex; flex-direction: column; gap: 6px; }
@@ -137,8 +137,6 @@
 .amendCard[data-live="true"] { border-color: var(--accent); background: var(--accent-soft); }
 .amendText { font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
 .amendMeta { font-size: 13px; color: var(--muted); line-height: 1.5; }
-.amendBtns { display: flex; gap: 8px; flex-wrap: wrap; }
-.amendBtns .button { height: 40px; padding: 0 14px; }
 .backers { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 6px; max-height: 220px; overflow-y: auto; }
 .check { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; cursor: pointer; }
 .check input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
@@ -273,3 +271,10 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dNext li[data-side="against"] i { background: var(--danger); }
 .dNote { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; color: var(--muted); text-align: right; }
 @media (prefers-reduced-motion: reduce) { .dTrack i { transition: none; } }
+
+/* Touch screens: every control the chair taps is at least 44px. */
+@media (pointer: coarse) {
+  .vote3 button, .segmini button, .check, button.pbadge, .nudges .button, .amendCard .button { min-height: 44px; height: 44px; }
+  .check { height: auto; }
+  .amendCard .button { width: 100%; }
+}

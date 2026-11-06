@@ -157,7 +157,9 @@ export default function ChamberDisplay() {
     );
   }
 
-  const upNext = c && c.step !== "open" && c.step !== "vote" && c.step !== "closed" ? c.debate.list.slice(0, 4) : [];
+  // The same order the console calls them in: whoever was yielded to, then the next on the alternating list.
+  const first = c && c.step !== "open" && c.step !== "vote" && c.step !== "closed" && !c.debate.yielded ? ch.nextCandidate(c) : null;
+  const upNext = c && c.step !== "open" && c.step !== "vote" && c.step !== "closed" ? [...(first ? [first] : []), ...c.debate.list.filter((x) => x.id !== first?.id)].slice(0, 4) : [];
   const body = (
     <div className={s.display}>
       <div className={s.dTop}>

@@ -106,6 +106,8 @@ export default function Chambers() {
   // Space starts or pauses the timer. N calls the next speaker, and only when no one is speaking, so a stray key can't end a speech.
   const callNext = () => {
     if (!c || c.speech || (c.step !== "floor" && !(c.step === "amend" && c.amend?.stage === "debate"))) return;
+    // An amendment's own proposer speaks first.
+    if (c.step === "amend" && !c.debate.run.length) { act(ch.callAmender); return; }
     const n = ch.nextCandidate(c);
     if (n) act((x) => ch.callSpeaker(x, n.id, n.side));
   };
@@ -256,13 +258,14 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
   const [anySide, setAnySide] = useState<Side>("for");
   const next = ch.nextCandidate(c);
   const amendment = c.amend ? c.amendments.find((a) => a.id === c.amend!.id) : undefined;
+  const aid = c.amend?.id ?? "";
   const amendLive = c.step === "amend" && c.amend?.stage === "debate";
   const debating = c.step === "floor" || amendLive;
   const against = c.debate.list.filter((x) => x.side === "against").map((x) => x.id);
   const oppOptions = [...against, ...c.delegates.filter((d) => !against.includes(d.id) && d.id !== c.resolution.proposer && d.id !== c.resolution.seconder).map((d) => d.id)];
   const oppId = opp && oppOptions.includes(opp) ? opp : oppOptions[0] ?? "";
   const favour = [...new Set([ch.replyBy(c) ?? "", ...ch.inFavour(c).map((d) => d.id)].filter(Boolean))];
-  const repOptions = [...favour, ...c.delegates.filter((d) => !favour.includes(d.id)).map((d) => d.id)];
+  const repOptions = favour;
   const repId = rep && repOptions.includes(rep) ? rep : repOptions[0] ?? "";
   const pct = c.timer ? Math.min(100, (left / c.timer.total) * 100) : 0;
   const idx = ch.stageIndex(c);
@@ -303,19 +306,19 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
       if (sp.phase === "speech") return (
         <>
           {timerBtn("button")}
-          <button type="button" className="button secondary" onClick={() => act((x) => ch.endSpeech(x, ch.now()))}>{sp.role === "reply" ? "Finish Right of Reply" : "End speech"}</button>
+          <button type="button" className="button secondary" onClick={() => act((x) => ch.endSpeech(x, ch.now(), sp.who))}>{sp.role === "reply" ? "Finish Right of Reply" : "End speech"}</button>
           <p className={s.hint}>{HINT[sp.role]}</p>
         </>
       );
       if (sp.phase === "questions") return (
         <>
           <div className={s.stepper}>
-            <button type="button" className="button secondary" onClick={() => act((x) => ch.poi(x, -1))} aria-label="One fewer question" disabled={!sp.pois}>−</button>
+            <button type="button" className="button secondary" onClick={() => act((x) => ch.poi(x, -1, sp.who))} aria-label="One fewer question" disabled={!sp.pois}>−</button>
             <output aria-live="polite">{sp.pois}<small>points of information</small></output>
-            <button type="button" className="button secondary" onClick={() => act((x) => ch.poi(x, 1))} aria-label="One more question">+</button>
+            <button type="button" className="button secondary" onClick={() => act((x) => ch.poi(x, 1, sp.who))} aria-label="One more question">+</button>
           </div>
-          <button type="button" className="button" onClick={() => act(ch.endQuestions)}>End questions</button>
-          <button type="button" className={sm} onClick={() => act(ch.backPhase)}>Back to the speech</button>
+          <button type="button" className="button" onClick={() => act((x) => ch.endQuestions(x, sp.who))}>End questions</button>
+          <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who))}>Back to the speech</button>
           <p className={s.hint}>The President decides how many to take, usually one or two. Each is a single brief question with a single answer.</p>
         </>
       );
@@ -323,13 +326,13 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
       const sameSide = c.debate.list.filter((x) => x.side === sp.side);
       return (
         <>
-          <button type="button" className="button" onClick={() => act((x) => ch.yieldTo(x, null))}>Yield to the chair</button>
+          <button type="button" className="button" onClick={() => act((x) => ch.yieldTo(x, null, sp.who))}>Yield to the chair</button>
           {targets.length > 0 && (
             <div className={s.targets}>
-              {targets.map((t) => <button key={t.id} type="button" className={sm} onClick={() => act((x) => ch.yieldTo(x, t.id))}>Yield to {name(t.id)}</button>)}
+              {targets.map((t) => <button key={t.id} type="button" className={sm} onClick={() => act((x) => ch.yieldTo(x, t.id, sp.who))}>Yield to {name(t.id)}</button>)}
             </div>
           )}
-          <button type="button" className={sm} onClick={() => act(ch.backPhase)}>Back to questions</button>
+          <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who))}>Back to questions</button>
           <p className={s.hint}>
             {sameSide.length && !targets.length
               ? "Four speakers in a row on one side isn't in order, so the floor goes back to the chair."
@@ -377,7 +380,7 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
           <button type="button" className={repId ? "button secondary" : "button"} onClick={() => act(ch.skipReply)}>{repId ? "No Right of Reply" : "Go to the vote"}</button>
           {repOptions.length > 1 && (
             <div className="field">
-              <label htmlFor="fl-rep">Someone else in favour</label>
+              <label htmlFor="fl-rep">Another state in favour</label>
               <select id="fl-rep" className="control" value={repId} onChange={(e) => setRep(e.target.value)}>
                 {repOptions.map((id) => <option key={id} value={id}>{name(id)}</option>)}
               </select>
@@ -401,16 +404,16 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
       case "amend":
         if (c.amend?.stage === "read") return (
           <>
-            <button type="button" className="button" onClick={() => act(ch.amendAsk)}>Vote on whether to debate it</button>
+            <button type="button" className="button" onClick={() => act((x) => ch.amendAsk(x, aid))}>Vote on whether to debate it</button>
             <div className={s.btnRow}>
-              <button type="button" className={sm} onClick={() => act(ch.amendDebate)}>Debate it now</button>
-              <button type="button" className={sm} onClick={() => act(ch.amendVote)}>Straight to the vote</button>
+              <button type="button" className={sm} onClick={() => act((x) => ch.amendDebate(x, aid))}>Debate it now</button>
+              <button type="button" className={sm} onClick={() => act((x) => ch.amendVote(x, aid))}>Straight to the vote</button>
             </div>
             <div className={s.btnRow}>
               <button type="button" className={sm} onClick={() => act((x) => ch.setTimer(x, "Explanation", 30))}>30 second explanation</button>
               <button type="button" className={sm} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a caucus</button>
             </div>
-            <button type="button" className={sm} onClick={() => act(ch.backOutAmendment)}>Set it aside for now</button>
+            <button type="button" className={sm} onClick={() => act((x) => ch.backOutAmendment(x, aid))}>Set it aside for now</button>
             <p className={s.hint}>The negotiation room is closed while an amendment is read, explained and voted on.</p>
           </>
         );
@@ -427,7 +430,7 @@ function Floor({ c, act, left, state, toggle }: { c: Chamber; act: Act; left: nu
         <div className={s.btnRow}>
           <button type="button" className={sm} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a caucus</button>
           {amendLive
-            ? <button type="button" className={sm} disabled={!!sp} onClick={() => act(ch.amendVote)}>Close and vote</button>
+            ? <button type="button" className={sm} disabled={!!sp} onClick={() => act((x) => ch.amendVote(x, aid))}>Close and vote</button>
             : <button type="button" className={sm} onClick={() => act(ch.closeDebate)}>Close debate</button>}
         </div>
         <details>
@@ -504,6 +507,7 @@ function PollBox({ c, act }: { c: Chamber; act: Act }) {
   if (!p) return null;
   const would = ch.passes(p);
   const cast = p.yes + p.no + p.abstain;
+  const id = c.amend?.id ?? "";
   const decide = p.kind === "debate" ? ch.decideAsk : ch.decideAmendment;
   return (
     <>
@@ -520,8 +524,8 @@ function PollBox({ c, act }: { c: Chamber; act: Act }) {
         ))}
       </div>
       <p className={s.verdict}>Abstentions don&apos;t count. {cast ? <strong data-pass={would}>{would ? "Would pass" : "Would fail"}</strong> : null}</p>
-      <button type="button" className="button" onClick={() => act((x) => decide(x, false))}>Record the result</button>
-      <button type="button" className="button secondary sm" onClick={() => act((x) => decide(x, true))}>Overrule: record the opposite</button>
+      <button type="button" className="button" onClick={() => act((x) => decide(x, false, id))}>Record the result</button>
+      <button type="button" className="button secondary sm" onClick={() => act((x) => decide(x, true, id))}>Overrule: record the opposite</button>
     </>
   );
 }
@@ -634,7 +638,7 @@ function Amendments({ c, act }: { c: Chamber; act: Act }) {
               <div className={s.amendCard}>
                 <p className={s.amendText}>{a.text}</p>
                 <p className={s.amendMeta}>From {name(a.by)}{a.clause && ` · ${a.clause}`} · {a.backers.length} co-sponsor{a.backers.length === 1 ? "" : "s"}{a.backers.length > 0 && `: ${a.backers.map(name).join(", ")}`}</p>
-                <div className={s.amendBtns}>
+                <div className="btnStack">
                   <button type="button" className="button" disabled={!canEntertain} onClick={() => act((x) => ch.entertain(x, a.id))}>Entertain</button>
                   <button type="button" className="button secondary" onClick={() => act((x) => ch.invalidAmendment(x, a.id))}>Rule invalid</button>
                   <button type="button" className="button secondary" onClick={() => act((x) => ch.withdrawAmendment(x, a.id))}>Withdraw</button>

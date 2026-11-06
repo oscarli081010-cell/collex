@@ -188,7 +188,8 @@ export function newResolution(c: Chamber): Chamber {
 /* Speeches */
 
 const timerFor = (label: string, secs: number): Timer => ({ label, total: secs * 1000, endsAt: null, left: secs * 1000 });
-const inResolution = (c: Chamber) => c.step !== "amend";
+// An amendment is in hand from the moment it is entertained until it is decided, even if a caucus is called in the middle.
+const inResolution = (c: Chamber) => !c.amend;
 
 // A state is called to speak: it comes off the list, goes on the run of speakers, and gets a fresh timer to start.
 function start(c: Chamber, who: string, side: Side, role: Role): Chamber {
@@ -242,29 +243,29 @@ export function nextCandidate(c: Chamber): Slot | null {
   return c.debate.list.find((s) => s.side === want) ?? c.debate.list.find((s) => s.side !== want) ?? null;
 }
 
-export function endSpeech(c: Chamber, at: number): Chamber {
+export function endSpeech(c: Chamber, at: number, who: string): Chamber {
   const sp = c.speech;
-  if (!sp || sp.phase !== "speech") return c;
+  if (!sp || sp.who !== who || sp.phase !== "speech") return c;
   const paused = pauseTimer(c, at);
   if (sp.role === "reply") return finish(paused, null); // no points of information after a Right of Reply
   return note({ ...paused, speech: { ...sp, phase: "questions" } }, `${nameOf(c, sp.who)}: points of information`);
 }
-export function poi(c: Chamber, by: 1 | -1): Chamber {
+export function poi(c: Chamber, by: 1 | -1, who: string): Chamber {
   const sp = c.speech;
-  if (!sp || sp.phase !== "questions") return c;
+  if (!sp || sp.who !== who || sp.phase !== "questions") return c;
   return { ...c, speech: { ...sp, pois: Math.min(20, Math.max(0, sp.pois + by)) } };
 }
-export function endQuestions(c: Chamber): Chamber {
+export function endQuestions(c: Chamber, who: string): Chamber {
   const sp = c.speech;
-  if (!sp || sp.phase !== "questions") return c;
+  if (!sp || sp.who !== who || sp.phase !== "questions") return c;
   // The proposer and seconder cannot yield: the floor goes back to the chair.
   if (sp.role === "proposer" || sp.role === "seconder") return finish(c, null);
   return { ...c, speech: { ...sp, phase: "yield" } };
 }
 // A step back, for a button pressed too soon during a live debate.
-export function backPhase(c: Chamber): Chamber {
+export function backPhase(c: Chamber, who: string): Chamber {
   const sp = c.speech;
-  if (!sp || sp.phase === "speech") return c;
+  if (!sp || sp.who !== who || sp.phase === "speech") return c;
   return { ...c, speech: { ...sp, phase: sp.phase === "yield" ? "questions" : "speech" } };
 }
 
@@ -280,9 +281,9 @@ export function canYield(c: Chamber, target: string): boolean {
 }
 export const yieldTargets = (c: Chamber) => (c.speech ? c.debate.list.filter((s) => canYield(c, s.id)) : []);
 
-export function yieldTo(c: Chamber, target: string | null): Chamber {
+export function yieldTo(c: Chamber, target: string | null, who: string): Chamber {
   const sp = c.speech;
-  if (!sp || sp.phase !== "yield") return c;
+  if (!sp || sp.who !== who || sp.phase !== "yield") return c;
   if (target !== null && !canYield(c, target)) return c;
   return finish(c, target);
 }
@@ -363,7 +364,7 @@ export function removeFromList(c: Chamber, who: string): Chamber {
 // A state changes its stance by note; it may then speak once more on the new side.
 export function switchSide(c: Chamber, who: string): Chamber {
   const slot = c.debate.list.find((s) => s.id === who);
-  if (!slot) return c;
+  if (!slot || spokeOn(c, who, other(slot.side))) return c;
   const side = other(slot.side);
   const stance = inResolution(c) ? { ...c.resolution.stance, [who]: side } : c.resolution.stance;
   return { ...c, debate: { ...c.debate, list: c.debate.list.map((s) => (s.id === who ? { ...s, side } : s)) }, resolution: { ...c.resolution, stance } };
@@ -409,21 +410,21 @@ export function entertain(c: Chamber, id: string): Chamber {
   return note(next, `Amendment from ${nameOf(c, a.by)} read to the council`);
 }
 // Think better of it before any ruling: the amendment goes back to waiting and the resolution's list returns.
-export function backOutAmendment(c: Chamber): Chamber {
-  if (c.step !== "amend" || c.amend?.stage !== "read" || !c.parked) return c;
+export function backOutAmendment(c: Chamber, id: string): Chamber {
+  if (c.step !== "amend" || c.amend?.id !== id || c.amend.stage !== "read" || !c.parked) return c;
   return note({ ...setAmendment(c, c.amend.id, "waiting"), step: "floor", amend: null, debate: c.parked, parked: null, negotiation: true }, "Amendment set aside for now");
 }
 const poll = (title: string, kind: Poll["kind"]): Poll => ({ title, kind, yes: 0, no: 0, abstain: 0 });
-export function amendAsk(c: Chamber): Chamber {
-  if (c.step !== "amend" || c.amend?.stage !== "read") return c;
+export function amendAsk(c: Chamber, id: string): Chamber {
+  if (c.step !== "amend" || c.amend?.id !== id || c.amend.stage !== "read") return c;
   return note({ ...c, amend: { ...c.amend, stage: "ask" }, poll: poll("Debate this amendment?", "debate") }, "Vote on whether to debate the amendment");
 }
-export function amendDebate(c: Chamber): Chamber {
-  if (c.step !== "amend" || c.amend?.stage !== "read") return c;
+export function amendDebate(c: Chamber, id: string): Chamber {
+  if (c.step !== "amend" || c.amend?.id !== id || c.amend.stage !== "read") return c;
   return note({ ...c, amend: { ...c.amend, stage: "debate" }, negotiation: true, poll: null }, "Amendment to be debated");
 }
-export function amendVote(c: Chamber): Chamber {
-  if (c.step !== "amend" || (c.amend?.stage !== "read" && c.amend?.stage !== "debate") || c.speech) return c;
+export function amendVote(c: Chamber, id: string): Chamber {
+  if (c.step !== "amend" || c.amend?.id !== id || (c.amend.stage !== "read" && c.amend.stage !== "debate") || c.speech) return c;
   return note({ ...c, amend: { ...c.amend, stage: "vote" }, negotiation: false, poll: poll("Adopt this amendment?", "amendment") }, "Vote on the amendment");
 }
 export function tally(c: Chamber, which: "yes" | "no" | "abstain", by: 1 | -1): Chamber {
@@ -433,19 +434,19 @@ export function tally(c: Chamber, which: "yes" | "no" | "abstain", by: 1 | -1): 
 // Rule 48: more in favour than against. The President may overrule the result (rule 31).
 export const passes = (p: Pick<Poll, "yes" | "no">) => p.yes > p.no;
 
-export function decideAsk(c: Chamber, overrule: boolean): Chamber {
+export function decideAsk(c: Chamber, overrule: boolean, id: string): Chamber {
   const p = c.poll;
-  if (c.step !== "amend" || c.amend?.stage !== "ask" || p?.kind !== "debate") return c;
+  if (c.step !== "amend" || c.amend?.id !== id || c.amend.stage !== "ask" || p?.kind !== "debate") return c;
   const yes = overrule ? !passes(p) : passes(p);
   const result: Result = { title: p.title, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain };
   const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}`;
   if (yes) return note({ ...c, amend: { ...c.amend, stage: "debate" }, negotiation: true, poll: null, result }, `Amendment to be debated (${tail})`);
   return note({ ...c, amend: { ...c.amend, stage: "vote" }, poll: poll("Adopt this amendment?", "amendment"), result }, `Not to be debated (${tail}); straight to the vote`);
 }
-export function decideAmendment(c: Chamber, overrule: boolean): Chamber {
+export function decideAmendment(c: Chamber, overrule: boolean, id: string): Chamber {
   const p = c.poll;
   const a = c.amendments.find((x) => x.id === c.amend?.id);
-  if (c.step !== "amend" || c.amend?.stage !== "vote" || p?.kind !== "amendment" || !a || !c.parked) return c;
+  if (c.step !== "amend" || c.amend?.id !== id || c.amend.stage !== "vote" || p?.kind !== "amendment" || !a || !c.parked) return c;
   const yes = overrule ? !passes(p) : passes(p);
   const result: Result = { title: `Amendment from ${nameOf(c, a.by)}`, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain };
   const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}`;
