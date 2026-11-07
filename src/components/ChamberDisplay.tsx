@@ -120,7 +120,15 @@ export default function ChamberDisplay() {
       </Screen>
     );
   } else if (c.step === "welcome") {
-    mid = <Screen heading={`Welcome to ${c.name}`} />;
+    // "Welcome to" small and slanted over the committee's name, which is as big as it can be.
+    const n = c.name.length;
+    const k = n <= 6 ? 2.0 : n <= 10 ? 1.7 : n <= 16 ? 1.3 : n <= 24 ? 1 : n <= 40 ? 0.7 : 0.5;
+    mid = (
+      <h1 className={`serif ${s.dWelcome}`} style={{ "--k": k } as React.CSSProperties}>
+        <span>Welcome to</span>
+        <b>{c.name}</b>
+      </h1>
+    );
   } else if (c.step === "pick") {
     mid = (
       <Screen heading="Choosing the speakers">

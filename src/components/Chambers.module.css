@@ -398,3 +398,8 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dBrand svg { color: var(--muted); }
 .dBig:hover, .dBrand:hover { color: inherit; background: color-mix(in srgb, var(--panel) 70%, transparent); border-color: var(--line); }
 .dBig:active, .dBrand:active { transform: none; }
+
+/* The welcome: a small slanted "Welcome to" over the committee's name, centred. */
+.dWelcome { display: flex; flex-direction: column; align-items: center; gap: 0.12em; max-width: 100%; margin: 0; font-weight: 400; line-height: 1; }
+.dWelcome span { font-style: italic; font-size: calc(clamp(60px, min(10.4vw, 17vh), 160px) * 0.42); }
+.dWelcome b { font-weight: 400; font-size: calc(clamp(60px, min(10.4vw, 17vh), 160px) * var(--k, 1)); line-height: 0.95; overflow-wrap: anywhere; }
