@@ -69,6 +69,10 @@ export type Chamber = {
   ballots: Record<string, Ballot>;
   outcome: Outcome | null;
   stats: Stat[];
+  /** A photo behind the display: the address of a file in the photos bucket, or (for a committee not yet shared) the picture itself. */
+  background: string | null;
+  /** How much of the photo shows through, 20 to 100. */
+  backgroundStrength: number;
   log: Entry[];
 };
 
@@ -119,7 +123,7 @@ export function create(name: string, resolution: string, speakSecs: number, name
     v: 1, rules: "evatt", rev: 2, name: name.trim(), topic: resolution.trim(), speakSecs, delegates,
     step: "welcome", after: null, roll: {}, roles: { proposer: null, seconder: null, opposer: null }, closers: [],
     debate: emptyDebate(), speech: null, amendments: [], amend: null, poll: null, result: null,
-    timer: null, ballots: {}, outcome: null, stats: [], log: [{ at: now(), text: "Committee opened" }],
+    timer: null, ballots: {}, outcome: null, stats: [], background: null, backgroundStrength: 55, log: [{ at: now(), text: "Committee opened" }],
   };
 }
 
@@ -131,7 +135,7 @@ export function normalise(x: unknown): Chamber | null {
   if (o.v !== 1 || !Array.isArray(o.delegates) || !Array.isArray(o.log)) return null;
   const ok = o.rules === "evatt" && o.rev === 2 && typeof o.step === "string" && o.debate && Array.isArray(o.debate.list) && Array.isArray(o.debate.run)
     && o.roll && typeof o.roll === "object" && o.roles && Array.isArray(o.closers) && Array.isArray(o.amendments) && o.ballots && typeof o.ballots === "object";
-  if (ok) return { ...(o as Chamber), stats: Array.isArray(o.stats) ? o.stats : [], amendments: (o.amendments as Amendment[]).map((a, i) => ({ ...a, at: a.at ?? i })) };
+  if (ok) return { ...(o as Chamber), stats: Array.isArray(o.stats) ? o.stats : [], background: validBackground(o.background) ? o.background : null, backgroundStrength: typeof o.backgroundStrength === "number" ? Math.min(100, Math.max(20, o.backgroundStrength)) : 55, amendments: (o.amendments as Amendment[]).map((a, i) => ({ ...a, at: a.at ?? i })) };
   const old = o.delegates as { id: string; name: string }[];
   const resolution = String(o.topic ?? "").trim() || String(o.resolution?.title ?? "").trim();
   const fresh = create(String(o.name ?? "Committee"), resolution, Number(o.speakSecs) || 120, [], []);
@@ -146,6 +150,18 @@ const sideWord = (s: Side) => (s === "for" ? "in favour" : "against");
 
 export const ROLE_LABEL: Record<Role, string> = { proposer: "Proposer", seconder: "Seconder", opposer: "Opposer", speaker: "Speaker", amender: "Amendment proposer", closer: "Closing speech" };
 export const ATTEND_LABEL: Record<Attend, string> = { present: "Present", voting: "Present and Voting", abstain: "Abstain" };
+
+/* The display's background photo */
+const BG_URL = /^https:\/\/npdaczdwmhbtgitmplxc\.supabase\.co\/storage\/v1\/object\/public\/photos\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
+const BG_DATA = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/;
+/** Only a file in our own photos bucket or a small JPEG carried in the committee: it ends up inside a CSS url(), so nothing else gets through. */
+export const validBackground = (v: unknown): v is string => typeof v === "string" && ((v.length <= 600 && BG_URL.test(v)) || (v.length <= 700_000 && BG_DATA.test(v)));
+export function setBackground(c: Chamber, bg: string | null): Chamber {
+  return bg === null || validBackground(bg) ? { ...c, background: bg } : c;
+}
+export function setBackgroundStrength(c: Chamber, n: number): Chamber {
+  return Number.isFinite(n) ? { ...c, backgroundStrength: Math.min(100, Math.max(20, Math.round(n))) } : c;
+}
 
 /* People */
 export function addDelegate(c: Chamber, id: string, name: string): Chamber {

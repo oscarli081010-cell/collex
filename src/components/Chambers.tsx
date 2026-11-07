@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import * as ch from "@/lib/chamber";
 import type { Ballot, Chamber, Side } from "@/lib/chamber";
+import { backgroundData, dataToBlob, uploadBackground, uploadBackgroundBlob } from "@/lib/photo";
 import { supabase } from "@/lib/supabase";
 import { isId, useChamber } from "@/lib/useChamber";
 import { useAuth } from "./AuthProvider";
@@ -17,6 +18,7 @@ import s from "./Chambers.module.css";
 
 const svg = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
 const MONITOR = svg(<><rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.6" /><path d="M5.5 13.5h5M8 11v2.5" /></>);
+const SLIDERS = svg(<><path d="M2.5 4.5h6.5M12 4.5h1.5M2.5 11.5h1.5M7 11.5h6.5" /><circle cx="10.5" cy="4.5" r="1.6" /><circle cx="5.5" cy="11.5" r="1.6" /></>);
 const SWAP = svg(<path d="M3 5.5h9.5M10 3l2.5 2.5L10 8M13 10.5H3.5M6 8l-2.5 2.5L6 13" />);
 
 // The time left, redrawn a few times a second while a timer is running and not at all otherwise.
@@ -80,7 +82,7 @@ export default function Chambers() {
   const router = useRouter();
   const { c, status, owner, act, setLocal } = useChamber(cloudId, { signedIn: !!session, authReady });
   const [live, setLive] = useState("");
-  const [view, setView] = useState<"manage" | "analytics" | "share">("manage");
+  const [view, setView] = useState<"manage" | "analytics" | "settings">("manage");
   const { say, node } = useToast();
 
   const now = useNow(ch.running(c?.timer ?? null));
@@ -162,9 +164,9 @@ export default function Chambers() {
         <h1 className={`serif ${s.name}`}>{c.name}{c.topic && ` · ${c.topic}`}</h1>
         <div className={s.topActions}>
           <a className={`button secondary ${s.topBtn}`} href={display} target="_blank" rel="noopener">{MONITOR}Open display</a>
-          <button type="button" className={`button secondary ${s.topBtn}`} onClick={() => setView("share")}>
-            {cloudId ? <i className={s.live} data-off={status === "offline"} aria-hidden="true" /> : ICONS.share}
-            Share{status === "offline" && <span className="sr-only"> (offline, trying again)</span>}
+          <button type="button" className={`button secondary ${s.topBtn}`} onClick={() => setView("settings")}>
+            {cloudId ? <i className={s.live} data-off={status === "offline"} aria-hidden="true" /> : SLIDERS}
+            Settings{status === "offline" && <span className="sr-only"> (offline, trying again)</span>}
           </button>
           <ConfirmIconButton label={cloudId && !owner ? "Leave this committee" : cloudId ? "Delete this committee" : "Close this committee"}
             confirm="Click again to confirm" icon={cloudId && !owner ? ICONS.leave : ICONS.trash} onConfirm={() => void remove()} />
@@ -175,7 +177,7 @@ export default function Chambers() {
       <div className="sr-only" role="status" aria-live="polite">{live}</div>
 
       <PanelTabs idPrefix="chv" label="Committee" tab={view} setTab={setView}
-        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage }, { id: "analytics", label: "Analytics", icon: ICONS.chart }, { id: "share", label: "Share", icon: ICONS.share }]} />
+        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage }, { id: "analytics", label: "Analytics", icon: ICONS.chart }, { id: "settings", label: "Settings", icon: SLIDERS }]} />
 
       {view === "manage" ? (
         <div id="chv-panel-manage" role="tabpanel" aria-labelledby="chv-tab-manage" className={s.manage}>
@@ -192,7 +194,8 @@ export default function Chambers() {
       ) : view === "analytics" ? (
         <Analytics c={c} say={say} />
       ) : (
-        <div id="chv-panel-share" role="tabpanel" aria-labelledby="chv-tab-share">
+        <div id="chv-panel-settings" role="tabpanel" aria-labelledby="chv-tab-settings" className={s.manage}>
+          <Background c={c} act={act} say={say} userId={session?.user.id} />
           <Share c={c} cloudId={cloudId} owner={owner} signedIn={!!session} meId={session?.user.id} say={say} setLocal={setLocal} />
         </div>
       )}
@@ -877,6 +880,50 @@ function Pager({ at, pages, go, label }: { at: number; pages: number; go: (n: nu
   );
 }
 
+/* Settings, 1: a photo behind the display. */
+function Background({ c, act, say, userId }: { c: Chamber; act: Act; say: (t: string) => void; userId?: string }) {
+  const [busy, setBusy] = useState(false);
+  const [strength, setStrength] = useState(c.backgroundStrength);
+  useEffect(() => { setStrength(c.backgroundStrength); }, [c.backgroundStrength]);
+  const commit = () => { if (strength !== c.backgroundStrength) act((x) => ch.setBackgroundStrength(x, strength)); };
+
+  const choose = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy(true);
+    // Logged in: the picture goes to Collex and the committee keeps its address. Not logged in: a smaller copy travels inside the committee.
+    const r = userId ? await uploadBackground(file, userId) : await backgroundData(file);
+    setBusy(false);
+    if ("error" in r) { say(r.error); return; }
+    const bg = "url" in r ? r.url : r.data;
+    act((x) => ch.setBackground(x, bg));
+  };
+
+  return (
+    <section className={`panel ${s.share}`} aria-labelledby="st-bg">
+      <h2 id="st-bg" className={s.h2}>Display background</h2>
+      <div className={s.bgRow}>
+        <div className={s.bgPreview} data-empty={!c.background}>
+          {c.background ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={c.background} alt="The display background" /> : <span>No photo</span>}
+        </div>
+        <div className={s.bgActions}>
+          <label className={`button ${s.fileBtn}`} aria-disabled={busy}>
+            {busy ? "Uploading…" : c.background ? "Change photo" : "Choose a photo"}
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} onChange={(e) => { void choose(e.target.files?.[0]); e.target.value = ""; }} />
+          </label>
+          {c.background && <button type="button" className="button secondary" onClick={() => act((x) => ch.setBackground(x, null))}>Remove photo</button>}
+        </div>
+      </div>
+      {c.background && (
+        <div className="field">
+          <label htmlFor="st-str">Photo strength</label>
+          <input id="st-str" type="range" min={20} max={100} step={5} value={strength} className={s.range}
+            onChange={(e) => setStrength(Number(e.target.value))} onPointerUp={commit} onKeyUp={commit} onBlur={commit} />
+        </div>
+      )}
+    </section>
+  );
+}
+
 type Member = { user_id: string; name: string; email: string; is_owner: boolean };
 
 // Who can run this committee. A committee kept in this browser can be shared, which moves it to Collex so the people
@@ -898,7 +945,14 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
   const share = async () => {
     if (!supabase) return;
     setBusy(true);
-    const { data, error } = await supabase.rpc("create_chamber", { initial: c });
+    // A background carried inside the committee is too big to keep in the shared copy: it goes to Collex and the address is kept instead.
+    let initial = c;
+    if (c.background?.startsWith("data:")) {
+      const blob = dataToBlob(c.background);
+      const up = blob && meId ? await uploadBackgroundBlob(blob, meId) : null;
+      initial = { ...c, background: up && "url" in up ? up.url : null };
+    }
+    const { data, error } = await supabase.rpc("create_chamber", { initial });
     setBusy(false);
     if (error) { say(error.message); return; }
     setLocal(null);
@@ -923,11 +977,12 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
   };
 
   return (
-    <section id="ch-share" className={`panel ${s.share}`} aria-label="Share this committee">
+    <section id="ch-share" className={`panel ${s.share}`} aria-labelledby="st-share">
+      <h2 id="st-share" className={s.h2}>Share</h2>
       {!cloudId ? (
         <>
           <div>
-            <h2 className={s.h2}>Run it from more than one screen</h2>
+            <p className={s.strong}>Run it from more than one screen</p>
             <p className="muted">Share this committee and add other chairs by the email on their Collex account. One can have the display on the projector while another runs the committee from a laptop.</p>
           </div>
           {signedIn
@@ -937,7 +992,7 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
       ) : (
         <>
           <div>
-            <h2 className={s.h2}>On this committee</h2>
+            <p className={s.strong}>On this committee</p>
             <p className="muted">Everyone here can run the console and open the display. They need to be logged in on their own device.</p>
           </div>
           <ul className={s.team}>
