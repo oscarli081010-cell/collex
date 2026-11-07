@@ -19,6 +19,7 @@ import s from "./Chambers.module.css";
 const svg = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
 const MONITOR = svg(<><rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.6" /><path d="M5.5 13.5h5M8 11v2.5" /></>);
 const SLIDERS = svg(<><path d="M2.5 4.5h6.5M12 4.5h1.5M2.5 11.5h1.5M7 11.5h6.5" /><circle cx="10.5" cy="4.5" r="1.6" /><circle cx="5.5" cy="11.5" r="1.6" /></>);
+const COPY = svg(<><rect x="5.5" y="5.5" width="8" height="8" rx="1.6" /><path d="M10.5 3.5V3a1 1 0 00-1-1H3.5a1 1 0 00-1 1v6a1 1 0 001 1H4" /></>);
 const SWAP = svg(<path d="M3 5.5h9.5M10 3l2.5 2.5L10 8M13 10.5H3.5M6 8l-2.5 2.5L6 13" />);
 
 // The time left, redrawn a few times a second while a timer is running and not at all otherwise.
@@ -796,6 +797,8 @@ function RollCall({ c, act }: { c: Chamber; act: Act }) {
 }
 
 const PER_PAGE = 10;
+// The activity can be narrowed to what is worth looking at for awards; the three opening speeches and the closing ones are already in the table.
+const FILTERS: ch.StatKind[] = ["speaker", "amender", "poi", "reply", "amendment"];
 
 /* Analytics: what each state did and for how long, to help decide awards. */
 function Analytics({ c, say }: { c: Chamber; say: (t: string) => void }) {
@@ -804,6 +807,7 @@ function Analytics({ c, say }: { c: Chamber; say: (t: string) => void }) {
   const [sat, setSat] = useState(0);
   const [aat, setAat] = useState(0);
   const name = (id: string) => ch.nameOf(c, id) || "A removed state";
+  const roleOf = (id: string) => (["proposer", "seconder", "opposer"] as const).filter((k) => c.roles[k] === id).map((k) => ch.ROLE_LABEL[k]);
   const rows = ch.summary(c).sort((a, b) => b.secs - a.secs || b.speeches - a.speeches || a.name.localeCompare(b.name));
   const feed = [...c.stats].reverse().filter((x) => !kind || x.kind === kind);
   const sPages = Math.max(1, Math.ceil(rows.length / PER_PAGE));
@@ -822,23 +826,35 @@ function Analytics({ c, say }: { c: Chamber; say: (t: string) => void }) {
     <section id="chv-panel-analytics" role="tabpanel" aria-labelledby="chv-tab-analytics" className={`panel ${s.log}`}>
       <div className={s.head}>
         <h2 className={s.h2}>Analytics</h2>
-        <button type="button" className="button secondary" onClick={csv} disabled={!c.stats.length}>Copy as CSV</button>
+        <button type="button" className={`button secondary ${s.csvBtn}`} onClick={csv} disabled={!c.stats.length}>{COPY}Copy as CSV</button>
       </div>
       <PanelTabs idPrefix="cha" label="Analytics views" tab={tab} setTab={setTab}
         tabs={[{ id: "states", label: "By state", icon: ICONS.chart }, { id: "activity", label: "Activity", icon: ICONS.clock }]} />
       {tab === "states" ? (
         <div id="cha-panel-states" role="tabpanel" aria-labelledby="cha-tab-states" className={s.panelBody}>
-          <ol className={s.entries}>
-            {rows.slice(sp * PER_PAGE, (sp + 1) * PER_PAGE).map((r) => (
-              <li key={r.id} className={s.statRow}>
-                <span className={s.statMain}>
-                  <strong>{r.name}</strong>
-                  <small>{plural(r.speeches, "speech")} · {r.asked} asked, {r.answered} answered · {plural(r.amendments, "amendment")} · {plural(r.signed, "signature")}</small>
-                </span>
-                <span className={`${s.statTime} num`}>{ch.clock(r.secs * 1000)}</span>
-              </li>
-            ))}
-          </ol>
+          <div className={s.tableWrap}>
+            <table className={s.aTable}>
+              <thead>
+                <tr><th scope="col">State</th><th scope="col">Speeches</th><th scope="col">Speaking time</th><th scope="col">POI asked</th><th scope="col">POI answered</th><th scope="col">Amendments</th><th scope="col">Signed</th></tr>
+              </thead>
+              <tbody>
+                {rows.slice(sp * PER_PAGE, (sp + 1) * PER_PAGE).map((r) => (
+                  <tr key={r.id}>
+                    <th scope="row">
+                      <span className={s.aName}>{r.name}</span>
+                      {roleOf(r.id).map((x) => <span key={x} className={s.pbadge}>{x}</span>)}
+                    </th>
+                    <td>{r.speeches}</td>
+                    <td className="num">{ch.clock(r.secs * 1000)}</td>
+                    <td>{r.asked}</td>
+                    <td>{r.answered}</td>
+                    <td>{r.amendments}</td>
+                    <td>{r.signed}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {sPages > 1 && <Pager at={sp} pages={sPages} go={setSat} label="By state pages" />}
         </div>
       ) : (
@@ -847,7 +863,7 @@ function Analytics({ c, say }: { c: Chamber; say: (t: string) => void }) {
             <label htmlFor="an-kind" className="sr-only">Show</label>
             <select id="an-kind" className="control" value={kind} onChange={(e) => { setKind(e.target.value as "" | ch.StatKind); setAat(0); }}>
               <option value="">Everything</option>
-              {(Object.keys(ch.STAT_LABEL) as ch.StatKind[]).map((k) => <option key={k} value={k}>{ch.STAT_LABEL[k]}</option>)}
+              {FILTERS.map((k) => <option key={k} value={k}>{ch.STAT_LABEL[k]}</option>)}
             </select>
           </div>
           {feed.length === 0 ? <p className={s.empty}>Nothing yet.</p> : (
@@ -901,22 +917,23 @@ function Background({ c, act, say, userId }: { c: Chamber; act: Act; say: (t: st
   return (
     <section className={`panel ${s.share}`} aria-labelledby="st-bg">
       <h2 id="st-bg" className={s.h2}>Display background</h2>
-      <div className={s.bgRow}>
-        <div className={s.bgPreview} data-empty={!c.background}>
-          {c.background ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={c.background} alt="The display background" /> : <span>No photo</span>}
-        </div>
-        <div className={s.bgActions}>
-          <label className={`button ${s.fileBtn}`} aria-disabled={busy}>
-            {busy ? "Uploading…" : c.background ? "Change photo" : "Choose a photo"}
-            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} onChange={(e) => { void choose(e.target.files?.[0]); e.target.value = ""; }} />
-          </label>
-          {c.background && <button type="button" className="button secondary" onClick={() => act((x) => ch.setBackground(x, null))}>Remove photo</button>}
-        </div>
+      <div className={s.bgPreview} data-empty={!c.background}>
+        {c.background ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={c.background} alt="The display background" /> : <span>No photo</span>}
+      </div>
+      <div className={s.bgActions} data-one={!c.background}>
+        <label className={`button ${s.fileBtn}`} aria-disabled={busy}>
+          {busy ? "Uploading…" : c.background ? "Change photo" : "Choose a photo"}
+          <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} onChange={(e) => { void choose(e.target.files?.[0]); e.target.value = ""; }} />
+        </label>
+        {c.background && <button type="button" className="button secondary" onClick={() => act((x) => ch.setBackground(x, null))}>Remove photo</button>}
       </div>
       {c.background && (
-        <div className="field">
-          <label htmlFor="st-str">Photo strength</label>
-          <input id="st-str" type="range" min={20} max={100} step={5} value={strength} className={s.range}
+        <div className={s.strength}>
+          <div className={s.strengthHead}>
+            <label htmlFor="st-str">Photo strength</label>
+            <output htmlFor="st-str" className="num">{strength}%</output>
+          </div>
+          <input id="st-str" type="range" min={20} max={100} step={5} value={strength} className={s.range} style={{ "--fill": `${((strength - 20) / 80) * 100}%` } as React.CSSProperties}
             onChange={(e) => setStrength(Number(e.target.value))} onPointerUp={commit} onKeyUp={commit} onBlur={commit} />
         </div>
       )}

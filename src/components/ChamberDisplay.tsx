@@ -204,10 +204,12 @@ export default function ChamberDisplay() {
   const body = (
     <div className={s.display} data-photo={photo ? "" : undefined} style={photo}>
       <div className={s.dTop}>
-        <div>
-          <p className={`serif ${s.dName}`}>{c?.name ?? "Chambers"}</p>
-          {c?.topic && <p className={s.dTopic}>{c.topic}</p>}
-          <p className={s.dBrand}>Powered by <Wordmark height={13} /></p>
+        <div className={s.dId}>
+          <div className={`${s.dBtn} ${s.dBig}`}>
+            <p className={`serif ${s.dName}`}>{c?.name ?? "Chambers"}</p>
+            {c?.topic && <p className={s.dTopic}>{c.topic}</p>}
+          </div>
+          <span className={`${s.dBtn} ${s.dBrand}`}>Powered by <Wordmark height={13} /></span>
         </div>
         {openNow ? <span className={`${s.dBtn} ${s.dStatus}`} role="status">{openNow}</span> : <span className={s.dGap} />}
         {tools}
