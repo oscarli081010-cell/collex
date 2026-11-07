@@ -218,10 +218,14 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 /* The display window: the whole screen, with no site chrome, for a projector. */
 .display {
   position: fixed; inset: 0; z-index: 200; overflow: auto; background: var(--bg);
-  display: grid; grid-template-rows: auto 1fr auto; gap: 24px; padding: clamp(20px, 3vw, 44px);
+  /* One cell holds all three parts, so the middle is centred on the whole screen, not just on what is left under the top bar. */
+  display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  --edge: clamp(20px, 3vw, 44px);
 }
+.display > * { grid-area: 1 / 1; }
 /* The name on the left, what is open in the middle, the screen controls on the right. */
-.dTop { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 16px; }
+.dTop { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 16px; align-self: start; padding: var(--edge) var(--edge) 0; z-index: 2; pointer-events: none; }
+.dTop > * { pointer-events: auto; }
 @media (max-width: 1100px) { .dTop { grid-template-columns: 1fr auto; } .dTop > .dStatus { grid-column: 1 / -1; grid-row: 2; justify-self: center; } .dGap { display: none; } }
 .dName { font-size: clamp(26px, 2.8vw, 40px); line-height: 1.05; overflow-wrap: anywhere; }
 .dTopic { color: var(--muted); font-size: clamp(13px, 1.1vw, 16px); margin-top: 6px; }
@@ -241,7 +245,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 @media (max-width: 520px) { .dBtn { padding: 0 14px; } }
 
 /* Every screen is built the same way: a pill, a heading in the serif, lines of ordinary text, then what to look at. */
-.dMid { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: clamp(14px, 2.2vw, 30px); min-height: 0; }
+.dMid { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: clamp(14px, 2.2vw, 30px); min-height: 100dvh; box-sizing: border-box; padding: clamp(96px, 12vh, 150px) var(--edge); }
 /* Nothing on the screen may be squeezed smaller, or a progress bar disappears. */
 .dMid > * { flex: none; }
 .dPill { display: inline-flex; align-items: center; justify-content: center; padding: 0.42em 1.2em; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: clamp(20px, min(2.5vw, 4vh), 38px); font-weight: 500; line-height: 1.25; max-width: 100%; }
@@ -289,7 +293,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dSeat[data-a="abstain"] { background: var(--warn-soft); color: var(--warn); }
 .dSeat em { margin-left: auto; font-style: normal; font-size: 0.7em; opacity: 0.85; }
 .dSeat small { margin-left: auto; font-size: 0.7em; opacity: 0.8; }
-.dBottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px 32px; flex-wrap: wrap; font-size: clamp(16px, 1.7vw, 24px); }
+.dBottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px 32px; flex-wrap: wrap; font-size: clamp(16px, 1.7vw, 24px); align-self: end; padding: 0 var(--edge) var(--edge); z-index: 2; }
 .dNext { display: flex; flex-direction: column; gap: 6px; min-width: 0; color: var(--muted); }
 .dNext ol { display: flex; gap: 8px 22px; flex-wrap: wrap; color: var(--ink); }
 .dNext li { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
