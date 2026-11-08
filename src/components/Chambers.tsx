@@ -181,8 +181,10 @@ export default function Chambers() {
   return (
     <main id="top" className={`container ${s.page}`}>
       <header className={s.top}>
+        <div className={s.nameBox}>
         <h1 className={`serif ${s.name}`}>{c.name}{c.topic && ` · ${c.topic}`}</h1>
         {t && <p className={s.procTag}><span className="badge">Trinity Grammar MUN</span><span className="badge">{t.level === "beginner" ? "Beginner committee" : "Experienced committee"}</span><span className="badge">Week {t.week}</span></p>}
+        </div>
         <div className={s.topActions}>
           <a className={`button secondary ${s.topBtn}`} href={display} target="_blank" rel="noopener">{MONITOR}Open display</a>
           <button type="button" className={`button secondary ${s.topBtn}`} onClick={() => setView("settings")}>
@@ -490,7 +492,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
           {next && <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, next.id, next.side, secs))}>Call {name(next.id)}</button>}
           <div className={s.btnRow}>
             <button type="button" className={next ? "button secondary sm" : "button"} onClick={() => act(ch.startStatements)}>Opening statements</button>
-            {t?.level === "beginner" && <button type="button" className="button secondary sm" onClick={() => act(ch.startPrep)}>Preparation, 20 min</button>}
+            {t?.level === "beginner" && t.week === 2 && <button type="button" className="button secondary sm" onClick={() => act(ch.startPrep)}>Preparation, 20 min</button>}
           </div>
           {t && t.week === 1 && (confirmWeek
             ? <div className={s.btnRow} role="group" aria-label="End week 1"><button type="button" className="button sm" onClick={() => act(ch.nextWeek)}>Start week 2</button><button type="button" className="button secondary sm" onClick={() => setConfirmWeek(false)}>Not yet</button></div>
@@ -1629,46 +1631,24 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
           </section>
         )}
         <form className={`panel ${s.setupCard}`} onSubmit={(e) => { e.preventDefault(); if (!ok || speak === null) return; const ids = names.map(uid); onCreate(proc === "trinity" ? ch.createTrinity(name, resolution, level, speak, names, ids) : ch.create(name, resolution, speak, names, ids)); }}>
-          <fieldset className={s.procedure}>
-            <legend>Procedure</legend>
-            <div role="radiogroup" aria-label="Procedure">
-              <button type="button" role="radio" aria-checked={proc === "evatt"} className={s.proc} onClick={() => { setProc("evatt"); setSpeak(120); setSpeakOk(true); }}>
-                <span className={s.procMark}>{ICONS.check}</span>
-                <span className={s.procText}>
-                  <strong>Evatt</strong>
-                  <small>UN Youth Australia&apos;s Security Council debate: an opening, a debate on amendments, and a closing with a roll-call vote.</small>
-                </span>
-              </button>
-              <button type="button" role="radio" aria-checked={proc === "trinity"} className={s.proc} onClick={() => { setProc("trinity"); setSpeak(60); setSpeakOk(true); }}>
-                <span className={s.procMark}>{ICONS.check}</span>
-                <span className={s.procText}>
-                  <strong>Trinity Grammar MUN</strong>
-                  <small>Opening statements, a general speakers&apos; list, moderated and unmoderated caucuses, draft resolutions with amendments, and a roll-call vote.</small>
-                </span>
-              </button>
+          <div className={s.two}>
+            <div className="field">
+              <label htmlFor="cs-proc">Procedure</label>
+              <Select id="cs-proc" className="control" value={proc} onChange={(e) => { const v = e.target.value as "evatt" | "trinity"; setProc(v); setSpeak(v === "trinity" ? 60 : 120); setSpeakOk(true); }}>
+                <option value="evatt">Evatt</option>
+                <option value="trinity">Trinity Grammar MUN</option>
+              </Select>
             </div>
-          </fieldset>
-          {proc === "trinity" && (
-            <fieldset className={s.procedure}>
-              <legend>Committee</legend>
-              <div role="radiogroup" aria-label="Committee">
-                <button type="button" role="radio" aria-checked={level === "beginner"} className={s.proc} onClick={() => setLevel("beginner")}>
-                  <span className={s.procMark}>{ICONS.check}</span>
-                  <span className={s.procText}>
-                    <strong>Beginner committee</strong>
-                    <small>A General Assembly: seen and unseen draft resolutions over two weeks, passed by a simple majority.</small>
-                  </span>
-                </button>
-                <button type="button" role="radio" aria-checked={level === "experienced"} className={s.proc} onClick={() => setLevel("experienced")}>
-                  <span className={s.procMark}>{ICONS.check}</span>
-                  <span className={s.procText}>
-                    <strong>Experienced committee</strong>
-                    <small>The Security Council: working papers in week 1, a draft in week 2, two thirds needed and a veto for the permanent members.</small>
-                  </span>
-                </button>
+            {proc === "trinity" && (
+              <div className="field">
+                <label htmlFor="cs-level">Committee</label>
+                <Select id="cs-level" className="control" value={level} onChange={(e) => setLevel(e.target.value as ch.Level)}>
+                  <option value="beginner">Beginner committee</option>
+                  <option value="experienced">Experienced committee</option>
+                </Select>
               </div>
-            </fieldset>
-          )}
+            )}
+          </div>
           <div className={s.two}>
             <div className="field">
               <label htmlFor="cs-name">Committee</label>

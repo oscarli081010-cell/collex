@@ -173,7 +173,7 @@ export default function ChamberDisplay() {
   } else if (c.step === "general") {
     mid = c.result?.kind === "motion"
       ? <Screen pill={["Motion"]} heading={c.result.passed ? "Motion passes" : "Motion fails"} pass={c.result.passed} lines={[c.result.title]}>{votes(c.result)}</Screen>
-      : <Screen heading="General speakers\u2019 list" />;
+      : <Screen heading={"General speakers\u2019 list"} />;
   } else if (c.step === "caucus" && c.tr && k?.kind === "mod") {
     mid = (
       <Screen heading={k.topic}>
