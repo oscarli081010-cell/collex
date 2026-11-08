@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { usePill } from "./usePill";
 import { useAuth } from "./AuthProvider";
-import { Wordmark } from "@/lib/brand";
+import { Logo } from "@/lib/brand";
 import CommandBar from "./CommandBar";
 
 type NavLink = { href: string; label: string };
@@ -122,7 +122,7 @@ export default function TopBar() {
   return (
     <header className="topbar">
       <div className="container topbarInner">
-        <Link href="/" className="wordmark" aria-label="Collex home"><Wordmark /></Link>
+        <Link href="/" className="wordmark" aria-label="Collex home"><Logo /></Link>
         <nav ref={navRef} className="navlinks" aria-label="Main">
           <span ref={pill} className="t-pill navPill" aria-hidden="true" />
           {NAV_GROUPS.map((g) => (

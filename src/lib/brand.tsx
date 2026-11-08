@@ -24,3 +24,29 @@ export function Monogram({ size, ink, dot }: { size: number; ink: string; dot: s
     </svg>
   );
 }
+
+/**
+ * The Collex symbol: a C-shaped ring with the many-into-one "Y" inside it, turned a quarter-eighth so the stem leaves
+ * through the opening. Plain shapes, no clip paths, so several copies on one page and image renderers all behave.
+ * Pass an explicit colour for images; on the page it follows the text colour.
+ */
+export function Mark({ size = 28, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg viewBox="16 16 224 224" width={size} height={size} aria-hidden="true" focusable="false" style={{ display: "block", flex: "none" }}>
+      <g transform="rotate(-45 128 128)">
+        <path d="M160 235.33A112 112 0 1 0 96 235.33V201.32A80 80 0 1 1 160 201.32Z" fill={color} />
+        <path d="M60 70C104 72 128 106 128 140M196 70C152 72 128 106 128 140M128 140V194" fill="none" stroke={color} strokeWidth="30" />
+      </g>
+    </svg>
+  );
+}
+
+/** The symbol to the left of the wordmark. */
+export function Logo({ height = 26 }: { height?: number }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: Math.round(height * 0.36) }}>
+      <span style={{ color: "var(--accent)", display: "flex" }}><Mark size={Math.round(height * 1.2)} /></span>
+      <Wordmark height={height} />
+    </span>
+  );
+}

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import * as ch from "@/lib/chamber";
-import { Wordmark } from "@/lib/brand";
+import { Mark, Wordmark } from "@/lib/brand";
 import { isId, useChamber } from "@/lib/useChamber";
 import { useAuth } from "./AuthProvider";
 import { useNow } from "./Chambers";
@@ -261,7 +261,7 @@ export default function ChamberDisplay() {
             <p className={`serif ${s.dName}`}>{c?.name ?? "Chambers"}</p>
             {c?.topic && <p className={s.dTopic}>{c.topic}</p>}
           </div>
-          <span className={`${s.dBtn} ${s.dBrand}`}>Powered by <Wordmark height={13} /></span>
+          <span className={`${s.dBtn} ${s.dBrand}`}>Powered by <Mark size={17} /><Wordmark height={13} /></span>
         </div>
         {openNow ? <span className={`${s.dBtn} ${s.dStatus}`} role="status">{openNow}</span> : <span className={s.dGap} />}
         {tools}

@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { Monogram } from "./brand";
+import { Mark } from "./brand";
 
 // The favicon and Apple icon: the Collex monogram on the page colour. Drawn from paths, so no font download.
 export function brandIcon(size: number, rounded: boolean) {
@@ -11,7 +11,7 @@ export function brandIcon(size: number, rounded: boolean) {
           background: "#fbfaf7", borderRadius: rounded ? size * 0.22 : 0,
         }}
       >
-        <Monogram size={size * 0.92} ink="#15161a" dot="#213a73" />
+        <Mark size={size * 0.74} color="#213a73" />
       </div>
     ),
     { width: size, height: size },
