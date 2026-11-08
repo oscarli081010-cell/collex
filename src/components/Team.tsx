@@ -7,6 +7,7 @@ import { ConfirmIconButton, ICONS } from "./IconButton";
 import { useToast } from "./useToast";
 import auth from "@/app/auth.module.css";
 import s from "@/app/inner.module.css";
+import Select from "./Select";
 
 export type Member = { user_id: string; name: string; email: string; is_owner: boolean; accepted: boolean; role: "editor" | "viewer" };
 
@@ -71,10 +72,10 @@ export default function Team({ conf, name, me, team, reload }: { conf: string; n
               {!m.is_owner && (owner || m.user_id === me) && (
                 <div className={s.teamActions}>
                   {owner && (
-                    <select className={`control ${s.roleSelect}`} value={m.role} aria-label={`What ${who(m)} can do`} onChange={(e) => changeRole(m, e.target.value as Member["role"])}>
+                    <Select className={`control ${s.roleSelect}`} value={m.role} aria-label={`What ${who(m)} can do`} onChange={(e) => changeRole(m, e.target.value as Member["role"])}>
                       <option value="editor">Can edit</option>
                       <option value="viewer">View only</option>
-                    </select>
+                    </Select>
                   )}
                   {m.user_id === me
                     ? <ConfirmIconButton label={`Leave ${name}`} confirm="Click again to stop editing this listing" icon={ICONS.leave} onConfirm={() => remove(m)} />
@@ -89,10 +90,10 @@ export default function Team({ conf, name, me, team, reload }: { conf: string; n
         <form className={s.teamInvite} onSubmit={invite} noValidate>
           <label className="field">
             <span>They can</span>
-            <select className="control" value={role} onChange={(e) => setRole(e.target.value as Member["role"])}>
+            <Select className="control" value={role} onChange={(e) => setRole(e.target.value as Member["role"])}>
               <option value="editor">Edit the listing and see its activity</option>
               <option value="viewer">Only see its activity</option>
-            </select>
+            </Select>
           </label>
           <label className={`field ${error ? s.invalid : ""}`}>
             <span>Invite by email</span>

@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import { NA, ROLE_KINDS, webUrl, type Committee, type Conference, type Role, type RoleKind } from "@/lib/conferences";
 import IconButton, { ICONS } from "./IconButton";
 import s from "@/app/inner.module.css";
+import Select from "./Select";
 
 // Row-by-row editors for a listing's committees, secretariat and roles needed: add, remove and reorder, each row a set of labelled fields,
 // including that committee's background guide (a link, or a PDF uploaded to Collex).
@@ -118,11 +119,11 @@ export function CommitteesEditor({ rows, setRows, upload }: { rows: CommitteeRow
           <label className={s.editWide}><span>Topic</span><input className="control" value={r.topic} maxLength={300} placeholder="For example, Arctic sovereignty" onChange={(e) => set({ topic: e.target.value })} /></label>
           <label>
             <span>Level</span>
-            <select className="control" value={r.level} onChange={(e) => set({ level: e.target.value })}>
+            <Select className="control" value={r.level} onChange={(e) => set({ level: e.target.value })}>
               <option value="">Not set</option>
               {/* A level typed on an older listing stays choosable until it's changed. */}
               {[...LEVELS, ...(r.level && !LEVELS.includes(r.level) ? [r.level] : [])].map((o) => <option key={o}>{o}</option>)}
-            </select>
+            </Select>
           </label>
           <label><span>Chairs</span><input className="control" value={r.chairs} maxLength={200} placeholder="Names, once announced" onChange={(e) => set({ chairs: e.target.value })} /></label>
           <div className={`${s.editWide} ${s.guideField} ${bad ? s.invalid : ""}`}>
@@ -223,9 +224,9 @@ export function RolesEditor({ rows, setRows }: { rows: RoleRow[]; setRows: Dispa
         return <>
           <label>
             <span>Kind of help</span>
-            <select id={`role-${i}-first`} className="control" value={r.kind} onChange={(e) => set({ kind: e.target.value as RoleKind })}>
+            <Select id={`role-${i}-first`} className="control" value={r.kind} onChange={(e) => set({ kind: e.target.value as RoleKind })}>
               {ROLE_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
-            </select>
+            </Select>
           </label>
           <label><span>Title</span><input className="control" value={r.title} maxLength={80} placeholder="For example, Head chair" onChange={(e) => set({ title: e.target.value })} /></label>
           <label className={s.editWide}><span>What you need</span><textarea className="control" value={r.note} maxLength={400} rows={3} onChange={(e) => set({ note: e.target.value })} /></label>

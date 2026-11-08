@@ -8,6 +8,7 @@ import ConferenceRow from "./ConferenceRow";
 import { Placard } from "./Drawings";
 import PageBand, { nextUp } from "./PageBand";
 import s from "./board.module.css";
+import Select from "./Select";
 
 // Keeps ?month= in the address, so a filtered list can be shared or bookmarked.
 const writeMonth = (month: string) => {
@@ -76,16 +77,16 @@ export default function UpcomingBoard({ band = false }: { band?: boolean }) {
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
           </button>
         </label>
-        <select className={`control ${month !== "any" ? s.active : ""}`} aria-label="Month" value={month} onChange={(e) => pickMonth(e.target.value)}>
+        <Select className={`control ${month !== "any" ? s.active : ""}`} aria-label="Month" value={month} onChange={(e) => pickMonth(e.target.value)}>
           <option value="any">Any month</option>
           {months.map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
-        </select>
-        <select className={`control ${level !== "any" ? s.active : ""}`} aria-label="Level" value={level} onChange={(e) => setLevel(e.target.value)}>
+        </Select>
+        <Select className={`control ${level !== "any" ? s.active : ""}`} aria-label="Level" value={level} onChange={(e) => setLevel(e.target.value)}>
           <option value="any">All levels</option>
           <option>High school</option>
           <option>University</option>
           <option>Open</option>
-        </select>
+        </Select>
       </div>
   );
 

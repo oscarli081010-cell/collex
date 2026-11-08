@@ -64,7 +64,8 @@
 .board { padding-top: clamp(56px, 6vw, 80px); border-top: 1px solid var(--line); scroll-margin-top: 72px; }
 .boardHead { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 32px; }
 .h2 { font-size: clamp(36px, 4vw, 52px); }
-.section { margin-top: var(--space-section); }
+/* Padding, not margin: the container class sets its own side margins and would flatten a margin-top, which left these sections touching. */
+.section { padding-top: var(--space-section); }
 
 @media (prefers-reduced-motion: reduce) {
   .heroImg, .heroImg img, .nextCard, .scrollCue svg { animation: none; }

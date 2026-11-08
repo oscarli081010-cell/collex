@@ -20,6 +20,7 @@ import SectionNav from "./SectionNav";
 import Team, { type Member } from "./Team";
 import auth from "@/app/auth.module.css";
 import s from "@/app/inner.module.css";
+import Select from "./Select";
 
 type EditTab = "info" | "organisers";
 const EDIT_TABS: PanelTab<EditTab>[] = [
@@ -333,10 +334,10 @@ export default function ListForm() {
             <div id={f.name === "name" ? "sec-details" : f.name === "overview" ? "sec-overview" : undefined} className={`field ${f.wide ? s.wide : ""} ${err ? s.invalid : ""}`}>
               <label htmlFor={id}>{f.label}{f.required ? <span className={s.req} aria-hidden="true"> *</span> : <span className="muted"> (optional)</span>}</label>
               {f.type === "select" ? (
-                <select id={id} name={f.name} className="control" defaultValue={edit?.level ?? ""} onChange={clear}>
+                <Select id={id} name={f.name} className="control" defaultValue={edit?.level ?? ""} onChange={clear}>
                   <option value="">Not sure yet</option>
                   {f.options!.map((o) => <option key={o}>{o}</option>)}
-                </select>
+                </Select>
               ) : f.type === "textarea" ? (
                 <textarea id={id} name={f.name} className="control" maxLength={4000} defaultValue={edit ? asText(edit, f.name) : undefined} aria-invalid={Boolean(err)} aria-describedby={hintId} onChange={clear} />
               ) : f.name === "fee" ? (

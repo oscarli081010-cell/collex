@@ -90,6 +90,10 @@
 .h2 { font-size: 17px; font-weight: 500; }
 /* One list under the other: the panel is only half the page wide, and a name needs room beside its four buttons. */
 .sides { display: flex; flex-direction: column; gap: 14px; }
+/* Across the whole width, For and Against sit side by side. */
+.wideList .sides { flex-direction: row; }
+.wideList .sideCol { flex: 1 1 0; }
+@media (max-width: 720px) { .wideList .sides { flex-direction: column; } }
 .sideCol { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .sideHead { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 500; }
 .queue { display: flex; flex-direction: column; gap: 6px; }
@@ -117,10 +121,11 @@
 .sideSeg { width: 100%; }
 .ballotSeg { grid-template-columns: repeat(3, minmax(64px, auto)); }
 .rollSeg { grid-template-columns: repeat(3, auto); }
-.rollSeg button { padding: 0 12px; }
+.rollSeg button { padding: 0 12px; white-space: nowrap; }
 @media (max-width: 560px) {
   .ballotSeg, .rollSeg { width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .rollSeg button { padding: 0 4px; font-size: 12.5px; white-space: normal; line-height: 1.15; }
+  .rollSeg { grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr) minmax(0, 1fr); }
+  .rollSeg button { padding: 0 4px; font-size: 12.5px; }
 }
 
 .panelBody { display: flex; flex-direction: column; gap: 14px; }
@@ -241,7 +246,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dBtn:hover { color: var(--ink); background: var(--panel); border-color: var(--line-strong); }
 .dBtn:active { transform: scale(0.97); }
 /* The same pill as the buttons, but only a message: what is open right now. */
-.dStatus { cursor: default; color: var(--ink); justify-self: center; text-align: center; }
+.dStatus { cursor: default; color: var(--ink); justify-self: center; align-self: start; text-align: center; height: 44px; font-size: 14px; font-weight: 500; line-height: 1; }
 .dStatus:hover { color: var(--ink); background: color-mix(in srgb, var(--panel) 70%, transparent); border-color: var(--line); }
 .dStatus:active { transform: none; }
 @media (max-width: 520px) { .dBtn { padding: 0 14px; } }
@@ -269,7 +274,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dTally { display: flex; flex-direction: column; align-items: center; gap: 0.15em; }
 .dTally span { font-size: clamp(18px, 2.1vw, 30px); color: var(--muted); font-weight: 500; }
 /* The states that signed an amendment: tiles under a label, like the votes. */
-.dSigs { display: flex; flex-direction: column; align-items: center; gap: 0.5em; max-width: min(100%, 1300px); margin-top: calc(var(--group) * 1.7); }
+.dSigs { display: flex; flex-direction: column; align-items: center; gap: 0.5em; max-width: min(100%, 1300px); }
 .dSigs > span { font-size: clamp(18px, 2.1vw, 30px); color: var(--muted); font-weight: 500; }
 .dSigs ul { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(8px, 1vw, 14px); }
 .dSigs li { padding: 0.3em 0.9em; border-radius: 999px; background: var(--surface); font-size: clamp(16px, min(2vw, 3.2vh), 30px); font-weight: 500; }
@@ -414,3 +419,14 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
   .dMid { min-height: auto; padding: 12px var(--edge); }
   .dBottom { padding-top: 8px; }
 }
+
+/* The signatories always sit at the foot of the screen, in the same place whatever else is showing; the rest is centred in the room above them. */
+.dFoot { position: absolute; left: 0; right: 0; bottom: calc(var(--edge) + clamp(8px, 3vh, 32px)); display: flex; justify-content: center; padding-inline: var(--edge); z-index: 1; }
+.dMid:has(> .dFoot) { padding-bottom: clamp(170px, 24vh, 250px); }
+@media (max-width: 1100px) {
+  .dFoot { position: static; padding: 0; margin-top: var(--group); }
+  .dMid:has(> .dFoot) { padding-bottom: 12px; }
+}
+/* A roll-call tile: the name shortens if it has to, the label never breaks onto a second line. */
+.dSeatName { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dSeat em { flex: none; white-space: nowrap; }

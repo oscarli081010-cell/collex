@@ -17,6 +17,7 @@ import { useToast } from "./useToast";
 import auth from "@/app/auth.module.css";
 import s from "@/app/admin.module.css";
 import act from "./Activity.module.css";
+import Select from "./Select";
 
 type Row = {
   id: string; slug: string; status: string; name: string; host: string; start_date: string | null; end_date: string | null;
@@ -202,17 +203,17 @@ export default function Admin() {
             <div className={s.searchBar} role="search">
               <SearchBox label={`Search ${tab.toLowerCase()}`} placeholder={searchFor[tab]!} value={find[tab]} onChange={(v) => setFind((f) => ({ ...f, [tab]: v }))} />
               {tab === "Conferences" && (
-                <select className="control" aria-label="Status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                <Select className="control" aria-label="Status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                   <option value="any">Any status</option>
                   {["published", "rejected", "unpublished"].map((k) => <option key={k} value={k}>{STATUS[k]}</option>)}
-                </select>
+                </Select>
               )}
               {tab === "Reports" && (
-                <select className="control" aria-label="Show" value={reportFilter} onChange={(e) => { setReportFilter(e.target.value); clearSel(); }}>
+                <Select className="control" aria-label="Show" value={reportFilter} onChange={(e) => { setReportFilter(e.target.value); clearSel(); }}>
                   <option value="open">Open</option>
                   <option value="resolved">Resolved</option>
                   <option value="all">All</option>
-                </select>
+                </Select>
               )}
               <span key={`${tab}${q}${statusFilter}${reportFilter}`} className={`t-swap muted ${s.searchCount}`} aria-live="polite">
                 {searching ? `${tab === "Conferences" ? shownConfs.length : tab === "Reports" ? shownReports.length : tab === "Users" ? shownUsers.length : shownLog.length} shown` : ""}

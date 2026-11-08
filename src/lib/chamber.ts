@@ -103,12 +103,29 @@ const byName = (a: Delegate, b: Delegate) => a.name.localeCompare(b.name, "en-AU
 const emptyDebate = (): Debate => ({ list: [], run: [] });
 const timerFor = (label: string, secs: number): Timer => ({ label, total: secs * 1000, endsAt: null, left: secs * 1000 });
 
-// Names typed one per line or separated by commas; blanks and repeats dropped.
+// A long state's name goes in its short form, so the tiles it sits in stay a sensible size: the well-known ones by their
+// usual letters, and any other very long name by the first letters of its words.
+const SHORT: Record<string, string> = {
+  "united states of america": "USA", "united states": "USA", "united kingdom": "UK", "united arab emirates": "UAE",
+  "democratic republic of the congo": "DRC", "democratic republic of congo": "DRC", "central african republic": "CAR",
+  "russian federation": "Russia", "peoples republic of china": "China", "republic of korea": "South Korea",
+  "democratic peoples republic of korea": "North Korea", "great britain": "UK",
+};
+export function shortName(name: string): string {
+  const clean = name.trim().replace(/\s+/g, " ");
+  const known = SHORT[clean.toLowerCase().replace(/[.'’]/g, "")];
+  if (known) return known;
+  if (clean.length <= 18) return clean;
+  const words = clean.split(" ").filter((w) => !/^(of|the|and|for|de|la|el)$/i.test(w));
+  return words.length >= 2 ? words.map((w) => w[0].toUpperCase()).join("") : clean;
+}
+
+// Names typed one per line or separated by commas; blanks and repeats dropped, long ones shortened.
 export function parseNames(text: string): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const raw of text.split(/[\n,;]+/)) {
-    const name = raw.trim().replace(/\s+/g, " ").slice(0, 60);
+    const name = shortName(raw.trim().replace(/\s+/g, " ").slice(0, 60));
     if (!name || seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
     out.push(name);
@@ -149,7 +166,7 @@ const other = (s: Side): Side => (s === "for" ? "against" : "for");
 const sideWord = (s: Side) => (s === "for" ? "in favour" : "against");
 
 export const ROLE_LABEL: Record<Role, string> = { proposer: "Proposer", seconder: "Seconder", opposer: "Opposer", speaker: "Speaker", amender: "Amendment proposer", closer: "Closing speech" };
-export const ATTEND_LABEL: Record<Attend, string> = { present: "Present", voting: "Present and Voting", abstain: "Abstain" };
+export const ATTEND_LABEL: Record<Attend, string> = { present: "Present", voting: "Present & Voting", abstain: "Abstain" };
 
 /* The display's background photo */
 const BG_URL = /^https:\/\/npdaczdwmhbtgitmplxc\.supabase\.co\/storage\/v1\/object\/public\/photos\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
@@ -165,7 +182,7 @@ export function setBackgroundStrength(c: Chamber, n: number): Chamber {
 
 /* People */
 export function addDelegate(c: Chamber, id: string, name: string): Chamber {
-  const clean = name.trim().replace(/\s+/g, " ").slice(0, 60);
+  const clean = shortName(name.trim().replace(/\s+/g, " ").slice(0, 60));
   if (!clean || c.delegates.length >= MAX_DELEGATES || c.delegates.some((d) => d.id === id || d.name.toLowerCase() === clean.toLowerCase())) return c;
   return { ...c, delegates: [...c.delegates, { id, name: clean }].sort(byName) };
 }
@@ -218,11 +235,12 @@ export function pickRole(c: Chamber, role: "proposer" | "seconder" | "opposer", 
   roles[role] = who;
   return { ...c, roles };
 }
+// The proposer and seconder are needed. Nobody has to oppose: sometimes no one wants to, and the debate goes on without.
 export function startSpeeches(c: Chamber): Chamber {
   const { proposer, seconder, opposer } = c.roles;
-  if (c.step !== "pick" || !has(c, proposer) || !has(c, seconder) || !has(c, opposer)) return c;
-  if (proposer === seconder || proposer === opposer || seconder === opposer) return c;
-  return note({ ...c, step: "proposer" }, `Proposer ${nameOf(c, proposer)}, seconder ${nameOf(c, seconder)}, opposer ${nameOf(c, opposer)}`);
+  if (c.step !== "pick" || !has(c, proposer) || !has(c, seconder) || proposer === seconder) return c;
+  if (opposer !== null && (!has(c, opposer) || opposer === proposer || opposer === seconder)) return c;
+  return note({ ...c, step: "proposer" }, `Proposer ${nameOf(c, proposer)}, seconder ${nameOf(c, seconder)}${opposer ? `, opposer ${nameOf(c, opposer)}` : ", no opposer"}`);
 }
 
 /* Speeches */
@@ -315,7 +333,7 @@ function finish(c: Chamber): Chamber {
   const next: Chamber = { ...c, speech: null, timer: null };
   switch (sp.role) {
     case "proposer": return { ...next, step: "seconder" };
-    case "seconder": return { ...next, step: "opposer" };
+    case "seconder": return has(next, next.roles.opposer) ? { ...next, step: "opposer" } : enterCaucus(next, CAUCUS_SECS, "floor", "Caucus"); // no opposer: straight to the debate
     case "opposer": return enterCaucus(next, CAUCUS_SECS, "floor", "Caucus"); // the debate starts with a caucus
     case "closer": return { ...next, closers: [...next.closers, sp.who] };
     default: return next;
@@ -417,20 +435,24 @@ export function tally(c: Chamber, which: "yes" | "no" | "abstain", by: 1 | -1): 
 // More in favour than against passes. The President may overrule the result.
 export const passes = (p: Pick<Poll, "yes" | "no">) => p.yes > p.no;
 
-export function decideAsk(c: Chamber, overrule: boolean, id: string): Chamber {
+/** `ruling` is the President's overrule, For or Against; with none, the count decides. */
+export type Ruling = "for" | "against" | null;
+export function decideAsk(c: Chamber, ruling: Ruling, id: string): Chamber {
   const p = c.poll;
   if (c.step !== "amend" || c.amend?.id !== id || c.amend.stage !== "ask" || p?.kind !== "debate") return c;
-  const yes = overrule ? !passes(p) : passes(p);
+  const yes = ruling ? ruling === "for" : passes(p);
+  const overrule = ruling !== null && yes !== passes(p);
   const result: Result = { title: p.title, kind: "debate", amendment: id, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain };
   const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}`;
   if (yes) return note({ ...c, amend: { ...c.amend, stage: "debate" }, poll: null, result }, `Amendment to be debated (${tail})`);
   return note({ ...c, amend: { ...c.amend, stage: "vote" }, poll: poll("Adopt this amendment?", "amendment"), result }, `Not to be debated (${tail}); straight to the vote`);
 }
-export function decideAmendment(c: Chamber, overrule: boolean, id: string): Chamber {
+export function decideAmendment(c: Chamber, ruling: Ruling, id: string): Chamber {
   const p = c.poll;
   const a = c.amendments.find((x) => x.id === c.amend?.id);
   if (c.step !== "amend" || c.amend?.id !== id || c.amend.stage !== "vote" || p?.kind !== "amendment" || !a) return c;
-  const yes = overrule ? !passes(p) : passes(p);
+  const yes = ruling ? ruling === "for" : passes(p);
+  const overrule = ruling !== null && yes !== passes(p);
   const result: Result = { title: `Amendment from ${nameOf(c, a.by)}`, kind: "amendment", amendment: a.id, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain };
   const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}`;
   // On to the next amendment.
@@ -580,13 +602,13 @@ export function summary(c: Chamber) {
   });
 }
 
-/* What is open right now, for the display: the negotiation chamber (Evatt rule 40 opens it before the seconder is called; rule 42 closes it
-   during a caucus and while an amendment is read, explained and voted on; it stays closed from the closing speeches on), notes with amendments
+/* What is open right now, for the display: the negotiation chamber (shut for the whole opening and every caucus; open between amendments and while one
+   is debated, but not while it is read or voted on, and shut again from the closing speeches on), notes with amendments
    (from the first caucus of the debate until the closing), and the speakers' list (once the council has voted to debate an amendment). */
 export function rooms(c: Chamber) {
   const speakers = c.amend?.stage === "debate" && (c.step === "amend" || (c.step === "caucus" && c.after === "amend"));
   return {
-    negotiation: c.step === "seconder" || c.step === "opposer" || c.step === "floor" || (c.step === "amend" && c.amend?.stage === "debate"),
+    negotiation: c.step === "floor" || (c.step === "amend" && c.amend?.stage === "debate"),
     amendments: c.step === "caucus" || c.step === "floor" || c.step === "amend",
     speakers,
   };
