@@ -224,6 +224,8 @@ export const other = (s: Side): Side => (s === "for" ? "against" : "for");
 const sideWord = (s: Side) => (s === "for" ? "in favour" : "against");
 
 export const ROLE_LABEL: Record<Role, string> = { proposer: "Proposer", seconder: "Seconder", opposer: "Opposer", speaker: "Speaker", amender: "Amendment proposer", closer: "Closing speech", statement: "Opening statement" };
+/** A Trinity committee calls the seconder the co-proposer. */
+export const roleName = (c: Chamber, r: Role) => (c.tr && r === "seconder" ? "Co-proposer" : ROLE_LABEL[r]);
 export const ATTEND_LABEL: Record<Attend, string> = { present: "Present", voting: "Present & Voting", abstain: "Abstain" };
 
 /* The display's background photo */
@@ -432,6 +434,11 @@ const openingCaucus = (c: Chamber) => (c.tr ? enterCaucus(c, TR.intro, "floor", 
 /** The chair sets how long the caucus is before it starts. */
 export function setCaucusSecs(c: Chamber, secs: number): Chamber {
   if (c.step !== "caucus" || running(c.timer) || secs < 5 || secs > 10800) return c;
+  if (c.tr) { // an unmoderated caucus is at most 20 minutes; the others are fixed
+    const k = c.tr.cauc;
+    if (!k || k.kind !== "unmod" || secs > TR.maxCaucus) return c;
+    return { ...c, timer: timerFor(c.timer?.label ?? "Unmoderated caucus", secs), tr: { ...c.tr, cauc: { ...k, total: secs } } };
+  }
   return { ...c, timer: timerFor(c.timer?.label ?? "Caucus", secs) };
 }
 // A caucus may be called between amendments, or while one is being dealt with.
@@ -707,9 +714,9 @@ export const STAT_LABEL: Record<StatKind, string> = {
 };
 /** A speech, as opposed to a Point of Information or a note handed in. */
 export const isSpeech = (k: StatKind) => k === "statement" || k === "proposer" || k === "seconder" || k === "opposer" || k === "amender" || k === "speaker" || k === "closing";
-export function summary(c: Chamber) {
+export function summary(c: Chamber, wk?: 1 | 2) {
   return c.delegates.map((d) => {
-    const mine = c.stats.filter((s) => s.who === d.id);
+    const mine = c.stats.filter((s) => s.who === d.id && (!wk || s.wk === wk));
     const n = (k: StatKind) => mine.filter((s) => s.kind === k).length;
     return {
       id: d.id, name: d.name,

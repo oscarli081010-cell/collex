@@ -61,14 +61,14 @@ export default function ChamberDisplay() {
     return () => document.removeEventListener("fullscreenchange", onFull);
   }, []);
 
-  const now = useNow(ch.running(c?.timer ?? null));
+  const now = useNow(ch.running(c?.timer ?? null) || ch.running(c?.tr?.cauc?.clock ?? null) || (!!c?.tr && Object.keys(c.tr.observers).length > 0));
   const left = c?.timer ? ch.remaining(c.timer, now) : 0;
   const state = !c?.timer ? "none" : left === 0 ? "up" : c.timer.endsAt === null ? "paused" : left <= 10_000 ? "low" : "running";
 
   if (!mounted) return null; // the saved committee is only known in the browser
 
   const open = c ? ch.rooms(c) : null;
-  const openNow = open ? [open.negotiation && "Negotiation Chamber open", open.amendments && "Amendments open", open.speakers && "Speakers\u2019 list open"].filter(Boolean).join(" \u00B7 ") : "";
+  const openNow = open ? (open.labels ?? [open.negotiation && "Negotiation Chamber open", open.amendments && "Amendments open", open.speakers && "Speakers\u2019 list open"]).filter(Boolean).join(" \u00B7 ") : "";
   const tools = (
     <div className={s.dTools}>
       <button type="button" className={s.dBtn} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}{full ? "Exit full screen" : "Full screen"}</button>
@@ -97,7 +97,18 @@ export default function ChamberDisplay() {
     </div>
   );
   const amendPill = (a: ch.Amendment) => ["Amendment", a.clause, `from ${name(a.by)}`];
-  const votes = (r: { yes: number; no: number; abstain: number }) => tallies([["For", r.yes], ["Against", r.no], ["Abstain", r.abstain]]);
+  const votes = (r: { yes: number; no: number; abstain: number }, neutral = false) => tallies([["For", r.yes], ["Against", r.no], [neutral ? "Neutral" : "Abstain", r.abstain]]);
+  const k = c?.tr?.cauc ?? null;
+  const kLeft = k?.clock ? ch.remaining(k.clock, now) : 0;
+  const doc = c ? ch.currentDoc(c) : undefined;
+  const docSigs = doc && (
+    <div className={s.dSigs}>
+      <span>Signatories</span>
+      <ul>{ch.docSigners(doc).map((id) => <li key={id}>{name(id)}</li>)}</ul>
+    </div>
+  );
+  const obsTag = (id: string) => (c && ch.observing(c, id, now) ? <em>Observer</em> : null);
+  const sideOf = (sp: ch.Speech) => (c && c.tr && !ch.sided(c) && (sp.role === "speaker" || sp.role === "statement") ? undefined : sp.side);
 
   let mid: React.ReactNode;
   if (!c) {
@@ -108,15 +119,19 @@ export default function ChamberDisplay() {
     ) : status === "loading" || cloudId ? null : (
       <Screen heading="Nothing to show yet" lines={["Open a committee in the console, then keep this window open beside it."]} />
     );
+  } else if (c.tr?.reply) {
+    const r = c.tr.reply;
+    mid = <Screen pill={["Right of reply"]} heading={name(r.by)} lines={[r.to ? `Against ${name(r.to)}` : null]}>{timerView()}</Screen>;
   } else if (c.speech) {
     const sp = c.speech;
+    const kLine = c.tr && k?.kind === "mod" && c.step === "caucus" ? `${k.topic} \u00B7 ${ch.clock(kLeft)} left` : c.tr && c.step === "amend" && k?.clock ? `Caucus ${ch.clock(kLeft)} left` : null;
     mid = sp.phase === "ask" ? (
       <Screen pill={["Point of Information", `for ${name(sp.who)}`]} heading={name(sp.asker)}>{timerView()}</Screen>
     ) : sp.phase === "answer" ? (
       <Screen pill={["Reply", `to ${name(sp.asker)}`]} heading={name(sp.who)}>{timerView()}</Screen>
     ) : (
-      <Screen pill={[ch.ROLE_LABEL[sp.role], SIDE[sp.side]]} side={sp.side} heading={name(sp.who)}
-        lines={[sp.phase === "after" ? `Points of Information${sp.pois > 0 ? ` · ${sp.pois} taken` : ""}` : c.step === "amend" && amendment ? amendment.text : null]}>
+      <Screen pill={[ch.roleName(c, sp.role), sideOf(sp) && SIDE[sp.side]]} side={sideOf(sp)} heading={name(sp.who)}
+        lines={[sp.phase === "after" ? `Points of Information${sp.pois > 0 ? ` · ${sp.pois} taken` : ""}` : c.step === "amend" && amendment ? amendment.text : null, kLine]}>
         {sp.phase === "speech" && timerView()}
       </Screen>
     );
@@ -132,9 +147,9 @@ export default function ChamberDisplay() {
     );
   } else if (c.step === "pick") {
     mid = (
-      <Screen heading="Choosing the speakers">
+      <Screen heading={c.tr && doc ? doc.title : "Choosing the speakers"} pill={c.tr ? ["Draft resolution"] : undefined} foot={c.tr ? docSigs : undefined}>
         <div className={s.dRoles}>
-          {([["proposer", "Proposer"], ["seconder", "Seconder"], ["opposer", "Opposer"]] as const).map(([k, label]) => (
+          {([["proposer", "Proposer"], ["seconder", c.tr ? "Co-proposer" : "Seconder"], ["opposer", "Opposer"]] as const).map(([k, label]) => (
             <div key={k} className={s.dRole}><span>{label}</span><b data-empty={!c.roles[k]}>{c.roles[k] ? name(c.roles[k]) : k === "opposer" ? "None" : "\u2014"}</b></div>
           ))}
         </div>
@@ -144,14 +159,30 @@ export default function ChamberDisplay() {
     const n = ch.rollCount(c);
     mid = (
       <Screen heading="Roll call">
-        {tallies([["Present", n.present], ["Present and Voting", n.voting], ["Abstain", n.abstain]])}
+        {tallies(c.tr ? [["Present", n.present], ["Present and Voting", n.voting]] : [["Present", n.present], ["Present and Voting", n.voting], ["Abstain", n.abstain]])}
         <div className={s.dBoard}>
-          {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-a={c.roll[d.id]}><i /><span className={s.dSeatName}>{d.name}</span>{c.roll[d.id] && <em>{ch.ATTEND_LABEL[c.roll[d.id]]}</em>}</div>)}
+          {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-a={c.roll[d.id]}><i /><span className={s.dSeatName}>{d.name}</span>{obsTag(d.id) ?? (c.roll[d.id] && <em>{ch.ATTEND_LABEL[c.roll[d.id]]}</em>)}</div>)}
         </div>
       </Screen>
     );
+  } else if (c.poll?.kind === "motion") {
+    mid = <Screen pill={["Motion"]} heading={c.poll.title}>{votes(c.poll)}</Screen>;
+  } else if (c.step === "statements") {
+    const nx = ch.nextStatement(c);
+    mid = <Screen heading="Opening statements" lines={[nx ? `Next: ${name(nx)}` : "Every state has spoken"]} />;
+  } else if (c.step === "general") {
+    mid = c.result?.kind === "motion"
+      ? <Screen pill={["Motion"]} heading={c.result.passed ? "Motion passes" : "Motion fails"} pass={c.result.passed} lines={[c.result.title]}>{votes(c.result)}</Screen>
+      : <Screen heading="General speakers\u2019 list" />;
+  } else if (c.step === "caucus" && c.tr && k?.kind === "mod") {
+    mid = (
+      <Screen heading={k.topic}>
+        <div className={s.dTime} data-state={kLeft === 0 ? "up" : ch.running(k.clock) ? "running" : "paused"} role="timer">{ch.clock(kLeft)}</div>
+        <div className={s.dTrack} aria-hidden="true"><i style={{ width: `${k.clock ? Math.min(100, (kLeft / k.clock.total) * 100) : 0}%` }} /></div>
+      </Screen>
+    );
   } else if (c.step === "caucus") {
-    mid = <Screen heading="Caucus">{timerView()}</Screen>;
+    mid = <Screen heading={k?.kind === "prep" ? "Preparation" : k?.kind === "final" ? "Final unmoderated caucus" : c.tr ? "Unmoderated caucus" : "Caucus"}>{timerView()}</Screen>;
   } else if (c.step === "amend" && amendment) {
     const stage = c.amend?.stage;
     const r = c.result && c.result.amendment === amendment.id && c.result.kind === "debate" ? c.result : null;
@@ -171,12 +202,15 @@ export default function ChamberDisplay() {
   } else if (c.step === "vote" || c.step === "closed") {
     const n = ch.count(c);
     const done = c.step === "closed" && c.outcome;
+    const noun = c.tr ? "Draft resolution" : "Resolution";
+    const veto = done && c.outcome!.vetoed;
     mid = (
-      <Screen heading={done ? (c.outcome!.passed ? "Resolution approved" : "Resolution not approved") : "Roll call vote"} pass={done ? c.outcome!.passed : undefined}
-        lines={done ? [`${c.outcome!.yes} For · ${c.outcome!.no} Against · ${c.outcome!.abstain} Abstaining${!c.outcome!.passed ? ` · ${c.outcome!.needed} needed` : ""}`] : []}>
-        {c.step === "vote" && votes(n)}
+      <Screen heading={done ? (c.outcome!.passed ? `${noun} approved` : veto ? "Vetoed" : `${noun} not approved`) : "Roll call vote"} pass={done ? c.outcome!.passed : undefined}
+        pill={c.tr && doc ? [doc.title] : undefined}
+        lines={done ? [`${c.outcome!.yes} For · ${c.outcome!.no} Against · ${c.outcome!.abstain} ${c.tr ? "Neutral" : "Abstaining"}${veto ? ` · vetoed by ${c.outcome!.vetoed!.join(" and ")}` : !c.outcome!.passed ? ` · ${c.outcome!.needed} needed` : ""}`] : []}>
+        {c.step === "vote" && votes(n, !!c.tr)}
         <div className={s.dBoard}>
-          {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-b={c.ballots[d.id]}><i /><span className={s.dSeatName}>{d.name}</span></div>)}
+          {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-b={c.ballots[d.id]}><i /><span className={s.dSeatName}>{d.name}</span>{obsTag(d.id)}</div>)}
         </div>
       </Screen>
     );
@@ -184,9 +218,10 @@ export default function ChamberDisplay() {
     mid = <Screen heading="Thank you" lines={[`${c.name} has ended`]} />;
   } else if (c.step === "closing") {
     const todo = ch.closingRoles(c).filter((r) => !c.closers.includes(r.id));
+    const shown = c.tr ? todo.slice(0, 1) : todo; // Trinity: one at a time, in order
     mid = (
-      <Screen pill={["Closing speeches"]} heading={todo.length ? todo.map((r) => name(r.id)).join(" · ") : "The vote is next"}
-        lines={[todo.length ? todo.map((r) => ch.ROLE_LABEL[r.role]).join(" · ") : null]} />
+      <Screen pill={[c.tr ? "Closing" : "Closing speeches"]} heading={shown.length ? shown.map((r) => name(r.id)).join(" · ") : "The vote is next"}
+        lines={[shown.length ? shown.map((r) => ch.roleName(c, r.role)).join(" · ") : null]} foot={c.tr ? docSigs : undefined} />
     );
   } else if (c.step === "floor" && c.result?.kind === "amendment" && c.amendments.some((a) => a.id === c.result?.amendment)) {
     const a = c.amendments.find((x) => x.id === c.result!.amendment)!;
@@ -197,14 +232,19 @@ export default function ChamberDisplay() {
     );
   } else {
     const who = c.step === "proposer" ? c.roles.proposer : c.step === "seconder" ? c.roles.seconder : c.step === "opposer" ? c.roles.opposer : null;
-    const role = c.step === "proposer" ? "Proposer" : c.step === "seconder" ? "Seconder" : "Opposer";
+    const role = c.step === "proposer" ? "Proposer" : c.step === "seconder" ? (c.tr ? "Co-proposer" : "Seconder") : "Opposer";
     mid = who
-      ? <Screen pill={[role, c.step === "opposer" ? SIDE.against : SIDE.for]} side={c.step === "opposer" ? "against" : "for"} heading={name(who)} />
-      : <Screen heading="Amendments" lines={["Send amendments to the chair's desk"]} />;
+      ? <Screen pill={[role, c.step === "opposer" ? SIDE.against : SIDE.for]} side={c.step === "opposer" ? "against" : "for"} heading={name(who)} foot={c.tr ? docSigs : undefined} />
+      : c.tr
+        ? (c.result?.kind === "motion"
+          ? <Screen pill={["Motion"]} heading={c.result.passed ? "Motion passes" : "Motion fails"} pass={c.result.passed} lines={[c.result.title]}>{votes(c.result)}</Screen>
+          : <Screen heading="Draft resolution debate" lines={[doc?.title]} foot={docSigs} />)
+        : <Screen heading="Amendments" lines={["Send amendments to the chair's desk"]} />;
   }
 
-  const first = c && c.step === "amend" ? ch.nextCandidate(c) : null;
-  const rest = c && c.step === "amend" ? c.debate.list.slice(0, 4) : [];
+  const listed = !!c && (c.tr ? ch.listOpen(c) : c.step === "amend");
+  const first = c && listed ? ch.nextCandidate(c) : null;
+  const rest = c && listed ? c.debate.list.slice(0, 4) : [];
   const ordered = first ? [first, ...rest.filter((x) => x.id !== first.id)] : rest;
   const photo = c?.background ? ({ "--photo": `url("${c.background}")`, "--bgw": `${100 - c.backgroundStrength}%` } as React.CSSProperties) : undefined;
   const body = (
@@ -226,7 +266,7 @@ export default function ChamberDisplay() {
           {c && ordered.length > 0 && (
             <>
               <span>Up next</span>
-              <ol>{ordered.map((x) => <li key={x.id} data-side={x.side}><i />{name(x.id)}</li>)}</ol>
+              <ol>{ordered.map((x) => <li key={x.id} data-side={c && ch.sided(c) ? x.side : undefined}><i />{name(x.id)}</li>)}</ol>
             </>
           )}
         </div>
