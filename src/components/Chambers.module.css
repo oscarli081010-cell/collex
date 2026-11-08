@@ -490,6 +490,8 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .kMeterBar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width 0.3s var(--ease-smooth-out); }
 .kMeter[data-met="true"] .kMeterBar i { background: var(--ok, #2d7a4f); }
 .kMeterText { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.kActions { display: flex; align-items: center; justify-content: center; gap: 8px; }
-.kActions .button { flex: 1 1 auto; height: 40px; }
-.kActions .button:only-child { flex: 1 1 100%; }
+.kActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+.kActions :global(.button) { flex: 1 1 110px; height: 40px; }
+.kActions .kDanger:hover { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
+.queue li.amRow .kActions { flex: 1 1 100%; }
+.kActions :global(.button):only-child { flex: 1 1 100%; }

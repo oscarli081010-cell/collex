@@ -996,8 +996,10 @@ function AmendmentQueue({ c, act }: { c: Chamber; act: Act }) {
                 <button type="button" className="button secondary sm" disabled={!canEntertain} onClick={() => act((x) => ch.entertain(x, a.id))}>Entertain</button>
                 <IconButton label={`Move ${name(a.by)}'s amendment up`} icon={ICONS.up} onClick={() => act((x) => ch.moveAmendment(x, a.id, -1))} disabled={i === 0} />
                 <IconButton label={`Move ${name(a.by)}'s amendment down`} icon={ICONS.down} onClick={() => act((x) => ch.moveAmendment(x, a.id, 1))} disabled={i === waiting.length - 1} />
-                <IconButton label={`Rule ${name(a.by)}'s amendment invalid`} icon={ICONS.hide} onClick={() => act((x) => ch.invalidAmendment(x, a.id))} />
-                <IconButton label={`Withdraw ${name(a.by)}'s amendment`} icon={ICONS.close} onClick={() => act((x) => ch.withdrawAmendment(x, a.id))} />
+              </span>
+              <span className={s.kActions}>
+                <button type="button" className="button secondary sm" onClick={() => act((x) => ch.invalidAmendment(x, a.id))}>Rule invalid</button>
+                <button type="button" className={`button secondary sm ${s.kDanger}`} onClick={() => act((x) => ch.withdrawAmendment(x, a.id))}>Withdraw</button>
               </span>
             </li>
           ))}
@@ -1367,8 +1369,8 @@ function Documents({ c, act }: { c: Chamber; act: Act }) {
                     {d.kind === "draft" && d.status === "submitted" && <button type="button" className="button secondary sm" disabled={n < need} onClick={() => act((x) => ch.approveDoc(x, d.id))}>Approve</button>}
                     {d.kind === "draft" && d.status === "approved" && !d.result && t.current !== d.id && <button type="button" className="button secondary sm" disabled={c.step !== "general" || !!c.speech || !!c.poll} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce</button>}
                     {d.kind === "draft" && d.status === "sent" && <button type="button" className="button secondary sm" onClick={() => act((x) => ch.resubmitDoc(x, d.id))}>Resubmit</button>}
-                    {d.kind === "draft" && d.status !== "sent" && !d.result && t.current !== d.id && <IconButton label={`Send ${d.title} back`} icon={ICONS.hide} onClick={() => act((x) => ch.sendBackDoc(x, d.id))} />}
-                    {!d.result && t.current !== d.id && <IconButton label={`Remove ${d.title}`} icon={ICONS.close} onClick={() => act((x) => ch.removeDoc(x, d.id))} />}
+                    {d.kind === "draft" && d.status !== "sent" && !d.result && t.current !== d.id && <button type="button" className="button secondary sm" onClick={() => act((x) => ch.sendBackDoc(x, d.id))}>Send back</button>}
+                    {!d.result && t.current !== d.id && <button type="button" className={`button secondary sm ${s.kDanger}`} onClick={() => act((x) => ch.removeDoc(x, d.id))}>Remove</button>}
                   </span>
                 </li>
               );
