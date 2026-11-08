@@ -777,12 +777,8 @@ function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
   const fixedPer = !!c.tr && (c.step === "caucus" || c.step === "amend"); // the caucus sets the time per speech
   const heading = c.tr ? (c.step === "general" ? "General speakers\u2019 list" : c.step === "caucus" ? "Moderated caucus speakers\u2019 list" : c.step === "floor" ? "Draft resolution speakers\u2019 list" : "Speakers\u2019 list") : "Speakers\u2019 list";
 
-  return (
-    <section className={`panel ${s.list} ${wide ? s.wideList : ""}`} aria-labelledby="ch-list">
-      <div className={s.head}>
-        <h2 id="ch-list" className={s.h2}>{heading}</h2>
-        <span className="badge">{c.debate.list.length}</span>
-      </div>
+  const form = (
+    <>
       {!fixedPer && <Duration id="ch-sp" label="Time per speech" value={c.speakSecs} min={5} max={3600}
         onChange={(secs, ok) => { if (ok && secs !== null) act((x) => ch.setSpeakSecs(x, secs)); }} />}
       <form className={s.addRow} onSubmit={(e) => { e.preventDefault(); if (pick) { act((x) => ch.addToList(x, pick, side)); setWho(""); } }}>
@@ -794,6 +790,10 @@ function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
         {!plain && <SideSwitch side={side} setSide={setSide} />}
         <button type="submit" className="button secondary" disabled={!pick}>Add</button>
       </form>
+    </>
+  );
+  const lists = (
+    <>
       <div className={s.sides} data-plain={plain || undefined}>
         {(plain ? (["for"] as const) : (["for", "against"] as const)).map((k) => (
           <div key={k} className={s.sideCol}>
@@ -817,6 +817,38 @@ function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
         ))}
       </div>
       {spoken.length > 0 && <p className={s.spoken}>Has spoken: {spoken.join(", ")}.</p>}
+    </>
+  );
+
+  // Trinity: the way to add a state on the left, the list on the right, like the amendments.
+  if (c.tr) {
+    return (
+      <div className={s.pair}>
+        <section className={`panel ${s.list}`} aria-labelledby="ch-list-add">
+          <div className={s.head}>
+            <h2 id="ch-list-add" className={s.h2}>Add to the {heading.charAt(0).toLowerCase() + heading.slice(1)}</h2>
+          </div>
+          <div className={s.panelBody}>{form}</div>
+        </section>
+        <section className={`panel ${s.list}`} aria-labelledby="ch-list">
+          <div className={s.head}>
+            <h2 id="ch-list" className={s.h2}>{heading}</h2>
+            <span className="badge">{c.debate.list.length}</span>
+          </div>
+          {lists}
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <section className={`panel ${s.list} ${wide ? s.wideList : ""}`} aria-labelledby="ch-list">
+      <div className={s.head}>
+        <h2 id="ch-list" className={s.h2}>{heading}</h2>
+        <span className="badge">{c.debate.list.length}</span>
+      </div>
+      {form}
+      {lists}
     </section>
   );
 }
@@ -1044,10 +1076,10 @@ function Motions({ c, act }: { c: Chamber; act: Act }) {
   const approved = ch.drafts(c).filter((d) => d.status === "approved" && !d.result);
   const busy = !!c.poll || !!c.speech;
   return (
-    <section className={`panel ${s.list}`} aria-labelledby="ch-mo">
+    <div className={s.pair}>
+    <section className={`panel ${s.list}`} aria-labelledby="ch-mo-add">
       <div className={s.head}>
-        <h2 id="ch-mo" className={s.h2}>Motions</h2>
-        <span className="badge">{waiting.length}</span>
+        <h2 id="ch-mo-add" className={s.h2}>Add a motion</h2>
       </div>
       <form className={s.panelBody} onSubmit={(e) => { e.preventDefault(); if (err) return; act((x) => ch.addMotion(x, uid(), input)); setTopic(""); }}>
         <div className={s.two}>
@@ -1098,6 +1130,12 @@ function Motions({ c, act }: { c: Chamber; act: Act }) {
         {err && <p className={s.hint} role="status">{err}</p>}
         <button type="submit" className="button secondary block" disabled={!!err}>Add the motion</button>
       </form>
+    </section>
+    <section className={`panel ${s.list}`} aria-labelledby="ch-mo">
+      <div className={s.head}>
+        <h2 id="ch-mo" className={s.h2}>Motions</h2>
+        <span className="badge">{waiting.length}</span>
+      </div>
       {waiting.length > 1 && (
         <div className={s.sortRow} role="group" aria-label="Order the motions">
           <button type="button" className="button secondary sm" onClick={() => act(ch.sortMotions)}>Oldest first</button>
@@ -1128,6 +1166,7 @@ function Motions({ c, act }: { c: Chamber; act: Act }) {
         </ul>
       )}
     </section>
+    </div>
   );
 }
 
@@ -1274,7 +1313,6 @@ function ChairTools({ c, act, now }: { c: Chamber; act: Act; now: number }) {
   const [to, setTo] = useState("");
   const [obs, setObs] = useState("");
   const name = (id: string | null) => ch.nameOf(c, id);
-  const count = (k: ch.PointKind) => t.points.filter((p) => p.kind === k).length;
   const toId = to || c.speech?.who || "";
   const active = Object.keys(t.observers).filter((id) => ch.observing(c, id, now) && c.delegates.some((d) => d.id === id));
   return (
@@ -1283,14 +1321,6 @@ function ChairTools({ c, act, now }: { c: Chamber; act: Act; now: number }) {
         <h2 id="ch-tools" className={s.h2}>Chair&apos;s tools</h2>
       </div>
       <div className={s.panelBody}>
-        <fieldset className={s.procedure}>
-          <legend>Points</legend>
-          <div className={s.sortRow}>
-            {(Object.keys(ch.POINT_LABEL) as ch.PointKind[]).map((k) => (
-              <button key={k} type="button" className="button secondary sm" onClick={() => act((x) => ch.logPoint(x, k))}>{ch.POINT_LABEL[k]} · {count(k)}</button>
-            ))}
-          </div>
-        </fieldset>
         <fieldset className={s.procedure}>
           <legend>Right of reply</legend>
           {t.reply ? (
@@ -1406,11 +1436,9 @@ function Analytics({ c, say }: { c: Chamber; say: (t: string) => void }) {
           {sPages > 1 && <Pager at={sp} pages={sPages} go={setSat} label="By state pages" />}
           {t && (() => {
             const inWk = <T extends { wk: 1 | 2 }>(x: T) => !wk || x.wk === wk;
-            const pts = t.points.filter(inWk);
             const rep = t.replies.filter(inWk);
             return (
               <div className={s.tally}>
-                {(Object.keys(ch.POINT_LABEL) as ch.PointKind[]).map((k) => <span key={k} className={s.chip}>{ch.POINT_LABEL[k]} {pts.filter((p) => p.kind === k).length}</span>)}
                 <span className={s.chip}>Motions passed {t.motions.filter((m) => m.status === "passed").length}</span>
                 <span className={s.chip}>Motions failed {t.motions.filter((m) => m.status === "failed").length}</span>
                 <span className={s.chip}>Rights of reply {rep.length}</span>

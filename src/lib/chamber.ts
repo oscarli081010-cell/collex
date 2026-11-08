@@ -467,10 +467,12 @@ export const present = (c: Chamber) => c.delegates.filter((d) => c.roll[d.id] ==
 export const signNeeded = (c: Chamber) => Math.max(2, Math.ceil((present(c) || c.delegates.length) / 4));
 const clauseKey = (t: string) => t.trim().toLowerCase().replace(/\s+/g, " ");
 export const amendedClause = (c: Chamber, clause: string) => !!clauseKey(clause) && c.amendments.some((a) => a.status === "passed" && clauseKey(a.clause) === clauseKey(clause));
+/** Whether amendments can be handed in: Trinity, from the debate on a draft resolution until the closing; Evatt, from the first caucus of the debate. */
+export const amendmentsOpen = (c: Chamber) => c.tr
+  ? !!c.tr.current && (c.step === "floor" || c.step === "amend" || (c.step === "caucus" && (c.after === "floor" || c.after === "amend")))
+  : c.step === "caucus" || c.step === "floor" || c.step === "amend";
 export function submitAmendment(c: Chamber, id: string, by: string, clause: string, text: string, backers: string[], seconder: string | null = null, consensus = false): Chamber {
-  const open = c.tr
-    ? !!c.tr.current && (c.step === "floor" || c.step === "amend" || (c.step === "caucus" && (c.after === "floor" || c.after === "amend")))
-    : c.step === "caucus" || c.step === "floor" || c.step === "amend";
+  const open = amendmentsOpen(c);
   const body = text.trim().slice(0, 600);
   if (!open || !body || !has(c, by) || c.amendments.some((a) => a.id === id)) return c;
   const second = c.tr && has(c, seconder) && seconder !== by ? seconder : null;
@@ -732,15 +734,10 @@ export function summary(c: Chamber, wk?: 1 | 2) {
    (from the first caucus of the debate until the closing), and the speakers' list (once the council has voted to debate an amendment). */
 export function rooms(c: Chamber): { negotiation: boolean; amendments: boolean; speakers: boolean; labels?: string[] } {
   if (c.tr) {
-    const t = c.tr;
-    const labels: string[] = [];
-    if (c.step === "statements") labels.push("Opening statements");
-    else if (c.step === "general") labels.push("General speakers\u2019 list open");
-    else if (c.step === "caucus") labels.push(t.cauc?.kind === "mod" ? "Moderated caucus" : t.cauc?.kind === "prep" ? "Preparation" : "Unmoderated caucus");
-    else if (c.step === "pick" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer") labels.push("Speakers\u2019 list open");
-    else if (c.step === "floor") labels.push("Draft resolution speakers\u2019 list open", "Amendments open");
-    else if (c.step === "amend") labels.push(c.amend?.stage === "debate" ? "Amendment moderated caucus" : "Amendment", "Amendments open");
-    return { negotiation: false, amendments: false, speakers: false, labels };
+    // The pill tells delegates two things: whether the speakers' list is open and whether amendments are. A caucus is not named.
+    const list = listOpen(c) || c.step === "pick" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer";
+    const labels = [list && "Speakers\u2019 list open", amendmentsOpen(c) && "Amendments open"].filter((x): x is string => !!x);
+    return { negotiation: false, amendments: amendmentsOpen(c), speakers: list, labels };
   }
   const speakers = c.amend?.stage === "debate" && (c.step === "amend" || (c.step === "caucus" && c.after === "amend"));
   return {

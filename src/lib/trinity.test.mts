@@ -20,7 +20,7 @@ c = ch.markRoll(c, id("Kenya"), "present");
 c = ch.beginDebate(c);
 assert.equal(c.step, "general", "roll call leads to the general debate");
 assert.equal(ch.stageIndex(c), 1);
-assert.deepEqual(ch.rooms(c).labels, ["General speakers’ list open"]);
+assert.deepEqual(ch.rooms(c).labels, ["Speakers’ list open"]);
 
 /* ---------- opening statements ---------- */
 c = ch.startStatements(c); assert.equal(c.step, "statements");
@@ -182,9 +182,10 @@ c = ch.callOpposer(c); assert.equal(c.timer!.total, 120_000);
 c = ch.endSpeech(c, AT, id("India")); c = ch.yieldToChair(c, id("India"), 0);
 assert.equal(c.step, "caucus"); assert.equal(c.timer!.total, 300_000, "5 minutes unmoderated"); assert.equal(c.after, "floor");
 assert.equal(c.tr!.cauc!.kind, "unmod");
+assert.deepEqual(ch.rooms(c).labels, ["Amendments open"], "an unmoderated caucus on the draft is not named; amendments are open");
 c = ch.endCaucus(c); assert.equal(c.step, "floor");
 assert.equal(ch.stageIndex(c), 2);
-assert.deepEqual(ch.rooms(c).labels, ["Draft resolution speakers’ list open", "Amendments open"]);
+assert.deepEqual(ch.rooms(c).labels, ["Speakers’ list open", "Amendments open"]);
 
 /* ---------- the draft resolution's speakers' list and amendments ---------- */
 assert.equal(ch.sided(c), true);
