@@ -8,6 +8,7 @@ const id = (n: string) => ids[names.indexOf(n)];
 let k = 0;
 const uid = () => "u" + ++k;
 const AT = 1_000_000;
+const begin = (x: ch.Chamber) => ch.endStatements(ch.beginDebate(x)); // past the statements, to the general debate
 const present = (c: ch.Chamber) => ch.markAllRoll(ch.startRoll(c), "voting");
 
 /* ---------- setup ---------- */
@@ -18,12 +19,13 @@ c = ch.startRoll(c);
 c = ch.markAllRoll(c, "voting");
 c = ch.markRoll(c, id("Kenya"), "present");
 c = ch.beginDebate(c);
-assert.equal(c.step, "general", "roll call leads to the general debate");
+assert.equal(c.step, "statements", "the experienced committee's first week opens with the statements straight after the roll call");
 assert.equal(ch.stageIndex(c), 1);
-assert.deepEqual(ch.rooms(c).labels, ["Speakers’ list open", "Motions open"]);
+assert.deepEqual(ch.rooms(c).labels, [], "nothing is open during the statements");
+assert.deepEqual(ch.motionKinds(c), ["mod", "extend", "closemod"], "moderated caucuses first");
 
 /* ---------- opening statements ---------- */
-c = ch.startStatements(c); assert.equal(c.step, "statements");
+assert.equal(c.step, "statements");
 assert.equal(ch.nextStatement(c), id("Australia"), "alphabetical");
 c = ch.callStatement(c, id("Brazil")); // any state can be called
 assert.equal(c.speech!.role, "statement"); assert.equal(c.timer!.total, 120_000, "2 minutes");
@@ -110,6 +112,8 @@ assert.equal(c.tr!.saved, null);
 c = ch.removeFromList(ch.removeFromList(c, id("Egypt")), id("Denmark"));
 
 /* ---------- motions: queue, order, voting ---------- */
+assert.ok(ch.motionError(c, { kind: "unmod", by: id("India"), total: 600 }), "unmoderated caucuses wait for three moderated ones");
+c = ch.allowUnmod(c); assert.equal(ch.motionError(c, { kind: "unmod", by: id("India"), total: 600 }), null, "unless the chair allows them");
 assert.ok(ch.motionError(c, { kind: "mod", by: id("India"), topic: "", total: 600, per: 60 }));
 assert.ok(ch.motionError(c, { kind: "unmod", by: id("India"), total: 1500 }));
 assert.ok(ch.motionError(c, { kind: "close", by: null }), "close debate belongs to the draft resolution debate");
@@ -314,7 +318,7 @@ assert.equal(Object.keys(w2.tr!.rolls["1"]).length, 16, "week 1's roll is kept")
 assert.equal(w2.tr!.docs.length, 3 - 1, "documents carry over"); // p1 and d1
 assert.equal(ch.nextWeek(w2).tr!.week, 2, "there is no week 3");
 assert.ok(w2.stats.length > 0);
-const w2on = ch.beginDebate(ch.markAllRoll(w2, "voting"));
+const w2on = begin(ch.markAllRoll(w2, "voting"));
 assert.equal(w2on.step, "general");
 { // stats made in week 2 are marked
   const s2 = ch.callStatement(ch.startStatements(w2on), id("Australia"));
@@ -339,7 +343,7 @@ assert.equal(ch.logPoint(g, "order").tr!.points.length, 1);
   const p = ch.startPrep(g);
   assert.equal(p.step, "caucus"); assert.equal(p.timer!.total, 1_200_000); assert.equal(p.tr!.cauc!.kind, "prep");
   assert.equal(ch.endCaucus(p).step, "general");
-  const b = ch.beginDebate(ch.markAllRoll(ch.startRoll(ch.createTrinity("GA", "Water", "beginner", 60, names, ids)), "voting"));
+  const b = begin(ch.markAllRoll(ch.startRoll(ch.createTrinity("GA", "Water", "beginner", 60, names, ids)), "voting"));
   let d = ch.addDoc(b, "d9", { kind: "draft", title: "Water", week: 1, seen: true, proposer: id("Australia"), seconder: id("Brazil"), sponsors: [id("China"), id("Denmark")], link: "", clauses: "" });
   d = ch.introduceDraft(ch.approveDoc(d, "d9"), "d9");
   d = ch.startSpeeches(d);
@@ -366,7 +370,7 @@ assert.equal(ch.logPoint(g, "order").tr!.points.length, 1);
 
 /* ---------- working papers, and what an amendment does ---------- */
 {
-  let x = ch.beginDebate(ch.markAllRoll(ch.startRoll(ch.createTrinity("SC", "T", "experienced", 60, names, ids)), "voting"));
+  let x = begin(ch.markAllRoll(ch.startRoll(ch.createTrinity("SC", "T", "experienced", 60, names, ids)), "voting"));
   assert.equal(ch.startPapers(x, 30).step, "general", "at least a minute");
   x = ch.startPapers(x);
   assert.equal(x.step, "caucus"); assert.equal(x.timer!.total, 1_800_000); assert.equal(x.tr!.cauc!.kind, "papers");
@@ -376,9 +380,9 @@ assert.equal(ch.logPoint(g, "order").tr!.points.length, 1);
   x = ch.endCaucus(x);
   const wk2 = { ...x, tr: { ...x.tr!, week: 2 as const } };
   assert.equal(ch.startPapers(wk2), wk2, "week 2 has no working papers");
-  assert.equal(ch.startPapers(ch.beginDebate(ch.markAllRoll(ch.startRoll(ch.createTrinity("GA", "T", "beginner", 60, names, ids)), "voting"))).step, "general", "nor does the beginner committee");
+  assert.equal(ch.startPapers(begin(ch.markAllRoll(ch.startRoll(ch.createTrinity("GA", "T", "beginner", 60, names, ids)), "voting"))).step, "general", "nor does the beginner committee");
   // a strike, an amend or an add is kept
-  let y = ch.beginDebate(ch.markAllRoll(ch.startRoll(ch.createTrinity("GA", "T", "beginner", 60, names, ids)), "voting"));
+  let y = begin(ch.markAllRoll(ch.startRoll(ch.createTrinity("GA", "T", "beginner", 60, names, ids)), "voting"));
   y = ch.introduceDraft(ch.approveDoc(ch.addDoc(y, "d", { kind: "draft", title: "R", week: 1, seen: true, proposer: id("Australia"), seconder: id("Brazil"), sponsors: [id("China"), id("Denmark")], link: "", clauses: "" }), "d"), "d");
   y = { ...y, step: "floor" };
   y = ch.submitAmendment(y, "s1", id("Egypt"), "Clause 2", "Remove it", [id("France"), id("India")], id("Germany"), false, "strike");
@@ -405,7 +409,7 @@ assert.equal(ch.logPoint(g, "order").tr!.points.length, 1);
   assert.ok(b.tr!.docs.every((d) => d.status === "approved" && d.proposer === null && d.kind === "draft"));
   assert.equal(b.tr!.docs.filter((d) => d.week === 1 && d.seen).length, 2);
   assert.equal(b.tr!.docs.filter((d) => d.week === 2 && !d.seen).length, 1);
-  b = ch.beginDebate(ch.markAllRoll(ch.startRoll(b), "voting"));
+  b = begin(ch.markAllRoll(ch.startRoll(b), "voting"));
   b = ch.introduceDraft(b, "agenda0");
   assert.equal(b.step, "pick", "a given resolution can be introduced without a proposer");
   assert.equal(ch.startSpeeches(b), b, "the proposer and seconder must be chosen first");
@@ -413,6 +417,45 @@ assert.equal(ch.logPoint(g, "order").tr!.points.length, 1);
   b = ch.startSpeeches(b);
   assert.equal(b.step, "proposer");
   assert.equal(b.tr!.docs[0].proposer, id("China")); assert.equal(b.tr!.docs[0].seconder, id("Russia"));
+}
+
+/* ---------- the caucus clock follows the speeches ---------- */
+{
+  let m = begin(ch.markAllRoll(ch.startRoll(ch.createTrinity("SC", "T", "experienced", 60, names, ids)), "voting"));
+  m = ch.callMod(m, "Verification", 600, 60);
+  m = ch.addToList(m, id("India"), "for", true); m = ch.addToList(m, id("Japan"), "against");
+  assert.deepEqual(m.debate.list.map((s) => !!s.stance), [true, false], "a stance is only shown when it was given");
+  m = ch.callSpeaker(m, id("India"), "for");
+  assert.equal(m.speech!.stance, true);
+  assert.equal(ch.running(m.tr!.cauc!.clock), false, "nothing runs before the speech starts");
+  m = ch.startTimer(m, AT); assert.equal(ch.running(m.tr!.cauc!.clock), true, "starting the speech starts the whole caucus's clock");
+  m = ch.pauseTimer(m, AT + 20_000); assert.equal(m.tr!.cauc!.clock!.left, 580_000); assert.equal(ch.running(m.tr!.cauc!.clock), false);
+  m = ch.startTimer(m, AT + 30_000);
+  m = ch.endSpeech(m, AT + 100_000, id("India")); // the speaker's minute ran out at +70s
+  assert.equal(m.tr!.cauc!.clock!.left, 540_000, "only the time the speaker had is taken");
+  m = ch.yieldToChair(m, id("India"), 0);
+  m = ch.callSpeaker(m, id("Japan"), "against");
+  assert.equal(m.speech!.stance, undefined);
+}
+
+/* ---------- the beginner committee is like Evatt ---------- */
+{
+  let b = begin(ch.markAllRoll(ch.startRoll(ch.createTrinity("GA", "T", "beginner", 60, names, ids)), "voting"));
+  assert.equal(b.step, "general", "no opening statements");
+  assert.equal(ch.listOpen(b), false, "no general speakers' list");
+  assert.equal(ch.motionsOpen(b), false);
+  assert.deepEqual(ch.motionKinds(b), ["unmod"], "unmoderated caucuses are the only motion");
+  assert.deepEqual(ch.rooms(b).labels, []);
+  assert.deepEqual(ch.stagesOf(b), ["Opening", "Resolutions", "Debate", "Closing"]);
+  assert.equal(ch.substep(b), "Choose a resolution");
+  // debating a draft: only unmoderated caucuses, in either committee
+  let e = begin(ch.markAllRoll(ch.startRoll(ch.createTrinity("SC", "T", "experienced", 60, names, ids)), "voting"));
+  e = ch.nextWeek(e); e = ch.beginDebate(ch.markAllRoll(ch.startRoll(e), "voting"));
+  assert.deepEqual(ch.motionKinds(e), ["mod", "unmod", "extend", "closemod", "draft"], "between drafts in the second week");
+  e = ch.addDoc(e, "z", { kind: "draft", title: "Z", week: 2, seen: true, proposer: id("China"), seconder: id("Denmark"), sponsors: [id("Egypt"), id("France")], link: "", clauses: "" });
+  e = ch.introduceDraft(ch.approveDoc(e, "z"), "z");
+  assert.deepEqual(ch.motionKinds(e), ["unmod"], "while a draft resolution is debated");
+  assert.equal(ch.motionsOpen(e), false, "not while the proposers are chosen or speaking");
 }
 
 console.log("ALL TRINITY CHECKS PASSED");

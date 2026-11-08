@@ -212,8 +212,8 @@ export default function Chambers() {
           {(t ? ch.listOpen(c) : inDebate && ch.listOpen(c)) && <Lists c={c} act={act} wide />}
           {amendOpen && <div className={s.pair}><AmendmentForm c={c} act={act} /><AmendmentQueue c={c} act={act} /></div>}
           {(c.step === "vote" || c.step === "closed" || c.step === "ended") && <RollCall c={c} act={act} />}
-          {trWork && <Motions c={c} act={act} />}
-          {trWork && <Documents c={c} act={act} />}
+          {trWork && (ch.motionsOpen(c) || c.poll?.kind === "motion" || t.motions.some((m) => m.status === "waiting")) && <Motions c={c} act={act} />}
+          {trWork && c.step !== "statements" && <Documents c={c} act={act} />}
           {trWork && <ChairTools c={c} act={act} now={now} />}
         </div>
       ) : view === "analytics" ? (
@@ -396,6 +396,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
   }
   else if (poll?.kind === "motion") { title = "Motion"; sub = poll.title; }
   else if (t && c.step === "statements") { title = stNext ? name(stNext) : "Opening statements"; sub = stNext ? "Next opening statement, up to 2 minutes" : "Every state has given its statement"; }
+  else if (t && c.step === "general" && t.level === "beginner") { title = "Choose a resolution"; sub = ch.drafts(c).some((d) => d.status === "approved" && !d.result && d.week === t.week) ? "Introduce a draft resolution to begin the debate" : "Add a draft resolution below"; }
   else if (t && c.step === "general") { title = next ? name(next.id) : "General speakers\u2019 list"; sub = next ? "Next on the general speakers\u2019 list" : "Add states to the speakers\u2019 list"; }
   else if (c.step === "proposer") { title = name(c.roles.proposer); sub = t ? "Introduces the draft resolution" : "Proposes the resolution"; }
   else if (c.step === "seconder") { title = name(c.roles.seconder); sub = t ? "Speaks as co-proposer" : "Seconds the resolution"; }
@@ -415,7 +416,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
     else { title = "The speakers' list is empty"; sub = spokeFromList ? "Everyone listed has spoken. Vote on the amendment." : "Add states to the speakers' list, For or Against"; }
   }
 
-  const sideless = !!t && sp && !ch.sided(c) && (sp.role === "speaker" || sp.role === "statement"); // a general speaker or a statement takes no side
+  const sideless = !!t && sp && !sp.stance && !ch.sided(c) && (sp.role === "speaker" || sp.role === "statement"); // a general speaker or a statement takes no side
   const chipSide: Side | null = sp ? (sideless ? null : sp.side) : debateOpen && !sp && c.debate.run.length && next ? next.side : null;
 
   const actions = (() => {
@@ -489,21 +490,26 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
         </>
       );
       case "general": {
-        const ready = t ? ch.drafts(c).find((d) => d.status === "approved" && !d.result && d.week === t.week) : undefined;
-        const beginner = !!t && !ch.firstWeekSC(c); // a draft resolution is introduced from here, except in the first week of the experienced committee
+        const beginnerCom = t?.level === "beginner";
+        const readyAll = t ? ch.drafts(c).filter((d) => d.status === "approved" && !d.result && d.week === t.week) : [];
+        const unseen = readyAll.find((d) => !d.seen);
+        const draftsHere = !!t && !ch.firstWeekSC(c); // a draft resolution is introduced from here, except in the first week of the experienced committee
         const modDone = !!t && t.motions.some((m) => m.kind === "mod" && m.status === "passed");
+        const primaryTaken = !beginnerCom && !!next;
         return (
           <>
-            {next && timeField}
-            {next && <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, next.id, next.side, secs))}>Call {name(next.id)}</button>}
-            {beginner && ready && <button type="button" className={next ? "button secondary" : "button"} onClick={() => act((x) => ch.introduceDraft(x, ready.id))}>Introduce {ready.title}</button>}
-            {t?.level === "beginner" && t.week === 2 && ready && !ready.seen && <button type="button" className="button secondary sm" onClick={() => act(ch.startPrep)}>Preparation, 20 min</button>}
+            {!beginnerCom && next && timeField}
+            {!beginnerCom && next && <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, next.id, next.side, secs))}>Call {name(next.id)}</button>}
+            {draftsHere && readyAll.map((d, i) => <button key={d.id} type="button" className={i === 0 && !primaryTaken ? "button" : "button secondary"} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce {d.title}</button>)}
+            {beginnerCom && t.week === 2 && unseen && <button type="button" className="button secondary sm" onClick={() => act(ch.startPrep)}>Preparation, 20 min</button>}
             {ch.firstWeekSC(c) && <button type="button" className="button secondary sm" onClick={() => act((x) => ch.startPapers(x))}>Start working papers, 30 min</button>}
-            <div className={s.btnRow}>
-              {stNext && t?.week === 1
-                ? <button type="button" className={next || ready ? "button secondary sm" : "button"} onClick={() => act(ch.startStatements)}>Opening statements</button>
-                : <button type="button" className={next || ready ? "button secondary sm" : "button"} onClick={() => window.dispatchEvent(new Event("chambers:motion"))}>{modDone ? "Start another moderated caucus" : "Start a moderated caucus"}</button>}
-            </div>
+            {!beginnerCom && (
+              <div className={s.btnRow}>
+                {stNext && t?.week === 1
+                  ? <button type="button" className={next || readyAll.length ? "button secondary sm" : "button"} onClick={() => act(ch.startStatements)}>Opening statements</button>
+                  : <button type="button" className={next || readyAll.length ? "button secondary sm" : "button"} onClick={() => window.dispatchEvent(new Event("chambers:motion"))}>{modDone ? "Start another moderated caucus" : "Start a moderated caucus"}</button>}
+              </div>
+            )}
             {t && t.week === 1 && (confirmWeek
               ? <div className={s.btnRow} role="group" aria-label="End week 1"><button type="button" className="button sm" onClick={() => act(ch.nextWeek)}>Start week 2</button><button type="button" className="button secondary sm" onClick={() => setConfirmWeek(false)}>Not yet</button></div>
               : <button type="button" className="button secondary sm" onClick={() => setConfirmWeek(true)}>End week 1</button>)}
@@ -703,7 +709,6 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
           <div className={s.caucClock} data-state={kUp ? "up" : kRun ? "running" : "paused"}>
             <span>Whole caucus</span>
             <b className="num" role="timer">{ch.clock(kLeft)}</b>
-            <button type="button" className="button secondary sm" onClick={() => act((x) => (ch.running(x.tr?.cauc?.clock ?? null) ? ch.pauseCauc(x, ch.now()) : ch.startCauc(x, ch.now())))} disabled={kUp}>{kRun ? "Pause" : "Start"}</button>
           </div>
         )}
       </div>
@@ -796,6 +801,7 @@ function Stats({ items, bar, label }: { items: Stat[]; bar?: boolean; label: str
 function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
   const [who, setWho] = useState("");
   const [side, setSide] = useState<Side>("for");
+  const [stance, setStance] = useState<"none" | Side>("none"); // the general list and a moderated caucus: whether the state speaks For or Against
   const next = ch.nextCandidate(c);
   const options = c.delegates.filter((d) => ch.canAdd(c, d.id, side));
   const pick = options.some((d) => d.id === who) ? who : "";
@@ -809,13 +815,14 @@ function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
     <>
       {!fixedPer && <Duration id="ch-sp" label="Time per speech" value={c.speakSecs} min={5} max={3600}
         onChange={(secs, ok) => { if (ok && secs !== null) act((x) => ch.setSpeakSecs(x, secs)); }} />}
-      <form className={s.addRow} onSubmit={(e) => { e.preventDefault(); if (pick) { act((x) => ch.addToList(x, pick, side)); setWho(""); } }}>
+      <form className={s.addRow} onSubmit={(e) => { e.preventDefault(); if (pick) { act((x) => ch.addToList(x, pick, stance === "against" ? "against" : plain ? "for" : side, plain && stance !== "none")); setWho(""); } }}>
         <label htmlFor="ch-add" className="sr-only">Add a state to the list</label>
         <Select id="ch-add" className={`control ${s.addWho}`} value={pick} onChange={(e) => setWho(e.target.value)}>
           <option value="">{options.length ? "Add a state…" : "No one else can join this side"}</option>
           {options.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         </Select>
         {!plain && <SideSwitch side={side} setSide={setSide} />}
+        {plain && !!c.tr && <Seg label="Stance" value={stance} onPick={setStance} className={s.sideSeg} items={[{ id: "none", label: "No side" }, { id: "for", label: SIDE.for }, { id: "against", label: SIDE.against }]} />}
         <button type="submit" className="button secondary" disabled={!pick}>Add</button>
       </form>
     </>
@@ -831,6 +838,7 @@ function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
                 {(plain ? c.debate.list : col(k)).map((x) => (
                   <li key={x.id} data-next={next?.id === x.id}>
                     <span className={s.qname}>{ch.nameOf(c, x.id)}</span>
+                    {plain && x.stance && <span className={s.chip} data-side={x.side}>{SIDE[x.side]}</span>}
                     <span className={s.rowBtns}>
                       <IconButton label={`Move ${ch.nameOf(c, x.id)} up`} icon={ICONS.up} onClick={() => act((y) => ch.shiftList(y, x.id, -1))} />
                       <IconButton label={`Move ${ch.nameOf(c, x.id)} down`} icon={ICONS.down} onClick={() => act((y) => ch.shiftList(y, x.id, 1))} />
@@ -1112,12 +1120,6 @@ function TrinityPick({ c, act }: { c: Chamber; act: Act }) {
 }
 
 /* Trinity Grammar MUN: motions. Raised in any order, put in the order the chair chooses, then voted on by placard. */
-/** A country's two-letter badge, for the people on a motion or a document. */
-const initials = (n: string) => { const w = n.trim().split(/\s+/); return (w.length > 1 ? w[0][0] + w[1][0] : n.slice(0, 2)).toUpperCase(); };
-function Avatar({ name, tone }: { name: string; tone?: "lead" | "second" }) {
-  return <span className={s.kAvatar} data-tone={tone} aria-hidden="true">{initials(name)}</span>;
-}
-
 function Motions({ c, act }: { c: Chamber; act: Act }) {
   const [chosen, setKind] = useState<ch.MotionKind>("mod");
   const kinds = ch.motionKinds(c);
@@ -1193,6 +1195,12 @@ function Motions({ c, act }: { c: Chamber; act: Act }) {
             </Select>
           </div>
         )}
+        {ch.firstWeekSC(c) && !ch.unmodUnlocked(c) && (
+          <div className={s.hintRow}>
+            <p className={s.hint}>Unmoderated caucuses open after three moderated ones ({ch.modsHeld(c)} of 3).</p>
+            <button type="button" className="button secondary sm" onClick={() => act(ch.allowUnmod)}>Allow them now</button>
+          </div>
+        )}
         {err && !(kind === "mod" && !topic.trim()) && <p className={s.hint} role="status">{err}</p>}
         <button type="submit" className="button secondary block" disabled={!!err}>Add the motion</button>
       </form>
@@ -1216,7 +1224,7 @@ function Motions({ c, act }: { c: Chamber; act: Act }) {
                 {i === 0 && <span className={s.nextTag}>Next</span>}
               </span>
               <span className={s.cardMeta}>
-                {m.by && <span className={s.kSigner}><Avatar name={ch.nameOf(c, m.by)} tone="lead" />{ch.nameOf(c, m.by)}<small>proposes</small></span>}
+                {m.by && <span className={s.kSigner}>{ch.nameOf(c, m.by)}<small>proposes</small></span>}
                 {ch.motionDetail(c, m) && <span className={s.detail}>{ch.motionDetail(c, m)}</span>}
               </span>
               <span className={s.kActions}>
@@ -1352,24 +1360,25 @@ function Documents({ c, act }: { c: Chamber; act: Act }) {
                   <span className={s.docMeta}>
                     {[d.kind === "paper" ? "Working paper" : "Draft resolution", `Week ${d.week}`, d.kind === "draft" && t.level === "beginner" ? (d.seen ? "Seen" : "Unseen") : ""].filter(Boolean).join(" \u00B7 ")}
                   </span>
+                  {n > 0 && (
                   <span className={s.signBox}>
                     <span className={s.kSigners}>
                       {ch.docSigners(d).map((id) => (
-                        <span key={id} className={s.kSigner}>
-                          <Avatar name={name(id)} tone={id === d.proposer ? "lead" : id === d.seconder ? "second" : undefined} />
+                        <span key={id} className={s.kSigner} data-tone={id === d.proposer ? "lead" : id === d.seconder ? "second" : undefined}>
                           {name(id)}
                           {id === d.proposer && <small>proposer</small>}
                           {id === d.seconder && <small>seconder</small>}
                         </span>
                       ))}
                     </span>
-                    {d.kind === "draft" ? (
+                    {d.kind === "draft" && d.status !== "approved" ? (
                       <span className={s.kMeter} data-met={n >= need} role="img" aria-label={`${n} of ${need} signatures`}>
                         <span className={s.kMeterBar}><i style={{ width: `${Math.min(100, (n / Math.max(need, 1)) * 100)}%` }} /></span>
                         <span className={s.kMeterText}>{n} of {need} signed</span>
                       </span>
                     ) : <span className={s.kMeterText}>{n} signator{n === 1 ? "y" : "ies"}</span>}
                   </span>
+                  )}
                   {d.from.length > 0 && <span className={s.docMeta}>From {d.from.map((f) => t.docs.find((x) => x.id === f)?.title).filter(Boolean).join(", ")}</span>}
                   {d.link && <a className={s.docLink} href={d.link} target="_blank" rel="noopener noreferrer">Open the document</a>}
                   {!locked && (
@@ -1457,7 +1466,7 @@ function ChairTools({ c, act, now }: { c: Chamber; act: Act; now: number }) {
                 return (
                   <li key={id} className={s.card}>
                     <span className={s.cardTop}>
-                      <span className={s.kSigner}><Avatar name={name(id)} tone="lead" />{name(id)}<small>honorary observer</small></span>
+                      <span className={s.kSigner}>{name(id)}<small>honorary observer</small></span>
                       <span className={s.obsClock} data-low={left < 60000 || undefined}>{ch.clock(left)}</span>
                     </span>
                     <span className={s.kActions}>

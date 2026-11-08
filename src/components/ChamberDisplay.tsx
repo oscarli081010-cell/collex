@@ -109,7 +109,7 @@ export default function ChamberDisplay() {
     </div>
   );
   const obsTag = (id: string) => (c && ch.observing(c, id, now) ? <em>Observer</em> : null);
-  const sideOf = (sp: ch.Speech) => (c && c.tr && !ch.sided(c) && (sp.role === "speaker" || sp.role === "statement") ? undefined : sp.side);
+  const sideOf = (sp: ch.Speech) => (c && c.tr && !ch.sided(c) && (sp.role === "speaker" || sp.role === "statement") && !sp.stance ? undefined : sp.side);
 
   let mid: React.ReactNode;
   if (!c) {
@@ -172,14 +172,13 @@ export default function ChamberDisplay() {
   } else if (c.step === "statements") {
     const next3 = ch.upcomingStatements(c, 3);
     mid = (
-      <Screen heading="Opening statements" lines={[next3.length ? "Opening statements are starting" : "Every state has spoken"]}
-        foot={next3.length > 0 && <div className={s.dSigs}><span>Up next</span><ul>{next3.map((id) => <li key={id}>{name(id)}</li>)}</ul></div>} />
+      <Screen heading="Opening statements" foot={next3.length > 0 && <div className={s.dSigs}><span>Up next</span><ul>{next3.map((id) => <li key={id}>{name(id)}</li>)}</ul></div>} />
     );
   } else if (c.step === "general") {
     const m = c.result?.kind === "motion" ? motionOf(c.result.motion) : undefined;
     mid = c.result?.kind === "motion"
       ? <Screen pill={m ? ch.motionPill(c, m) : ["Motion"]} heading={c.result.passed ? "Motion passes" : "Motion fails"} pass={c.result.passed} lines={[m ? ch.motionDetail(c, m) : c.result.title]}>{votes(c.result)}</Screen>
-      : <Screen heading={"General speakers\u2019 list"} />;
+      : <Screen heading={c.tr?.level === "beginner" ? "Choose a resolution" : "General speakers\u2019 list"} />;
   } else if (c.step === "caucus" && c.tr && k?.kind === "mod") {
     mid = (
       <Screen heading={k.topic}>
@@ -272,7 +271,7 @@ export default function ChamberDisplay() {
           {c && ordered.length > 0 && (
             <>
               <span>Up next</span>
-              <ol>{ordered.map((x) => <li key={x.id} data-side={c && ch.sided(c) ? x.side : undefined}><i />{name(x.id)}</li>)}</ol>
+              <ol>{ordered.map((x) => <li key={x.id} data-side={c && (ch.sided(c) || x.stance) ? x.side : undefined} data-plain={(c && !ch.sided(c) && !x.stance) || undefined}><i />{name(x.id)}{x.stance && <small>{SIDE[x.side]}</small>}</li>)}</ol>
             </>
           )}
         </div>

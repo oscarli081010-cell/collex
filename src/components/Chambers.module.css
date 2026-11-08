@@ -306,6 +306,8 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dNext li { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
 .dNext li i { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); }
 .dNext li[data-side="against"] i { background: var(--danger); }
+.dNext li[data-plain] i { background: var(--line-strong); }
+.dNext li small { font-size: 0.78em; font-weight: 400; color: var(--muted); }
 .dNote { color: var(--muted); text-align: right; margin-left: auto; }
 .dNote strong { color: var(--ink); font-weight: 500; }
 @media (prefers-reduced-motion: reduce) { .dTrack i { transition: none; } }
@@ -478,10 +480,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .cardMeta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .detail { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .docMeta { font-size: 12.5px; color: var(--muted); }
-.kAvatar { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--surface); color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
-.kAvatar[data-tone="lead"] { background: var(--accent); color: var(--on-ink); }
-.kAvatar[data-tone="second"] { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-.kSigner { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px 0 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font-size: 13.5px; font-weight: 500; }
+.kSigner { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font-size: 13.5px; font-weight: 500; }
 .kSigner small { font-size: 11.5px; font-weight: 400; color: var(--muted); }
 .signBox { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 12px; background: color-mix(in srgb, var(--surface) 70%, transparent); }
 .kSigners { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -497,3 +496,9 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .kActions :global(.button):only-child { flex: 1 1 100%; }
 .obsClock { font-size: 22px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--accent); }
 .obsClock[data-low] { color: var(--danger); }
+.kSigner[data-tone="lead"] { background: var(--accent); border-color: var(--accent); color: var(--on-ink); }
+.kSigner[data-tone="lead"] small { color: inherit; opacity: 0.8; }
+.kSigner[data-tone="second"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.kSigner[data-tone="second"] small { color: inherit; opacity: 0.8; }
+.hintRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.hintRow .hint { margin: 0; flex: 1 1 200px; }
