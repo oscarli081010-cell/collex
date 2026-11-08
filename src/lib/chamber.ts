@@ -926,7 +926,7 @@ export function nextWeek(c: Chamber): Chamber {
 
 /* Opening statements: every state in turn, alphabetically */
 export function startStatements(c: Chamber): Chamber {
-  return c.tr && c.step === "general" && !c.speech && !c.poll ? note({ ...c, step: "statements" }, "Opening statements") : c;
+  return c.tr && c.tr.level === "experienced" && c.step === "general" && !c.speech && !c.poll ? note({ ...c, step: "statements" }, "Opening statements") : c;
 }
 /** The next state to give its statement: those present, in alphabetical order. */
 export function upcomingStatements(c: Chamber, n = 3): string[] {

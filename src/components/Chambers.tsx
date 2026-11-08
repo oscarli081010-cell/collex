@@ -1272,7 +1272,8 @@ function Documents({ c, act }: { c: Chamber; act: Act }) {
   const can = c.delegates.filter((d) => !ch.observing(c, d.id));
   const noun = kind === "paper" ? "working paper" : "draft resolution";
   return (
-    <div className={s.pair}>
+    <div className={t.level === "beginner" ? undefined : s.pair}>
+      {t.level !== "beginner" && (
       <section className={`panel ${s.list}`} aria-labelledby="ch-docs-add">
         <div className={s.head}>
           <h2 id="ch-docs-add" className={s.h2}>Add a {noun}</h2>
@@ -1337,6 +1338,7 @@ function Documents({ c, act }: { c: Chamber; act: Act }) {
           <button type="submit" className="button secondary block" disabled={!ready}>Add the {noun}</button>
         </form>
       </section>
+      )}
       <section className={`panel ${s.list}`} aria-labelledby="ch-docs">
         <div className={s.head}>
           <h2 id="ch-docs" className={s.h2}>Documents</h2>
@@ -1565,7 +1567,7 @@ function Analytics({ c, say }: { c: Chamber; say: (t: string) => void }) {
             <label htmlFor="an-kind" className="sr-only">Show</label>
             <Select id="an-kind" className="control" value={kind} onChange={(e) => { setKind(e.target.value as "" | ch.StatKind); setAat(0); }}>
               <option value="">Everything</option>
-              {(t ? (["statement", ...FILTERS] as ch.StatKind[]) : FILTERS).map((k) => <option key={k} value={k}>{ch.STAT_LABEL[k]}</option>)}
+              {(t?.level === "experienced" ? (["statement", ...FILTERS] as ch.StatKind[]) : FILTERS).map((k) => <option key={k} value={k}>{ch.STAT_LABEL[k]}</option>)}
             </Select>
           </div>
           {feed.length === 0 ? <p className={s.empty}>Nothing yet.</p> : (
