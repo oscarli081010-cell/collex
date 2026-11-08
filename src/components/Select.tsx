@@ -53,6 +53,8 @@ export default function Select({ value, defaultValue, onChange, children, id, na
   const btn = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLUListElement>(null);
   const typed = useRef({ text: "", at: 0 });
+  // The highlighted row is only scrolled into view when the keyboard moved it, so a wheel scrolling the list under the pointer isn't pulled back.
+  const viaKey = useRef(false);
   const listId = useId();
 
   const place = () => {
@@ -73,18 +75,18 @@ export default function Select({ value, defaultValue, onChange, children, id, na
     btn.current?.focus();
   };
 
-  useLayoutEffect(() => { if (open) { place(); setActive(at); } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => { if (open) { viaKey.current = true; place(); setActive(at); } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => { const t = e.target as Node; if (!menu.current?.contains(t) && !btn.current?.contains(t)) setOpen(false); };
-    const move = () => place();
+    const move = (e?: Event) => { if (e?.target instanceof Node && menu.current?.contains(e.target)) return; place(); }; // the list scrolling inside itself is not the page moving
     document.addEventListener("pointerdown", away);
     window.addEventListener("resize", move);
     window.addEventListener("scroll", move, true);
     return () => { document.removeEventListener("pointerdown", away); window.removeEventListener("resize", move); window.removeEventListener("scroll", move, true); };
   }, [open]);
   // The highlighted row stays in view as the arrow keys move it.
-  useEffect(() => { if (open) menu.current?.children[active]?.scrollIntoView({ block: "nearest" }); }, [open, active]);
+  useEffect(() => { if (open && viaKey.current) menu.current?.children[active]?.scrollIntoView({ block: "nearest" }); }, [open, active]);
 
   const step = (from: number, by: 1 | -1) => {
     for (let i = from + by; i >= 0 && i < opts.length; i += by) if (!opts[i].disabled) return i;
@@ -94,11 +96,13 @@ export default function Select({ value, defaultValue, onChange, children, id, na
     if (disabled) return;
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
+      viaKey.current = true;
       if (!open) { setOpen(true); return; }
       setActive((a) => step(a, e.key === "ArrowDown" ? 1 : -1));
     } else if (e.key === "Home" || e.key === "End") {
       if (!open) return;
       e.preventDefault();
+      viaKey.current = true;
       setActive(e.key === "Home" ? step(-1, 1) : step(opts.length, -1));
     } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -115,7 +119,7 @@ export default function Select({ value, defaultValue, onChange, children, id, na
       t.at = now;
       const from = open ? active : at;
       const hit = [...opts.keys()].map((i) => (i + from + (t.text.length === 1 ? 1 : 0)) % opts.length).find((i) => !opts[i].disabled && opts[i].label.toLowerCase().startsWith(t.text));
-      if (hit !== undefined) { if (open) setActive(hit); else pick(opts[hit]); }
+      if (hit !== undefined) { if (open) { viaKey.current = true; setActive(hit); } else pick(opts[hit]); }
     }
   };
 
@@ -132,7 +136,7 @@ export default function Select({ value, defaultValue, onChange, children, id, na
           style={{ left: pos.left, width: pos.width, top: pos.top, bottom: pos.bottom, maxHeight: pos.max }}>
           {opts.map((o, i) => (
             <li key={`${o.value}-${i}`} id={`${listId}-${i}`} role="option" aria-selected={i === at} aria-disabled={o.disabled || undefined} data-active={i === active || undefined}
-              className="selectOpt" onMouseEnter={() => !o.disabled && setActive(i)} onMouseDown={(e) => e.preventDefault()} onClick={() => pick(o)}>
+              className="selectOpt" onMouseEnter={() => { if (!o.disabled) { viaKey.current = false; setActive(i); } }} onMouseDown={(e) => e.preventDefault()} onClick={() => pick(o)}>
               <span>{o.label}</span>
               {i === at && <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" /></svg>}
             </li>

@@ -24,7 +24,9 @@ export type Speech = { who: string; side: Side; role: Role; phase: Phase; asker:
 /** The speeches on the amendment in hand. */
 export type Debate = { list: Slot[]; run: Slot[] };
 /** `backers` are the amendment's signatories. `at` is when it was handed in. */
-export type Amendment = { id: string; by: string; /** Trinity: the second signatory. */ seconder?: string | null; clause: string; text: string; backers: string[]; at: number; status: "waiting" | "entertained" | "passed" | "failed" | "withdrawn" | "invalid" };
+/** Strike a clause, amend it, or add one. */
+export type AmendHow = "strike" | "amend" | "add";
+export type Amendment = { id: string; by: string; how?: AmendHow; /** Trinity: the second signatory. */ seconder?: string | null; clause: string; text: string; backers: string[]; at: number; status: "waiting" | "entertained" | "passed" | "failed" | "withdrawn" | "invalid" };
 /** What a state did, for the analytics: a speech of each kind, a Point of Information asked or answered, an amendment handed in or signed. */
 export type StatKind = "proposer" | "seconder" | "opposer" | "amender" | "speaker" | "closing" | "poi" | "reply" | "amendment" | "signatory" | "statement";
 /** `wk` is the week of a Trinity committee the entry was made in. */
@@ -34,7 +36,7 @@ export type AmendStage = "read" | "ask" | "debate" | "vote";
 /** `motion` is the Trinity motion being voted on. */
 export type Poll = { title: string; kind: "debate" | "amendment" | "motion"; yes: number; no: number; abstain: number; motion?: string };
 /** `kind` says which vote it was (whether to debate an amendment, or whether to adopt it) and `amendment` which one. */
-export type Result = { title: string; kind: "debate" | "amendment" | "motion"; amendment?: string; passed: boolean; yes: number; no: number; abstain: number };
+export type Result = { title: string; kind: "debate" | "amendment" | "motion"; amendment?: string; /** The Trinity motion a result is for. */ motion?: string; passed: boolean; yes: number; no: number; abstain: number };
 /** `vetoed` lists the permanent members that voted against, on a Security Council vote. */
 export type Outcome = { passed: boolean; yes: number; no: number; abstain: number; needed: number; vetoed?: string[] };
 export type Entry = { at: number; text: string };
@@ -51,7 +53,7 @@ export type MotionKind = "mod" | "unmod" | "extend" | "closemod" | "close" | "am
 export type Motion = { id: string; kind: MotionKind; by: string | null; topic: string; total: number; per: number; ref: string | null; at: number; status: "waiting" | "passed" | "failed" | "withdrawn" };
 export type PointKind = "order" | "privilege" | "inquiry" | "clarification";
 /** A caucus in progress. A moderated one (and an amendment's debate) keeps its own clock for the whole caucus while the committee's timer times each speaker. */
-export type Caucus = { kind: "mod" | "unmod" | "prep" | "amend" | "final"; topic: string; per: number; total: number; ext: number; clock: Timer | null };
+export type Caucus = { kind: "mod" | "unmod" | "prep" | "amend" | "final" | "papers"; /** The 5 minutes that open the debate on a draft: amendments are handed in once it is over. */ intro?: boolean; topic: string; per: number; total: number; ext: number; clock: Timer | null };
 export type Trin = {
   level: Level; week: 1 | 2; docs: Doc[]; motions: Motion[]; opened: string[]; cauc: Caucus | null;
   /** The speakers' list kept aside while a caucus or an amendment uses the committee's own. */
@@ -430,13 +432,17 @@ function enterCaucus(c: Chamber, secs: number, after: Step, label: string, kind:
   return note({ ...c, tr, step: "caucus", after, timer: timerFor(label, secs) }, `${label}: ${clock(secs * 1000)}`);
 }
 // The debate on a resolution starts with a caucus: Evatt's is the chair's to set; Trinity's is 5 minutes.
-const openingCaucus = (c: Chamber) => (c.tr ? enterCaucus(c, TR.intro, "floor", "Unmoderated caucus") : enterCaucus(c, CAUCUS_SECS, "floor", "Caucus"));
+const openingCaucus = (c: Chamber) => {
+  if (!c.tr) return enterCaucus(c, CAUCUS_SECS, "floor", "Caucus");
+  const next = enterCaucus(c, TR.intro, "floor", "Unmoderated caucus");
+  return next.tr?.cauc ? { ...next, tr: { ...next.tr, cauc: { ...next.tr.cauc, intro: true } } } : next;
+};
 /** The chair sets how long the caucus is before it starts. */
 export function setCaucusSecs(c: Chamber, secs: number): Chamber {
   if (c.step !== "caucus" || running(c.timer) || secs < 5 || secs > 10800) return c;
-  if (c.tr) { // an unmoderated caucus is at most 20 minutes; the others are fixed
+  if (c.tr) { // an unmoderated caucus is at most 20 minutes, the working papers are the chair's to set; the others are fixed
     const k = c.tr.cauc;
-    if (!k || k.kind !== "unmod" || secs > TR.maxCaucus) return c;
+    if (!k || (k.kind !== "unmod" && k.kind !== "papers") || (k.kind === "unmod" && secs > TR.maxCaucus)) return c;
     return { ...c, timer: timerFor(c.timer?.label ?? "Unmoderated caucus", secs), tr: { ...c.tr, cauc: { ...k, total: secs } } };
   }
   return { ...c, timer: timerFor(c.timer?.label ?? "Caucus", secs) };
@@ -469,9 +475,9 @@ const clauseKey = (t: string) => t.trim().toLowerCase().replace(/\s+/g, " ");
 export const amendedClause = (c: Chamber, clause: string) => !!clauseKey(clause) && c.amendments.some((a) => a.status === "passed" && clauseKey(a.clause) === clauseKey(clause));
 /** Whether amendments can be handed in: Trinity, from the debate on a draft resolution until the closing; Evatt, from the first caucus of the debate. */
 export const amendmentsOpen = (c: Chamber) => c.tr
-  ? !!c.tr.current && (c.step === "floor" || c.step === "amend" || (c.step === "caucus" && (c.after === "floor" || c.after === "amend")))
+  ? !!c.tr.current && (c.step === "floor" || c.step === "amend" || (c.step === "caucus" && (c.after === "floor" || c.after === "amend") && !c.tr.cauc?.intro))
   : c.step === "caucus" || c.step === "floor" || c.step === "amend";
-export function submitAmendment(c: Chamber, id: string, by: string, clause: string, text: string, backers: string[], seconder: string | null = null, consensus = false): Chamber {
+export function submitAmendment(c: Chamber, id: string, by: string, clause: string, text: string, backers: string[], seconder: string | null = null, consensus = false, how: AmendHow = "amend"): Chamber {
   const open = amendmentsOpen(c);
   const body = text.trim().slice(0, 600);
   if (!open || !body || !has(c, by) || c.amendments.some((a) => a.id === id)) return c;
@@ -484,7 +490,7 @@ export function submitAmendment(c: Chamber, id: string, by: string, clause: stri
   if (c.tr && 1 + ids.length < signNeeded(c)) return c;
   // Each one is handed in after the last, even within the same millisecond, so "oldest first" is always well defined.
   const at = Math.max(now(), ...c.amendments.map((x) => x.at + 1));
-  const a: Amendment = { id, by, ...(c.tr ? { seconder: second } : {}), clause: clause.trim().slice(0, 40), text: body, backers: ids, at, status: "waiting" };
+  const a: Amendment = { id, by, ...(c.tr ? { seconder: second, how } : {}), clause: clause.trim().slice(0, 40), text: body, backers: ids, at, status: "waiting" };
   let next: Chamber = record({ ...c, amendments: [...c.amendments, a] }, by, "amendment", 0, at);
   for (const b of ids) next = record(next, b, "signatory", 0, at, by);
   return note(next, `Amendment from ${nameOf(c, by)}${a.clause ? ` (${a.clause})` : ""}, ${ids.length} signator${ids.length === 1 ? "y" : "ies"}`);
@@ -736,7 +742,7 @@ export function rooms(c: Chamber): { negotiation: boolean; amendments: boolean; 
   if (c.tr) {
     // The pill tells delegates two things: whether the speakers' list is open and whether amendments are. A caucus is not named.
     const list = listOpen(c) || c.step === "pick" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer";
-    const labels = [list && "Speakers\u2019 list open", amendmentsOpen(c) && "Amendments open"].filter((x): x is string => !!x);
+    const labels = [list && "Speakers\u2019 list open", amendmentsOpen(c) && "Amendments open", motionsOpen(c) && "Motions open"].filter((x): x is string => !!x);
     return { negotiation: false, amendments: amendmentsOpen(c), speakers: list, labels };
   }
   const speakers = c.amend?.stage === "debate" && (c.step === "amend" || (c.step === "caucus" && c.after === "amend"));
@@ -775,7 +781,7 @@ export function substep(c: Chamber): string {
     case "proposer": return "Proposer";
     case "seconder": return c.tr ? "Co-proposer" : "Seconder";
     case "opposer": return "Opposer";
-    case "caucus": return c.tr?.cauc?.kind === "mod" ? "Moderated caucus" : c.tr?.cauc?.kind === "prep" ? "Preparation" : c.tr?.cauc?.kind === "final" ? "Final unmoderated caucus" : c.tr ? "Unmoderated caucus" : "Caucus";
+    case "caucus": return c.tr?.cauc?.kind === "mod" ? "Moderated caucus" : c.tr?.cauc?.kind === "papers" ? "Working papers" : c.tr?.cauc?.kind === "prep" ? "Preparation" : c.tr?.cauc?.kind === "final" ? "Final unmoderated caucus" : c.tr ? "Unmoderated caucus" : "Caucus";
     case "floor": return c.tr ? "Draft resolution debate" : "Amendments";
     case "amend": return c.amend?.stage === "read" ? "Amendment read" : c.amend?.stage === "ask" ? "Vote on whether to debate" : c.amend?.stage === "debate" ? (c.tr ? "Amendment moderated caucus" : "Amendment debate") : "Vote on the amendment";
     case "closing": return c.tr ? "Closing" : "Closing speeches";
@@ -908,11 +914,12 @@ export function startStatements(c: Chamber): Chamber {
   return c.tr && c.step === "general" && !c.speech && !c.poll ? note({ ...c, step: "statements" }, "Opening statements") : c;
 }
 /** The next state to give its statement: those present, in alphabetical order. */
-export function nextStatement(c: Chamber): string | null {
-  if (!c.tr) return null;
+export function upcomingStatements(c: Chamber, n = 3): string[] {
+  if (!c.tr) return [];
   const here = c.delegates.filter((d) => c.roll[d.id] === "present" || c.roll[d.id] === "voting");
-  return (here.length ? here : c.delegates).find((d) => !c.tr!.opened.includes(d.id) && !observing(c, d.id))?.id ?? null;
+  return (here.length ? here : c.delegates).filter((d) => !c.tr!.opened.includes(d.id) && !observing(c, d.id)).slice(0, n).map((d) => d.id);
 }
+export const nextStatement = (c: Chamber): string | null => upcomingStatements(c, 1)[0] ?? null;
 export function callStatement(c: Chamber, who: string): Chamber {
   if (!c.tr || c.step !== "statements" || c.speech || !has(c, who) || c.tr.opened.includes(who) || observing(c, who)) return c;
   return start(c, who, "for", "statement");
@@ -968,7 +975,7 @@ export function extendCaucus(c: Chamber, secs: number, at: number): Chamber {
   const k = c.tr?.cauc;
   if (!k || !Number.isInteger(secs) || secs < 10 || secs > k.total || k.ext >= 2 || c.speech) return c;
   const inCaucus = c.step === "caucus" || (c.step === "amend" && c.amend?.stage === "debate");
-  if (!inCaucus || k.kind === "prep" || k.kind === "final") return c;
+  if (!inCaucus || k.kind === "prep" || k.kind === "final" || k.kind === "papers") return c;
   const t = k.clock ?? c.timer;
   if (!t || remaining(t, at) > 0) return c;
   const fresh: Timer = { label: t.label, total: secs * 1000, endsAt: null, left: secs * 1000 };
@@ -980,6 +987,11 @@ export function canCloseMod(c: Chamber): boolean {
 }
 export function closeMod(c: Chamber): Chamber {
   return canCloseMod(c) ? endCaucus(c) : c;
+}
+/** The experienced committee drafts its working papers in the first week: free discussion, with technology, for as long as the chair allows. */
+export function startPapers(c: Chamber, secs = 1800): Chamber {
+  if (!firstWeekSC(c) || c.step !== "general" || c.speech || c.poll || !Number.isInteger(secs) || secs < 60 || secs > 10800) return c;
+  return enterCaucus(c, secs, "general", "Working papers", "papers");
 }
 /** The 20 minutes the beginner committee gets to prepare for an unseen draft. */
 export function startPrep(c: Chamber): Chamber {
@@ -993,29 +1005,42 @@ export const MOTION_LABEL: Record<MotionKind, string> = {
   mod: "Moderated caucus", unmod: "Unmoderated caucus", extend: "Extend the caucus", closemod: "Close the moderated caucus", close: "Close debate",
   amend: "Introduce an amendment", draft: "Introduce a draft resolution", open: "Open debate", resume: "Resume debate", suspend: "Suspend debate",
 };
-export const motionText = (c: Chamber, m: Motion) => {
-  const who = m.by ? `${nameOf(c, m.by)}: ` : "";
+/** What a motion is about, without who raised it or what kind it is. */
+export const motionDetail = (c: Chamber, m: Motion): string => {
   switch (m.kind) {
-    case "mod": return `${who}${clock(m.total * 1000)} moderated caucus on ${m.topic}, ${m.per}s each`;
-    case "unmod": return `${who}${clock(m.total * 1000)} unmoderated caucus`;
-    case "extend": return `${who}Extend the caucus by ${clock(m.total * 1000)}`;
-    case "amend": { const a = c.amendments.find((x) => x.id === m.ref); return `${who}Introduce the amendment${a ? ` from ${nameOf(c, a.by)}` : ""}`; }
-    case "draft": return `${who}Introduce ${docOf(c, m.ref ?? "")?.title ?? "a draft resolution"}`;
-    default: return `${who}${MOTION_LABEL[m.kind]}`;
+    case "mod": return `${clock(m.total * 1000)} on ${m.topic}, ${m.per}s each`;
+    case "unmod": return clock(m.total * 1000);
+    case "extend": return `by ${clock(m.total * 1000)}`;
+    case "amend": { const a = c.amendments.find((x) => x.id === m.ref); return a ? `the amendment from ${nameOf(c, a.by)}` : ""; }
+    case "draft": return docOf(c, m.ref ?? "")?.title ?? "";
+    default: return "";
   }
 };
+/** The words above a motion on the display: who raised it, then what kind it is. */
+export const motionPill = (c: Chamber, m: Motion): string[] => [m.by ? `${nameOf(c, m.by)} proposes` : "", MOTION_LABEL[m.kind]].filter(Boolean);
+export const motionText = (c: Chamber, m: Motion) => {
+  const detail = motionDetail(c, m);
+  return [m.by ? `${nameOf(c, m.by)} proposes` : "", MOTION_LABEL[m.kind], detail].filter(Boolean).join(" \u00B7 ");
+};
+/** The first week of the experienced committee is moderated and unmoderated caucuses and working papers: no draft resolutions yet. */
+export const firstWeekSC = (c: Chamber) => !!c.tr && c.tr.level === "experienced" && c.tr.week === 1;
+export const motionKinds = (c: Chamber): MotionKind[] => (firstWeekSC(c) ? ["mod", "unmod", "extend", "closemod"] : ["mod", "unmod", "extend", "closemod", "close", "amend", "draft", "open", "resume", "suspend"]);
+/** Whether delegates can raise motions now. */
+export const motionsOpen = (c: Chamber) => !!c.tr && (c.step === "general" || c.step === "floor" || (c.step === "caucus" && c.tr.cauc?.kind !== "prep" && c.tr.cauc?.kind !== "final" && c.tr.cauc?.kind !== "papers") || (c.step === "amend" && c.amend?.stage === "debate"));
+
 export type MotionInput = { kind: MotionKind; by: string | null; topic?: string; total?: number; per?: number; ref?: string | null };
 export function motionError(c: Chamber, m: MotionInput): string | null {
   const t = c.tr;
   if (!t) return "Not a Trinity committee.";
   if (m.by && !has(c, m.by)) return "Choose a state.";
   const total = m.total ?? 0;
+  if (!motionKinds(c).includes(m.kind)) return "Not used in the first week of the experienced committee.";
   switch (m.kind) {
     case "mod": return !(m.topic ?? "").trim() ? "A moderated caucus needs a topic." : modError(total, m.per ?? 0);
     case "unmod": return !Number.isInteger(total) || total < 30 || total > TR.maxCaucus ? "An unmoderated caucus is 30 seconds to 20 minutes." : null;
     case "extend": {
       const k = t.cauc;
-      if (!k || k.kind === "prep" || k.kind === "final") return "There is no caucus to extend.";
+      if (!k || k.kind === "prep" || k.kind === "final" || k.kind === "papers") return "There is no caucus to extend.";
       if (k.ext >= 2) return "A caucus can only be extended twice.";
       return !Number.isInteger(total) || total < 10 || total > k.total ? "An extension is no longer than the caucus was." : null;
     }
@@ -1067,7 +1092,7 @@ export function decideMotion(c: Chamber, ruling: Ruling, id: string): Chamber {
   const yes = ruling ? ruling === "for" : passes(p);
   const overrule = ruling !== null && yes !== passes(p);
   const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}`;
-  const result: Result = { title: p.title, kind: "motion", passed: yes, yes: p.yes, no: p.no, abstain: p.abstain };
+  const result: Result = { title: p.title, kind: "motion", motion: id, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain };
   const closed = setMotion({ ...c, poll: null, result }, id, yes ? "passed" : "failed");
   if (!yes) return note(closed, `Motion failed (${tail}): ${p.title}`);
   const done = applyMotion(closed, m);

@@ -96,8 +96,9 @@ export default function ChamberDisplay() {
       <ul>{a.backers.map((id) => <li key={id}>{name(id)}</li>)}</ul>
     </div>
   );
-  const amendPill = (a: ch.Amendment) => ["Amendment", a.clause, `from ${name(a.by)}`];
+  const amendPill = (a: ch.Amendment) => ["Amendment", a.how && { strike: "Strike", amend: "Amend", add: "Add" }[a.how], a.clause, `from ${name(a.by)}`];
   const votes = (r: { yes: number; no: number; abstain: number }, neutral = false) => tallies([["For", r.yes], ["Against", r.no], [neutral ? "Neutral" : "Abstain", r.abstain]]);
+  const motionOf = (id?: string) => (c && id ? c.tr?.motions.find((m) => m.id === id) : undefined);
   const k = c?.tr?.cauc ?? null;
   const kLeft = k?.clock ? ch.remaining(k.clock, now) : 0;
   const doc = c ? ch.currentDoc(c) : undefined;
@@ -166,13 +167,18 @@ export default function ChamberDisplay() {
       </Screen>
     );
   } else if (c.poll?.kind === "motion") {
-    mid = <Screen pill={["Motion"]} heading={c.poll.title}>{votes(c.poll)}</Screen>;
+    const m = motionOf(c.poll.motion);
+    mid = <Screen pill={m ? ch.motionPill(c, m) : ["Motion"]} heading={m ? ch.motionDetail(c, m) || ch.MOTION_LABEL[m.kind] : c.poll.title}>{votes(c.poll)}</Screen>;
   } else if (c.step === "statements") {
-    const nx = ch.nextStatement(c);
-    mid = <Screen heading="Opening statements" lines={[nx ? `Next: ${name(nx)}` : "Every state has spoken"]} />;
+    const next3 = ch.upcomingStatements(c, 3);
+    mid = (
+      <Screen heading="Opening statements" lines={[next3.length ? "Opening statements are starting" : "Every state has spoken"]}
+        foot={next3.length > 0 && <div className={s.dSigs}><span>Up next</span><ul>{next3.map((id) => <li key={id}>{name(id)}</li>)}</ul></div>} />
+    );
   } else if (c.step === "general") {
+    const m = c.result?.kind === "motion" ? motionOf(c.result.motion) : undefined;
     mid = c.result?.kind === "motion"
-      ? <Screen pill={["Motion"]} heading={c.result.passed ? "Motion passes" : "Motion fails"} pass={c.result.passed} lines={[c.result.title]}>{votes(c.result)}</Screen>
+      ? <Screen pill={m ? ch.motionPill(c, m) : ["Motion"]} heading={c.result.passed ? "Motion passes" : "Motion fails"} pass={c.result.passed} lines={[m ? ch.motionDetail(c, m) : c.result.title]}>{votes(c.result)}</Screen>
       : <Screen heading={"General speakers\u2019 list"} />;
   } else if (c.step === "caucus" && c.tr && k?.kind === "mod") {
     mid = (
@@ -182,7 +188,7 @@ export default function ChamberDisplay() {
       </Screen>
     );
   } else if (c.step === "caucus") {
-    mid = <Screen heading={k?.kind === "prep" ? "Preparation" : k?.kind === "final" ? "Final unmoderated caucus" : c.tr ? "Unmoderated caucus" : "Caucus"}>{timerView()}</Screen>;
+    mid = <Screen heading={k?.kind === "papers" ? "Working papers" : k?.kind === "prep" ? "Preparation" : k?.kind === "final" ? "Final unmoderated caucus" : c.tr ? "Unmoderated caucus" : "Caucus"}>{timerView()}</Screen>;
   } else if (c.step === "amend" && amendment) {
     const stage = c.amend?.stage;
     const r = c.result && c.result.amendment === amendment.id && c.result.kind === "debate" ? c.result : null;
@@ -237,7 +243,7 @@ export default function ChamberDisplay() {
       ? <Screen pill={[role, c.step === "opposer" ? SIDE.against : SIDE.for]} side={c.step === "opposer" ? "against" : "for"} heading={name(who)} foot={c.tr ? docSigs : undefined} />
       : c.tr
         ? (c.result?.kind === "motion"
-          ? <Screen pill={["Motion"]} heading={c.result.passed ? "Motion passes" : "Motion fails"} pass={c.result.passed} lines={[c.result.title]}>{votes(c.result)}</Screen>
+          ? <Screen pill={motionOf(c.result.motion) ? ch.motionPill(c, motionOf(c.result.motion)!) : ["Motion"]} heading={c.result.passed ? "Motion passes" : "Motion fails"} pass={c.result.passed} lines={[motionOf(c.result.motion) ? ch.motionDetail(c, motionOf(c.result.motion)!) : c.result.title]}>{votes(c.result)}</Screen>
           : <Screen heading="Draft resolution debate" lines={[doc?.title]} foot={docSigs} />)
         : <Screen heading="Amendments" lines={["Send amendments to the chair's desk"]} />;
   }
