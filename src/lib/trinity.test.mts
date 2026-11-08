@@ -396,4 +396,23 @@ assert.equal(ch.logPoint(g, "order").tr!.points.length, 1);
   assert.equal(ch.newResolution(ch.backToGeneral(done), "x").step, "general", "Evatt's next-resolution does nothing to a Trinity committee");
 }
 
+/* ---------- the beginner committee's given resolutions ---------- */
+{
+  let b = ch.createTrinity("GA", "Topic", "beginner", 60, names, ids, [
+    { title: "Seen one", week: 1, seen: true }, { title: "Seen two", week: 1, seen: true }, { title: "Seen three", week: 2, seen: true }, { title: "Unseen", week: 2, seen: false }, { title: "  ", week: 2, seen: true },
+  ]);
+  assert.equal(b.tr!.docs.length, 4, "blank titles are left out");
+  assert.ok(b.tr!.docs.every((d) => d.status === "approved" && d.proposer === null && d.kind === "draft"));
+  assert.equal(b.tr!.docs.filter((d) => d.week === 1 && d.seen).length, 2);
+  assert.equal(b.tr!.docs.filter((d) => d.week === 2 && !d.seen).length, 1);
+  b = ch.beginDebate(ch.markAllRoll(ch.startRoll(b), "voting"));
+  b = ch.introduceDraft(b, "agenda0");
+  assert.equal(b.step, "pick", "a given resolution can be introduced without a proposer");
+  assert.equal(ch.startSpeeches(b), b, "the proposer and seconder must be chosen first");
+  b = ch.pickRole(b, "proposer", id("China")); b = ch.pickRole(b, "seconder", id("Russia"));
+  b = ch.startSpeeches(b);
+  assert.equal(b.step, "proposer");
+  assert.equal(b.tr!.docs[0].proposer, id("China")); assert.equal(b.tr!.docs[0].seconder, id("Russia"));
+}
+
 console.log("ALL TRINITY CHECKS PASSED");

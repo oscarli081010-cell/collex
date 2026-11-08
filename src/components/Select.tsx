@@ -80,10 +80,17 @@ export default function Select({ value, defaultValue, onChange, children, id, na
     if (!open) return;
     const away = (e: PointerEvent) => { const t = e.target as Node; if (!menu.current?.contains(t) && !btn.current?.contains(t)) setOpen(false); };
     const move = (e?: Event) => { if (e?.target instanceof Node && menu.current?.contains(e.target)) return; place(); }; // the list scrolling inside itself is not the page moving
+    // While the list is open the page stays put: a wheel over the list scrolls the list, a wheel anywhere else does nothing.
+    const wheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const m = menu.current;
+      if (m && e.target instanceof Node && m.contains(e.target)) m.scrollTop += e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    };
+    document.addEventListener("wheel", wheel, { passive: false });
     document.addEventListener("pointerdown", away);
     window.addEventListener("resize", move);
     window.addEventListener("scroll", move, true);
-    return () => { document.removeEventListener("pointerdown", away); window.removeEventListener("resize", move); window.removeEventListener("scroll", move, true); };
+    return () => { document.removeEventListener("wheel", wheel); document.removeEventListener("pointerdown", away); window.removeEventListener("resize", move); window.removeEventListener("scroll", move, true); };
   }, [open]);
   // The highlighted row stays in view as the arrow keys move it.
   useEffect(() => { if (open && viaKey.current) menu.current?.children[active]?.scrollIntoView({ block: "nearest" }); }, [open, active]);

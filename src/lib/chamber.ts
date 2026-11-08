@@ -191,10 +191,14 @@ export function create(name: string, resolution: string, speakSecs: number, name
 }
 
 /** A Trinity Grammar MUN committee. `topic` is the committee's topic; the draft resolutions come later. */
-export function createTrinity(name: string, topic: string, level: Level, speakSecs: number, names: string[], ids: string[]): Chamber {
+export function createTrinity(name: string, topic: string, level: Level, speakSecs: number, names: string[], ids: string[], agenda: { title: string; week: 1 | 2; seen: boolean }[] = []): Chamber {
+  // The beginner committee is given its resolutions: they wait, approved, for the chair to introduce, and the proposer and seconder are chosen then.
+  const docs: Doc[] = agenda.map((a) => ({ ...a, title: a.title.trim().slice(0, 160) })).filter((a) => a.title).map((a, i) => ({
+    id: `agenda${i}`, kind: "draft" as const, title: a.title, week: a.week, seen: a.seen, proposer: null, seconder: null, sponsors: [], status: "approved" as const, link: "", clauses: "", at: i, from: [], result: null,
+  }));
   return {
     ...create(name, topic, speakSecs, names, ids), rules: "trinity",
-    tr: { level, week: 1, docs: [], motions: [], opened: [], cauc: null, saved: null, current: null, bonus: null, points: [], replies: [], observers: {}, rolls: {}, stash: null, reply: null, finalDone: false },
+    tr: { level, week: 1, docs, motions: [], opened: [], cauc: null, saved: null, current: null, bonus: null, points: [], replies: [], observers: {}, rolls: {}, stash: null, reply: null, finalDone: false },
   };
 }
 
@@ -302,7 +306,9 @@ export function startSpeeches(c: Chamber): Chamber {
   const { proposer, seconder, opposer } = c.roles;
   if (c.step !== "pick" || !has(c, proposer) || !has(c, seconder) || proposer === seconder) return c;
   if (opposer !== null && (!has(c, opposer) || opposer === proposer || opposer === seconder)) return c;
-  return note({ ...c, step: "proposer" }, `Proposer ${nameOf(c, proposer)}, seconder ${nameOf(c, seconder)}${opposer ? `, opposer ${nameOf(c, opposer)}` : ", no opposer"}`);
+  const cur = c.tr?.current ? c.tr.docs.find((d) => d.id === c.tr!.current) : undefined;
+  const tr = c.tr && cur && !cur.proposer ? { ...c.tr, docs: c.tr.docs.map((d) => (d === cur ? { ...d, proposer, seconder } : d)) } : c.tr;
+  return note({ ...c, tr, step: "proposer" }, `Proposer ${nameOf(c, proposer)}, seconder ${nameOf(c, seconder)}${opposer ? `, opposer ${nameOf(c, opposer)}` : ", no opposer"}`);
 }
 
 /* Speeches */
@@ -879,7 +885,7 @@ export const currentDoc = (c: Chamber) => (c.tr?.current ? docOf(c, c.tr.current
 /** The chair introduces an approved draft: its proposer and seconder are set, the opposer is chosen next. */
 export function introduceDraft(c: Chamber, id: string): Chamber {
   const d = docOf(c, id);
-  if (!c.tr || c.step !== "general" || c.speech || c.poll || !d || d.kind !== "draft" || d.status !== "approved" || d.result || !has(c, d.proposer) || !has(c, d.seconder) || observing(c, d.proposer) || observing(c, d.seconder)) return c;
+  if (!c.tr || c.step !== "general" || c.speech || c.poll || !d || d.kind !== "draft" || d.status !== "approved" || d.result || (d.proposer !== null && (!has(c, d.proposer) || observing(c, d.proposer))) || (d.seconder !== null && (!has(c, d.seconder) || observing(c, d.seconder)))) return c;
   return note({
     ...c, step: "pick", roles: { proposer: d.proposer, seconder: d.seconder, opposer: null }, closers: [], debate: emptyDebate(), amendments: [], amend: null, result: null, ballots: {}, outcome: null,
     tr: { ...c.tr, current: id, saved: null, finalDone: false },

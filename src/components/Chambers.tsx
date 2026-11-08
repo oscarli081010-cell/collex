@@ -489,7 +489,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
         </>
       );
       case "general": {
-        const ready = t ? ch.drafts(c).find((d) => d.status === "approved" && !d.result) : undefined;
+        const ready = t ? ch.drafts(c).find((d) => d.status === "approved" && !d.result && d.week === t.week) : undefined;
         const beginner = !!t && !ch.firstWeekSC(c); // a draft resolution is introduced from here, except in the first week of the experienced committee
         const modDone = !!t && t.motions.some((m) => m.kind === "mod" && m.status === "passed");
         return (
@@ -1074,8 +1074,29 @@ function TrinityPick({ c, act }: { c: Chamber; act: Act }) {
         </div>
       )}
       <div className={s.three}>
-        <div className="field"><span>Proposer</span><p className={s.fixedVal}>{name(c.roles.proposer)}</p></div>
-        <div className="field"><span>Co-proposer</span><p className={s.fixedVal}>{name(c.roles.seconder)}</p></div>
+        {d && !d.proposer ? (
+          <>
+            <div className="field">
+              <label htmlFor="pk-proposer">Proposer</label>
+              <Select id="pk-proposer" className="control" value={c.roles.proposer ?? ""} onChange={(e) => act((x) => ch.pickRole(x, "proposer", e.target.value || null))}>
+                <option value="">Which state?</option>
+                {c.delegates.filter((x) => here.some((h) => h.id === x.id) && x.id !== c.roles.seconder && x.id !== c.roles.opposer).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+              </Select>
+            </div>
+            <div className="field">
+              <label htmlFor="pk-second">Co-proposer</label>
+              <Select id="pk-second" className="control" value={c.roles.seconder ?? ""} onChange={(e) => act((x) => ch.pickRole(x, "seconder", e.target.value || null))}>
+                <option value="">Which state?</option>
+                {c.delegates.filter((x) => here.some((h) => h.id === x.id) && x.id !== c.roles.proposer && x.id !== c.roles.opposer).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+              </Select>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="field"><span>Proposer</span><p className={s.fixedVal}>{name(c.roles.proposer)}</p></div>
+            <div className="field"><span>Co-proposer</span><p className={s.fixedVal}>{name(c.roles.seconder)}</p></div>
+          </>
+        )}
         <div className="field">
           <label htmlFor="pk-opposer">Opposer (optional)</label>
           <Select id="pk-opposer" className="control" value={c.roles.opposer ?? ""} onChange={(e) => act((x) => ch.pickRole(x, "opposer", e.target.value || null))}>
@@ -1084,7 +1105,7 @@ function TrinityPick({ c, act }: { c: Chamber; act: Act }) {
           </Select>
         </div>
       </div>
-      <button type="submit" className="button lg block">Start the speeches</button>
+      <button type="submit" className="button lg block" disabled={!ch.has(c, c.roles.proposer) || !ch.has(c, c.roles.seconder)}>Start the speeches</button>
       <button type="button" className="button secondary block" onClick={() => act(ch.cancelIntroduction)}>Back to the general debate</button>
     </form>
   );
@@ -1172,7 +1193,7 @@ function Motions({ c, act }: { c: Chamber; act: Act }) {
             </Select>
           </div>
         )}
-        {err && <p className={s.hint} role="status">{err}</p>}
+        {err && !(kind === "mod" && !topic.trim()) && <p className={s.hint} role="status">{err}</p>}
         <button type="submit" className="button secondary block" disabled={!!err}>Add the motion</button>
       </form>
     </section>
@@ -1295,7 +1316,6 @@ function Documents({ c, act }: { c: Chamber; act: Act }) {
               </div>
             </fieldset>
           )}
-          {kind === "draft" && <p className={s.hint}>{signers} of {need} signatories: a quarter of the states present, the proposer and seconder among them.</p>}
           {askSeen && <label className={s.check}><input type="checkbox" checked={seen} onChange={(e) => setSeen(e.target.checked)} />Seen resolution (the unseen one gets 20 minutes of preparation)</label>}
           <div className="field">
             <label htmlFor="dc-link" className="sr-only">Link to the document</label>
@@ -1431,13 +1451,21 @@ function ChairTools({ c, act, now }: { c: Chamber; act: Act; now: number }) {
             <button type="button" className="button secondary sm" disabled={!obs} onClick={() => { act((x) => ch.setObserver(x, obs)); setObs(""); }}>5 minutes</button>
           </div>
           {active.length > 0 && (
-            <ul className={s.states}>
-              {active.map((id) => (
-                <li key={id}>
-                  <span>{name(id)} <span className="num muted">{ch.clock(ch.observerLeft(c, id, now))}</span></span>
-                  <button type="button" className="button secondary sm" onClick={() => act((x) => ch.endObserver(x, id))}>End</button>
-                </li>
-              ))}
+            <ul className={s.queue}>
+              {active.map((id) => {
+                const left = ch.observerLeft(c, id, now);
+                return (
+                  <li key={id} className={s.card}>
+                    <span className={s.cardTop}>
+                      <span className={s.kSigner}><Avatar name={name(id)} tone="lead" />{name(id)}<small>honorary observer</small></span>
+                      <span className={s.obsClock} data-low={left < 60000 || undefined}>{ch.clock(left)}</span>
+                    </span>
+                    <span className={s.kActions}>
+                      <button type="button" className={`button secondary sm ${s.kDanger}`} onClick={() => act((x) => ch.endObserver(x, id))}>End observation</button>
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </fieldset>
@@ -1704,6 +1732,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
   const [proc, setProc] = useState<"evatt" | "trinity">("evatt");
   const [level, setLevel] = useState<ch.Level>("beginner");
   const [text, setText] = useState("");
+  const [res, setRes] = useState(["", "", "", ""]); // the beginner committee's resolutions: two seen in week 1, then one seen and one unseen in week 2
   const [mine, setMine] = useState<Mine[]>([]);
   const names = ch.parseNames(text);
   const ok = name.trim().length >= 2 && resolution.trim().length >= 2 && speakOk && speak !== null && names.length > 0;
@@ -1734,7 +1763,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
             </ul>
           </section>
         )}
-        <form className={`panel ${s.setupCard}`} onSubmit={(e) => { e.preventDefault(); if (!ok || speak === null) return; const ids = names.map(uid); onCreate(proc === "trinity" ? ch.createTrinity(name, resolution, level, speak, names, ids) : ch.create(name, resolution, speak, names, ids)); }}>
+        <form className={`panel ${s.setupCard}`} onSubmit={(e) => { e.preventDefault(); if (!ok || speak === null) return; const ids = names.map(uid); onCreate(proc === "trinity" ? ch.createTrinity(name, resolution, level, speak, names, ids, level === "beginner" ? res.map((title, i) => ({ title, week: i < 2 ? 1 : 2, seen: i !== 3 })) : []) : ch.create(name, resolution, speak, names, ids)); }}>
           <div className={s.two}>
             <div className="field">
               <label htmlFor="cs-proc">Procedure</label>
@@ -1764,6 +1793,19 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
             <label htmlFor="cs-res">{proc === "trinity" ? "Topic" : "Resolution"}</label>
             <input id="cs-res" className="control" value={resolution} onChange={(e) => setResolution(e.target.value)} maxLength={160} required />
           </div>
+          {proc === "trinity" && level === "beginner" && (
+            <fieldset className={s.procedure}>
+              <legend>Draft resolutions</legend>
+              <div className={s.two} style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+                {["Week 1 · seen", "Week 1 · seen", "Week 2 · seen", "Week 2 · unseen"].map((label, i) => (
+                  <div className="field" key={i}>
+                    <label htmlFor={`cs-r${i}`}>{label}</label>
+                    <input id={`cs-r${i}`} className="control" value={res[i]} onChange={(e) => setRes((r) => r.map((v, j) => (j === i ? e.target.value : v)))} maxLength={160} placeholder="Title (optional)" />
+                  </div>
+                ))}
+              </div>
+            </fieldset>
+          )}
           <div className="field">
             <label htmlFor="cs-names">Member states</label>
             <textarea id="cs-names" className="control" value={text} onChange={(e) => setText(e.target.value)} rows={8} placeholder="One per line, or separated by commas" />
