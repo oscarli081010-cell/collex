@@ -1089,6 +1089,12 @@ function TrinityPick({ c, act }: { c: Chamber; act: Act }) {
 }
 
 /* Trinity Grammar MUN: motions. Raised in any order, put in the order the chair chooses, then voted on by placard. */
+/** A country's two-letter badge, for the people on a motion or a document. */
+const initials = (n: string) => { const w = n.trim().split(/\s+/); return (w.length > 1 ? w[0][0] + w[1][0] : n.slice(0, 2)).toUpperCase(); };
+function Avatar({ name, tone }: { name: string; tone?: "lead" | "second" }) {
+  return <span className={s.kAvatar} data-tone={tone} aria-hidden="true">{initials(name)}</span>;
+}
+
 function Motions({ c, act }: { c: Chamber; act: Act }) {
   const [chosen, setKind] = useState<ch.MotionKind>("mod");
   const kinds = ch.motionKinds(c);
@@ -1181,13 +1187,16 @@ function Motions({ c, act }: { c: Chamber; act: Act }) {
       {waiting.length > 0 && (
         <ol className={s.queue}>
           {waiting.map((m, i) => (
-            <li key={m.id} className={s.amRow} data-next={i === 0}>
-              <span className={s.amMain}>
-                {i === 0 && <span className={s.qtag}>Next</span>}
-                <span className={s.qname}>{ch.MOTION_LABEL[m.kind]}</span>
-                <span className={s.amText}>{ch.motionText(c, m)}</span>
+            <li key={m.id} className={`${s.card} ${s.motion}`} data-next={i === 0}>
+              <span className={s.cardTop}>
+                <span className={s.cardTitle}>{ch.MOTION_LABEL[m.kind]}</span>
+                {i === 0 && <span className={s.nextTag}>Next</span>}
               </span>
-              <span className={s.rowBtns}>
+              <span className={s.cardMeta}>
+                {m.by && <span className={s.kSigner}><Avatar name={ch.nameOf(c, m.by)} tone="lead" />{ch.nameOf(c, m.by)}<small>proposes</small></span>}
+                {ch.motionDetail(c, m) && <span className={s.detail}>{ch.motionDetail(c, m)}</span>}
+              </span>
+              <span className={s.kActions}>
                 <button type="button" className="button secondary sm" disabled={busy || !!ch.motionError(c, m)} onClick={() => act((x) => ch.voteMotion(x, m.id))}>Put to the vote</button>
                 <IconButton label={`Move the ${ch.MOTION_LABEL[m.kind]} motion up`} icon={ICONS.up} onClick={() => act((x) => ch.moveMotion(x, m.id, -1))} disabled={i === 0} />
                 <IconButton label={`Move the ${ch.MOTION_LABEL[m.kind]} motion down`} icon={ICONS.down} onClick={() => act((x) => ch.moveMotion(x, m.id, 1))} disabled={i === waiting.length - 1} />
@@ -1309,37 +1318,52 @@ function Documents({ c, act }: { c: Chamber; act: Act }) {
               const n = ch.docSigners(d).length;
               const locked = !!d.result || (d.kind === "draft" && d.status === "approved");
               return (
-                <li key={d.id} className={s.amRow} data-next={t.current === d.id}>
-                  <span className={s.amMain}>
-                    <span className={s.qname}>{d.title}</span>
-                    <span className={s.docChips}>
-                      <span className={s.chip}>{d.kind === "paper" ? "Working paper" : "Draft resolution"}</span>
-                      <span className={s.chip}>Week {d.week}</span>
-                      {d.kind === "draft" && t.level === "beginner" && <span className={s.chip}>{d.seen ? "Seen" : "Unseen"}</span>}
-                      {d.kind === "draft" && <span className={s.chip} data-tone={d.status === "approved" ? "ok" : d.status === "sent" ? "bad" : undefined}>{DOC_STATUS[d.status]}</span>}
-                      {d.result && <span className={s.chip} data-tone={d.result === "passed" ? "ok" : "bad"}>{DOC_RESULT[d.result]}</span>}
-                      {t.current === d.id && <span className={s.chip} data-tone="accent">Being debated</span>}
-                    </span>
-                    <span className="muted" style={{ fontSize: 12.5 }}>
-                      {name(d.proposer)}{d.seconder && ` and ${name(d.seconder)}`} · {n} signator{n === 1 ? "y" : "ies"}{d.kind === "draft" ? `, ${need} needed` : ""}
-                    </span>
-                    {d.from.length > 0 && <span className="muted" style={{ fontSize: 12.5 }}>From {d.from.map((f) => t.docs.find((x) => x.id === f)?.title).filter(Boolean).join(", ")}</span>}
-                    {d.link && <a className={s.docLink} href={d.link} target="_blank" rel="noopener noreferrer">Open the document</a>}
-                    {!locked && (
-                      <details className={s.docSign}>
-                        <summary>Signatories</summary>
-                        <div className={s.backers}>
-                          {can.filter((x) => x.id !== d.proposer && x.id !== d.seconder).map((x) => (
-                            <label key={x.id} className={s.check}>
-                              <input type="checkbox" checked={d.sponsors.includes(x.id)} onChange={(e) => act((y) => ch.signDoc(y, d.id, x.id, e.target.checked))} />
-                              {x.name}
-                            </label>
-                          ))}
-                        </div>
-                      </details>
-                    )}
+                <li key={d.id} className={`${s.card} ${s.doc}`} data-next={t.current === d.id}>
+                  <span className={s.cardTop}>
+                    <span className={s.cardTitle}>{d.title}</span>
+                    {d.result
+                      ? <span className={s.chip} data-tone={d.result === "passed" ? "ok" : "bad"}>{DOC_RESULT[d.result]}</span>
+                      : t.current === d.id
+                        ? <span className={s.chip} data-tone="accent">Being debated</span>
+                        : d.kind === "draft" && <span className={s.chip} data-tone={d.status === "approved" ? "ok" : d.status === "sent" ? "bad" : undefined}>{DOC_STATUS[d.status]}</span>}
                   </span>
-                  <span className={s.rowBtns}>
+                  <span className={s.docMeta}>
+                    {[d.kind === "paper" ? "Working paper" : "Draft resolution", `Week ${d.week}`, d.kind === "draft" && t.level === "beginner" ? (d.seen ? "Seen" : "Unseen") : ""].filter(Boolean).join(" \u00B7 ")}
+                  </span>
+                  <span className={s.signBox}>
+                    <span className={s.kSigners}>
+                      {ch.docSigners(d).map((id) => (
+                        <span key={id} className={s.kSigner}>
+                          <Avatar name={name(id)} tone={id === d.proposer ? "lead" : id === d.seconder ? "second" : undefined} />
+                          {name(id)}
+                          {id === d.proposer && <small>proposer</small>}
+                          {id === d.seconder && <small>seconder</small>}
+                        </span>
+                      ))}
+                    </span>
+                    {d.kind === "draft" ? (
+                      <span className={s.kMeter} data-met={n >= need} role="img" aria-label={`${n} of ${need} signatures`}>
+                        <span className={s.kMeterBar}><i style={{ width: `${Math.min(100, (n / Math.max(need, 1)) * 100)}%` }} /></span>
+                        <span className={s.kMeterText}>{n} of {need} signed</span>
+                      </span>
+                    ) : <span className={s.kMeterText}>{n} signator{n === 1 ? "y" : "ies"}</span>}
+                  </span>
+                  {d.from.length > 0 && <span className={s.docMeta}>From {d.from.map((f) => t.docs.find((x) => x.id === f)?.title).filter(Boolean).join(", ")}</span>}
+                  {d.link && <a className={s.docLink} href={d.link} target="_blank" rel="noopener noreferrer">Open the document</a>}
+                  {!locked && (
+                    <details className={s.docSign}>
+                      <summary>Edit signatories</summary>
+                      <div className={s.backers}>
+                        {can.filter((x) => x.id !== d.proposer && x.id !== d.seconder).map((x) => (
+                          <label key={x.id} className={s.check}>
+                            <input type="checkbox" checked={d.sponsors.includes(x.id)} onChange={(e) => act((y) => ch.signDoc(y, d.id, x.id, e.target.checked))} />
+                            {x.name}
+                          </label>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                  <span className={s.kActions}>
                     {d.kind === "draft" && d.status === "submitted" && <button type="button" className="button secondary sm" disabled={n < need} onClick={() => act((x) => ch.approveDoc(x, d.id))}>Approve</button>}
                     {d.kind === "draft" && d.status === "approved" && !d.result && t.current !== d.id && <button type="button" className="button secondary sm" disabled={c.step !== "general" || !!c.speech || !!c.poll} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce</button>}
                     {d.kind === "draft" && d.status === "sent" && <button type="button" className="button secondary sm" onClick={() => act((x) => ch.resubmitDoc(x, d.id))}>Resubmit</button>}

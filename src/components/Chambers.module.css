@@ -469,3 +469,27 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .statBar i[data-tone="ok"] { background: var(--ok); }
 .statBar i[data-tone="bad"] { background: var(--danger); }
 .statBar i[data-tone="warn"] { background: var(--warn); }
+
+/* Motion and document cards: a title, who is behind it, and one row of actions. */
+.queue li.card { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 10px; padding: 14px; }
+.cardTop { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cardTitle { font-size: 15.5px; font-weight: 500; line-height: 1.25; overflow-wrap: anywhere; }
+.nextTag { flex: none; padding: 2px 9px; border-radius: 999px; background: var(--accent); color: var(--on-ink); font-size: 11.5px; font-weight: 500; }
+.cardMeta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.detail { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.docMeta { font-size: 12.5px; color: var(--muted); }
+.kAvatar { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--surface); color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+.kAvatar[data-tone="lead"] { background: var(--accent); color: var(--on-ink); }
+.kAvatar[data-tone="second"] { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.kSigner { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px 0 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font-size: 13.5px; font-weight: 500; }
+.kSigner small { font-size: 11.5px; font-weight: 400; color: var(--muted); }
+.signBox { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 12px; background: color-mix(in srgb, var(--surface) 70%, transparent); }
+.kSigners { display: flex; flex-wrap: wrap; gap: 6px; }
+.kMeter { display: flex; align-items: center; gap: 10px; }
+.kMeterBar { flex: 1; height: 5px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.kMeterBar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width 0.3s var(--ease-smooth-out); }
+.kMeter[data-met="true"] .kMeterBar i { background: var(--ok, #2d7a4f); }
+.kMeterText { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kActions { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.kActions .button { flex: 1 1 auto; height: 40px; }
+.kActions .button:only-child { flex: 1 1 100%; }
