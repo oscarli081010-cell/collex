@@ -193,12 +193,15 @@ export function create(name: string, resolution: string, speakSecs: number, name
   };
 }
 
-/** A Trinity Grammar MUN committee. `topic` is the committee's topic; the draft resolutions come later. */
+/** The beginner committee's four given resolutions: two seen in week 1, then one seen and one unseen in week 2. Each keeps its slot, so it can be renamed. */
+export const SLOTS: readonly { week: 1 | 2; seen: boolean }[] = [{ week: 1, seen: true }, { week: 1, seen: true }, { week: 2, seen: true }, { week: 2, seen: false }];
+const agendaDoc = (slot: number, title: string, week: 1 | 2, seen: boolean): Doc => ({
+  id: `agenda${slot}`, kind: "draft", title: title.trim().slice(0, 160), week, seen, proposer: null, seconder: null, sponsors: [], status: "approved", link: "", clauses: "", at: slot, from: [], result: null,
+});
+/** A Trinity Grammar MUN committee. `topic` is the committee's topic; the experienced committee's draft resolutions come later. */
 export function createTrinity(name: string, topic: string, level: Level, speakSecs: number, names: string[], ids: string[], agenda: { title: string; week: 1 | 2; seen: boolean }[] = []): Chamber {
   // The beginner committee is given its resolutions: they wait, approved, for the chair to introduce, and the proposer and seconder are chosen then.
-  const docs: Doc[] = agenda.map((a) => ({ ...a, title: a.title.trim().slice(0, 160) })).filter((a) => a.title).map((a, i) => ({
-    id: `agenda${i}`, kind: "draft" as const, title: a.title, week: a.week, seen: a.seen, proposer: null, seconder: null, sponsors: [], status: "approved" as const, link: "", clauses: "", at: i, from: [], result: null,
-  }));
+  const docs: Doc[] = agenda.map((a, i) => agendaDoc(i, a.title, a.week, a.seen)).filter((d) => d.title);
   return {
     ...create(name, topic, speakSecs, names, ids), rules: "trinity",
     tr: { level, week: 1, docs, motions: [], opened: [], cauc: null, saved: null, current: null, bonus: null, points: [], replies: [], observers: {}, rolls: {}, stash: null, reply: null, finalDone: false },
@@ -233,8 +236,10 @@ export const other = (s: Side): Side => (s === "for" ? "against" : "for");
 const sideWord = (s: Side) => (s === "for" ? "in favour" : "against");
 
 export const ROLE_LABEL: Record<Role, string> = { proposer: "Proposer", seconder: "Seconder", opposer: "Opposer", speaker: "Speaker", amender: "Amendment proposer", closer: "Closing speech", statement: "Opening statement" };
-/** A Trinity committee calls the seconder the co-proposer. */
-export const roleName = (c: Chamber, r: Role) => (c.tr && r === "seconder" ? "Co-proposer" : ROLE_LABEL[r]);
+/** A Trinity committee calls the seconder the co-proposer; the beginner committee, a co-sponsor. */
+export const roleName = (c: Chamber, r: Role) => (c.tr && r === "seconder" ? (c.tr.level === "beginner" ? "Co-sponsor" : "Co-proposer") : ROLE_LABEL[r]);
+/** What the document being debated is called: the beginner committee debates resolutions, the experienced committee's week 2 draft resolutions. */
+export const resNoun = (c: Chamber) => (c.tr?.level === "beginner" ? "Resolution" : "Draft resolution");
 export const ATTEND_LABEL: Record<Attend, string> = { present: "Present", voting: "Present & Voting", abstain: "Abstain" };
 
 /* The display's background photo */
@@ -311,7 +316,7 @@ export function startSpeeches(c: Chamber): Chamber {
   if (opposer !== null && (!has(c, opposer) || opposer === proposer || opposer === seconder)) return c;
   const cur = c.tr?.current ? c.tr.docs.find((d) => d.id === c.tr!.current) : undefined;
   const tr = c.tr && cur && !cur.proposer ? { ...c.tr, docs: c.tr.docs.map((d) => (d === cur ? { ...d, proposer, seconder } : d)) } : c.tr;
-  return note({ ...c, tr, step: "proposer" }, `Proposer ${nameOf(c, proposer)}, seconder ${nameOf(c, seconder)}${opposer ? `, opposer ${nameOf(c, opposer)}` : ", no opposer"}`);
+  return note({ ...c, tr, step: "proposer" }, `Proposer ${nameOf(c, proposer)}, ${c.tr ? roleName(c, "seconder").toLowerCase() : "seconder"} ${nameOf(c, seconder)}${opposer ? `, opposer ${nameOf(c, opposer)}` : ", no opposer"}`);
 }
 
 /* Speeches */
@@ -734,6 +739,8 @@ export const STAT_LABEL: Record<StatKind, string> = {
   proposer: "Proposer", seconder: "Seconder", opposer: "Opposer", amender: "Amendment speech", speaker: "Speaker", closing: "Closing speech",
   poi: "Point of Information asked", reply: "Point of Information answered", amendment: "Amendment submitted", signatory: "Amendment signed", statement: "Opening statement",
 };
+/** What a state did, in the committee's own words: a Trinity committee has a co-proposer or co-sponsor, not a seconder. */
+export const statLabel = (c: Chamber, k: StatKind) => (k === "seconder" && c.tr ? roleName(c, "seconder") : STAT_LABEL[k]);
 /** A speech, as opposed to a Point of Information or a note handed in. */
 export const isSpeech = (k: StatKind) => k === "statement" || k === "proposer" || k === "seconder" || k === "opposer" || k === "amender" || k === "speaker" || k === "closing";
 export function summary(c: Chamber, wk?: 1 | 2) {
@@ -792,12 +799,12 @@ export function substep(c: Chamber): string {
   switch (c.step) {
     case "welcome": return "Welcome";
     case "roll": return c.tr ? `Roll call, week ${c.tr.week}` : "Roll call";
-    case "pick": return c.tr ? "Introduce the draft resolution" : "Choose the speakers";
+    case "pick": return c.tr ? `Introduce the ${resNoun(c).toLowerCase()}` : "Choose the speakers";
     case "proposer": return "Proposer";
-    case "seconder": return c.tr ? "Co-proposer" : "Seconder";
+    case "seconder": return c.tr ? roleName(c, "seconder") : "Seconder";
     case "opposer": return "Opposer";
     case "caucus": return c.tr?.cauc?.kind === "mod" ? "Moderated caucus" : c.tr?.cauc?.kind === "papers" ? "Working papers" : c.tr?.cauc?.kind === "prep" ? "Preparation" : c.tr?.cauc?.kind === "final" ? "Final unmoderated caucus" : c.tr ? "Unmoderated caucus" : "Caucus";
-    case "floor": return c.tr ? "Draft resolution debate" : "Amendments";
+    case "floor": return c.tr ? `${resNoun(c)} debate` : "Amendments";
     case "amend": return c.amend?.stage === "read" ? "Amendment read" : c.amend?.stage === "ask" ? "Vote on whether to debate" : c.amend?.stage === "debate" ? (c.tr ? "Amendment moderated caucus" : "Amendment debate") : "Vote on the amendment";
     case "closing": return c.tr ? "Closing" : "Closing speeches";
     case "vote": return "Roll call vote";
@@ -833,7 +840,7 @@ function finishTrinityVote(c: Chamber, n: { yes: number; no: number; abstain: nu
   const outcome: Outcome = { passed, yes: n.yes, no: n.no, abstain: n.abstain, needed: need, ...(vetoed.length ? { vetoed } : {}) };
   const docs = t.docs.map((d) => (d.id === t.current ? { ...d, result: (vetoed.length ? "vetoed" : passed ? "passed" : "failed") as Doc["result"] } : d));
   const why = vetoed.length ? `, vetoed by ${vetoed.join(" and ")}` : passed ? "" : sc ? `, ${need} needed` : "";
-  return note({ ...c, step: "closed", outcome, tr: { ...t, docs } }, `Draft resolution ${passed ? "approved" : "not approved"}: ${n.yes} for, ${n.no} against, ${n.abstain} abstaining${why}`);
+  return note({ ...c, step: "closed", outcome, tr: { ...t, docs } }, `${resNoun(c)} ${passed ? "approved" : "not approved"}: ${n.yes} for, ${n.no} against, ${n.abstain} abstaining${why}`);
 }
 
 /* Documents */
@@ -852,7 +859,7 @@ export function addDoc(c: Chamber, id: string, d: DocInput): Chamber {
     id, kind: d.kind, title, week: d.week, seen: d.seen, proposer: d.proposer, seconder: d.kind === "draft" ? d.seconder : null, sponsors,
     status: d.kind === "paper" ? "approved" : "submitted", link: safeLink(d.link), clauses: d.clauses.slice(0, 8000), at: Math.max(now(), ...t.docs.map((x) => x.at + 1)), from: (d.from ?? []).filter((f) => t.docs.some((x) => x.id === f)), result: null,
   };
-  return note({ ...c, tr: { ...t, docs: [...t.docs, doc] } }, `${d.kind === "paper" ? "Working paper" : "Draft resolution"} submitted: ${title}`);
+  return note({ ...c, tr: { ...t, docs: [...t.docs, doc] } }, `${d.kind === "paper" ? "Working paper" : resNoun(c)} submitted: ${title}`);
 }
 const setDoc = (c: Chamber, id: string, f: (d: Doc) => Doc): Chamber => (c.tr ? { ...c, tr: { ...c.tr, docs: c.tr.docs.map((d) => (d.id === id ? f(d) : d)) } } : c);
 const docOf = (c: Chamber, id: string) => c.tr?.docs.find((d) => d.id === id);
@@ -872,12 +879,12 @@ export function signDoc(c: Chamber, id: string, who: string, on: boolean): Chamb
 export function approveDoc(c: Chamber, id: string): Chamber {
   const d = docOf(c, id);
   if (!d || d.kind !== "draft" || d.status === "approved" || docSigners(d).length < signNeeded(c)) return c;
-  return note(setDoc(c, id, (x) => ({ ...x, status: "approved" })), `Draft resolution approved: ${d.title}`);
+  return note(setDoc(c, id, (x) => ({ ...x, status: "approved" })), `${resNoun(c)} approved: ${d.title}`);
 }
 export function sendBackDoc(c: Chamber, id: string): Chamber {
   const d = docOf(c, id);
   if (!d || d.kind !== "draft" || d.result || c.tr?.current === id) return c;
-  return note(setDoc(c, id, (x) => ({ ...x, status: "sent" })), `Draft resolution sent back: ${d.title}`);
+  return note(setDoc(c, id, (x) => ({ ...x, status: "sent" })), `${resNoun(c)} sent back: ${d.title}`);
 }
 export function resubmitDoc(c: Chamber, id: string): Chamber {
   const d = docOf(c, id);
@@ -898,12 +905,27 @@ export function introduceDraft(c: Chamber, id: string): Chamber {
   return note({
     ...c, step: "pick", roles: { proposer: d.proposer, seconder: d.seconder, opposer: null }, closers: [], debate: emptyDebate(), amendments: [], amend: null, result: null, ballots: {}, outcome: null,
     tr: { ...c.tr, current: id, saved: null, finalDone: false },
-  }, `Draft resolution introduced: ${d.title}`);
+  }, `${resNoun(c)} introduced: ${d.title}`);
 }
 /** Back to the general debate before the speeches begin. */
 export function cancelIntroduction(c: Chamber): Chamber {
   if (!c.tr || c.step !== "pick") return c;
   return note({ ...c, step: "general", roles: { proposer: null, seconder: null, opposer: null }, tr: { ...c.tr, current: null } }, "Introduction cancelled");
+}
+/** The beginner committee's given resolutions can be set or renamed one slot at a time, until a slot has been debated. A blank title takes it away. */
+export function setAgenda(c: Chamber, slot: number, title: string): Chamber {
+  const t = c.tr;
+  if (!t || t.level !== "beginner" || !Number.isInteger(slot) || slot < 0 || slot >= SLOTS.length) return c;
+  const id = `agenda${slot}`;
+  const d = t.docs.find((x) => x.id === id);
+  const name = title.trim().slice(0, 160);
+  if (d) {
+    if (d.result || t.current === id) return c;
+    return name ? setDoc(c, id, (x) => ({ ...x, title: name })) : { ...c, tr: { ...t, docs: t.docs.filter((x) => x.id !== id) } };
+  }
+  if (!name) return c;
+  const s = SLOTS[slot];
+  return { ...c, tr: { ...t, docs: [...t.docs, agendaDoc(slot, name, s.week, s.seen)].sort((x, y) => x.at - y.at) } };
 }
 /** After the vote: back to the general debate, ready for the next draft. */
 export function backToGeneral(c: Chamber): Chamber {
@@ -911,7 +933,7 @@ export function backToGeneral(c: Chamber): Chamber {
   return note({
     ...c, step: "general", after: null, roles: { proposer: null, seconder: null, opposer: null }, closers: [], debate: emptyDebate(), speech: null, amendments: [], amend: null, poll: null,
     result: null, timer: null, ballots: {}, outcome: null, tr: { ...c.tr, current: null, saved: null, cauc: null, finalDone: false },
-  }, "Back to the general debate");
+  }, c.tr.level === "beginner" ? "Back to the resolutions" : "Back to the general debate");
 }
 /** Week 2 is the same committee with a fresh roll call. Week 1's roll is kept. */
 export function nextWeek(c: Chamber): Chamber {
@@ -1046,13 +1068,14 @@ export function allowUnmod(c: Chamber): Chamber {
   return firstWeekSC(c) && !c.tr!.unmodOpen ? note({ ...c, tr: { ...c.tr!, unmodOpen: true } }, "Unmoderated caucuses allowed") : c;
 }
 /**
- * The motions that make sense now. Debating a draft resolution (either committee, either week) only takes unmoderated caucuses; the beginner
- * committee has nothing else. The experienced committee's first week is moderated caucuses, then unmoderated ones; its second week adds introducing a draft.
+ * The motions that make sense now. Between debates the experienced committee can move to caucuses or introduce a draft resolution; the beginner committee
+ * chooses its resolution from the hub, so has none. Debating a resolution (either committee) takes caucuses, an amendment to be introduced, and closing the debate.
+ * The experienced committee's first week is moderated caucuses, then unmoderated ones.
  */
 export const motionKinds = (c: Chamber): MotionKind[] => {
   const t = c.tr;
   if (!t) return [];
-  if (t.level === "beginner" || t.current) return ["unmod"];
+  if (t.level === "beginner" || t.current) return ["mod", "unmod", "extend", "closemod", "amend", "close"];
   if (firstWeekSC(c)) return unmodUnlocked(c) ? ["mod", "unmod", "extend", "closemod"] : ["mod", "extend", "closemod"];
   return ["mod", "unmod", "extend", "closemod", "draft"];
 };
@@ -1077,7 +1100,7 @@ export function motionError(c: Chamber, m: MotionInput): string | null {
       return !Number.isInteger(total) || total < 10 || total > k.total ? "An extension is no longer than the caucus was." : null;
     }
     case "closemod": return canCloseMod(c) ? null : "A moderated caucus closes after its last three speakers have finished.";
-    case "close": return c.step === "floor" ? null : "Debate closes during the draft resolution debate.";
+    case "close": return c.step === "floor" ? null : "Debate closes during the resolution debate.";
     case "amend": return c.step === "floor" && c.amendments.some((a) => a.id === m.ref && a.status === "waiting") ? null : "Choose an amendment waiting to be introduced.";
     case "draft": { const d = docOf(c, m.ref ?? ""); return c.step === "general" && d?.kind === "draft" && d.status === "approved" && !d.result ? null : "Choose an approved draft resolution."; }
     default: return null;
