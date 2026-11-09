@@ -178,7 +178,7 @@ export default function ChamberDisplay() {
     const m = c.result?.kind === "motion" ? motionOf(c.result.motion) : undefined;
     mid = c.result?.kind === "motion"
       ? <Screen pill={m ? ch.motionPill(c, m) : ["Motion"]} heading={c.result.passed ? "Motion passes" : "Motion fails"} pass={c.result.passed} lines={[m ? ch.motionDetail(c, m) : c.result.title]}>{votes(c.result)}</Screen>
-      : <Screen heading={c.tr?.level === "beginner" ? "Choose a resolution" : "General speakers\u2019 list"} />;
+      : <Screen heading={c.tr?.level === "beginner" ? "The chair is choosing a resolution" : "General speakers\u2019 list"} />;
   } else if (c.step === "caucus" && c.tr && k?.kind === "mod") {
     mid = (
       <Screen heading={k.topic}>

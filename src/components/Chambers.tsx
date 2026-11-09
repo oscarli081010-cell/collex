@@ -187,10 +187,6 @@ export default function Chambers() {
         </div>
         <div className={s.topActions}>
           <a className={`button secondary ${s.topBtn}`} href={display} target="_blank" rel="noopener">{MONITOR}Open display</a>
-          <button type="button" className={`button secondary ${s.topBtn}`} onClick={() => setView("settings")}>
-            {cloudId ? <i className={s.live} data-off={status === "offline"} aria-hidden="true" /> : SLIDERS}
-            Settings{status === "offline" && <span className="sr-only"> (offline, trying again)</span>}
-          </button>
           <ConfirmIconButton label={cloudId && !owner ? "Leave this committee" : cloudId ? "Delete this committee" : "Close this committee"}
             confirm="Click again to confirm" icon={cloudId && !owner ? ICONS.leave : ICONS.trash} onConfirm={() => void remove()} />
         </div>
@@ -200,7 +196,7 @@ export default function Chambers() {
       <div className="sr-only" role="status" aria-live="polite">{live}</div>
 
       <PanelTabs idPrefix="chv" label="Committee" tab={view} setTab={setView}
-        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage }, { id: "analytics", label: "Analytics", icon: ICONS.chart }, { id: "settings", label: "Settings", icon: SLIDERS }]} />
+        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage }, { id: "analytics", label: "Analytics", icon: ICONS.chart }, { id: "settings", label: status === "offline" ? "Settings (offline)" : "Settings", icon: cloudId ? <i className={s.liveDot} data-off={status === "offline"} aria-hidden="true" /> : SLIDERS }]} />
 
       {view === "manage" ? (
         <div id="chv-panel-manage" role="tabpanel" aria-labelledby="chv-tab-manage" className={s.manage}>
@@ -427,7 +423,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
   }
   else if (poll?.kind === "motion") { title = "Motion"; sub = poll.title; }
   else if (t && c.step === "statements") { title = stNext ? name(stNext) : "Opening statements"; sub = stNext ? "Next opening statement, up to 2 minutes" : "Every state has given its statement"; }
-  else if (t && c.step === "general" && t.level === "beginner") { title = "Choose a resolution"; sub = ch.drafts(c).some((d) => d.status === "approved" && !d.result && d.week === t.week) ? "Introduce a resolution to begin the debate" : "No resolutions yet. Add them in Settings."; }
+  else if (t && c.step === "general" && t.level === "beginner") { title = "The chair is choosing a resolution"; sub = ch.drafts(c).some((d) => d.week === t.week) ? "" : "No resolutions yet. Add them in Settings."; }
   else if (t && c.step === "general") { title = next ? name(next.id) : "General speakers\u2019 list"; sub = next ? "Next on the general speakers\u2019 list" : "Add states to the speakers\u2019 list"; }
   else if (c.step === "proposer") { title = name(c.roles.proposer); sub = t ? `Introduces the ${ch.resNoun(c).toLowerCase()}` : "Proposes the resolution"; }
   else if (c.step === "seconder") { title = name(c.roles.seconder); sub = t ? `Speaks as ${ch.roleName(c, "seconder").toLowerCase()}` : "Seconds the resolution"; }
@@ -730,9 +726,11 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
         )}
         <h2 className={`serif ${s.who}`}>{title}</h2>
         {sub && <p className={s.sub}>{sub}</p>}
-        {t?.level === "beginner" && c.step === "general" && !sp && (
-          <p className={s.sub}>Week {t.week}: {t.week === 1 ? "two seen resolutions" : "one seen and one unseen resolution"} · {t.docs.filter((d) => d.kind === "draft" && d.week === t.week && d.result).length} of 2 debated</p>
-        )}
+        {t?.level === "beginner" && c.step === "general" && !sp && (() => {
+          const week = ch.drafts(c).filter((d) => d.week === t.week);
+          const done = week.filter((d) => d.result).length;
+          return <Stats label="This week's resolutions" items={[{ label: "Week", value: t.week }, { label: "Debated", value: done, tone: "ok" }, { label: "Still to debate", value: week.length - done }, ...(t.week === 2 ? [{ label: "Unseen", value: week.filter((d) => !d.seen).length }] : [])]} />;
+        })()}
         {amendment && c.step === "amend" && <p className={s.sub}>{amendment.text}</p>}
         {c.result && !c.poll && <p className={s.result} data-pass={c.result.passed}><strong>{c.result.passed ? "Passed" : "Failed"}:</strong> {c.result.yes} For, {c.result.no} Against, {c.result.abstain} Abstaining</p>}
         {c.timer && c.step !== "closed" && c.step !== "ended" && <div className={s.time} data-state={state} role="timer">{ch.clock(left)}</div>}

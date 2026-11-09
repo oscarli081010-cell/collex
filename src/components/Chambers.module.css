@@ -6,8 +6,8 @@
 .name { font-size: clamp(30px, 4vw, 44px); overflow-wrap: anywhere; flex: 1 1 320px; min-width: 0; }
 .topActions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 /* Open display and Share are the same size, with an icon each. */
-.topBtn { width: 158px; height: 46px; gap: 9px; font-weight: 500; }
-.topBtn svg { width: 17px; height: 17px; flex: none; }
+.topBtn { width: 220px; height: 54px; gap: 10px; font-size: 16px; font-weight: 500; }
+.topBtn svg { width: 19px; height: 19px; flex: none; }
 .topBtn .live { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); flex: none; }
 .topBtn .live[data-off="true"] { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
 @media (max-width: 520px) { .topActions { width: 100%; } .topBtn { flex: 1 1 0; width: auto; min-width: 0; } }
@@ -502,3 +502,5 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .kSigner[data-tone="second"] small { color: inherit; opacity: 0.8; }
 .hintRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .hintRow .hint { margin: 0; flex: 1 1 200px; }
+.liveDot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); flex: none; display: inline-block; }
+.liveDot[data-off="true"] { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }

@@ -447,7 +447,7 @@ assert.equal(ch.logPoint(g, "order").tr!.points.length, 1);
   assert.deepEqual(ch.motionKinds(b), ["mod", "unmod", "extend", "closemod", "amend", "close"], "the beginner committee debates its resolution with caucuses, amendments and closing");
   assert.deepEqual(ch.rooms(b).labels, []);
   assert.deepEqual(ch.stagesOf(b), ["Opening", "Resolutions", "Debate", "Closing"]);
-  assert.equal(ch.substep(b), "Choose a resolution");
+  assert.equal(ch.substep(b), "Choosing a resolution");
   // debating a draft: only unmoderated caucuses, in either committee
   let e = begin(ch.markAllRoll(ch.startRoll(ch.createTrinity("SC", "T", "experienced", 60, names, ids)), "voting"));
   e = ch.nextWeek(e); e = ch.beginDebate(ch.markAllRoll(ch.startRoll(e), "voting"));

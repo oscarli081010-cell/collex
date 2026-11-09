@@ -809,7 +809,7 @@ export function substep(c: Chamber): string {
     case "closing": return c.tr ? "Closing" : "Closing speeches";
     case "vote": return "Roll call vote";
     case "statements": return "Opening statements";
-    case "general": return c.tr?.level === "beginner" ? "Choose a resolution" : "General speakers\u2019 list";
+    case "general": return c.tr?.level === "beginner" ? "Choosing a resolution" : "General speakers\u2019 list";
     case "ended": return "Ended";
     default: return "Result";
   }

@@ -2,6 +2,7 @@
 
 import { Children, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { lockScroll } from "@/lib/scrollLock";
 
 type Opt = { value: string; label: string; disabled: boolean };
 
@@ -61,7 +62,7 @@ export default function Select({ value, defaultValue, onChange, children, id, na
     const b = btn.current?.getBoundingClientRect();
     if (!b) return;
     const below = innerHeight - b.bottom - 12;
-    const above = b.top - 12;
+    const above = b.top - 84; // the sticky header sits above the list
     const up = below < 200 && above > below;
     const max = Math.max(140, Math.min(340, up ? above : below));
     setPos({ left: b.left, width: b.width, max, ...(up ? { bottom: innerHeight - b.top + 6 } : { top: b.bottom + 6 }) });
@@ -80,20 +81,20 @@ export default function Select({ value, defaultValue, onChange, children, id, na
     if (!open) return;
     const away = (e: PointerEvent) => { const t = e.target as Node; if (!menu.current?.contains(t) && !btn.current?.contains(t)) setOpen(false); };
     const move = (e?: Event) => { if (e?.target instanceof Node && menu.current?.contains(e.target)) return; place(); }; // the list scrolling inside itself is not the page moving
-    // While the list is open the page stays put: a wheel over the list scrolls the list, a wheel anywhere else does nothing.
-    const wheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const m = menu.current;
-      if (m && e.target instanceof Node && m.contains(e.target)) m.scrollTop += e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
-    };
-    document.addEventListener("wheel", wheel, { passive: false });
+    lockScroll(true); // while the list is open the page stays put, so scrolling the list never moves it
     document.addEventListener("pointerdown", away);
     window.addEventListener("resize", move);
     window.addEventListener("scroll", move, true);
-    return () => { document.removeEventListener("wheel", wheel); document.removeEventListener("pointerdown", away); window.removeEventListener("resize", move); window.removeEventListener("scroll", move, true); };
+    return () => { lockScroll(false); document.removeEventListener("pointerdown", away); window.removeEventListener("resize", move); window.removeEventListener("scroll", move, true); };
   }, [open]);
   // The highlighted row stays in view as the arrow keys move it.
-  useEffect(() => { if (open && viaKey.current) menu.current?.children[active]?.scrollIntoView({ block: "nearest" }); }, [open, active]);
+  useEffect(() => {
+    const m = menu.current;
+    const row = m?.children[active] as HTMLElement | undefined;
+    if (!open || !viaKey.current || !m || !row) return;
+    if (row.offsetTop < m.scrollTop) m.scrollTop = row.offsetTop - 6;
+    else if (row.offsetTop + row.offsetHeight > m.scrollTop + m.clientHeight) m.scrollTop = row.offsetTop + row.offsetHeight - m.clientHeight + 6;
+  }, [open, active]);
 
   const step = (from: number, by: 1 | -1) => {
     for (let i = from + by; i >= 0 && i < opts.length; i += by) if (!opts[i].disabled) return i;

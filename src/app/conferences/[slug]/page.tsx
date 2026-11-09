@@ -10,7 +10,6 @@ import { getBySlug, getPublished } from "@/lib/data";
 import ApplyBand from "@/components/ApplyBand";
 import ConferenceActions from "@/components/ConferenceActions";
 import ConferenceTabs from "@/components/ConferenceTabs";
-import Countdown from "@/components/Countdown";
 import FollowButton from "@/components/FollowButton";
 import StickyApply from "@/components/StickyApply";
 import Verified from "@/components/Verified";
@@ -90,26 +89,6 @@ function Nothing({ what }: { what: string }) {
   );
 }
 
-// The dates as a slim pill in the row of buttons: the month in the accent colour, then the day and weekday.
-// The facts line says the same in words, so this is decoration to screen readers.
-const part = (iso: string, o: Intl.DateTimeFormatOptions) => new Date(iso + "T00:00:00").toLocaleDateString("en-AU", o);
-function DateTile({ start, end }: { start: string; end: string | null }) {
-  const last = end && end !== start ? end : null;
-  const span = (o: Intl.DateTimeFormatOptions) => {
-    const a = part(start, o), b = last ? part(last, o) : a;
-    return a === b ? a : `${a}–${b}`;
-  };
-  return (
-    <span className={s.dateTile} aria-hidden="true">
-      <span className={s.tileMonth}>{span({ month: "short" })}</span>
-      <span className={s.tileRest}>
-        <span className={s.tileDay}>{span({ day: "numeric" })}</span>
-        <span className={s.tileWeekday}>{span({ weekday: "short" })}</span>
-      </span>
-    </span>
-  );
-}
-
 // A committee's released guide, by name.
 const guideOf = (c: Conference, committee: string) => c.guides.find((g) => g.committee === committee && g.url)?.url ?? null;
 
@@ -148,7 +127,7 @@ export default async function ConferencePage({ params }: Props) {
           <div className={s.confLead}>
             <div>
               {c.isTemplate ? <span className="badge accent">Demo listing</span> : (
-                <span className={s.confBadges}>{past && <span className="badge">Finished</span>}<Countdown c={c} large />{c.verified && <Verified large />}</span>
+                past && <span className={s.confBadges}><span className="badge">Finished</span></span>
               )}
               <ViewTransition name={`title-${c.slug}`} share="morph" default="none">
                 <h1 className={s.confTitle}>{c.name}</h1>
@@ -160,12 +139,12 @@ export default async function ConferencePage({ params }: Props) {
               </ul>
             </div>
           </div>
-          {/* On the right: the date as a calendar page, above the share, calendar and follow buttons. */}
+          {/* On the right: follow, then the share and calendar buttons, then the verified mark. */}
           <div className={s.confSide}>
-            {c.startDate && !c.isTemplate && <DateTile start={c.startDate} end={c.endDate} />}
             <div className={s.confAside}>
-              <ConferenceActions c={c} past={past} />
               {c.id && !past && <FollowButton id={c.id} name={c.name} />}
+              <ConferenceActions c={c} past={past} />
+              {c.verified && !c.isTemplate && <Verified circle />}
             </div>
           </div>
         </header>

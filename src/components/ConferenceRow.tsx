@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ViewTransition } from "react";
 import { formatRange, monogram, NA, type Conference } from "@/lib/conferences";
-import Countdown from "./Countdown";
 import RowAction from "./RowAction";
 import Verified from "./Verified";
 import { META_ICONS } from "./MetaIcons";
@@ -39,7 +38,6 @@ export default function ConferenceRow({ c, past = false }: { c: Conference; past
           </ViewTransition>
           {c.isTemplate && <span className="badge accent">Demo</span>}
           {c.verified && <Verified />}
-          <Countdown c={c} />
         </span>
         <ul className={s.rowMeta}>
           <li>{META_ICONS.date}{formatRange(c)}</li>
