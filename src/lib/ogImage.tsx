@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { ImageResponse } from "next/og";
-import { C_PATH, DOT, OLLEX_PATH } from "./brand";
+import { C_PATH, OLLEX_PATH } from "./brand";
 
 // Share images (Open Graph / X cards): the page colours, the wordmark and the site's own type.
 export const OG_SIZE = { width: 1200, height: 630 };
@@ -27,7 +27,6 @@ export async function ogImage({ title, italic, lines, footer, photo, pill }: {
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "64px 72px" }}>
           <svg viewBox="3 5 203 77" width={140} height={53}>
             <path d={C_PATH} fill="#15161a" />
-            <circle cx={DOT.cx} cy={DOT.cy} r={DOT.r} fill="#213a73" />
             <path d={OLLEX_PATH} fill="#15161a" />
           </svg>
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
