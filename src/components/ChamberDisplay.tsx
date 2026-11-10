@@ -31,15 +31,48 @@ const fit = (text: string, solo: boolean) => {
 };
 
 /** One screen: an optional pill, a heading, optional lines of text, and whatever there is to look at. */
+/** A long title is set like the welcome: its first words small and slanted over the rest, which stays big. */
+const leadAndBig = (text: string): [string, string] => {
+  const w = text.trim().split(/\s+/);
+  if (w.length < 4 || text.length < 22) return ["", text];
+  const k = Math.floor(w.length / 2);
+  return [w.slice(0, k).join(" "), w.slice(k).join(" ")];
+};
+
+/** The roll call as pages of 20 states: it follows the states being marked, and once every one is marked it turns through the pages. */
+function RollBoard({ c, tag }: { c: ch.Chamber; tag: (id: string) => React.ReactNode }) {
+  const PER = 20;
+  const pages = Math.max(1, Math.ceil(c.delegates.length / PER));
+  const first = c.delegates.findIndex((d) => !c.roll[d.id]);
+  const [turn, setTurn] = useState(0);
+  useEffect(() => {
+    if (pages < 2 || first !== -1) return;
+    const t = setInterval(() => setTurn((x) => (x + 1) % pages), 6000);
+    return () => clearInterval(t);
+  }, [pages, first]);
+  const at = pages < 2 ? 0 : first !== -1 ? Math.floor(first / PER) : turn % pages;
+  return (
+    <>
+      <div className={s.dBoard}>
+        {c.delegates.slice(at * PER, (at + 1) * PER).map((d) => <div key={d.id} className={s.dSeat} data-a={c.roll[d.id]}><i /><span className={s.dSeatName}>{d.name}</span>{tag(d.id) ?? (c.roll[d.id] && <em>{ch.ATTEND_LABEL[c.roll[d.id]]}</em>)}</div>)}
+      </div>
+      {pages > 1 && <p className={s.dPages} aria-live="polite">{at + 1} / {pages}</p>}
+    </>
+  );
+}
+
 function Screen({ pill, side, heading, pass, lines, foot, children }: {
   pill?: (string | false | null | undefined)[]; side?: ch.Side; heading?: string; pass?: boolean; lines?: (React.ReactNode | false | null | undefined)[]; foot?: React.ReactNode; children?: React.ReactNode;
 }) {
   const text = (pill ?? []).filter(Boolean).join(" · ");
+  const [lead, big] = leadAndBig(heading ?? "");
   const rows = (lines ?? []).filter(Boolean);
   return (
     <>
       {text && <span className={s.dPill} data-side={side}>{text}</span>}
-      {heading && <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": fit(heading, !children) } as React.CSSProperties}>{heading}</h1>}
+      {heading && (lead
+        ? <h1 className={`serif ${s.dWelcome}`} data-pass={pass} style={{ "--k": fit(big, !children) } as React.CSSProperties}><span>{lead}</span><b>{big}</b></h1>
+        : <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": fit(heading, !children) } as React.CSSProperties}>{heading}</h1>)}
       {rows.length > 0 && <div className={s.dLines}>{rows.map((r, i) => <p key={i} className={s.dSub}>{r}</p>)}</div>}
       {children}
       {foot && <div className={s.dFoot}>{foot}</div>}
@@ -68,7 +101,7 @@ export default function ChamberDisplay() {
   if (!mounted) return null; // the saved committee is only known in the browser
 
   const open = c ? ch.rooms(c) : null;
-  const openNow = open ? (open.labels ?? [open.negotiation && "Negotiation Chamber open", open.amendments && "Amendments open", open.speakers && "Speakers\u2019 list open"]).filter(Boolean).join(" \u00B7 ") : "";
+  const openNow = open ? (open.labels ?? [open.negotiation && "Negotiation Chamber Open", open.amendments && "Amendments Open", open.speakers && "Speakers\u2019 List Open"]).filter(Boolean).join(" \u00B7 ") : "";
   const tools = (
     <div className={s.dTools}>
       <button type="button" className={s.dBtn} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}{full ? "Exit full screen" : "Full screen"}</button>
@@ -160,10 +193,8 @@ export default function ChamberDisplay() {
     const n = ch.rollCount(c);
     mid = (
       <Screen heading="Roll Call">
-        {tallies(c.tr ? [["Present", n.present], ["Present and Voting", n.voting]] : [["Present", n.present], ["Present and Voting", n.voting], ["Abstain", n.abstain]])}
-        <div className={s.dBoard}>
-          {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-a={c.roll[d.id]}><i /><span className={s.dSeatName}>{d.name}</span>{obsTag(d.id) ?? (c.roll[d.id] && <em>{ch.ATTEND_LABEL[c.roll[d.id]]}</em>)}</div>)}
-        </div>
+        {tallies(c.tr ? [["Present", n.present], ["Present & Voting", n.voting]] : [["Present", n.present], ["Present & Voting", n.voting], ["Abstain", n.abstain]])}
+        <RollBoard c={c} tag={obsTag} />
       </Screen>
     );
   } else if (c.poll?.kind === "motion") {

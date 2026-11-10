@@ -601,10 +601,10 @@ export function decideAmendment(c: Chamber, ruling: Ruling, id: string): Chamber
 
 // Evatt: only while an amendment is debated. Trinity: the general speakers' list, a moderated caucus, the draft resolution's own list, an amendment's debate.
 export const listOpen = (c: Chamber) => c.tr
-  ? (c.step === "general" && c.tr.level === "experienced") || c.step === "floor" || (c.step === "amend" && c.amend?.stage === "debate") || (c.step === "caucus" && c.tr.cauc?.kind === "mod")
+  ? (c.step === "general" && c.tr.level === "experienced") || c.step === "proposer" || c.step === "seconder" || c.step === "opposer" || c.step === "floor" || (c.step === "amend" && c.amend?.stage === "debate") || (c.step === "caucus" && c.tr.cauc?.kind === "mod")
   : c.step === "amend" && c.amend?.stage === "debate";
 /** Whether the list has For and Against columns. The general list and a moderated caucus are one list of states. */
-export const sided = (c: Chamber) => !c.tr || c.step === "floor" || c.step === "amend";
+export const sided = (c: Chamber) => !c.tr || c.step === "floor" || c.step === "amend" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer";
 export const spokeOn = (c: Chamber, who: string, side: Side) => c.debate.run.some((s) => s.id === who && s.side === side);
 export function canAdd(c: Chamber, who: string, side: Side): boolean {
   return listOpen(c) && has(c, who) && !observing(c, who) && !c.debate.list.some((s) => s.id === who) && c.speech?.who !== who && (!!c.tr || !spokeOn(c, who, side));
@@ -759,9 +759,9 @@ export function summary(c: Chamber, wk?: 1 | 2) {
    (from the first caucus of the debate until the closing), and the speakers' list (once the council has voted to debate an amendment). */
 export function rooms(c: Chamber): { negotiation: boolean; amendments: boolean; speakers: boolean; labels?: string[] } {
   if (c.tr) {
-    // The pill tells delegates two things: whether the speakers' list is open and whether amendments are. A caucus is not named.
-    const list = listOpen(c) || c.step === "pick" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer";
-    const labels = [list && "Speakers\u2019 list open", amendmentsOpen(c) && "Amendments open", motionsOpen(c) && "Motions open"].filter((x): x is string => !!x);
+    // The pill says what delegates can do now, and it is exactly what the console has open: the speakers' list, amendments and motions. A caucus is not named.
+    const list = listOpen(c);
+    const labels = [list && "Speakers\u2019 List Open", amendmentsOpen(c) && "Amendments Open", motionsOpen(c) && "Motions Open"].filter((x): x is string => !!x);
     return { negotiation: false, amendments: amendmentsOpen(c), speakers: list, labels };
   }
   const speakers = c.amend?.stage === "debate" && (c.step === "amend" || (c.step === "caucus" && c.after === "amend"));

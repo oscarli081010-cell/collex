@@ -278,7 +278,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dTrack i { display: block; height: 100%; background: var(--accent); transition: width 200ms linear; }
 .dTime[data-state="up"] ~ .dTrack i { background: var(--danger); }
 .dTallies { margin-top: var(--group); display: flex; gap: clamp(28px, 6vw, 96px); justify-content: center; flex-wrap: wrap; }
-.dTally { display: flex; flex-direction: column; align-items: center; gap: 0.15em; }
+.dTally { display: flex; flex-direction: column; align-items: center; gap: 0.15em; min-width: clamp(150px, 20vw, 340px); }
 .dTally span { font-size: clamp(18px, 2.1vw, 30px); color: var(--muted); font-weight: 500; }
 /* The states that signed an amendment: tiles under a label, like the votes. */
 .dSigs { display: flex; flex-direction: column; align-items: center; gap: 0.5em; max-width: min(100%, 1300px); }
@@ -418,6 +418,8 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 /* The welcome: a small slanted "Welcome to" over the committee's name, centred. */
 .dWelcome { display: flex; flex-direction: column; align-items: center; gap: 0.12em; max-width: 100%; margin: 0; font-weight: 400; line-height: 1; }
 .dWelcome span { font-style: italic; font-size: calc(clamp(60px, min(10.4vw, 13vh), 160px) * 0.42); }
+.dWelcome[data-pass="true"] b { color: var(--ok); }
+.dWelcome[data-pass="false"] b { color: var(--danger); }
 .dWelcome b { font-weight: 400; font-size: calc(clamp(60px, min(10.4vw, 13vh), 160px) * var(--k, 1)); line-height: 0.95; overflow-wrap: anywhere; }
 
 /* On a narrow window the top bar takes two rows and would sit on top of the middle, so there it goes back to taking its own space above it. */
@@ -534,3 +536,5 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .topActions :global(.iconbtn) svg { width: 20px; height: 20px; }
 .labelRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .groupPick { width: min(100%, 260px); height: 40px; }
+.dPages { margin: 18px 0 0; text-align: center; font-size: clamp(14px, 1.5vw, 22px); color: var(--faint); font-variant-numeric: tabular-nums; }
+.whoLead { display: block; font-size: 0.5em; font-style: italic; line-height: 1.1; margin-bottom: 0.1em; color: var(--muted); }

@@ -177,7 +177,7 @@ export default function Chambers() {
   const inDebate = c.step === "caucus" || c.step === "floor" || c.step === "amend";
   const t = c.tr;
   const trWork = !!t && c.step !== "welcome" && c.step !== "roll" && c.step !== "ended"; // the motions, documents and chair's tools
-  const amendOpen = t ? !!t.current && (c.step === "floor" || c.step === "amend" || (c.step === "caucus" && (c.after === "floor" || c.after === "amend"))) : inDebate;
+  const amendOpen = t ? ch.amendmentsOpen(c) : inDebate; // the same rule as the pill on the display
 
   return (
     <main id="top" className={`container ${s.page}`}>
@@ -532,8 +532,8 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
             {!beginnerCom && next && timeField}
             {!beginnerCom && next && <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, next.id, next.side, secs))}>Call {name(next.id)}</button>}
             {!!t && readyAll.map((d, i) => <button key={d.id} type="button" className={i === 0 && !primaryTaken ? "button" : "button secondary"} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce {d.title}</button>)}
-            {beginnerCom && unseen && <button type="button" className="button secondary sm" onClick={() => act(ch.startPrep)}>Preparation, 20 min</button>}
-            {!beginnerCom && <button type="button" className="button secondary sm" onClick={() => act((x) => ch.startPapers(x))}>Start Working Papers, 30 min</button>}
+            {beginnerCom && unseen && <button type="button" className="button secondary sm" onClick={() => act(ch.startPrep)}>Preparation - 20 min</button>}
+            {!beginnerCom && <button type="button" className="button secondary sm" onClick={() => act((x) => ch.startPapers(x))}>Start Working Papers - 30 min</button>}
             <div className={s.btnRow}>
               {stNext && <button type="button" className={next || readyAll.length ? "button secondary sm" : "button"} onClick={() => act(ch.startStatements)}>Opening Statements</button>}
               {!beginnerCom && <button type="button" className={next || readyAll.length ? "button secondary sm" : "button"} onClick={() => window.dispatchEvent(new Event("chambers:motion"))}>{modDone ? "Start Another Moderated Caucus" : "Start a Moderated Caucus"}</button>}
@@ -601,7 +601,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
                 </button>
               );
             })}
-            {t && !t.finalDone && !c.closers.length && <button type="button" className="button secondary" onClick={() => act((x) => ch.callCaucus(x, ch.TR.final))}>Final Unmoderated Caucus, 4 min</button>}
+            {t && !t.finalDone && !c.closers.length && <button type="button" className="button secondary" onClick={() => act((x) => ch.callCaucus(x, ch.TR.final))}>Final Unmoderated Caucus - 4 min</button>}
             <button type="button" className={all ? "button" : "button secondary sm"} onClick={() => act(ch.startVote)}>Go to the Vote</button>
           </>
         );
@@ -719,7 +719,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
             {sp && sp.phase !== "speech" && <span className={s.chip}>Point of Information{sp.pois ? ` · ${sp.pois} taken` : ""}</span>}
           </div>
         )}
-        <h2 className={`serif ${s.who}`}>{title}</h2>
+        <h2 className={`serif ${s.who}`}>{typeof title === "string" && title.split(" ").length >= 4 && title.length >= 22 ? <><span className={s.whoLead}>{title.split(" ").slice(0, Math.floor(title.split(" ").length / 2)).join(" ")}</span>{title.split(" ").slice(Math.floor(title.split(" ").length / 2)).join(" ")}</> : title}</h2>
         {sub && <p className={s.sub}>{sub}</p>}
         {t?.level === "beginner" && c.step === "general" && !sp && (() => {
           const all = ch.drafts(c);
@@ -833,7 +833,7 @@ function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
   const spoken = c.debate.run.map((x) => ch.nameOf(c, x.id));
   const plain = !ch.sided(c); // the general list and a moderated caucus are one list of states
   const fixedPer = !!c.tr && (c.step === "caucus" || c.step === "amend"); // the caucus sets the time per speech
-  const heading = c.tr ? (c.step === "general" ? "General Speakers\u2019 List" : c.step === "caucus" ? "Moderated Caucus Speakers\u2019 List" : c.step === "floor" ? `${ch.resNoun(c).replace("resolution", "Resolution")} Speakers\u2019 List` : "Speakers\u2019 List") : "Speakers\u2019 List";
+  const heading = c.tr ? (c.step === "general" ? "General Speakers\u2019 List" : c.step === "caucus" ? "Moderated Caucus Speakers\u2019 List" : (c.step === "floor" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer") ? `${ch.resNoun(c).replace("resolution", "Resolution")} Speakers\u2019 List` : "Speakers\u2019 List") : "Speakers\u2019 List";
 
   const form = (
     <>
@@ -926,7 +926,6 @@ function SignMeter({ have, of }: { have: number; of: number }) {
         <span className={s.kMeterBar}><i style={{ width: `${Math.min(100, (have / Math.max(of, 1)) * 100)}%` }} /></span>
         <span className={s.kMeterText}><b>{have}</b> of <b>{of}</b> signed</span>
       </span>
-      <small>The proposer and seconder, and as many sponsors as possible.</small>
     </div>
   );
 }
@@ -1856,34 +1855,32 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
             <input id="cs-res" className="control" value={resolution} onChange={(e) => setResolution(e.target.value)} maxLength={160} required />
           </div>
           {proc === "trinity" && level === "beginner" && (
-            <fieldset className={s.procedure}>
-              <legend>Resolutions</legend>
-              <div className={s.two} style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
-                {["Seen Resolution", "Unseen Resolution"].map((label, i) => (
-                  <div className="field" key={i}>
-                    <label htmlFor={`cs-r${i}`}>{label}</label>
-                    <input id={`cs-r${i}`} className="control" value={res[i]} onChange={(e) => setRes((r) => r.map((v, j) => (j === i ? e.target.value : v)))} maxLength={160} placeholder="Title (optional)" />
-                  </div>
-                ))}
-              </div>
-            </fieldset>
+            <div className={s.two} style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+              {["Seen Resolution", "Unseen Resolution"].map((label, i) => (
+                <div className="field" key={i}>
+                  <label htmlFor={`cs-r${i}`}>{label}</label>
+                  <input id={`cs-r${i}`} className="control" value={res[i]} onChange={(e) => setRes((r) => r.map((v, j) => (j === i ? e.target.value : v)))} maxLength={160} placeholder="Title (optional)" />
+                </div>
+              ))}
+            </div>
+          
           )}
           <div className="field">
-            <div className={s.labelRow}>
-              <label htmlFor="cs-names">Member States</label>
-              <Select id="cs-group" className={`control ${s.groupPick}`} value="" aria-label="Add a group of member states" onChange={(e) => {
-                const g = GROUPS.find((x) => x.name === e.target.value);
-                if (!g) return;
-                const have = new Set(ch.parseNames(text).map((n) => n.toLowerCase()));
-                const add = g.states.filter((n) => !have.has(ch.shortName(n).toLowerCase()));
-                setText((v) => [v.trim(), ...add].filter(Boolean).join("\n"));
-              }}>
-                <option value="">Add a Group…</option>
-                {GROUPS.map((g) => <option key={g.name} value={g.name}>{g.name} · {g.states.length}</option>)}
-              </Select>
-            </div>
+            <label htmlFor="cs-names">Member States</label>
             <textarea id="cs-names" className="control" value={text} onChange={(e) => setText(e.target.value)} rows={8} placeholder="One per line, or separated by commas" />
             {names.length > 0 && <small>{names.length} {names.length === 1 ? "state" : "states"}</small>}
+          </div>
+          <div className="field">
+              <Select id="cs-group" className="control" value="" aria-label="Add a group of member states" onChange={(e) => {
+              const g = GROUPS.find((x) => x.name === e.target.value);
+              if (!g) return;
+              const have = new Set(ch.parseNames(text).map((n) => n.toLowerCase()));
+              const add = g.states.filter((n) => !have.has(ch.shortName(n).toLowerCase()));
+              setText((v) => [v.trim(), ...add].filter(Boolean).join("\n"));
+            }}>
+              <option value="">Add a Group…</option>
+              {GROUPS.map((g) => <option key={g.name} value={g.name}>{g.name} · {g.states.length}</option>)}
+            </Select>
           </div>
           <button type="submit" className="button lg block" disabled={!ok}>Open Committee</button>
         </form>

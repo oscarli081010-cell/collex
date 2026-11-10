@@ -177,6 +177,8 @@ assert.ok(ch.removeDoc(c, "d1").tr!.docs.some((d) => d.id === "d1"), "the draft 
 /* ---------- introduction speeches ---------- */
 c = ch.pickRole(c, "opposer", id("India"));
 c = ch.startSpeeches(c); assert.equal(c.step, "proposer");
+assert.deepEqual(ch.rooms(c).labels, ["Speakers’ List Open"], "the speakers' list opens with the introduction, and the pill says so because the console has it open");
+assert.equal(ch.sided(c), true);
 c = ch.callProposer(c); assert.equal(c.timer!.total, 90_000, "90 seconds in 2026");
 c = ch.endSpeech(c, AT, id("China")); c = ch.yieldToChair(c, id("China"), 0);
 assert.equal(c.step, "seconder");
@@ -187,11 +189,11 @@ c = ch.callOpposer(c); assert.equal(c.timer!.total, 90_000, "the opposing speech
 c = ch.endSpeech(c, AT, id("India")); c = ch.yieldToChair(c, id("India"), 0);
 assert.equal(c.step, "caucus"); assert.equal(c.timer!.total, 300_000, "5 minutes unmoderated"); assert.equal(c.after, "floor");
 assert.equal(c.tr!.cauc!.kind, "unmod");
-assert.deepEqual(ch.rooms(c).labels, ["Motions open"], "the 5 minutes that open the debate: amendments are handed in once it is over");
+assert.deepEqual(ch.rooms(c).labels, ["Motions Open"], "the 5 minutes that open the debate: amendments are handed in once it is over");
 assert.equal(ch.submitAmendment(c, "early", id("Egypt"), "Clause 1", "Too early", [id("France"), id("Sweden")], id("Germany")).amendments.length, 0);
 c = ch.endCaucus(c); assert.equal(c.step, "floor");
 assert.equal(ch.stageIndex(c), 2);
-assert.deepEqual(ch.rooms(c).labels, ["Speakers’ list open", "Amendments open", "Motions open"]);
+assert.deepEqual(ch.rooms(c).labels, ["Speakers’ List Open", "Amendments Open", "Motions Open"]);
 
 /* ---------- the draft resolution's speakers' list and amendments ---------- */
 assert.equal(ch.sided(c), true);
