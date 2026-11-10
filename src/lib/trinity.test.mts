@@ -19,18 +19,18 @@ c = ch.startRoll(c);
 c = ch.markAllRoll(c, "voting");
 c = ch.markRoll(c, id("Kenya"), "present");
 c = ch.beginDebate(c);
-assert.equal(c.step, "statements", "the experienced committee's first week opens with the statements straight after the roll call");
+assert.equal(c.step, "statements", "the session opens with the statements straight after the roll call");
 assert.equal(ch.stageIndex(c), 1);
 assert.deepEqual(ch.rooms(c).labels, [], "nothing is open during the statements");
-assert.deepEqual(ch.motionKinds(c), ["mod", "extend", "closemod"], "moderated caucuses first");
+assert.deepEqual(ch.motionKinds(c), ["mod", "unmod", "extend", "closemod", "draft"], "caucuses, and introducing a draft resolution; no motion to introduce an amendment");
 
 /* ---------- opening statements ---------- */
 assert.equal(c.step, "statements");
 assert.equal(ch.nextStatement(c), id("Australia"), "alphabetical");
 c = ch.callStatement(c, id("Brazil")); // any state can be called
-assert.equal(c.speech!.role, "statement"); assert.equal(c.timer!.total, 120_000, "2 minutes");
+assert.equal(c.speech!.role, "statement"); assert.equal(c.timer!.total, 90_000, "90 seconds in 2026");
 c = ch.startTimer(c, AT); c = ch.endSpeech(c, AT + 70_000, id("Brazil"));
-assert.equal(c.speech!.left, 50, "unused seconds are kept");
+assert.equal(c.speech!.left, 20, "unused seconds are kept");
 c = ch.askPoi(c, id("China"), id("Brazil"), 0); c = ch.answerPoi(c, id("Brazil"), id("China"), 0, AT + 80_000); c = ch.donePoi(c, id("Brazil"), id("China"), 0, AT + 90_000);
 c = ch.yieldToChair(c, id("Brazil"), 1);
 assert.deepEqual(c.tr!.opened, [id("Brazil")]); assert.equal(c.speech, null); assert.equal(c.step, "statements");
@@ -112,16 +112,15 @@ assert.equal(c.tr!.saved, null);
 c = ch.removeFromList(ch.removeFromList(c, id("Egypt")), id("Denmark"));
 
 /* ---------- motions: queue, order, voting ---------- */
-assert.ok(ch.motionError(c, { kind: "unmod", by: id("India"), total: 600 }), "unmoderated caucuses wait for three moderated ones");
-c = ch.allowUnmod(c); assert.equal(ch.motionError(c, { kind: "unmod", by: id("India"), total: 600 }), null, "unless the chair allows them");
+assert.equal(ch.motionError(c, { kind: "unmod", by: id("India"), total: 600 }), null, "no waiting for three moderated caucuses in 2026");
 assert.ok(ch.motionError(c, { kind: "mod", by: id("India"), topic: "", total: 600, per: 60 }));
 assert.ok(ch.motionError(c, { kind: "unmod", by: id("India"), total: 1500 }));
 assert.ok(ch.motionError(c, { kind: "close", by: null }), "close debate belongs to the draft resolution debate");
 c = ch.addMotion(c, "m1", { kind: "unmod", by: id("India"), total: 600 });
 c = ch.addMotion(c, "m2", { kind: "mod", by: id("Japan"), topic: "Funding", total: 300, per: 30 });
 c = ch.addMotion(c, "m3", { kind: "unmod", by: id("Kenya"), total: 120 });
-assert.equal(ch.addMotion(c, "mx", { kind: "suspend", by: null }).tr!.motions.length, 3, "the first week of the experienced committee has no such motions");
-assert.equal(ch.addMotion(c, "mx", { kind: "amend", by: null, ref: "a" }).tr!.motions.length, 3);
+assert.equal(ch.addMotion(c, "mx", { kind: "suspend", by: null }).tr!.motions.length, 3, "a motion that is not used is refused");
+assert.equal(ch.addMotion(c, "mx", { kind: "amend", by: null, ref: "a" }).tr!.motions.length, 3, "2026 has no motion to introduce an amendment: the chairs select them");
 assert.deepEqual(ch.waitingMotions(c).map((m) => m.id), ["m1", "m2", "m3"]);
 c = ch.moveMotion(c, "m3", -1); c = ch.moveMotion(c, "m3", -1);
 assert.deepEqual(ch.waitingMotions(c).map((m) => m.id), ["m3", "m1", "m2"]);
@@ -158,8 +157,8 @@ assert.equal(c.tr!.docs[0].link, "", "only web links are kept");
 assert.equal(c.tr!.docs[0].status, "approved");
 c = ch.addDoc(c, "d1", { kind: "draft", title: "Resolution on Verification", week: 1, seen: true, proposer: id("China"), seconder: id("Denmark"), sponsors: [id("Egypt")], link: "https://example.com/x", clauses: "1. Requests...;" });
 assert.equal(ch.addDoc(c, "d2", { kind: "draft", title: "Same", week: 1, seen: true, proposer: id("China"), seconder: id("China"), sponsors: [], link: "", clauses: "" }).tr!.docs.length, 2, "proposer and seconder differ");
-assert.equal(ch.signNeeded(c), 4, "a quarter of 16 present");
-assert.equal(ch.approveDoc(c, "d1").tr!.docs[1].status, "submitted", "3 of 4 signatures isn't enough");
+assert.equal(ch.approveDoc(c, "d1").tr!.docs[1].status, "approved", "no quota in 2026: a proposer and a seconder, and as many sponsors as possible");
+c = ch.sendBackDoc(c, "d1"); c = ch.resubmitDoc(c, "d1");
 c = sign(c, "d1", [id("France"), id("Egypt")]);
 assert.equal(ch.docSigners(c.tr!.docs[1]).length, 4);
 c = ch.sendBackDoc(c, "d1"); assert.equal(c.tr!.docs[1].status, "sent");
@@ -168,11 +167,9 @@ c = ch.approveDoc(c, "d1"); assert.equal(c.tr!.docs[1].status, "approved");
 assert.equal(ch.introduceDraft(ch.setObserver(c, id("China")), "d1").step, "general", "an observer can't propose");
 c = ch.introduceDraft(c, "p1"); assert.equal(c.step, "general", "a working paper is not introduced");
 // introduced by a passed motion
-const week1 = c.tr!.week; c = { ...c, tr: { ...c.tr!, week: 2 } }; // draft resolutions are for the second week of the experienced committee
 c = ch.addMotion(c, "m5", { kind: "draft", by: id("China"), ref: "d1" });
 c = ch.voteMotion(c, "m5"); c = ch.tally(c, "yes", 1); c = ch.decideMotion(c, null, "m5");
 assert.equal(c.step, "pick"); assert.equal(c.tr!.current, "d1");
-c = { ...c, tr: { ...c.tr!, week: week1 } };
 assert.deepEqual(c.roles, { proposer: id("China"), seconder: id("Denmark"), opposer: null });
 assert.equal(c.topic, "Removal of Nuclear Weapons", "the committee's topic stays");
 assert.ok(ch.removeDoc(c, "d1").tr!.docs.some((d) => d.id === "d1"), "the draft in hand stays");
@@ -180,13 +177,13 @@ assert.ok(ch.removeDoc(c, "d1").tr!.docs.some((d) => d.id === "d1"), "the draft 
 /* ---------- introduction speeches ---------- */
 c = ch.pickRole(c, "opposer", id("India"));
 c = ch.startSpeeches(c); assert.equal(c.step, "proposer");
-c = ch.callProposer(c); assert.equal(c.timer!.total, 120_000, "experienced: 2 minutes");
+c = ch.callProposer(c); assert.equal(c.timer!.total, 90_000, "90 seconds in 2026");
 c = ch.endSpeech(c, AT, id("China")); c = ch.yieldToChair(c, id("China"), 0);
 assert.equal(c.step, "seconder");
-c = ch.callSeconder(c); assert.equal(c.timer!.total, 120_000);
+c = ch.callSeconder(c); assert.equal(c.timer!.total, 90_000);
 c = ch.endSpeech(c, AT, id("Denmark")); c = ch.yieldToChair(c, id("Denmark"), 0);
 assert.equal(c.step, "opposer");
-c = ch.callOpposer(c); assert.equal(c.timer!.total, 120_000);
+c = ch.callOpposer(c); assert.equal(c.timer!.total, 90_000, "the opposing speech is 90 seconds too");
 c = ch.endSpeech(c, AT, id("India")); c = ch.yieldToChair(c, id("India"), 0);
 assert.equal(c.step, "caucus"); assert.equal(c.timer!.total, 300_000, "5 minutes unmoderated"); assert.equal(c.after, "floor");
 assert.equal(c.tr!.cauc!.kind, "unmod");
@@ -200,11 +197,10 @@ assert.deepEqual(ch.rooms(c).labels, ["Speakers’ list open", "Amendments open"
 assert.equal(ch.sided(c), true);
 c = ch.addToList(c, id("Kenya"), "against"); c = ch.addToList(c, id("Mexico"), "for");
 assert.equal(ch.addToList(c, id("Mexico"), "against").debate.list.length, 2);
-// amendments need a seconder and a quarter of the states
+// amendments need a proposer and a seconder, and as many sponsors as possible: there is no quota in 2026
 const am = (x: ch.Chamber, aid: string, by: string, clause: string, backers: string[], sec: string | null, cons = false) => ch.submitAmendment(x, aid, by, clause, "Change it", backers, sec, cons);
 assert.equal(am(c, "a0", id("Egypt"), "Clause 1", [id("France")], null).amendments.length, 0, "needs a seconder");
-assert.equal(am(c, "a0", id("Egypt"), "Clause 1", [id("France")], id("Germany")).amendments.length, 0, "3 of 4 signatures");
-c = am(c, "a1", id("Egypt"), "Clause 1", [id("France")], id("Germany")); // 3 signatures: refused
+assert.equal(am(c, "a0", id("Egypt"), "Clause 1", [], id("Germany")).amendments.length, 1, "a proposer and a seconder are enough");
 c = am(c, "a1", id("Egypt"), "Clause 1", [id("France"), id("Sweden")], id("Germany"));
 assert.equal(c.amendments.length, 1); assert.equal(c.amendments[0].seconder, id("Germany")); assert.equal(c.amendments[0].backers.length, 3);
 c = am(c, "a2", id("Mexico"), "Clause 2", [id("Sweden"), id("UK")], id("Vietnam"));
@@ -233,7 +229,8 @@ c = am(c, "a3", id("Egypt"), "clause  1", [id("France"), id("Sweden")], id("Germ
 assert.equal(c.amendments.length, 3, "allowed with full consensus");
 // an observer can't sign
 const obs = ch.setObserver(c, id("Sweden"));
-assert.equal(am(obs, "a4", id("Japan"), "Clause 5", [id("Sweden"), id("UK")], id("Vietnam")).amendments.length, 3);
+assert.equal(am(obs, "a4", id("Japan"), "Clause 5", [id("Sweden"), id("UK")], id("Vietnam")).amendments[3].backers.includes(id("Sweden")), false, "its signature is left out");
+assert.equal(am(obs, "a4", id("Japan"), "Clause 5", [], id("Sweden")).amendments.length, 3, "an observer can't second");
 // reject a debate vote: straight to the vote
 c = ch.entertain(c, "a2"); c = ch.amendAsk(c, "a2"); c = ch.tally(c, "no", 1);
 c = ch.decideAsk(c, null, "a2");
@@ -305,26 +302,13 @@ assert.equal(ch.permanent("Russian Federation"), "Russia"); assert.equal(ch.perm
 let done = sc();
 assert.equal(ch.reopenVote(done).tr!.docs.find((d) => d.id === "d1")!.result, null);
 
-/* ---------- after the vote: back to general debate, then week 2 ---------- */
+/* ---------- after the vote: back to the general debate ---------- */
 c = done;
-assert.equal(ch.nextWeek(c).tr!.week, 2, "week 2 can start after a resolution");
 const g = ch.backToGeneral(c);
 assert.equal(g.step, "general"); assert.equal(g.tr!.current, null); assert.equal(g.amendments.length, 0); assert.equal(g.outcome, null);
 assert.equal(g.tr!.docs.find((d) => d.id === "d1")!.result, "passed", "the result stays on the draft");
 assert.equal(ch.introduceDraft(g, "d1").step, "general", "a decided draft isn't introduced again");
-const w2 = ch.nextWeek(g);
-assert.equal(w2.step, "roll"); assert.equal(w2.tr!.week, 2); assert.deepEqual(w2.roll, {});
-assert.equal(Object.keys(w2.tr!.rolls["1"]).length, 16, "week 1's roll is kept");
-assert.equal(w2.tr!.docs.length, 3 - 1, "documents carry over"); // p1 and d1
-assert.equal(ch.nextWeek(w2).tr!.week, 2, "there is no week 3");
-assert.ok(w2.stats.length > 0);
-const w2on = begin(ch.markAllRoll(w2, "voting"));
-assert.equal(w2on.step, "general");
-{ // stats made in week 2 are marked
-  const s2 = ch.callStatement(ch.startStatements(w2on), id("Australia"));
-  const s3 = ch.endSpeech(ch.startTimer(s2, AT), AT + 5000, id("Australia"));
-  assert.equal(s3.stats.at(-1)!.wk, 2);
-}
+assert.equal((ch as unknown as Record<string, unknown>).nextWeek, undefined, "2026 is one session: there is no second week");
 
 /* ---------- right of reply ---------- */
 {
@@ -378,9 +362,7 @@ assert.equal(ch.logPoint(g, "order").tr!.points.length, 1);
   assert.deepEqual(ch.rooms(x).labels, [], "no pill during the drafting");
   assert.ok(ch.motionError(x, { kind: "extend", by: null, total: 120 }));
   x = ch.endCaucus(x);
-  const wk2 = { ...x, tr: { ...x.tr!, week: 2 as const } };
-  assert.equal(ch.startPapers(wk2), wk2, "week 2 has no working papers");
-  assert.equal(ch.startPapers(begin(ch.markAllRoll(ch.startRoll(ch.createTrinity("GA", "T", "beginner", 60, names, ids)), "voting"))).step, "general", "nor does the beginner committee");
+  assert.equal(ch.startPapers(begin(ch.markAllRoll(ch.startRoll(ch.createTrinity("GA", "T", "beginner", 60, names, ids)), "voting"))).step, "general", "the beginner committee has no working papers");
   // a strike, an amend or an add is kept
   let y = begin(ch.markAllRoll(ch.startRoll(ch.createTrinity("GA", "T", "beginner", 60, names, ids)), "voting"));
   y = ch.introduceDraft(ch.approveDoc(ch.addDoc(y, "d", { kind: "draft", title: "R", week: 1, seen: true, proposer: id("Australia"), seconder: id("Brazil"), sponsors: [id("China"), id("Denmark")], link: "", clauses: "" }), "d"), "d");
@@ -403,12 +385,12 @@ assert.equal(ch.logPoint(g, "order").tr!.points.length, 1);
 /* ---------- the beginner committee's given resolutions ---------- */
 {
   let b = ch.createTrinity("GA", "Topic", "beginner", 60, names, ids, [
-    { title: "Seen one", week: 1, seen: true }, { title: "Seen two", week: 1, seen: true }, { title: "Seen three", week: 2, seen: true }, { title: "Unseen", week: 2, seen: false }, { title: "  ", week: 2, seen: true },
+    { title: "Seen one", week: 1, seen: true }, { title: "Unseen", week: 1, seen: false }, { title: "  ", week: 1, seen: true },
   ]);
-  assert.equal(b.tr!.docs.length, 4, "blank titles are left out");
+  assert.equal(b.tr!.docs.length, 2, "blank titles are left out");
   assert.ok(b.tr!.docs.every((d) => d.status === "approved" && d.proposer === null && d.kind === "draft"));
-  assert.equal(b.tr!.docs.filter((d) => d.week === 1 && d.seen).length, 2);
-  assert.equal(b.tr!.docs.filter((d) => d.week === 2 && !d.seen).length, 1);
+  assert.equal(b.tr!.docs.filter((d) => d.seen).length, 1); assert.equal(b.tr!.docs.filter((d) => !d.seen).length, 1, "one seen and one unseen");
+  assert.equal(ch.SLOTS.length, 2);
   b = begin(ch.markAllRoll(ch.startRoll(b), "voting"));
   b = ch.introduceDraft(b, "agenda0");
   assert.equal(b.step, "pick", "a given resolution can be introduced without a proposer");
@@ -440,43 +422,52 @@ assert.equal(ch.logPoint(g, "order").tr!.points.length, 1);
 
 /* ---------- the beginner committee is like Evatt ---------- */
 {
-  let b = begin(ch.markAllRoll(ch.startRoll(ch.createTrinity("GA", "T", "beginner", 60, names, ids)), "voting"));
-  assert.equal(b.step, "general", "no opening statements");
+  let b = ch.beginDebate(ch.markAllRoll(ch.startRoll(ch.createTrinity("GA", "T", "beginner", 60, names, ids)), "voting"));
+  assert.equal(b.step, "statements", "every committee opens with its opening statements (2026)");
+  b = ch.endStatements(b);
+  assert.equal(b.step, "general");
   assert.equal(ch.listOpen(b), false, "no general speakers' list");
   assert.equal(ch.motionsOpen(b), false);
-  assert.deepEqual(ch.motionKinds(b), ["mod", "unmod", "extend", "closemod", "amend", "close"], "the beginner committee debates its resolution with caucuses, amendments and closing");
+  assert.deepEqual(ch.motionKinds(b), ["mod", "unmod", "extend", "closemod", "close"], "the beginner committee debates its resolution with caucuses and closing the debate");
   assert.deepEqual(ch.rooms(b).labels, []);
   assert.deepEqual(ch.stagesOf(b), ["Opening", "Resolutions", "Debate", "Closing"]);
-  assert.equal(ch.substep(b), "Choosing a resolution");
-  // debating a draft: only unmoderated caucuses, in either committee
+  assert.equal(ch.substep(b), "Choosing a Resolution");
+  // between debates the experienced committee can introduce a draft; while one is debated both committees take the same set
   let e = begin(ch.markAllRoll(ch.startRoll(ch.createTrinity("SC", "T", "experienced", 60, names, ids)), "voting"));
-  e = ch.nextWeek(e); e = ch.beginDebate(ch.markAllRoll(ch.startRoll(e), "voting"));
-  assert.deepEqual(ch.motionKinds(e), ["mod", "unmod", "extend", "closemod", "draft"], "between drafts in the second week");
-  e = ch.addDoc(e, "z", { kind: "draft", title: "Z", week: 2, seen: true, proposer: id("China"), seconder: id("Denmark"), sponsors: [id("Egypt"), id("France")], link: "", clauses: "" });
+  assert.deepEqual(ch.motionKinds(e), ["mod", "unmod", "extend", "closemod", "draft"]);
+  e = ch.addDoc(e, "z", { kind: "draft", title: "Z", week: 1, seen: true, proposer: id("China"), seconder: id("Denmark"), sponsors: [id("Egypt"), id("France")], link: "", clauses: "" });
   e = ch.introduceDraft(ch.approveDoc(e, "z"), "z");
-  assert.deepEqual(ch.motionKinds(e), ["mod", "unmod", "extend", "closemod", "amend", "close"], "the same set while a draft resolution is debated");
+  assert.deepEqual(ch.motionKinds(e), ["mod", "unmod", "extend", "closemod", "close"], "the same set while a draft resolution is debated");
   assert.equal(ch.motionsOpen(e), false, "not while the proposers are chosen or speaking");
 }
 
 /* ---------- wording, and the given resolutions ---------- */
 {
-  const b = ch.createTrinity("GA", "T", "beginner", 60, names, ids, [{ title: "", week: 1, seen: true }, { title: "Second", week: 1, seen: true }, { title: "Third", week: 2, seen: true }, { title: "", week: 2, seen: false }]);
+  const b = ch.createTrinity("GA", "T", "beginner", 60, names, ids, [{ title: "", week: 1, seen: true }, { title: "Second", week: 1, seen: false }]);
   const e = ch.createTrinity("SC", "T", "experienced", 60, names, ids);
   assert.equal(ch.resNoun(b), "Resolution"); assert.equal(ch.resNoun(e), "Draft resolution");
   assert.equal(ch.roleName(b, "seconder"), "Co-sponsor"); assert.equal(ch.roleName(e, "seconder"), "Co-proposer");
-  assert.deepEqual(b.tr!.docs.map((d) => d.id), ["agenda1", "agenda2"], "each resolution keeps its slot");
-  assert.equal(ch.substep({ ...b, step: "pick" }), "Introduce the resolution"); assert.equal(ch.substep({ ...b, step: "floor" }), "Resolution debate");
-  assert.equal(ch.substep({ ...e, step: "floor" }), "Draft resolution debate");
-  let s = ch.setAgenda(b, 0, "First"); assert.deepEqual(s.tr!.docs.map((d) => d.title), ["First", "Second", "Third"], "a slot can be added in its place");
-  s = ch.setAgenda(s, 3, "Unseen"); assert.equal(s.tr!.docs[3].seen, false); assert.equal(s.tr!.docs[3].week, 2);
+  assert.deepEqual(b.tr!.docs.map((d) => d.id), ["agenda1"], "each resolution keeps its slot");
+  assert.equal(ch.substep({ ...b, step: "pick" }), "Introduce the Resolution"); assert.equal(ch.substep({ ...b, step: "floor" }), "Resolution Debate");
+  assert.equal(ch.substep({ ...e, step: "floor" }), "Draft Resolution Debate");
+  let s = ch.setAgenda(b, 0, "First"); assert.deepEqual(s.tr!.docs.map((d) => d.title), ["First", "Second"], "a slot can be added in its place");
+  assert.equal(s.tr!.docs[0].seen, true); assert.equal(s.tr!.docs[1].seen, false, "the second one is the unseen resolution");
   s = ch.setAgenda(s, 1, "Renamed"); assert.equal(s.tr!.docs[1].title, "Renamed");
-  assert.deepEqual(ch.setAgenda(s, 2, "").tr!.docs.map((d) => d.id), ["agenda0", "agenda1", "agenda3"], "a blank title takes it away");
+  assert.equal(ch.setAgenda(s, 2, "Third"), s, "there are only two");
+  assert.deepEqual(ch.setAgenda(s, 1, "").tr!.docs.map((d) => d.id), ["agenda0"], "a blank title takes it away");
   assert.equal(ch.setAgenda(e, 0, "No"), e, "only the beginner committee has given resolutions");
-  const open = ch.beginDebate(ch.markAllRoll(ch.startRoll(s), "voting"));
+  const open = begin(ch.markAllRoll(ch.startRoll(s), "voting"));
   const intro = ch.introduceDraft(open, "agenda0");
   assert.equal(ch.setAgenda(intro, 0, "Changed"), intro, "not while it is being debated");
   const closed = { ...intro, tr: { ...intro.tr!, docs: intro.tr!.docs.map((d) => (d.id === "agenda0" ? { ...d, result: "passed" as const } : d)), current: null } };
   assert.equal(ch.setAgenda(closed, 0, "Changed"), closed, "nor once it has a result");
+}
+
+/* ---------- the 2026 handbook's times ---------- */
+{
+  assert.equal(ch.TR.statement, 90, "opening statements: 90 seconds"); assert.equal(ch.TR.speech, 90, "proposer and co-proposer: 90 seconds");
+  assert.equal(ch.TR.introOppose, 90, "the first opposing speech: 90 seconds"); assert.equal(ch.TR.oppose, 120, "the closing speeches: 2 minutes");
+  assert.equal(ch.TR.final, 240, "the final unmoderated caucus: 4 minutes"); assert.equal(ch.TR.intro, 300, "the first unmoderated caucus: 5 minutes");
 }
 
 console.log("ALL TRINITY CHECKS PASSED");

@@ -399,8 +399,8 @@ p, li, dd, small, figcaption { text-wrap: pretty; }
 /* Icon buttons (IconButton.tsx): round and quiet; the tooltip names the action after a short hover. */
 .iconbtn { width: 40px; height: 40px; padding: 0 !important; border-radius: 50% !important; justify-content: center; flex: none; }
 .iconbtn[aria-pressed="true"] { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
-.iconbtn-danger:hover { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
-.iconbtn-danger.is-armed { background: var(--danger); border-color: var(--danger); color: var(--on-ink); }
+.button.iconbtn-danger:hover { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
+.button.iconbtn-danger.is-armed, .button.iconbtn-danger.is-armed:hover, .button.iconbtn-danger.is-armed:focus-visible { background: var(--danger); border-color: var(--danger); color: var(--on-ink); }
 @media (pointer: coarse) { .iconbtn { width: 44px; height: 44px; } }
 .tip { position: relative; display: inline-flex; }
 .tip::after {

@@ -7,7 +7,7 @@ import SearchBox from "./SearchBox";
 import { Placard } from "./Drawings";
 import Verified from "./Verified";
 import IconButton, { ConfirmIconButton, ICONS } from "./IconButton";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { coverUrl, formatDate, webUrl } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
@@ -18,6 +18,7 @@ import auth from "@/app/auth.module.css";
 import s from "@/app/admin.module.css";
 import act from "./Activity.module.css";
 import Select from "./Select";
+import AdminChambers, { type AdminChamber } from "./AdminChambers";
 
 type Row = {
   id: string; slug: string; status: string; name: string; host: string; start_date: string | null; end_date: string | null;
@@ -34,9 +35,11 @@ type Log = { id: number; at: string; actor_email: string; action: string; target
 
 const LOG_PER_PAGE = 10;
 // The dot's colour for what happened, as on a listing's own audit log.
-const LOG_TONE: Record<string, string> = { approved: "ok", rejected: "bad", unpublished: "warn", reopened: "warn", submitted: "accent", "removed organiser": "bad", "left organisers": "warn" };
+const LOG_TONE: Record<string, string> = { approved: "ok", rejected: "bad", unpublished: "warn", reopened: "warn", submitted: "accent", "removed organiser": "bad", "left organisers": "warn", deleted: "bad", "created an account": "ok", "started a chamber": "accent", "shared a chamber": "accent" };
+// What the log says for each action: a person listing a conference reads as "listed".
+const LOG_WORDS: Record<string, string> = { submitted: "listed" };
 
-const TABS = ["Review", "Conferences", "Reports", "Users", "Audit log"] as const;
+const TABS = ["Review", "Conferences", "Reports", "Chambers", "Users", "Audit Log"] as const;
 const REASON: Record<string, string> = { details: "Wrong or out of date", link: "Broken link", inappropriate: "Shouldn\u2019t be here", other: "Something else" };
 type Tab = (typeof TABS)[number];
 const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Rejected", unpublished: "Taken down" };
@@ -52,10 +55,13 @@ export default function Admin() {
   const [log, setLog] = useState<Log[] | null>(null);
   const [logPage, setLogPage] = useState(0);
   const [reports, setReports] = useState<Report[] | null>(null);
+  const [chambers, setChambers] = useState<AdminChamber[] | null>(null);
+  const [chambersError, setChambersError] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
   // One search per tab, so switching tabs keeps what you typed in each.
-  const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Reports: "", Users: "", "Audit log": "" });
+  const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Reports: "", Chambers: "", Users: "", "Audit Log": "" });
   // A new search starts on the first page of the audit log.
-  useEffect(() => { setLogPage(0); }, [find["Audit log"]]);
+  useEffect(() => { setLogPage(0); }, [find["Audit Log"]]);
   const [statusFilter, setStatusFilter] = useState("any");
   const [reportFilter, setReportFilter] = useState("open");
   // Bulk actions: what's ticked on the open tab (ids as text), the reject reason being typed, and the two-step delete.
@@ -73,16 +79,19 @@ export default function Admin() {
 
   const load = useCallback(async () => {
     if (!supabase) return;
-    const [c, u, l, rp] = await Promise.all([
+    const [c, u, l, rp, ch] = await Promise.all([
       supabase.from("conferences").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, email, full_name, school, role, is_admin, created_at").order("created_at", { ascending: false }),
       supabase.from("audit_log").select("*").order("at", { ascending: false }).limit(200),
       supabase.from("reports").select("id, conference_id, reason, note, reply_to, status, created_at, resolved_at, conferences(name, slug)").order("created_at", { ascending: false }).limit(200),
+      supabase.rpc("admin_chambers"),
     ]);
     setRows((c.data as Row[]) ?? []);
     setUsers((u.data as User[]) ?? []);
     setLog((l.data as Log[]) ?? []);
     setReports((rp.data as unknown as Report[] | null) ?? []);
+    setChambersError(!!ch.error);
+    setChambers((ch.data as AdminChamber[] | null) ?? []);
   }, []);
 
   useEffect(() => { if (profile?.is_admin) load(); }, [profile?.is_admin, load]);
@@ -168,7 +177,7 @@ export default function Admin() {
   const others = rows?.filter((r) => r.status !== "pending") ?? [];
   // Tab counts are always the totals; the search only narrows what the open tab shows.
   const openReports = (reports ?? []).filter((r) => r.status === "open");
-  const counts: Record<Tab, number | null> = { Review: pending.length, Conferences: others.length, Reports: openReports.length, Users: users?.length ?? null, "Audit log": null };
+  const counts: Record<Tab, number | null> = { Review: pending.length, Conferences: others.length, Reports: openReports.length, Chambers: chambers?.length ?? null, Users: users?.length ?? null, "Audit Log": null };
   const q = find[tab].trim().toLowerCase();
   const has = (...parts: (string | null | undefined)[]) => !q || parts.join(" ").toLowerCase().includes(q);
   const shownConfs = others.filter((r) => has(r.name, r.host, r.venue, STATUS[r.status]) && (statusFilter === "any" || r.status === statusFilter));
@@ -181,7 +190,7 @@ export default function Admin() {
   const searching = Boolean(q) || (tab === "Conferences" && statusFilter !== "any") || (tab === "Reports" && reportFilter !== "open");
   const clearSearch = () => { setFind((f) => ({ ...f, [tab]: "" })); if (tab === "Conferences") setStatusFilter("any"); if (tab === "Reports") setReportFilter("open"); };
   const noMatches = <Empty title="No matches" body="Try a different word, or clear the search."><button className="button secondary" onClick={clearSearch}>Clear search</button></Empty>;
-  const searchFor: Partial<Record<Tab, string>> = { Conferences: "Search by name, host, venue or status", Reports: "Search by listing, reason or message", Users: "Search by name, email or school", "Audit log": "Search by who, action or what" };
+  const searchFor: Partial<Record<Tab, string>> = { Conferences: "Search by name, host, venue or status", Reports: "Search by listing, reason or message", Chambers: "Search by name, owner or where it is", Users: "Search by name, email or school", "Audit Log": "Search by who, action or what" };
 
   return (
     <div className={s.wrap}>
@@ -199,7 +208,7 @@ export default function Admin() {
 
       {rows === null ? <RowsSkeleton rows={4} height={72} /> : (
         <div key={tab} className="t-reveal">
-          {searchFor[tab] && (tab !== "Conferences" || others.length > 0) && (tab !== "Reports" || (reports ?? []).length > 0) && (tab !== "Audit log" || log!.length > 0) && (
+          {searchFor[tab] && (tab !== "Conferences" || others.length > 0) && (tab !== "Reports" || (reports ?? []).length > 0) && (tab !== "Audit Log" || log!.length > 0) && (tab !== "Chambers" || (chambers ?? []).length > 0) && (
             <div className={s.searchBar} role="search">
               <SearchBox label={`Search ${tab.toLowerCase()}`} placeholder={searchFor[tab]!} value={find[tab]} onChange={(v) => setFind((f) => ({ ...f, [tab]: v }))} />
               {tab === "Conferences" && (
@@ -216,7 +225,7 @@ export default function Admin() {
                 </Select>
               )}
               <span key={`${tab}${q}${statusFilter}${reportFilter}`} className={`t-swap muted ${s.searchCount}`} aria-live="polite">
-                {searching ? `${tab === "Conferences" ? shownConfs.length : tab === "Reports" ? shownReports.length : tab === "Users" ? shownUsers.length : shownLog.length} shown` : ""}
+                {searching ? `${tab === "Conferences" ? shownConfs.length : tab === "Reports" ? shownReports.length : tab === "Chambers" ? (chambers ?? []).filter((x) => `${x.name} ${x.owner_email} ${x.owner_name}`.toLowerCase().includes(q)).length : tab === "Users" ? shownUsers.length : shownLog.length} shown` : ""}
               </span>
             </div>
           )}
@@ -241,7 +250,8 @@ export default function Admin() {
                 </tr></thead>
                 <tbody>
                   {shownConfs.map((r) => (
-                    <tr key={r.id} data-picked={sel.includes(r.id) || undefined}>
+                    <Fragment key={r.id}>
+                    <tr data-picked={sel.includes(r.id) || undefined}>
                       <td className={s.pickCell}><label className={s.pick}><input type="checkbox" aria-label={`Select ${r.name}`} checked={sel.includes(r.id)} onChange={() => toggle(r.id)} /></label></td>
                       <td><strong>{r.name}{r.verified && <> <Verified /></>}</strong><small>{r.host}</small></td>
                       <td><span className={auth.status} data-status={r.status}>{STATUS[r.status]}</span></td>
@@ -249,6 +259,7 @@ export default function Admin() {
                       <td className={s.right}>
                         <div className={s.actions}>
                           {r.status === "published" && <IconButton label={`View ${r.name}`} icon={ICONS.view} href={`/conferences/${r.slug}`} />}
+                          <IconButton label={`Edit ${r.name}`} tip="Edit" icon={ICONS.edit} pressed={editing === r.id} onClick={() => setEditing(editing === r.id ? null : r.id)} />
                           <IconButton label={r.verified ? `Remove ${r.name}'s Verified badge` : `Verify ${r.name}`} icon={ICONS.verify} pressed={r.verified} onClick={() => setVerified(r)} />
                           {r.status === "published"
                             ? <IconButton label={`Take down ${r.name}`} icon={ICONS.hide} onClick={() => setStatus(r, "unpublished")} />
@@ -257,6 +268,8 @@ export default function Admin() {
                         </div>
                       </td>
                     </tr>
+                    {editing === r.id && <tr><td colSpan={5} className={s.editCell}><EditConference r={r} onDone={(saved) => { setEditing(null); if (saved) { say("Saved"); load(); published(); } }} /></td></tr>}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -298,6 +311,8 @@ export default function Admin() {
             </div>
           ))}
 
+          {tab === "Chambers" && <AdminChambers chambers={chambers ?? []} error={chambersError} say={say} reload={load} query={find.Chambers} />}
+
           {tab === "Users" && (shownUsers.length === 0 ? noMatches : (
             <div className={s.tableWrap}>
               <table className={s.table}>
@@ -326,8 +341,8 @@ export default function Admin() {
             </div>
           ))}
 
-          {tab === "Audit log" && (log!.length === 0 ? (
-            <Empty title="No activity yet" body="Every submission, approval and access change is recorded here." />
+          {tab === "Audit Log" && (log!.length === 0 ? (
+            <Empty title="No activity yet" body="Every new account, listing, committee, approval and access change is recorded here." />
           ) : shownLog.length === 0 ? noMatches : (
             <>
               <ol id="audit-list" className={act.history} style={{ scrollMarginTop: 140 }}>
@@ -335,7 +350,7 @@ export default function Admin() {
                   <li key={e.id}>
                     <span className={act.dot} data-tone={LOG_TONE[e.action] ?? (e.action === "edited" ? undefined : "accent")} aria-hidden="true" />
                     <div>
-                      <p className={act.what}><strong>{e.actor_email}</strong> {e.action} {e.target_label}.</p>
+                      <p className={act.what}><strong>{e.actor_email}</strong> {LOG_WORDS[e.action] ?? e.action}{e.target_label ? ` ${e.target_label}` : ""}.</p>
                       <time className={act.when} dateTime={e.at}>{when(e.at)}</time>
                       {e.detail?.note ? <span className={act.quote}>&ldquo;{e.detail.note}&rdquo;</span> : null}
                     </div>
@@ -447,5 +462,56 @@ function ReviewCard({ r, i, picked, onPick, onApprove, onReject }: { r: Row; i: 
         </div>
       </div>
     </article>
+  );
+}
+
+
+/** An admin's edit of a listing: the main details, saved straight to the conference and recorded in the audit log. */
+function EditConference({ r, onDone }: { r: Row; onDone: (saved: boolean) => void }) {
+  const [v, setV] = useState({
+    name: r.name, host: r.host, venue: r.venue, start_date: r.start_date ?? "", end_date: r.end_date ?? "", level: r.level ?? "", contact: r.contact, fee: r.fee,
+    overview: r.overview, delegation_url: r.delegation_url ?? "", chair_url: r.chair_url ?? "", interest_url: r.interest_url ?? "",
+  });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setV((x) => ({ ...x, [k]: e.target.value }));
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (v.name.trim().length < 2) return setErr("A listing needs a name.");
+    setBusy(true); setErr("");
+    const patch = {
+      name: v.name.trim(), host: v.host.trim(), venue: v.venue.trim(), start_date: v.start_date || null, end_date: v.end_date || v.start_date || null, level: v.level.trim() || null,
+      contact: v.contact.trim(), fee: v.fee.trim(), overview: v.overview, delegation_url: v.delegation_url.trim() || null, chair_url: v.chair_url.trim() || null, interest_url: v.interest_url.trim() || null,
+    };
+    const { error } = await supabase!.from("conferences").update(patch).eq("id", r.id);
+    setBusy(false);
+    if (error) return setErr(error.message);
+    onDone(true);
+  };
+  const f = (id: string, label: string, k: keyof typeof v, type = "text") => (
+    <div className="field"><label htmlFor={`ec-${r.id}-${id}`}>{label}</label><input id={`ec-${r.id}-${id}`} className="control" type={type} value={v[k]} onChange={set(k)} /></div>
+  );
+  return (
+    <form className={s.editForm} onSubmit={save}>
+      <div className={s.editGrid}>
+        {f("name", "Name", "name")}
+        {f("host", "Host School", "host")}
+        {f("venue", "Venue", "venue")}
+        {f("level", "Level", "level")}
+        {f("start", "Starts", "start_date", "date")}
+        {f("end", "Ends", "end_date", "date")}
+        {f("fee", "Delegate Fee", "fee")}
+        {f("contact", "Contact", "contact")}
+        {f("deleg", "Delegation Link", "delegation_url", "url")}
+        {f("chair", "Chair Link", "chair_url", "url")}
+        {f("interest", "Interest Link", "interest_url", "url")}
+      </div>
+      <div className="field"><label htmlFor={`ec-${r.id}-ov`}>Overview</label><textarea id={`ec-${r.id}-ov`} className="control" rows={4} value={v.overview} onChange={set("overview")} /></div>
+      {err && <p className="muted" role="alert" style={{ color: "var(--danger)" }}>{err}</p>}
+      <div className={s.actions} style={{ justifyContent: "flex-start" }}>
+        <button type="submit" className="button" disabled={busy}>Save Changes</button>
+        <button type="button" className="button secondary" onClick={() => onDone(false)}>Cancel</button>
+      </div>
+    </form>
   );
 }

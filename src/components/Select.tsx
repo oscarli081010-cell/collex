@@ -2,7 +2,7 @@
 
 import { Children, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { lockScroll } from "@/lib/scrollLock";
+
 
 type Opt = { value: string; label: string; disabled: boolean };
 
@@ -81,11 +81,16 @@ export default function Select({ value, defaultValue, onChange, children, id, na
     if (!open) return;
     const away = (e: PointerEvent) => { const t = e.target as Node; if (!menu.current?.contains(t) && !btn.current?.contains(t)) setOpen(false); };
     const move = (e?: Event) => { if (e?.target instanceof Node && menu.current?.contains(e.target)) return; place(); }; // the list scrolling inside itself is not the page moving
-    lockScroll(true); // while the list is open the page stays put, so scrolling the list never moves it
+    // While the list is open the page stays put, so scrolling the list never moves it. Nothing is hidden: the header stays where it is.
+    const lenis = (window as unknown as { __lenis?: { stop(): void; start(): void } }).__lenis;
+    lenis?.stop();
+    const hold = (e: Event) => { if (!(e.target instanceof Node && menu.current?.contains(e.target))) e.preventDefault(); };
+    document.addEventListener("wheel", hold, { passive: false });
+    document.addEventListener("touchmove", hold, { passive: false });
     document.addEventListener("pointerdown", away);
     window.addEventListener("resize", move);
     window.addEventListener("scroll", move, true);
-    return () => { lockScroll(false); document.removeEventListener("pointerdown", away); window.removeEventListener("resize", move); window.removeEventListener("scroll", move, true); };
+    return () => { lenis?.start(); document.removeEventListener("wheel", hold); document.removeEventListener("touchmove", hold); document.removeEventListener("pointerdown", away); window.removeEventListener("resize", move); window.removeEventListener("scroll", move, true); };
   }, [open]);
   // The highlighted row stays in view as the arrow keys move it.
   useEffect(() => {

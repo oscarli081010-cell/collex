@@ -18,7 +18,7 @@ const icon = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16
 const Expand = () => icon(<path d="M6 2.5H2.5V6M10 2.5h3.5V6M6 13.5H2.5V10M10 13.5h3.5V10" />);
 const Shrink = () => icon(<path d="M2.5 6H6V2.5M13.5 6H10V2.5M2.5 10H6v3.5M13.5 10H10v3.5" />);
 const Back = () => icon(<path d="M13 8H3M7 4L3 8l4 4" />);
-const SIDE = { for: "In favour", against: "Against" } as const;
+const SIDE = { for: "In Favour", against: "Against" } as const;
 
 // A long heading (an amendment's own words, say) steps down in size so it always fits the screen.
 // A heading with nothing else on the screen is bigger still.
@@ -114,11 +114,11 @@ export default function ChamberDisplay() {
   let mid: React.ReactNode;
   if (!c) {
     mid = status === "signin" ? (
-      <Screen heading="Log in to see this committee"><Link href="/login" className={s.dBtn}>Log in</Link></Screen>
+      <Screen heading="Log in to See This Committee"><Link href="/login" className={s.dBtn}>Log in</Link></Screen>
     ) : status === "denied" ? (
-      <Screen heading="This committee isn't shared with you" lines={["Ask the person who runs it to add the email on your Collex account."]} />
+      <Screen heading="This Committee Isn't Shared with You" lines={["Ask the person who runs it to add the email on your Collex account."]} />
     ) : status === "loading" || cloudId ? null : (
-      <Screen heading="Nothing to show yet" lines={["Open a committee in the console, then keep this window open beside it."]} />
+      <Screen heading="Nothing to Show Yet" lines={["Open a committee in the console, then keep this window open beside it."]} />
     );
   } else if (c.tr?.reply) {
     const r = c.tr.reply;
@@ -148,7 +148,7 @@ export default function ChamberDisplay() {
     );
   } else if (c.step === "pick") {
     mid = (
-      <Screen heading={c.tr && doc ? doc.title : "Choosing the speakers"} pill={c.tr ? [ch.resNoun(c)] : undefined} foot={c.tr ? docSigs : undefined}>
+      <Screen heading={c.tr && doc ? doc.title : "Choosing the Speakers"} pill={c.tr ? [ch.resNoun(c)] : undefined} foot={c.tr ? docSigs : undefined}>
         <div className={s.dRoles}>
           {([["proposer", "Proposer"], ["seconder", c.tr ? ch.roleName(c, "seconder") : "Seconder"], ["opposer", "Opposer"]] as const).map(([k, label]) => (
             <div key={k} className={s.dRole}><span>{label}</span><b data-empty={!c.roles[k]}>{c.roles[k] ? name(c.roles[k]) : k === "opposer" ? "None" : "\u2014"}</b></div>
@@ -159,7 +159,7 @@ export default function ChamberDisplay() {
   } else if (c.step === "roll") {
     const n = ch.rollCount(c);
     mid = (
-      <Screen heading="Roll call">
+      <Screen heading="Roll Call">
         {tallies(c.tr ? [["Present", n.present], ["Present and Voting", n.voting]] : [["Present", n.present], ["Present and Voting", n.voting], ["Abstain", n.abstain]])}
         <div className={s.dBoard}>
           {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-a={c.roll[d.id]}><i /><span className={s.dSeatName}>{d.name}</span>{obsTag(d.id) ?? (c.roll[d.id] && <em>{ch.ATTEND_LABEL[c.roll[d.id]]}</em>)}</div>)}
@@ -172,13 +172,13 @@ export default function ChamberDisplay() {
   } else if (c.step === "statements") {
     const next3 = ch.upcomingStatements(c, 3);
     mid = (
-      <Screen heading="Opening statements" foot={next3.length > 0 && <div className={s.dSigs}><span>Up next</span><ul>{next3.map((id) => <li key={id}>{name(id)}</li>)}</ul></div>} />
+      <Screen heading="Opening Statements" foot={next3.length > 0 && <div className={s.dSigs}><span>Up next</span><ul>{next3.map((id) => <li key={id}>{name(id)}</li>)}</ul></div>} />
     );
   } else if (c.step === "general") {
     const m = c.result?.kind === "motion" ? motionOf(c.result.motion) : undefined;
     mid = c.result?.kind === "motion"
       ? <Screen pill={m ? ch.motionPill(c, m) : ["Motion"]} heading={c.result.passed ? "Motion passes" : "Motion fails"} pass={c.result.passed} lines={[m ? ch.motionDetail(c, m) : c.result.title]}>{votes(c.result)}</Screen>
-      : <Screen heading={c.tr?.level === "beginner" ? "The chair is choosing a resolution" : "General speakers\u2019 list"} />;
+      : <Screen heading={c.tr?.level === "beginner" ? "The Chair Is Choosing a Resolution" : "General Speakers\u2019 List"} />;
   } else if (c.step === "caucus" && c.tr && k?.kind === "mod") {
     mid = (
       <Screen heading={k.topic}>
@@ -220,7 +220,7 @@ export default function ChamberDisplay() {
       </Screen>
     );
   } else if (c.step === "ended") {
-    mid = <Screen heading="Thank you" lines={[`${c.name} has ended`]} />;
+    mid = <Screen heading="Thank You" lines={[`${c.name} has ended`]} />;
   } else if (c.step === "closing") {
     const todo = ch.closingRoles(c).filter((r) => !c.closers.includes(r.id));
     const shown = c.tr ? todo.slice(0, 1) : todo; // Trinity: one at a time, in order
@@ -243,7 +243,7 @@ export default function ChamberDisplay() {
       : c.tr
         ? (c.result?.kind === "motion"
           ? <Screen pill={motionOf(c.result.motion) ? ch.motionPill(c, motionOf(c.result.motion)!) : ["Motion"]} heading={c.result.passed ? "Motion passes" : "Motion fails"} pass={c.result.passed} lines={[motionOf(c.result.motion) ? ch.motionDetail(c, motionOf(c.result.motion)!) : c.result.title]}>{votes(c.result)}</Screen>
-          : <Screen heading={`${ch.resNoun(c)} debate`} lines={[doc?.title]} foot={docSigs} />)
+          : <Screen heading={`${ch.resNoun(c)} Debate`} lines={[doc?.title]} foot={docSigs} />)
         : <Screen heading="Amendments" lines={["Send amendments to the chair's desk"]} />;
   }
 

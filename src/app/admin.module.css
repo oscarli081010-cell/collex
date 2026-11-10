@@ -130,3 +130,7 @@
 }
 @keyframes bulkInMobile { from { opacity: 0; transform: translateY(12px); } }
 @media (prefers-reduced-motion: reduce) { .bulk { animation: none; } }
+
+.editCell { background: var(--surface); padding: 20px 22px !important; }
+.editForm { display: flex; flex-direction: column; gap: 14px; }
+.editGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }

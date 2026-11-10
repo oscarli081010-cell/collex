@@ -155,8 +155,15 @@
 .amendText { font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
 .amendMeta { font-size: 13px; color: var(--muted); line-height: 1.5; }
 .backers { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 6px; max-height: 220px; overflow-y: auto; }
-.check { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; cursor: pointer; }
-.check input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.check { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); font-size: 14px; cursor: pointer; user-select: none; transition: background-color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
+.check:hover { background: var(--surface); border-color: var(--line-strong); }
+.check:active { transform: scale(0.98); }
+.check input { appearance: none; -webkit-appearance: none; display: grid; place-content: center; flex: none; width: 22px; height: 22px; margin: 0; border: 1.5px solid var(--line-strong); border-radius: 7px; background: var(--panel); cursor: pointer; transition: background-color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-quick) var(--ease-smooth-out); }
+.check input::after { content: ""; width: 11px; height: 6px; margin-top: -2px; border-left: 2.2px solid var(--on-ink); border-bottom: 2.2px solid var(--on-ink); border-radius: 1px; transform: rotate(-45deg) scale(0); opacity: 0; transition: transform 0.2s var(--ease-smooth-out), opacity var(--duration-quick) var(--ease-smooth-out); }
+.check input:checked { background: var(--accent); border-color: var(--accent); }
+.check input:checked::after { transform: rotate(-45deg) scale(1); opacity: 1; }
+.check input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.check:has(input:checked):hover { background: var(--accent-soft); }
 .check:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); }
 .states { display: flex; flex-direction: column; gap: 6px; }
 .states li { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; font-size: 13.5px; color: var(--muted); padding: 6px 0; border-top: 1px solid var(--line); }
@@ -491,7 +498,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .kMeterText { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .kActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
 .kActions :global(.button) { flex: 1 1 110px; height: 40px; }
-.kActions .kDanger:hover { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
+.kActions :global(.button).kDanger:hover { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
 .queue li.amRow .kActions { flex: 1 1 100%; }
 .kActions :global(.button):only-child { flex: 1 1 100%; }
 .obsClock { font-size: 22px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--accent); }
@@ -504,3 +511,26 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .hintRow .hint { margin: 0; flex: 1 1 200px; }
 .liveDot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); flex: none; display: inline-block; }
 .liveDot[data-off="true"] { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+
+/* The header's three facts, set as a quiet row with hairlines between them. */
+.facts3 { display: flex; flex-wrap: wrap; margin: 0; }
+.facts3 > div { display: flex; flex-direction: column; gap: 2px; padding: 0 22px; border-left: 1px solid var(--line-strong); }
+.facts3 > div:first-child { padding-left: 0; border-left: 0; }
+.facts3 dt { font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); }
+.facts3 dd { margin: 0; font-size: 15px; font-weight: 500; color: var(--ink); }
+.cardLine { font-size: 14px; color: var(--muted); }
+.cardLine strong { color: var(--ink); font-weight: 500; }
+.queue li.amend { gap: 10px; }
+.queue li.amend :global(.button.block) { width: 100%; }
+.sigMeter { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--surface) 70%, transparent); }
+.sigMeter small { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.sigMeter .kMeterText b { color: var(--ink); font-weight: 500; }
+.sigMeter[data-met="true"] .kMeterBar i { background: var(--ok); }
+.sigMeter[data-met="true"] .kMeterText b { color: var(--ok); }
+.reveal { animation: revealIn 0.22s var(--ease-smooth-out); }
+@keyframes revealIn { from { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .reveal { animation: none; } }
+.topActions :global(.iconbtn) { width: 54px; height: 54px; }
+.topActions :global(.iconbtn) svg { width: 20px; height: 20px; }
+.labelRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.groupPick { width: min(100%, 260px); height: 40px; }
