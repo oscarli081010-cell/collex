@@ -39,6 +39,7 @@ const LOG_TONE: Record<string, string> = { approved: "ok", rejected: "bad", unpu
 // What the log says for each action: a person listing a conference reads as "listed".
 const LOG_WORDS: Record<string, string> = { submitted: "listed" };
 
+const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const TABS = ["Review", "Conferences", "Reports", "Chambers", "Users", "Audit Log"] as const;
 const REASON: Record<string, string> = { details: "Wrong or out of date", link: "Broken link", inappropriate: "Shouldn\u2019t be here", other: "Something else" };
 type Tab = (typeof TABS)[number];
@@ -472,6 +473,8 @@ function EditConference({ r, onDone }: { r: Row; onDone: (saved: boolean) => voi
     name: r.name, host: r.host, venue: r.venue, start_date: r.start_date ?? "", end_date: r.end_date ?? "", level: r.level ?? "", contact: r.contact, fee: r.fee,
     overview: r.overview, delegation_url: r.delegation_url ?? "", chair_url: r.chair_url ?? "", interest_url: r.interest_url ?? "",
   });
+  const { session } = useAuth();
+  const [cover, setCover] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setV((x) => ({ ...x, [k]: e.target.value }));
@@ -479,7 +482,18 @@ function EditConference({ r, onDone }: { r: Row; onDone: (saved: boolean) => voi
     e.preventDefault();
     if (v.name.trim().length < 2) return setErr("A listing needs a name.");
     setBusy(true); setErr("");
+    let cover_path: { cover_path: string } | null = null;
+    if (cover) {
+      const ext = COVER_TYPES[cover.type];
+      if (!ext) { setBusy(false); return setErr("Use a JPG, PNG or WebP photo."); }
+      if (cover.size > 5 * 1024 * 1024) { setBusy(false); return setErr("That photo is over 5 MB."); }
+      const path = `${session!.user.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: upError } = await supabase!.storage.from("covers").upload(path, cover, { contentType: cover.type, cacheControl: "31536000" });
+      if (upError) { setBusy(false); return setErr("The photo didn't upload. Try again."); }
+      cover_path = { cover_path: path };
+    }
     const patch = {
+      ...cover_path,
       name: v.name.trim(), host: v.host.trim(), venue: v.venue.trim(), start_date: v.start_date || null, end_date: v.end_date || v.start_date || null, level: v.level.trim() || null,
       contact: v.contact.trim(), fee: v.fee.trim(), overview: v.overview, delegation_url: v.delegation_url.trim() || null, chair_url: v.chair_url.trim() || null, interest_url: v.interest_url.trim() || null,
     };
@@ -507,6 +521,11 @@ function EditConference({ r, onDone }: { r: Row; onDone: (saved: boolean) => voi
         {f("interest", "Interest Link", "interest_url", "url")}
       </div>
       <div className="field"><label htmlFor={`ec-${r.id}-ov`}>Overview</label><textarea id={`ec-${r.id}-ov`} className="control" rows={4} value={v.overview} onChange={set("overview")} /></div>
+      <div className="field">
+        <label htmlFor={`ec-${r.id}-cover`}>Cover Photo</label>
+        <input id={`ec-${r.id}-cover`} className="control" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setCover(e.target.files?.[0] ?? null)} />
+        <p className="muted">{cover ? cover.name : r.cover_path ? "A photo is set. Choose a file to replace it." : "JPG, PNG or WebP, up to 5 MB."}</p>
+      </div>
       {err && <p className="muted" role="alert" style={{ color: "var(--danger)" }}>{err}</p>}
       <div className={s.actions} style={{ justifyContent: "flex-start" }}>
         <button type="submit" className="button" disabled={busy}>Save Changes</button>
