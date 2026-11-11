@@ -541,5 +541,3 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .seenTag { display: inline-flex; align-items: center; gap: 9px; width: fit-content; font-size: 16px; font-weight: 500; color: var(--ink); }
 .seenTag::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px var(--ok-soft); }
 .seenTag[data-seen="false"]::before { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
-/* A short blue rule under every display title. */
-.dRule { display: block; width: clamp(48px, 4.6vw, 92px); height: 3px; border-radius: 3px; background: var(--accent); }

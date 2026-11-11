@@ -73,7 +73,6 @@ function Screen({ pill, side, heading, pass, lines, foot, children }: {
       {heading && (lead
         ? <h1 className={`serif ${s.dWelcome}`} data-pass={pass} style={{ "--k": fit(big, !children) } as React.CSSProperties}><span>{lead}</span><b>{big}</b></h1>
         : <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": fit(heading, !children) } as React.CSSProperties}>{heading}</h1>)}
-      {heading && <i className={s.dRule} aria-hidden="true" />}
       {rows.length > 0 && <div className={s.dLines}>{rows.map((r, i) => <p key={i} className={s.dSub}>{r}</p>)}</div>}
       {children}
       {foot && <div className={s.dFoot}>{foot}</div>}
@@ -180,7 +179,6 @@ export default function ChamberDisplay() {
           <span>Welcome to</span>
           <b>{c.name}</b>
         </h1>
-        <i className={s.dRule} aria-hidden="true" />
       </>
     );
   } else if (c.step === "pick") {
