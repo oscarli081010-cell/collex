@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import * as ch from "@/lib/chamber";
@@ -61,14 +61,6 @@ function RollBoard({ c, tag }: { c: ch.Chamber; tag: (id: string) => React.React
   );
 }
 
-/** The stage the council is in, shown small over every title (Opening, Debate, Closing). */
-const StageCtx = createContext("");
-/** A small label between two hairlines: the line detail that opens every title. */
-function Eyebrow() {
-  const stage = useContext(StageCtx);
-  return stage ? <div className={s.dEye} aria-hidden="true"><i /><span>{stage}</span><i /></div> : null;
-}
-
 function Screen({ pill, side, heading, pass, lines, foot, children }: {
   pill?: (string | false | null | undefined)[]; side?: ch.Side; heading?: string; pass?: boolean; lines?: (React.ReactNode | false | null | undefined)[]; foot?: React.ReactNode; children?: React.ReactNode;
 }) {
@@ -78,7 +70,6 @@ function Screen({ pill, side, heading, pass, lines, foot, children }: {
   return (
     <>
       {text && <span className={s.dPill} data-side={side}>{text}</span>}
-      {heading && <Eyebrow />}
       {heading && (lead
         ? <h1 className={`serif ${s.dWelcome}`} data-pass={pass} style={{ "--k": fit(big, !children) } as React.CSSProperties}><span>{lead}</span><b>{big}</b></h1>
         : <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": fit(heading, !children) } as React.CSSProperties}>{heading}</h1>)}
@@ -185,7 +176,6 @@ export default function ChamberDisplay() {
     const k = n <= 6 ? 2.0 : n <= 10 ? 1.7 : n <= 16 ? 1.3 : n <= 24 ? 1 : n <= 40 ? 0.7 : 0.5;
     mid = (
       <>
-        <Eyebrow />
         <h1 className={`serif ${s.dWelcome}`} style={{ "--k": k } as React.CSSProperties}>
           <span>Welcome to</span>
           <b>{c.name}</b>
@@ -310,7 +300,7 @@ export default function ChamberDisplay() {
         {openNow ? <span className={`${s.dBtn} ${s.dStatus}`} role="status">{openNow}</span> : <span className={s.dGap} />}
         {tools}
       </div>
-      <main id="top" className={s.dMid}><StageCtx.Provider value={c ? (ch.stagesOf(c)[ch.stageIndex(c)] ?? "") : ""}>{mid}</StageCtx.Provider></main>
+      <main id="top" className={s.dMid}>{mid}</main>
       <div className={s.dBottom}>
         <div className={s.dNext}>
           {c && ordered.length > 0 && (
