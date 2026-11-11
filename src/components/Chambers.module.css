@@ -538,3 +538,10 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .groupPick { width: min(100%, 260px); height: 40px; }
 .dPages { margin: 18px 0 0; text-align: center; font-size: clamp(14px, 1.5vw, 22px); color: var(--faint); font-variant-numeric: tabular-nums; }
 .whoLead { display: block; font-size: 0.5em; font-style: italic; line-height: 1.1; margin-bottom: 0.1em; color: var(--muted); }
+.seenTag { display: inline-flex; align-items: center; gap: 9px; width: fit-content; font-size: 16px; font-weight: 500; color: var(--ink); }
+.seenTag::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px var(--ok-soft); }
+.seenTag[data-seen="false"]::before { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+/* The line detail on every display title: a small label between hairlines above, a short blue rule below. */
+.dEye { display: flex; align-items: center; gap: clamp(14px, 1.6vw, 28px); width: min(78%, 1100px); font-size: clamp(12px, 1.25vw, 19px); letter-spacing: 0.22em; text-transform: uppercase; color: var(--faint); }
+.dEye i { flex: 1; height: 1px; background: var(--line-strong); }
+.dRule { display: block; width: clamp(48px, 4.6vw, 92px); height: 3px; border-radius: 3px; background: var(--accent); }

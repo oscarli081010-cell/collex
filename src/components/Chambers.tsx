@@ -1412,9 +1412,9 @@ function Documents({ c, act }: { c: Chamber; act: Act }) {
                         ? <span className={s.chip} data-tone="accent">Being debated</span>
                         : d.kind === "draft" && t.level !== "beginner" && <span className={s.chip} data-tone={d.status === "approved" ? "ok" : d.status === "sent" ? "bad" : undefined}>{DOC_STATUS[d.status]}</span>}
                   </span>
-                  <span className={s.docMeta}>
-                    {[d.kind === "paper" ? "Working paper" : ch.resNoun(c), d.kind === "draft" && t.level === "beginner" ? (d.seen ? "Seen" : "Unseen") : ""].filter(Boolean).join(" \u00B7 ")}
-                  </span>
+                  {t.level === "beginner" && d.kind === "draft"
+                    ? <span className={s.seenTag} data-seen={d.seen}>{d.seen ? "Seen" : "Unseen"}</span>
+                    : <span className={s.docMeta}>{d.kind === "paper" ? "Working paper" : ch.resNoun(c)}</span>}
                   {n > 0 && t.level !== "beginner" && (
                   <span className={s.signBox}>
                     <span className={s.kSigners}>
