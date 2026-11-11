@@ -8,14 +8,13 @@ import ConferenceRow from "./ConferenceRow";
 import MonthPicker, { type YM } from "./MonthPicker";
 import YearPicker from "./YearPicker";
 import YearCalendar from "./YearCalendar";
-import PanelTabs from "./PanelTabs";
+import CalendarViewToggle from "./CalendarViewToggle";
 import PageBand, { nextUp } from "./PageBand";
 import IconButton, { ICONS } from "./IconButton";
 import board from "./board.module.css";
 import s from "@/app/inner.module.css";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const YEAR_ICON = <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1.2" /><rect x="9" y="2" width="5" height="5" rx="1.2" /><rect x="2" y="9" width="5" height="5" rx="1.2" /><rect x="9" y="9" width="5" height="5" rx="1.2" /></svg>;
 const isoOf = (y: number, m: number, d: number) =>
   `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
@@ -64,8 +63,7 @@ export default function SeasonCalendar() {
         ]}
       >
         <div className={s.calBar}>
-          <PanelTabs label="Calendar view" idPrefix="cal" tab={mode} setTab={setMode}
-            tabs={[{ id: "month", label: "Month", icon: ICONS.calendar }, { id: "year", label: "Year", icon: YEAR_ICON }]} />
+          <CalendarViewToggle mode={mode} onChange={setMode} />
           {mode === "month"
             ? <MonthPicker value={view} onChange={(v, d) => { setDir(d); setView(v); }} />
             : <YearPicker year={y} onChange={(ny, d) => { setDir(d); setView({ y: ny, m }); }} />}

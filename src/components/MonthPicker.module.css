@@ -51,3 +51,10 @@
 .month:hover { background: var(--surface); }
 .month:active { transform: scale(0.95); }
 .month[aria-current="true"] { background: var(--ink); color: var(--on-ink); }
+
+/* The Month | Year switch, drawn like the picker beside it: the chosen one takes the soft fill. */
+.viewBtn { min-width: 0 !important; padding: 0 18px !important; font-size: 20px; gap: 9px !important; color: var(--muted); }
+.viewBtn[aria-selected="true"] { background: var(--surface); color: var(--ink); }
+.viewBtn:hover { color: var(--ink); }
+.viewIcon { display: inline-flex; }
+@media (max-width: 420px) { .viewBtn { padding: 0 12px !important; font-size: 18px; } }
