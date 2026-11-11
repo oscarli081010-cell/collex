@@ -421,8 +421,8 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 /* The Activity / View page / Edit listing switch above a public listing page, for the people who run it. */
 
 /* The year at a glance: twelve small months, drawn like the big one. */
-.yearGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 16px; }
-.mini { position: relative; padding: 16px 16px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.yearGrid { isolation: isolate; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 16px; }
+.mini { position: relative; z-index: 0; padding: 16px 16px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
 .miniHead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .miniName { padding: 0; border: 0; background: transparent; cursor: pointer; font-family: var(--serif); font-size: 24px; line-height: 1.1; color: var(--ink); border-radius: 6px; transition: color var(--duration-quick); }
 .miniName:hover { color: var(--accent); }
@@ -441,4 +441,4 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 .miniDays .evWrap:hover .preview, .miniDays .evWrap:focus-within .preview { transform: translate(-50%, 0); }
 .miniDays .evWrap[data-edge="end"] .preview { left: auto; right: -6px; transform: translate(0, 4px) scale(var(--scale-small, 0.98)); }
 .miniDays .evWrap[data-edge="end"]:hover .preview, .miniDays .evWrap[data-edge="end"]:focus-within .preview { transform: none; }
-.mini:hover, .mini:focus-within { z-index: 6; }
+.mini:hover, .mini:focus-within, .mini:has(.evWrap:hover, .evWrap:focus-within) { z-index: 6; }
