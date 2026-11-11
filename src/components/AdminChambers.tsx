@@ -8,7 +8,7 @@ import c from "./AdminChambers.module.css";
 
 export type AdminChamber = {
   id: string; name: string; owner_email: string; owner_name: string; members: number; version: number; created_at: string; updated_at: string;
-  summary: { rules?: string; step?: string; topic?: string; delegates?: number; level?: string; week?: string; log?: { at: number; text: string }[] };
+  summary: { rules?: string; step?: string; topic?: string; delegates?: number; log?: { at: number; text: string }[] };
 };
 
 const STEP: Record<string, string> = {
@@ -25,7 +25,7 @@ const ago = (iso: string) => {
 const stamp = (n: number) => new Date(n).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", second: "2-digit" });
 const where = (x: AdminChamber) => {
   const sm = x.summary;
-  const proc = sm.rules === "trinity" ? `Trinity Grammar MUN${sm.level ? ` · ${sm.level === "beginner" ? "Beginner" : "Experienced"}${sm.week ? ` · Week ${sm.week}` : ""}` : ""}` : "Evatt";
+  const proc = sm.rules === "trinity" ? "Trinity Grammar MUN" : "Evatt";
   return { proc, step: STEP[sm.step ?? ""] ?? sm.step ?? "Unknown" };
 };
 

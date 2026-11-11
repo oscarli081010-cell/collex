@@ -135,12 +135,6 @@ export default function ChamberDisplay() {
   const k = c?.tr?.cauc ?? null;
   const kLeft = k?.clock ? ch.remaining(k.clock, now) : 0;
   const doc = c ? ch.currentDoc(c) : undefined;
-  const docSigs = doc && c?.tr?.level !== "beginner" && (
-    <div className={s.dSigs}>
-      <span>Signatories</span>
-      <ul>{ch.docSigners(doc).map((id) => <li key={id}>{name(id)}</li>)}</ul>
-    </div>
-  );
   const obsTag = (id: string) => (c && ch.observing(c, id, now) ? <em>Observer</em> : null);
   const sideOf = (sp: ch.Speech) => (c && c.tr && !ch.sided(c) && (sp.role === "speaker" || sp.role === "statement") && !sp.stance ? undefined : sp.side);
 
@@ -183,7 +177,7 @@ export default function ChamberDisplay() {
     );
   } else if (c.step === "pick") {
     mid = (
-      <Screen heading={c.tr && doc ? doc.title : "Choosing the Speakers"} pill={c.tr ? [ch.resNoun(c).replace("resolution", "Resolution")] : undefined} foot={c.tr ? docSigs : undefined}>
+      <Screen heading={c.tr && doc ? doc.title : "Choosing the Speakers"} pill={c.tr ? [ch.resNoun(c).replace("resolution", "Resolution")] : undefined}>
         <div className={s.dRoles}>
           {([["proposer", "Proposer"], ["seconder", c.tr ? ch.roleName(c, "seconder") : "Seconder"], ["opposer", "Opposer"]] as const).map(([k, label]) => (
             <div key={k} className={s.dRole}><span>{label}</span><b data-empty={!c.roles[k]}>{c.roles[k] ? name(c.roles[k]) : k === "opposer" ? "None" : "\u2014"}</b></div>
@@ -211,7 +205,7 @@ export default function ChamberDisplay() {
     const m = c.result?.kind === "motion" ? motionOf(c.result.motion) : undefined;
     mid = c.result?.kind === "motion"
       ? <Screen pill={m ? ch.motionPill(c, m) : ["Motion"]} heading={c.result.passed ? "Motion Passes" : "Motion Fails"} pass={c.result.passed} lines={[m ? ch.motionDetail(c, m) : c.result.title]}>{votes(c.result)}</Screen>
-      : <Screen heading={c.tr?.level === "beginner" ? "The Chair Is Choosing a Resolution" : "General Speakers\u2019 List"} />;
+      : <Screen heading="The Chair Is Choosing a Resolution" />;
   } else if (c.step === "caucus" && c.tr && k?.kind === "mod") {
     mid = (
       <Screen heading={k.topic}>
@@ -220,7 +214,7 @@ export default function ChamberDisplay() {
       </Screen>
     );
   } else if (c.step === "caucus") {
-    mid = <Screen heading={k?.kind === "papers" ? "Working Papers" : k?.kind === "prep" ? "Preparation" : k?.kind === "final" ? "Final Unmoderated Caucus" : c.tr ? "Unmoderated Caucus" : "Caucus"}>{timerView()}</Screen>;
+    mid = <Screen heading={k?.kind === "prep" ? "Preparation" : k?.kind === "final" ? "Final Unmoderated Caucus" : c.tr ? "Unmoderated Caucus" : "Caucus"}>{timerView()}</Screen>;
   } else if (c.step === "amend" && amendment) {
     const stage = c.amend?.stage;
     const r = c.result && c.result.amendment === amendment.id && c.result.kind === "debate" ? c.result : null;
@@ -241,11 +235,10 @@ export default function ChamberDisplay() {
     const n = ch.count(c);
     const done = c.step === "closed" && c.outcome;
     const noun = c.tr ? ch.resNoun(c).replace("resolution", "Resolution") : "Resolution";
-    const veto = done && c.outcome!.vetoed;
     mid = (
-      <Screen heading={done ? (c.outcome!.passed ? `${noun} Approved` : veto ? "Vetoed" : `${noun} Not Approved`) : "Roll Call Vote"} pass={done ? c.outcome!.passed : undefined}
+      <Screen heading={done ? (c.outcome!.passed ? `${noun} Approved` : `${noun} Not Approved`) : "Roll Call Vote"} pass={done ? c.outcome!.passed : undefined}
         pill={c.tr && doc ? [doc.title] : undefined}
-        lines={done ? [`${c.outcome!.yes} For · ${c.outcome!.no} Against · ${c.outcome!.abstain} ${c.tr ? "Neutral" : "Abstaining"}${veto ? ` · vetoed by ${c.outcome!.vetoed!.join(" and ")}` : !c.outcome!.passed ? ` · ${c.outcome!.needed} needed` : ""}`] : []}>
+        lines={done ? [`${c.outcome!.yes} For · ${c.outcome!.no} Against · ${c.outcome!.abstain} ${c.tr ? "Neutral" : "Abstaining"}${!c.outcome!.passed ? ` · ${c.outcome!.needed} needed` : ""}`] : []}>
         {c.step === "vote" && votes(n, !!c.tr)}
         <div className={s.dBoard}>
           {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-b={c.ballots[d.id]}><i /><span className={s.dSeatName}>{d.name}</span>{obsTag(d.id)}</div>)}
@@ -259,7 +252,7 @@ export default function ChamberDisplay() {
     const shown = c.tr ? todo.slice(0, 1) : todo; // Trinity: one at a time, in order
     mid = (
       <Screen pill={[c.tr ? "Closing" : "Closing speeches"]} heading={shown.length ? shown.map((r) => name(r.id)).join(" · ") : "The Vote Is Next"}
-        lines={[shown.length ? shown.map((r) => ch.roleName(c, r.role)).join(" · ") : null]} foot={c.tr ? docSigs : undefined} />
+        lines={[shown.length ? shown.map((r) => ch.roleName(c, r.role)).join(" · ") : null]} />
     );
   } else if (c.step === "floor" && c.result?.kind === "amendment" && c.amendments.some((a) => a.id === c.result?.amendment)) {
     const a = c.amendments.find((x) => x.id === c.result!.amendment)!;
@@ -272,11 +265,11 @@ export default function ChamberDisplay() {
     const who = c.step === "proposer" ? c.roles.proposer : c.step === "seconder" ? c.roles.seconder : c.step === "opposer" ? c.roles.opposer : null;
     const role = c.step === "proposer" ? "Proposer" : c.step === "seconder" ? (c.tr ? ch.roleName(c, "seconder") : "Seconder") : "Opposer";
     mid = who
-      ? <Screen pill={[role, c.step === "opposer" ? SIDE.against : SIDE.for]} side={c.step === "opposer" ? "against" : "for"} heading={name(who)} foot={c.tr ? docSigs : undefined} />
+      ? <Screen pill={[role, c.step === "opposer" ? SIDE.against : SIDE.for]} side={c.step === "opposer" ? "against" : "for"} heading={name(who)} />
       : c.tr
         ? (c.result?.kind === "motion"
           ? <Screen pill={motionOf(c.result.motion) ? ch.motionPill(c, motionOf(c.result.motion)!) : ["Motion"]} heading={c.result.passed ? "Motion Passes" : "Motion Fails"} pass={c.result.passed} lines={[motionOf(c.result.motion) ? ch.motionDetail(c, motionOf(c.result.motion)!) : c.result.title]}>{votes(c.result)}</Screen>
-          : <Screen heading={`${ch.resNoun(c).replace("resolution", "Resolution")} Debate`} lines={[doc?.title]} foot={docSigs} />)
+          : <Screen heading={`${ch.resNoun(c).replace("resolution", "Resolution")} Debate`} lines={[doc?.title]} />)
         : <Screen heading="Amendments" lines={["Send amendments to the chair's desk"]} />;
   }
 

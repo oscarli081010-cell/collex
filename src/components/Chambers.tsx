@@ -187,7 +187,6 @@ export default function Chambers() {
         {t && (
           <dl className={s.facts3}>
             <div><dt>Procedure</dt><dd>Trinity Grammar MUN</dd></div>
-            <div><dt>Committee</dt><dd>{t.level === "beginner" ? "Beginner" : "Experienced"}</dd></div>
           </dl>
         )}
         </div>
@@ -222,7 +221,7 @@ export default function Chambers() {
         <Analytics c={c} say={say} />
       ) : (
         <div id="chv-panel-settings" role="tabpanel" aria-labelledby="chv-tab-settings" className={s.manage}>
-          {t?.level === "beginner" && <Resolutions c={c} act={act} />}
+          {t && <Resolutions c={c} act={act} />}
           <Background c={c} act={act} say={say} userId={session?.user.id} />
           <Share c={c} cloudId={cloudId} owner={owner} signedIn={!!session} meId={session?.user.id} say={say} setLocal={setLocal} />
         </div>
@@ -232,7 +231,7 @@ export default function Chambers() {
   );
 }
 
-/* The beginner committee's given resolutions: set when the committee is made, and here they can be added or renamed until they are debated. */
+/* The given resolutions: set when the committee is made, and here they can be added or renamed until they are debated. */
 function Resolutions({ c, act }: { c: Chamber; act: Act }) {
   const t = c.tr!;
   const title = (slot: number) => t.docs.find((d) => d.id === `agenda${slot}`)?.title ?? "";
@@ -428,17 +427,17 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
   }
   else if (poll?.kind === "motion") { title = "Motion"; sub = poll.title; }
   else if (t && c.step === "statements") { title = stNext ? name(stNext) : "Opening statements"; sub = stNext ? `Next opening statement, up to ${ch.TR.statement} seconds` : "Every state has given its statement"; }
-  else if (t && c.step === "general" && t.level === "beginner") { title = "The Chair Is Choosing a Resolution"; sub = ch.drafts(c).length > 0 ? "" : "No resolutions yet. Add them in Settings."; }
+  else if (t && c.step === "general") { title = "The Chair Is Choosing a Resolution"; sub = ch.drafts(c).length > 0 ? "" : "No resolutions yet. Add them in Settings."; }
   else if (t && c.step === "general") { title = next ? name(next.id) : "General Speakers\u2019 List"; sub = next ? "Next on the general speakers\u2019 list" : "Add states to the speakers\u2019 list"; }
   else if (c.step === "proposer") { title = name(c.roles.proposer); sub = t ? `Introduces the ${ch.resNoun(c).toLowerCase()}` : "Proposes the resolution"; }
   else if (c.step === "seconder") { title = name(c.roles.seconder); sub = t ? `Speaks as ${ch.roleName(c, "seconder").toLowerCase()}` : "Seconds the resolution"; }
   else if (c.step === "opposer") { title = name(c.roles.opposer); sub = t ? `Speaks against the ${ch.resNoun(c).toLowerCase()}` : "Speaks against the resolution"; }
-  else if (c.step === "caucus") { title = k?.kind === "mod" ? "Moderated caucus" : k?.kind === "papers" ? "Working papers" : k?.kind === "prep" ? "Preparation" : k?.kind === "final" ? "Final unmoderated caucus" : t ? "Unmoderated caucus" : "Caucus"; sub = k?.kind === "mod" ? k.topic : ""; }
+  else if (c.step === "caucus") { title = k?.kind === "mod" ? "Moderated caucus" : k?.kind === "prep" ? "Preparation" : k?.kind === "final" ? "Final unmoderated caucus" : t ? "Unmoderated caucus" : "Caucus"; sub = k?.kind === "mod" ? k.topic : ""; }
   else if (c.step === "floor") { title = t ? `${ch.resNoun(c).replace("resolution", "Resolution")} Debate` : "Amendments"; sub = t ? ch.currentDoc(c)?.title ?? "" : ""; }
   else if (c.step === "closing") { title = t ? "Closing" : "Closing speeches"; sub = t && !c.closers.length ? "Final caucus, then the closing speeches" : ""; }
   else if (c.step === "vote") { title = "Roll Call Vote"; }
   else if (c.step === "ended") { title = "Committee Ended"; sub = "The analytics are still here."; }
-  else if (c.step === "closed") { title = c.outcome?.passed ? (t ? `${ch.resNoun(c).replace("resolution", "Resolution")} Approved` : "Resolution Approved") : c.outcome?.vetoed ? "Vetoed" : (t ? `${ch.resNoun(c).replace("resolution", "Resolution")} Not Approved` : "Resolution Not Approved"); sub = c.outcome ? `${c.outcome.yes} for, ${c.outcome.no} against, ${c.outcome.abstain} abstaining${c.outcome.vetoed ? `, vetoed by ${c.outcome.vetoed.join(" and ")}` : ""}` : ""; }
+  else if (c.step === "closed") { title = c.outcome?.passed ? (t ? `${ch.resNoun(c).replace("resolution", "Resolution")} Approved` : "Resolution Approved") : (t ? `${ch.resNoun(c).replace("resolution", "Resolution")} Not Approved` : "Resolution Not Approved"); sub = c.outcome ? `${c.outcome.yes} for, ${c.outcome.no} against, ${c.outcome.abstain} abstaining` : ""; }
   else if (c.step === "amend" && c.amend?.stage === "read") { title = `Amendment from ${name(amendment?.by ?? null)}`; sub = [amendment?.how && HOW[amendment.how], amendment?.clause].filter(Boolean).join(" \u00B7 ") || "Read it to the council"; }
   else if (c.step === "amend" && c.amend?.stage === "ask") { title = "Debate This Amendment?"; }
   else if (c.step === "amend" && c.amend?.stage === "vote") { title = "Adopt This Amendment?"; }
@@ -468,7 +467,6 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
               {askers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </Select>
           </div>
-          {t?.level === "experienced" && sp.role === "statement" && <p className={s.hint}>Recommended: two Points of Information. {sp.pois} taken.</p>}
           <button type="button" className="button" disabled={!askerId} onClick={() => act((x) => ch.askPoi(x, askerId, sp.who, sp.pois))}>Take a Point of Information</button>
           <button type="button" className="button secondary" onClick={() => act((x) => ch.yieldToChair(x, sp.who, sp.pois))}>Yield to the Chair</button>
           {t && (sp.role === "speaker" || sp.role === "amender") && (
@@ -522,21 +520,14 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
         </>
       );
       case "general": {
-        const beginnerCom = t?.level === "beginner";
         const readyAll = t ? ch.drafts(c).filter((d) => d.status === "approved" && !d.result) : [];
         const unseen = readyAll.find((d) => !d.seen);
-        const modDone = !!t && t.motions.some((m) => m.kind === "mod" && m.status === "passed");
-        const primaryTaken = !beginnerCom && !!next;
         return (
           <>
-            {!beginnerCom && next && timeField}
-            {!beginnerCom && next && <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, next.id, next.side, secs))}>Call {name(next.id)}</button>}
-            {!!t && readyAll.map((d, i) => <button key={d.id} type="button" className={i === 0 && !primaryTaken ? "button" : "button secondary"} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce {d.title}</button>)}
-            {beginnerCom && unseen && <button type="button" className="button secondary sm" onClick={() => act(ch.startPrep)}>Preparation - 20 min</button>}
-            {!beginnerCom && <button type="button" className="button secondary sm" onClick={() => act((x) => ch.startPapers(x))}>Start Working Papers - 30 min</button>}
+            {!!t && readyAll.map((d, i) => <button key={d.id} type="button" className={i === 0 ? "button" : "button secondary"} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce {d.title}</button>)}
+            {unseen && <button type="button" className="button secondary sm" onClick={() => act(ch.startPrep)}>Preparation - 20 min</button>}
             <div className={s.btnRow}>
-              {stNext && <button type="button" className={next || readyAll.length ? "button secondary sm" : "button"} onClick={() => act(ch.startStatements)}>Opening Statements</button>}
-              {!beginnerCom && <button type="button" className={next || readyAll.length ? "button secondary sm" : "button"} onClick={() => window.dispatchEvent(new Event("chambers:motion"))}>{modDone ? "Start Another Moderated Caucus" : "Start a Moderated Caucus"}</button>}
+              {stNext && <button type="button" className={readyAll.length ? "button secondary sm" : "button"} onClick={() => act(ch.startStatements)}>Opening Statements</button>}
             </div>
           </>
         );
@@ -561,7 +552,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
         }
         return (
           <>
-            {t && k?.kind !== "unmod" && k?.kind !== "papers" ? null : c.timer && !ch.running(c.timer) && c.timer.left === c.timer.total && <Duration id="fl-cau" label="Caucus Length" value={c.timer ? Math.round(c.timer.total / 1000) : ch.CAUCUS_SECS} min={5} max={t && k?.kind !== "papers" ? ch.TR.maxCaucus : 10800}
+            {t && k?.kind !== "unmod" ? null : c.timer && !ch.running(c.timer) && c.timer.left === c.timer.total && <Duration id="fl-cau" label="Caucus Length" value={c.timer ? Math.round(c.timer.total / 1000) : ch.CAUCUS_SECS} min={5} max={ch.TR.maxCaucus}
               onChange={(v, ok) => { if (ok && v !== null) act((x) => ch.setCaucusSecs(x, v)); }} />}
             {timerBtn("button")}
             {extend}
@@ -614,7 +605,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
       );
       case "closed": return t ? (
         <>
-          <button type="button" className="button" onClick={() => act(ch.backToGeneral)}>{t?.level === "beginner" ? "Back to the resolutions" : "Back to the general debate"}</button>
+          <button type="button" className="button" onClick={() => act(ch.backToGeneral)}>Back to the resolutions</button>
           <button type="button" className="button secondary" onClick={() => act(ch.reopenVote)}>Reopen the Vote</button>
           <button type="button" className="button secondary" onClick={() => act(ch.endCommittee)}>End the Committee</button>
         </>
@@ -721,7 +712,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
         )}
         <h2 className={`serif ${s.who}`}>{typeof title === "string" && title.split(" ").length >= 4 && title.length >= 22 ? <><span className={s.whoLead}>{title.split(" ").slice(0, Math.floor(title.split(" ").length / 2)).join(" ")}</span>{title.split(" ").slice(Math.floor(title.split(" ").length / 2)).join(" ")}</> : title}</h2>
         {sub && <p className={s.sub}>{sub}</p>}
-        {t?.level === "beginner" && c.step === "general" && !sp && (() => {
+        {t && c.step === "general" && !sp && (() => {
           const all = ch.drafts(c);
           const done = all.filter((d) => d.result).length;
           return <Stats label="Resolutions" items={[{ label: "Debated", value: done, tone: "ok" }, { label: "Still to Debate", value: all.length - done }]} />;
@@ -1086,10 +1077,8 @@ function AmendmentQueue({ c, act }: { c: Chamber; act: Act }) {
 function RollCall({ c, act }: { c: Chamber; act: Act }) {
   const n = ch.count(c);
   const t = c.tr;
-  const sc = t?.level === "experienced";
-  const need = t ? (sc ? Math.ceil((2 * (n.yes + n.no)) / 3) : Math.floor((n.yes + n.no) / 2) + 1) : ch.needed(c.delegates.length);
+  const need = t ? Math.floor((n.yes + n.no) / 2) + 1 : ch.needed(c.delegates.length);
   const closed = c.step === "closed" || c.step === "ended";
-  const vetoes = sc ? [...new Set(c.delegates.filter((d) => c.ballots[d.id] === "against").map((d) => ch.permanent(d.name)).filter((x): x is string => !!x))] : [];
   return (
     <section className={`panel ${s.side}`}>
       <div className={s.head}>
@@ -1097,9 +1086,9 @@ function RollCall({ c, act }: { c: Chamber; act: Act }) {
       </div>
       {closed && c.outcome && (
         <p className={s.banner} data-pass={c.outcome.passed}>
-          <strong>{c.outcome.passed ? "Approved" : c.outcome.vetoed ? "Vetoed" : "Not approved"}</strong>
+          <strong>{c.outcome.passed ? "Approved" : "Not approved"}</strong>
           {c.outcome.yes} for, {c.outcome.no} against, {c.outcome.abstain} abstaining.
-          {c.outcome.vetoed ? ` Vetoed by ${c.outcome.vetoed.join(" and ")}.` : !c.outcome.passed ? ` ${c.outcome.needed} votes in favour were needed.` : ""}
+          {!c.outcome.passed ? ` ${c.outcome.needed} votes in favour were needed.` : ""}
         </p>
       )}
       <Stats label="Votes So Far" bar items={[
@@ -1108,8 +1097,7 @@ function RollCall({ c, act }: { c: Chamber; act: Act }) {
         { label: t ? "Neutral" : "Abstain", value: n.abstain },
         { label: "Still to Vote", value: n.left },
       ]} />
-      {t ? <p className={s.hint}>{sc ? `Security Council: two thirds of the For and Against, so ${need} For at the moment, and no permanent member Against.` : `General Assembly: more For than Against, so ${need} For at the moment.`} Abstentions count for neither.</p> : <p className={s.hint}>Needs at least {need} in favour</p>}
-      {vetoes.length > 0 && !closed && <p className={s.banner} data-pass="false"><strong>Veto</strong>{vetoes.join(" and ")} voted Against.</p>}
+      {t ? <p className={s.hint}>More For than Against, so {need} For at the moment. Abstentions count for neither.</p> : <p className={s.hint}>Needs at least {need} in favour</p>}
       <ul className={s.ballots}>
         {c.delegates.map((d) => (
           <li key={d.id} className={s.ballot}>
@@ -1124,7 +1112,7 @@ function RollCall({ c, act }: { c: Chamber; act: Act }) {
   );
 }
 
-/* Trinity Grammar MUN: introducing a resolution or draft resolution. Its proposer and co-proposer come from the draft (a given resolution has none yet); the chair chooses an opposer, if anyone will. */
+/* Trinity Grammar MUN: introducing a resolution. Its proposer and co-proposer come from the draft (a given resolution has none yet); the chair chooses an opposer, if anyone will. */
 function TrinityPick({ c, act }: { c: Chamber; act: Act }) {
   const d = ch.currentDoc(c);
   const name = (id: string | null) => ch.nameOf(c, id);
@@ -1174,7 +1162,7 @@ function TrinityPick({ c, act }: { c: Chamber; act: Act }) {
         </div>
       </div>
       <button type="submit" className="button lg block" disabled={!ch.has(c, c.roles.proposer) || !ch.has(c, c.roles.seconder)}>Start the Speeches</button>
-      <button type="button" className="button secondary block" onClick={() => act(ch.cancelIntroduction)}>{c.tr?.level === "beginner" ? "Back to the resolutions" : "Back to the general debate"}</button>
+      <button type="button" className="button secondary block" onClick={() => act(ch.cancelIntroduction)}>Back to the resolutions</button>
     </form>
   );
 }
@@ -1195,7 +1183,6 @@ function Motions({ c, act }: { c: Chamber; act: Act }) {
   const err = ch.motionError(c, input);
   const pickKind = (k: ch.MotionKind) => { setKind(k); setRef(""); setTotal(k === "mod" ? 600 : k === "unmod" ? 300 : 120); setPer(60); };
   const amendments = ch.waitingAmendments(c);
-  const approved = ch.drafts(c).filter((d) => d.status === "approved" && !d.result);
   const busy = !!c.poll || !!c.speech;
   // "Start a moderated caucus" on the floor lands here, on that motion, with the topic ready to be typed.
   useEffect(() => {
@@ -1246,15 +1233,6 @@ function Motions({ c, act }: { c: Chamber; act: Act }) {
             </Select>
           </div>
         )}
-        {kind === "draft" && (
-          <div className="field">
-            <label htmlFor="mo-ref" className="sr-only">Draft Resolution</label>
-            <Select id="mo-ref" className="control" value={ref} onChange={(e) => setRef(e.target.value)}>
-              <option value="">{approved.length ? "Which draft resolution?" : "No approved draft resolution"}</option>
-              {approved.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
-            </Select>
-          </div>
-        )}
         {err && !(kind === "mod" && !topic.trim()) && <p className={s.hint} role="status">{err}</p>}
         <button type="submit" className="button secondary block" disabled={!!err}>Add the Motion</button>
       </form>
@@ -1300,169 +1278,36 @@ function Motions({ c, act }: { c: Chamber; act: Act }) {
   );
 }
 
-/* Trinity Grammar MUN: working papers and draft resolutions. */
-const DOC_STATUS: Record<ch.Doc["status"], string> = { submitted: "Submitted", approved: "Approved", sent: "Sent Back" };
-const DOC_RESULT = { passed: "Passed", failed: "Failed", vetoed: "Vetoed" } as const;
+/* Trinity Grammar MUN: the committee's resolutions. */
+const DOC_RESULT = { passed: "Passed", failed: "Failed" } as const;
 function Documents({ c, act }: { c: Chamber; act: Act }) {
   const t = c.tr!;
-  // The experienced committee writes working papers and, from them, draft resolutions; the beginner committee is given its resolutions.
-  const [kind, setKind] = useState<ch.Doc["kind"]>("paper");
-  const [title, setTitle] = useState("");
-  const [seen, setSeen] = useState(true);
-  const [proposer, setProposer] = useState("");
-  const [seconder, setSeconder] = useState("");
-  const [sponsors, setSponsors] = useState<string[]>([]);
-  const [link, setLink] = useState("");
-  const [clauses, setClauses] = useState("");
-  const [from, setFrom] = useState<string[]>([]);
-  const papers = t.docs.filter((d) => d.kind === "paper");
-  const name = (id: string | null) => ch.nameOf(c, id);
-  const signers = new Set([proposer, seconder, ...sponsors].filter(Boolean)).size;
-  const ready = title.trim().length > 0 && !!proposer && (kind === "paper" ? sponsors.length > 0 : !!seconder && seconder !== proposer);
-  const reset = () => { setTitle(""); setProposer(""); setSeconder(""); setSponsors([]); setLink(""); setClauses(""); setSeen(true); setFrom([]); };
-  const can = c.delegates.filter((d) => !ch.observing(c, d.id));
-  const noun = kind === "paper" ? "working paper" : "draft resolution";
   return (
-    <div className={t.level === "beginner" ? undefined : s.pair}>
-      {t.level !== "beginner" && (
-      <section className={`panel ${s.list}`} aria-labelledby="ch-docs-add">
-        <div className={s.head}>
-          <h2 id="ch-docs-add" className={s.h2}>Add a {noun}</h2>
-        </div>
-        <div className={s.panelBody}>
-          <Seg label="What Kind of Document" value={kind} onPick={(k) => { setKind(k); reset(); }} items={[{ id: "paper", label: "Working Paper" }, { id: "draft", label: "Draft Resolution" }]} />
-        </div>
-        <form className={s.panelBody} onSubmit={(e) => { e.preventDefault(); if (!ready) return; act((x) => ch.addDoc(x, uid(), { kind, title, week: 1, seen: true, proposer, seconder: kind === "draft" ? seconder : null, sponsors, link, clauses, from })); reset(); }}>
-          <div className="field">
-            <label htmlFor="dc-title" className="sr-only">Title</label>
-            <input id="dc-title" className="control" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} placeholder="Title" />
-          </div>
-          <div className={s.two}>
-            <div className="field">
-              <label htmlFor="dc-prop" className="sr-only">Proposer</label>
-              <Select id="dc-prop" className="control" value={proposer} onChange={(e) => { setProposer(e.target.value); setSponsors((b) => b.filter((x) => x !== e.target.value)); }}>
-                <option value="">{kind === "paper" ? "Sponsor" : "Proposer"}</option>
-                {can.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </Select>
-            </div>
-            {kind === "draft" && (
-              <div className="field">
-                <label htmlFor="dc-sec" className="sr-only">Seconder</label>
-                <Select id="dc-sec" className="control" value={seconder} onChange={(e) => { setSeconder(e.target.value); setSponsors((b) => b.filter((x) => x !== e.target.value)); }}>
-                  <option value="">Seconder</option>
-                  {can.filter((d) => d.id !== proposer).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </Select>
-              </div>
-            )}
-          </div>
-          <fieldset className={s.procedure}>
-            <legend>Co-sponsors</legend>
-            <div className={s.backers}>
-              {can.filter((d) => d.id !== proposer && d.id !== seconder).map((d) => (
-                <label key={d.id} className={s.check}>
-                  <input type="checkbox" checked={sponsors.includes(d.id)} onChange={(e) => setSponsors((b) => (e.target.checked ? [...b, d.id] : b.filter((x) => x !== d.id)))} />
-                  {d.name}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          {kind === "draft" && t.level === "experienced" && papers.length > 0 && (
-            <fieldset className={s.procedure}>
-              <legend>Made from These Working Papers</legend>
-              <div className={s.backers}>
-                {papers.map((d) => (
-                  <label key={d.id} className={s.check}>
-                    <input type="checkbox" checked={from.includes(d.id)} onChange={(e) => setFrom((b) => (e.target.checked ? [...b, d.id] : b.filter((x) => x !== d.id)))} />
-                    {d.title}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-          )}
-          <div className="field">
-            <label htmlFor="dc-link" className="sr-only">Link to the Document</label>
-            <input id="dc-link" className="control" value={link} onChange={(e) => setLink(e.target.value)} maxLength={300} inputMode="url" placeholder="Link to the document or research sheet (optional)" />
-          </div>
-          <div className="field">
-            <label htmlFor="dc-cl" className="sr-only">Operative Clauses</label>
-            <textarea id="dc-cl" className="control" rows={4} value={clauses} onChange={(e) => setClauses(e.target.value)} maxLength={8000} placeholder="Paste the operative clauses (optional). They show beside an amendment." />
-            {clauses.length > 0 && <small>{clauses.length} of 8,000</small>}
-          </div>
-          <button type="submit" className="button secondary block" disabled={!ready}>Add the {noun}</button>
-        </form>
-      </section>
-      )}
-      <section className={`panel ${s.list}`} aria-labelledby="ch-docs">
-        <div className={s.head}>
-          <h2 id="ch-docs" className={s.h2}>{t.level === "beginner" ? "Resolutions" : "Documents"}</h2>
-          <span className="badge">{t.docs.length}</span>
-        </div>
-        {t.docs.length > 0 ? (
-          <ul className={s.queue}>
-            {t.docs.map((d) => {
-              const n = ch.docSigners(d).length;
-              const locked = !!d.result || (d.kind === "draft" && d.status === "approved");
-              return (
-                <li key={d.id} className={`${s.card} ${s.doc}`} data-next={t.current === d.id}>
-                  <span className={s.cardTop}>
-                    <span className={s.cardTitle}>{d.title}</span>
-                    {d.result
-                      ? <span className={s.chip} data-tone={d.result === "passed" ? "ok" : "bad"}>{DOC_RESULT[d.result]}</span>
-                      : t.current === d.id
-                        ? <span className={s.chip} data-tone="accent">Being debated</span>
-                        : d.kind === "draft" && t.level !== "beginner" && <span className={s.chip} data-tone={d.status === "approved" ? "ok" : d.status === "sent" ? "bad" : undefined}>{DOC_STATUS[d.status]}</span>}
-                  </span>
-                  {t.level === "beginner" && d.kind === "draft"
-                    ? <span className={s.seenTag} data-seen={d.seen}>{d.seen ? "Seen" : "Unseen"}</span>
-                    : <span className={s.docMeta}>{d.kind === "paper" ? "Working paper" : ch.resNoun(c)}</span>}
-                  {n > 0 && t.level !== "beginner" && (
-                  <span className={s.signBox}>
-                    <span className={s.kSigners}>
-                      {ch.docSigners(d).map((id) => (
-                        <span key={id} className={s.kSigner} data-tone={id === d.proposer ? "lead" : id === d.seconder ? "second" : undefined}>
-                          {name(id)}
-                          {id === d.proposer && <small>proposer</small>}
-                          {id === d.seconder && <small>seconder</small>}
-                        </span>
-                      ))}
-                    </span>
-                    {d.kind === "draft" && d.status !== "approved" ? (
-                      <span className={s.kMeter} data-met={n >= 2} role="img" aria-label={`${n} states have signed`}>
-                        <span className={s.kMeterBar}><i style={{ width: `${Math.min(100, (n / Math.max(ch.present(c) || c.delegates.length, 1)) * 100)}%` }} /></span>
-                        <span className={s.kMeterText}>{n} signed</span>
-                      </span>
-                    ) : <span className={s.kMeterText}>{n} signator{n === 1 ? "y" : "ies"}</span>}
-                  </span>
-                  )}
-                  {d.from.length > 0 && <span className={s.docMeta}>From {d.from.map((f) => t.docs.find((x) => x.id === f)?.title).filter(Boolean).join(", ")}</span>}
-                  {d.link && <a className={s.docLink} href={d.link} target="_blank" rel="noopener noreferrer">Open the document</a>}
-                  {!locked && (
-                    <details className={s.docSign}>
-                      <summary>Edit signatories</summary>
-                      <div className={s.backers}>
-                        {can.filter((x) => x.id !== d.proposer && x.id !== d.seconder).map((x) => (
-                          <label key={x.id} className={s.check}>
-                            <input type="checkbox" checked={d.sponsors.includes(x.id)} onChange={(e) => act((y) => ch.signDoc(y, d.id, x.id, e.target.checked))} />
-                            {x.name}
-                          </label>
-                        ))}
-                      </div>
-                    </details>
-                  )}
-                  <span className={s.kActions}>
-                    {d.kind === "draft" && d.status === "submitted" && <button type="button" className="button secondary sm" disabled={n < 2} onClick={() => act((x) => ch.approveDoc(x, d.id))}>Approve</button>}
-                    {d.kind === "draft" && d.status === "approved" && !d.result && t.current !== d.id && <button type="button" className="button secondary sm" disabled={c.step !== "general" || !!c.speech || !!c.poll} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce</button>}
-                    {d.kind === "draft" && d.status === "sent" && <button type="button" className="button secondary sm" onClick={() => act((x) => ch.resubmitDoc(x, d.id))}>Resubmit</button>}
-                    {d.kind === "draft" && t.level !== "beginner" && d.status !== "sent" && !d.result && t.current !== d.id && <button type="button" className="button secondary sm" onClick={() => act((x) => ch.sendBackDoc(x, d.id))}>Send Back</button>}
-                    {!d.result && t.level !== "beginner" && t.current !== d.id && <button type="button" className={`button secondary sm ${s.kDanger}`} onClick={() => act((x) => ch.removeDoc(x, d.id))}>Remove</button>}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        ) : <p className={s.empty}>{t.level === "beginner" ? "No resolutions yet. Add them in Settings." : "No documents yet."}</p>}
-      </section>
-    </div>
+    <section className={`panel ${s.list}`} aria-labelledby="ch-docs">
+      <div className={s.head}>
+        <h2 id="ch-docs" className={s.h2}>Resolutions</h2>
+        <span className="badge">{t.docs.length}</span>
+      </div>
+      {t.docs.length > 0 ? (
+        <ul className={s.queue}>
+          {t.docs.map((d) => (
+            <li key={d.id} className={`${s.card} ${s.doc}`} data-next={t.current === d.id}>
+              <span className={s.cardTop}>
+                <span className={s.cardTitle}>{d.title}</span>
+                {d.result
+                  ? <span className={s.chip} data-tone={d.result === "passed" ? "ok" : "bad"}>{DOC_RESULT[d.result]}</span>
+                  : t.current === d.id && <span className={s.chip} data-tone="accent">Being debated</span>}
+              </span>
+              <span className={s.seenTag} data-seen={d.seen}>{d.seen ? "Seen" : "Unseen"}</span>
+              {d.link && <a className={s.docLink} href={d.link} target="_blank" rel="noopener noreferrer">Open the document</a>}
+              <span className={s.kActions}>
+                {!d.result && t.current !== d.id && <button type="button" className="button secondary sm" disabled={c.step !== "general" || !!c.speech || !!c.poll} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce</button>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : <p className={s.empty}>No resolutions yet. Add them in Settings.</p>}
+    </section>
   );
 }
 
@@ -1616,7 +1461,7 @@ function Analytics({ c, say }: { c: Chamber; say: (t: string) => void }) {
             <label htmlFor="an-kind" className="sr-only">Show</label>
             <Select id="an-kind" className="control" value={kind} onChange={(e) => { setKind(e.target.value as "" | ch.StatKind); setAat(0); }}>
               <option value="">Everything</option>
-              {(t?.level === "experienced" ? (["statement", ...FILTERS] as ch.StatKind[]) : FILTERS).map((k) => <option key={k} value={k}>{ch.statLabel(c, k)}</option>)}
+              {FILTERS.map((k) => <option key={k} value={k}>{ch.statLabel(c, k)}</option>)}
             </Select>
           </div>
           {feed.length === 0 ? <p className={s.empty}>Nothing yet.</p> : (
@@ -1790,9 +1635,8 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
   const [speak, setSpeak] = useState<number | null>(120);
   const [speakOk, setSpeakOk] = useState(true);
   const [proc, setProc] = useState<"evatt" | "trinity">("evatt");
-  const [level, setLevel] = useState<ch.Level>("beginner");
   const [text, setText] = useState("");
-  const [res, setRes] = useState(["", ""]); // the beginner committee's resolutions: the seen one, then the unseen one
+  const [res, setRes] = useState(["", ""]); // the committee's resolutions: the seen one, then the unseen one
   const [mine, setMine] = useState<Mine[]>([]);
   const names = ch.parseNames(text);
   const ok = name.trim().length >= 2 && resolution.trim().length >= 2 && speakOk && speak !== null && names.length > 0;
@@ -1823,7 +1667,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
             </ul>
           </section>
         )}
-        <form className={`panel ${s.setupCard}`} onSubmit={(e) => { e.preventDefault(); if (!ok || speak === null) return; const ids = names.map(uid); onCreate(proc === "trinity" ? ch.createTrinity(name, resolution, level, speak, names, ids, level === "beginner" ? res.map((title, i) => ({ title, week: 1 as const, seen: i === 0 })) : []) : ch.create(name, resolution, speak, names, ids)); if (signedIn && supabase) void supabase.rpc("note_chamber_started", { label: name, procedure: proc === "trinity" ? `Trinity Grammar MUN, ${level}` : "Evatt" }); }}>
+        <form className={`panel ${s.setupCard}`} onSubmit={(e) => { e.preventDefault(); if (!ok || speak === null) return; const ids = names.map(uid); onCreate(proc === "trinity" ? ch.createTrinity(name, resolution, speak, names, ids, res.map((title, i) => ({ title, week: 1 as const, seen: i === 0 }))) : ch.create(name, resolution, speak, names, ids)); if (signedIn && supabase) void supabase.rpc("note_chamber_started", { label: name, procedure: proc === "trinity" ? "Trinity Grammar MUN" : "Evatt" }); }}>
           <div className={s.two}>
             <div className="field">
               <label htmlFor="cs-proc">Procedure</label>
@@ -1832,15 +1676,6 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
                 <option value="trinity">Trinity Grammar MUN</option>
               </Select>
             </div>
-            {proc === "trinity" && (
-              <div className="field">
-                <label htmlFor="cs-level">Committee</label>
-                <Select id="cs-level" className="control" value={level} onChange={(e) => setLevel(e.target.value as ch.Level)}>
-                  <option value="beginner">Beginner committee</option>
-                  <option value="experienced">Experienced committee</option>
-                </Select>
-              </div>
-            )}
           </div>
           <div className={s.two}>
             <div className="field">
@@ -1854,7 +1689,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
             <label htmlFor="cs-res">{proc === "trinity" ? "Topic" : "Resolution"}</label>
             <input id="cs-res" className="control" value={resolution} onChange={(e) => setResolution(e.target.value)} maxLength={160} required />
           </div>
-          {proc === "trinity" && level === "beginner" && (
+          {proc === "trinity" && (
             <div className={s.two} style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
               {["Seen Resolution", "Unseen Resolution"].map((label, i) => (
                 <div className="field" key={i}>
