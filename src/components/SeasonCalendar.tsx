@@ -6,12 +6,16 @@ import { formatRange, MONTHS, NA, onDay as runningOn, todayInSydney } from "@/li
 import { useConferences } from "./ConferencesContext";
 import ConferenceRow from "./ConferenceRow";
 import MonthPicker, { type YM } from "./MonthPicker";
+import YearPicker from "./YearPicker";
+import YearCalendar from "./YearCalendar";
+import PanelTabs from "./PanelTabs";
 import PageBand, { nextUp } from "./PageBand";
 import IconButton, { ICONS } from "./IconButton";
 import board from "./board.module.css";
 import s from "@/app/inner.module.css";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const YEAR_ICON = <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1.2" /><rect x="9" y="2" width="5" height="5" rx="1.2" /><rect x="2" y="9" width="5" height="5" rx="1.2" /><rect x="9" y="9" width="5" height="5" rx="1.2" /></svg>;
 const isoOf = (y: number, m: number, d: number) =>
   `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
@@ -25,11 +29,13 @@ export default function SeasonCalendar() {
     setNow({ y: d.getFullYear(), m: d.getMonth() });
   }, []);
   const [dir, setDir] = useState<"next" | "prev">("next");
+  // One month at a time, or the whole year at once.
+  const [mode, setMode] = useState<"month" | "year">("month");
   // The day tapped on a phone, whose conferences show in a card under the month.
   const [picked, setPicked] = useState<string | null>(null);
   const card = useRef<HTMLDivElement>(null);
   const { y, m } = view;
-  useEffect(() => { setPicked(null); }, [y, m]);
+  useEffect(() => { setPicked(null); }, [y, m, mode]);
   useEffect(() => { if (picked) card.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, [picked]);
   const lead = (new Date(y, m, 1).getDay() + 6) % 7; // Monday first
   const days = new Date(y, m + 1, 0).getDate();
@@ -37,7 +43,7 @@ export default function SeasonCalendar() {
   const todayIso = isoOf(now.y, now.m, new Date().getDate());
   const conferences = useConferences();
   const onDay = (iso: string) => runningOn(conferences, iso);
-  const listed = conferences.filter((c) => c.startDate?.startsWith(isoOf(y, m, 1).slice(0, 7)));
+  const listed = conferences.filter((c) => c.startDate?.startsWith(mode === "year" ? String(y) : isoOf(y, m, 1).slice(0, 7)));
   const prevDays = new Date(y, m, 0).getDate();
   // For an empty month: the first conference that starts after it, so there's somewhere to go next.
   const monthEnd = isoOf(y, m, days);
@@ -58,12 +64,16 @@ export default function SeasonCalendar() {
         ]}
       >
         <div className={s.calBar}>
-          <MonthPicker value={view} onChange={(v, d) => { setDir(d); setView(v); }} />
+          <PanelTabs label="Calendar view" idPrefix="cal" tab={mode} setTab={setMode}
+            tabs={[{ id: "month", label: "Month", icon: ICONS.calendar }, { id: "year", label: "Year", icon: YEAR_ICON }]} />
+          {mode === "month"
+            ? <MonthPicker value={view} onChange={(v, d) => { setDir(d); setView(v); }} />
+            : <YearPicker year={y} onChange={(ny, d) => { setDir(d); setView({ y: ny, m }); }} />}
         </div>
       </PageBand>
 
 
-      <div className={s.calGrid}>
+      <div id="cal-panel-month" role="tabpanel" aria-labelledby="cal-tab-month" hidden={mode !== "month"} className={s.calGrid}>
         <div className={s.weekdays} aria-hidden="true">
           {WEEKDAYS.map((d) => <span key={d}>{d}</span>)}
         </div>
@@ -101,8 +111,16 @@ export default function SeasonCalendar() {
         </div>
       </div>
 
+      <div id="cal-panel-year" role="tabpanel" aria-labelledby="cal-tab-year" hidden={mode !== "year"}>
+        {mode === "year" && (
+          <div key={y} className="t-slide" data-dir={dir}>
+            <YearCalendar year={y} todayIso={todayIso} onDay={onDay} picked={picked} onPick={setPicked} onOpenMonth={(mm) => { setDir("next"); setView({ y, m: mm }); setMode("month"); }} />
+          </div>
+        )}
+      </div>
+
       {picked && (
-        <div ref={card} className={`panel t-reveal ${s.dayCard}`} role="region" aria-label={`Conferences on ${picked}`}>
+        <div ref={card} className={`panel t-reveal ${s.dayCard} ${mode === "year" ? s.dayCardAlways : ""}`} role="region" aria-label={`Conferences on ${picked}`}>
           <div className={s.dayCardHead}>
             <strong>{new Date(picked + "T00:00:00").toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" })}</strong>
             <IconButton label="Close" tip="Close" icon={ICONS.close} onClick={() => setPicked(null)} />
@@ -117,11 +135,11 @@ export default function SeasonCalendar() {
 
       <section className={s.agenda} aria-labelledby="agenda-h">
         <h2 id="agenda-h" className={s.h2}>
-          On in <span key={`${y}-${m}`} className="t-swap">{MONTHS[m]}</span>
+          On in <span key={`${y}-${m}-${mode}`} className="t-swap">{mode === "year" ? y : MONTHS[m]}</span>
         </h2>
         {listed.length === 0 ? (
-          <div key={`${y}-${m}`} className={`t-reveal ${board.empty}`}>
-            <p className={board.emptyTitle}>Nothing on in {MONTHS[m]}.</p>
+          <div key={`${y}-${m}-${mode}`} className={`t-reveal ${board.empty}`}>
+            <p className={board.emptyTitle}>Nothing on in {mode === "year" ? y : MONTHS[m]}.</p>
             {next && <Link href={`/conferences/${next.slug}`} className="link">The next conference is on {nextWhen} →</Link>}
             <Link href="/list" className="button secondary">List a conference</Link>
           </div>
