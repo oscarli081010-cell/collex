@@ -184,11 +184,9 @@ export default function Chambers() {
       <header className={s.top}>
         <div className={s.nameBox}>
         <h1 className={`serif ${s.name}`}>{c.name}{c.topic && ` · ${c.topic}`}</h1>
-        {t && (
-          <dl className={s.facts3}>
-            <div><dt>Procedure</dt><dd>Trinity Grammar MUN</dd></div>
-          </dl>
-        )}
+        <dl className={s.facts3}>
+          <div><dt>Procedure</dt><dd>{t ? "Trinity Grammar MUN" : "Evatt"}</dd></div>
+        </dl>
         </div>
         <div className={s.topActions}>
           <a className={`button secondary ${s.topBtn}`} href={display} target="_blank" rel="noopener">{MONITOR}Open display</a>
@@ -847,7 +845,7 @@ function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
       <div className={s.sides} data-plain={plain || undefined}>
         {(plain ? (["for"] as const) : (["for", "against"] as const)).map((k) => (
           <div key={k} className={s.sideCol}>
-            {!plain && <div className={s.sideHead}><span className={s.chip} data-side={k}>{SIDE[k]}</span><span className="muted">{col(k).length}</span></div>}
+            {!plain && <div className={s.sideHead}><span className={s.chip} data-side={k}>{SIDE[k]}</span><span className="badge">{col(k).length}</span></div>}
             {(plain ? c.debate.list : col(k)).length ? (
               <ol className={s.queue}>
                 {(plain ? c.debate.list : col(k)).map((x) => (
@@ -906,7 +904,6 @@ function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
 
 const STATUS: Record<ch.Amendment["status"], string> = { waiting: "Waiting", entertained: "Being Considered", passed: "Passed", failed: "Failed", withdrawn: "Withdrawn", invalid: "Ruled Invalid" };
 const HOW: Record<ch.AmendHow, string> = { strike: "Strike", amend: "Amend", add: "Add" };
-const signs = (n: number) => `${n} signator${n === 1 ? "y" : "ies"}`;
 
 /* Amendments, in two boxes: handing one in (left), and the line of them waiting and what became of the rest (right). */
 /** How many states have signed, against the states present: the more sponsors the better. */
@@ -921,13 +918,24 @@ function SignMeter({ have, of }: { have: number; of: number }) {
   );
 }
 
+/** The tag and the two arrows at the top right of a queued card, the same on an amendment and a motion. */
+function CardSide({ next, tag, first, last, label, move }: { next?: boolean; tag?: string; first: boolean; last: boolean; label: string; move: (by: -1 | 1) => void }) {
+  return (
+    <span className={s.cardSide}>
+      {next && <span className={s.nextTag}>{tag ?? "Next"}</span>}
+      <IconButton label={`Move ${label} up`} icon={ICONS.up} disabled={first} onClick={() => move(-1)} />
+      <IconButton label={`Move ${label} down`} icon={ICONS.down} disabled={last} onClick={() => move(1)} />
+    </span>
+  );
+}
+
 /** Who signed an amendment, set out like the signatories of a document. */
 function Signers({ c, a }: { c: Chamber; a: ch.Amendment }) {
   const [open, setOpen] = useState(false);
   const ids = [a.by, ...(a.seconder ? [a.seconder] : []), ...a.backers.filter((x) => x !== a.seconder)];
   return (
     <>
-      <button type="button" className="button secondary sm block" aria-expanded={open} onClick={() => setOpen((v) => !v)}>{open ? "Hide Signatories" : "Show Signatories"}</button>
+      <button type="button" className="button secondary sm block" aria-expanded={open} onClick={() => setOpen((v) => !v)}>{open ? "Hide Signatories" : "Show Signatories"} - {ids.length}</button>
       {open && (
         <span className={`${s.kSigners} ${s.reveal}`}>
           {ids.map((id) => (
@@ -976,7 +984,6 @@ function AmendmentForm({ c, act }: { c: Chamber; act: Act }) {
             <input id="am-cl" className="control" value={clause} onChange={(e) => setClause(e.target.value)} placeholder="E.g., Operative Clause 1" maxLength={40} />
           </div>
         </div>
-        <Seg label="What It Does to the Clause" value={how} onPick={setHow} items={[{ id: "amend", label: "Amend" }, { id: "strike", label: "Strike" }, { id: "add", label: "Add" }]} />
         {t && (
           <div className="field">
             <label htmlFor="am-sec" className="sr-only">Seconder</label>
@@ -986,9 +993,10 @@ function AmendmentForm({ c, act }: { c: Chamber; act: Act }) {
             </Select>
           </div>
         )}
+        <Seg label="What It Does to the Clause" value={how} onPick={setHow} items={[{ id: "amend", label: "Amend" }, { id: "strike", label: "Strike" }, { id: "add", label: "Add" }]} />
         <div className="field">
-          <label htmlFor="am-tx" className="sr-only">What It Changes</label>
-          <textarea id="am-tx" className="control" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={600} placeholder="What the amendment changes. The preamble can't be amended." />
+          <label htmlFor="am-tx" className="sr-only">Description</label>
+          <textarea id="am-tx" className="control" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={600} placeholder="Description" />
         </div>
         <fieldset className={s.procedure}>
           <legend>{t ? "Co-sponsors" : "Signatories"}</legend>
@@ -1038,7 +1046,6 @@ function AmendmentQueue({ c, act }: { c: Chamber; act: Act }) {
                 <span className={s.nextTag}>Being Considered</span>
               </span>
               <span className={s.amText}>{live.text}</span>
-              <span className={s.cardLine}>{signs(live.backers.length)}</span>
               <Signers c={c} a={live} />
             </li>
           )}
@@ -1046,16 +1053,11 @@ function AmendmentQueue({ c, act }: { c: Chamber; act: Act }) {
             <li key={a.id} className={`${s.card} ${s.amend}`} data-next={!live && i === 0}>
               <span className={s.cardTop}>
                 <span className={s.cardTitle}>{name(a.by)}{a.how && ` \u00B7 ${HOW[a.how]}`}{a.clause && ` \u00B7 ${a.clause}`}</span>
-                {!live && i === 0 && <span className={s.nextTag}>Next</span>}
+                <CardSide next={!live && i === 0} first={i === 0} last={i === waiting.length - 1} label="amendment" move={(d) => act((x) => ch.moveAmendment(x, a.id, d))} />
               </span>
               <span className={s.amText}>{a.text}</span>
-              <span className={s.cardLine}>{signs(a.backers.length)}</span>
               <span className={s.kActions}>
                 <button type="button" className="button secondary sm" disabled={!canEntertain} onClick={() => act((x) => ch.entertain(x, a.id))}>Entertain</button>
-                <button type="button" className="button secondary sm" disabled={i === 0} onClick={() => act((x) => ch.moveAmendment(x, a.id, -1))}>Move Up</button>
-                <button type="button" className="button secondary sm" disabled={i === waiting.length - 1} onClick={() => act((x) => ch.moveAmendment(x, a.id, 1))}>Move Down</button>
-              </span>
-              <span className={s.kActions}>
                 <button type="button" className="button secondary sm" onClick={() => act((x) => ch.invalidAmendment(x, a.id))}>Rule Invalid</button>
                 <button type="button" className={`button secondary sm ${s.kDanger}`} onClick={() => act((x) => ch.withdrawAmendment(x, a.id))}>Withdraw</button>
               </span>
@@ -1253,15 +1255,13 @@ function Motions({ c, act }: { c: Chamber; act: Act }) {
             <li key={m.id} className={`${s.card} ${s.motion}`} data-next={i === 0}>
               <span className={s.cardTop}>
                 <span className={s.cardTitle}>{ch.MOTION_LABEL[m.kind]}</span>
-                {i === 0 && <span className={s.nextTag}>Next</span>}
+                <CardSide next={i === 0} first={i === 0} last={i === waiting.length - 1} label="motion" move={(d) => act((x) => ch.moveMotion(x, m.id, d))} />
               </span>
               <span className={s.cardMeta}>
                 <span className={s.cardLine}>{m.by && <><strong>{ch.nameOf(c, m.by)}</strong> proposes{ch.motionDetail(c, m) ? " " : ""}</>}{ch.motionDetail(c, m)}</span>
               </span>
               <span className={s.kActions}>
                 <button type="button" className="button secondary sm" disabled={busy || !!ch.motionError(c, m)} onClick={() => act((x) => ch.voteMotion(x, m.id))}>Put to the Vote</button>
-                <button type="button" className="button secondary sm" disabled={i === 0} onClick={() => act((x) => ch.moveMotion(x, m.id, -1))}>Move Up</button>
-                <button type="button" className="button secondary sm" disabled={i === waiting.length - 1} onClick={() => act((x) => ch.moveMotion(x, m.id, 1))}>Move Down</button>
                 <button type="button" className={`button secondary sm ${s.kDanger}`} disabled={c.poll?.motion === m.id} onClick={() => act((x) => ch.withdrawMotion(x, m.id))}>Withdraw</button>
               </span>
             </li>
@@ -1639,7 +1639,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
   const [res, setRes] = useState(["", ""]); // the committee's resolutions: the seen one, then the unseen one
   const [mine, setMine] = useState<Mine[]>([]);
   const names = ch.parseNames(text);
-  const ok = name.trim().length >= 2 && resolution.trim().length >= 2 && speakOk && speak !== null && names.length > 0;
+  const ok = name.trim().length >= 2 && resolution.trim().length >= 2 && (proc !== "trinity" || res.every((r) => r.trim().length >= 2)) && speakOk && speak !== null && names.length > 0;
 
   useEffect(() => {
     if (!signedIn || !supabase) return;
@@ -1694,7 +1694,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
               {["Seen Resolution", "Unseen Resolution"].map((label, i) => (
                 <div className="field" key={i}>
                   <label htmlFor={`cs-r${i}`}>{label}</label>
-                  <input id={`cs-r${i}`} className="control" value={res[i]} onChange={(e) => setRes((r) => r.map((v, j) => (j === i ? e.target.value : v)))} maxLength={160} placeholder="Title (optional)" />
+                  <input id={`cs-r${i}`} className="control" value={res[i]} onChange={(e) => setRes((r) => r.map((v, j) => (j === i ? e.target.value : v)))} maxLength={160} placeholder="Title" required />
                 </div>
               ))}
             </div>

@@ -104,7 +104,7 @@
 .rowBtns { display: flex; gap: 4px; flex: none; }
 .empty { color: var(--muted); font-size: 14px; padding: 4px 0; }
 .spoken { font-size: 13px; color: var(--muted); line-height: 1.5; }
-.addRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.addRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 8px; }
 .addRow .addWho { grid-column: 1 / -1; }
 .addRow .seg3 { width: 100%; }
 .addRow .button { height: 44px; min-width: 96px; }
@@ -483,6 +483,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 
 /* Motion and document cards: a title, who is behind it, and one row of actions. */
 .queue li.card { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 10px; padding: 14px; }
+.cardSide { display: flex; align-items: center; gap: 6px; flex: none; }
 .cardTop { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .cardTitle { font-size: 15.5px; font-weight: 500; line-height: 1.25; overflow-wrap: anywhere; }
 .nextTag { flex: none; padding: 2px 9px; border-radius: 999px; background: var(--accent); color: var(--on-ink); font-size: 11.5px; font-weight: 500; }

@@ -52,7 +52,7 @@ export type MotionKind = "mod" | "unmod" | "extend" | "closemod" | "close" | "am
 export type Motion = { id: string; kind: MotionKind; by: string | null; topic: string; total: number; per: number; ref: string | null; at: number; status: "waiting" | "passed" | "failed" | "withdrawn" };
 export type PointKind = "order" | "privilege" | "inquiry" | "clarification";
 /** A caucus in progress. A moderated one (and an amendment's debate) keeps its own clock for the whole caucus while the committee's timer times each speaker. */
-export type Caucus = { kind: "mod" | "unmod" | "prep" | "amend" | "final"; /** The 5 minutes that open the debate on a draft: amendments are handed in once it is over. */ intro?: boolean; topic: string; per: number; total: number; ext: number; clock: Timer | null };
+export type Caucus = { kind: "mod" | "unmod" | "prep" | "amend" | "final"; /** The 5 minutes that open the debate on a resolution. */ intro?: boolean; topic: string; per: number; total: number; ext: number; clock: Timer | null };
 export type Trin = {
   week: 1 | 2; docs: Doc[]; motions: Motion[]; opened: string[]; cauc: Caucus | null;
   /** The speakers' list kept aside while a caucus or an amendment uses the committee's own. */
@@ -484,9 +484,9 @@ export function endCaucus(c: Chamber): Chamber {
 export const present = (c: Chamber) => c.delegates.filter((d) => c.roll[d.id] === "present" || c.roll[d.id] === "voting").length;
 const clauseKey = (t: string) => t.trim().toLowerCase().replace(/\s+/g, " ");
 export const amendedClause = (c: Chamber, clause: string) => !!clauseKey(clause) && c.amendments.some((a) => a.status === "passed" && clauseKey(a.clause) === clauseKey(clause));
-/** Whether amendments can be handed in: Trinity, from the debate on a draft resolution until the closing; Evatt, from the first caucus of the debate. */
+/** Whether amendments can be handed in: Trinity, from the debate on a resolution until the closing, the first caucus included; Evatt, from the first caucus of the debate. */
 export const amendmentsOpen = (c: Chamber) => c.tr
-  ? !!c.tr.current && (c.step === "floor" || c.step === "amend" || (c.step === "caucus" && (c.after === "floor" || c.after === "amend") && !c.tr.cauc?.intro))
+  ? !!c.tr.current && (c.step === "floor" || c.step === "amend" || (c.step === "caucus" && (c.after === "floor" || c.after === "amend")))
   : c.step === "caucus" || c.step === "floor" || c.step === "amend";
 export function submitAmendment(c: Chamber, id: string, by: string, clause: string, text: string, backers: string[], seconder: string | null = null, consensus = false, how: AmendHow = "amend"): Chamber {
   const open = amendmentsOpen(c);

@@ -142,8 +142,8 @@ c = ch.callOpposer(c); assert.equal(c.timer!.total, 90_000, "the opposing speech
 c = ch.endSpeech(c, AT, id("India")); c = ch.yieldToChair(c, id("India"), 0);
 assert.equal(c.step, "caucus"); assert.equal(c.timer!.total, 300_000, "5 minutes unmoderated"); assert.equal(c.after, "floor");
 assert.equal(c.tr!.cauc!.kind, "unmod");
-assert.deepEqual(ch.rooms(c).labels, ["Motions Open"], "the 5 minutes that open the debate: amendments are handed in once it is over");
-assert.equal(ch.submitAmendment(c, "early", id("Egypt"), "Clause 1", "Too early", [id("France"), id("Sweden")], id("Germany")).amendments.length, 0);
+assert.deepEqual(ch.rooms(c).labels, ["Amendments Open", "Motions Open"], "the 5 minutes that open the debate: amendments and motions are open");
+assert.equal(ch.submitAmendment(c, "early", id("Egypt"), "Clause 1", "In the first caucus", [id("France"), id("Sweden")], id("Germany")).amendments.length, 1, "amendments can be handed in during the first caucus");
 c = ch.endCaucus(c); assert.equal(c.step, "floor");
 assert.equal(ch.stageIndex(c), 2);
 assert.deepEqual(ch.rooms(c).labels, ["Speakers’ List Open", "Amendments Open", "Motions Open"]);
