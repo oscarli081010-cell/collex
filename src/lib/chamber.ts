@@ -52,7 +52,7 @@ export type MotionKind = "mod" | "unmod" | "extend" | "closemod" | "close" | "am
 export type Motion = { id: string; kind: MotionKind; by: string | null; topic: string; total: number; per: number; ref: string | null; at: number; status: "waiting" | "passed" | "failed" | "withdrawn" };
 export type PointKind = "order" | "privilege" | "inquiry" | "clarification";
 /** A caucus in progress. A moderated one (and an amendment's debate) keeps its own clock for the whole caucus while the committee's timer times each speaker. */
-export type Caucus = { kind: "mod" | "unmod" | "prep" | "amend" | "final"; /** The 5 minutes that open the debate on a resolution. */ intro?: boolean; topic: string; per: number; total: number; ext: number; clock: Timer | null };
+export type Caucus = { kind: "mod" | "unmod" | "amend" | "final"; /** The 5 minutes that open the debate on a resolution. */ intro?: boolean; topic: string; per: number; total: number; ext: number; clock: Timer | null };
 export type Trin = {
   week: 1 | 2; docs: Doc[]; motions: Motion[]; opened: string[]; cauc: Caucus | null;
   /** The speakers' list kept aside while a caucus or an amendment uses the committee's own. */
@@ -123,7 +123,7 @@ export const POI_SECS = 30;
 export const CAUCUS_SECS = 180;
 /** Trinity's fixed times, in seconds. */
 // 2026: opening statements, the proposer's and co-proposer's speeches and the first opposing speech are 90 seconds; the closing speeches are 2 minutes.
-export const TR = { statement: 90, speech: 90, introOppose: 90, intro: 300, final: 240, prep: 1200, amend: 600, maxCaucus: 1200, oppose: 120, close: 120, amendPer: 60 };
+export const TR = { statement: 90, speech: 90, introOppose: 90, intro: 300, final: 240, amend: 600, maxCaucus: 1200, oppose: 120, close: 120, amendPer: 60 };
 /** A state under the honorary observer sanction can only write notes and join unmoderated caucuses. */
 export const OBSERVER_SECS = 300;
 export const observing = (c: Chamber, who: string, at = now()) => !!c.tr && (c.tr.observers[who] ?? 0) > at;
@@ -799,7 +799,7 @@ export function substep(c: Chamber): string {
     case "proposer": return "Proposer";
     case "seconder": return c.tr ? roleName(c, "seconder") : "Seconder";
     case "opposer": return "Opposer";
-    case "caucus": return c.tr?.cauc?.kind === "mod" ? "Moderated Caucus" : c.tr?.cauc?.kind === "prep" ? "Preparation" : c.tr?.cauc?.kind === "final" ? "Final Unmoderated Caucus" : c.tr ? "Unmoderated Caucus" : "Caucus";
+    case "caucus": return c.tr?.cauc?.kind === "mod" ? "Moderated Caucus" : c.tr?.cauc?.kind === "final" ? "Final Unmoderated Caucus" : c.tr ? "Unmoderated Caucus" : "Caucus";
     case "floor": return c.tr ? `${res} Debate` : "Amendments";
     case "amend": return c.amend?.stage === "read" ? "Amendment Read" : c.amend?.stage === "ask" ? "Vote on Whether to Debate" : c.amend?.stage === "debate" ? (c.tr ? "Amendment Moderated Caucus" : "Amendment Debate") : "Vote on the Amendment";
     case "closing": return c.tr ? "Closing" : "Closing Speeches";
@@ -934,7 +934,7 @@ export function extendCaucus(c: Chamber, secs: number, at: number): Chamber {
   const k = c.tr?.cauc;
   if (!k || !Number.isInteger(secs) || secs < 10 || secs > k.total || k.ext >= 2 || c.speech) return c;
   const inCaucus = c.step === "caucus" || (c.step === "amend" && c.amend?.stage === "debate");
-  if (!inCaucus || k.kind === "prep" || k.kind === "final") return c;
+  if (!inCaucus || k.kind === "final") return c;
   const t = k.clock ?? c.timer;
   if (!t || remaining(t, at) > 0) return c;
   const fresh: Timer = { label: t.label, total: secs * 1000, endsAt: null, left: secs * 1000 };
@@ -946,11 +946,6 @@ export function canCloseMod(c: Chamber): boolean {
 }
 export function closeMod(c: Chamber): Chamber {
   return canCloseMod(c) ? endCaucus(c) : c;
-}
-/** The 20 minutes the committee gets to prepare for an unseen draft. */
-export function startPrep(c: Chamber): Chamber {
-  if (!c.tr || c.step !== "general" || c.speech || c.poll) return c;
-  return enterCaucus(c, TR.prep, "general", "Preparation", "prep");
 }
 
 /* Motions: raised, put in the order the chair chooses, then voted on by placard. */
@@ -985,7 +980,7 @@ export const motionKinds = (c: Chamber): MotionKind[] => {
   return ["mod", "unmod", "extend", "closemod", "close"];
 };
 /** Whether delegates can raise motions now. */
-export const motionsOpen = (c: Chamber) => !!c.tr && (c.step === "floor" || (c.step === "caucus" && c.tr.cauc?.kind !== "prep" && c.tr.cauc?.kind !== "final") || (c.step === "amend" && c.amend?.stage === "debate"));
+export const motionsOpen = (c: Chamber) => !!c.tr && (c.step === "floor" || (c.step === "caucus" && c.tr.cauc?.kind !== "final") || (c.step === "amend" && c.amend?.stage === "debate"));
 
 export type MotionInput = { kind: MotionKind; by: string | null; topic?: string; total?: number; per?: number; ref?: string | null };
 export function motionError(c: Chamber, m: MotionInput): string | null {
@@ -999,7 +994,7 @@ export function motionError(c: Chamber, m: MotionInput): string | null {
     case "unmod": return !Number.isInteger(total) || total < 30 || total > TR.maxCaucus ? "An unmoderated caucus is 30 seconds to 20 minutes." : null;
     case "extend": {
       const k = t.cauc;
-      if (!k || k.kind === "prep" || k.kind === "final") return "There is no caucus to extend.";
+      if (!k || k.kind === "final") return "There is no caucus to extend.";
       if (k.ext >= 2) return "A caucus can only be extended twice.";
       return !Number.isInteger(total) || total < 10 || total > k.total ? "An extension is no longer than the caucus was." : null;
     }

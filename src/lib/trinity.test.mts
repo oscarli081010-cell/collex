@@ -262,9 +262,6 @@ assert.equal((ch as unknown as Record<string, unknown>).nextWeek, undefined, "20
 assert.equal(ch.logPoint(g, "order").tr!.points.length, 1);
 // preparation, and the beginner committee
 {
-  const p = ch.startPrep(g);
-  assert.equal(p.step, "caucus"); assert.equal(p.timer!.total, 1_200_000); assert.equal(p.tr!.cauc!.kind, "prep");
-  assert.equal(ch.endCaucus(p).step, "general");
   const b = begin(ch.markAllRoll(ch.startRoll(ch.createTrinity("GA", "Water", 60, names, ids)), "voting"));
   let d = addDoc(b, "d9", { title: "Water", proposer: id("Australia"), seconder: id("Brazil"), sponsors: [id("China"), id("Denmark")] });
   d = ch.introduceDraft(d, "d9");

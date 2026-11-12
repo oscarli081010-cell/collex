@@ -404,7 +404,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
   const perField = k && modLike ? <Duration id="fl-per" label="Time per Speaker" value={k.per} min={5} max={Math.max(5, k.total - 1)} onChange={(v, ok) => { if (ok && v !== null) act((x) => ch.setPer(x, v)); }} /> : null;
   const poll = c.poll;
   // Extending a caucus once its time has run out: at most twice, by no more than the caucus first was.
-  const extend = k && k.ext < 2 && k.kind !== "prep" && k.kind !== "final" && (k.clock ? kUp : state === "up") && !sp ? (
+  const extend = k && k.ext < 2 && k.kind !== "final" && (k.clock ? kUp : state === "up") && !sp ? (
     <div className={s.anyBox}>
       <Duration id="fl-ext" label={`Extend the caucus (${k.ext} of 2 used)`} value={Math.min(k.total, 120)} min={10} max={k.total} onChange={(v, ok) => setExtSecs(ok ? v : null)} />
       <button type="button" className="button secondary sm" disabled={extSecs === null} onClick={() => act((x) => ch.extendCaucus(x, extSecs ?? 0, ch.now()))}>Extend</button>
@@ -430,7 +430,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
   else if (c.step === "proposer") { title = name(c.roles.proposer); sub = t ? `Introduces the ${ch.resNoun(c).toLowerCase()}` : "Proposes the resolution"; }
   else if (c.step === "seconder") { title = name(c.roles.seconder); sub = t ? `Speaks as ${ch.roleName(c, "seconder").toLowerCase()}` : "Seconds the resolution"; }
   else if (c.step === "opposer") { title = name(c.roles.opposer); sub = t ? `Speaks against the ${ch.resNoun(c).toLowerCase()}` : "Speaks against the resolution"; }
-  else if (c.step === "caucus") { title = k?.kind === "mod" ? "Moderated caucus" : k?.kind === "prep" ? "Preparation" : k?.kind === "final" ? "Final unmoderated caucus" : t ? "Unmoderated caucus" : "Caucus"; sub = k?.kind === "mod" ? k.topic : ""; }
+  else if (c.step === "caucus") { title = k?.kind === "mod" ? "Moderated caucus" : k?.kind === "final" ? "Final unmoderated caucus" : t ? "Unmoderated caucus" : "Caucus"; sub = k?.kind === "mod" ? k.topic : ""; }
   else if (c.step === "floor") { title = t ? `${ch.resNoun(c).replace("resolution", "Resolution")} Debate` : "Amendments"; sub = t ? ch.currentDoc(c)?.title ?? "" : ""; }
   else if (c.step === "closing") { title = t ? "Closing" : "Closing speeches"; sub = t && !c.closers.length ? "Final caucus, then the closing speeches" : ""; }
   else if (c.step === "vote") { title = "Roll Call Vote"; }
@@ -519,11 +519,9 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
       );
       case "general": {
         const readyAll = t ? ch.drafts(c).filter((d) => d.status === "approved" && !d.result) : [];
-        const unseen = readyAll.find((d) => !d.seen);
         return (
           <>
             {!!t && readyAll.map((d, i) => <button key={d.id} type="button" className={i === 0 ? "button" : "button secondary"} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce {d.title}</button>)}
-            {unseen && <button type="button" className="button secondary sm" onClick={() => act(ch.startPrep)}>Preparation - 20 min</button>}
             <div className={s.btnRow}>
               {stNext && <button type="button" className={readyAll.length ? "button secondary sm" : "button"} onClick={() => act(ch.startStatements)}>Opening Statements</button>}
             </div>
