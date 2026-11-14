@@ -79,7 +79,7 @@
 }
 
 .pickRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
-.pickRow .button { height: 44px; width: auto; min-width: 96px; }
+.pickRow :global(.button) { height: auto; align-self: stretch; width: auto; min-width: 96px; }
 .stepper { display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; gap: 8px; align-items: center; text-align: center; }
 .stepper .button { width: 100%; height: 48px; padding: 0; font-size: 20px; }
 .stepper output { font-size: 36px; font-weight: 500; line-height: 1; }
@@ -106,9 +106,10 @@
 .spoken { font-size: 13px; color: var(--muted); line-height: 1.5; }
 .addRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 8px; }
 .addRow .addWho { grid-column: 1 / -1; }
-.addRow .seg3 { width: 100%; }
-.addRow .button { height: 44px; min-width: 96px; }
+.addRow .seg3 { grid-column: 1 / -1; width: 100%; }
+.addRow > button[type="submit"] { grid-column: 1 / -1; width: 100%; height: 46px; }
 .addRow2 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.addRow2 :global(.button) { height: auto; align-self: stretch; min-width: 96px; }
 /* One pill with two or three choices and a highlight that slides to the one picked, like the site's other tab controls. */
 .seg3 { position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 4px; border-radius: 10px; background: var(--surface); }
 .seg3 button { position: relative; z-index: 1; min-height: 38px; padding: 0 14px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer; transition: color var(--duration-fast) var(--ease-smooth-out); }
