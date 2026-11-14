@@ -97,6 +97,8 @@ export type Chamber = {
   /** Who has given a closing speech. */
   closers: string[];
   debate: Debate;
+  /** Evatt: the speakers' list for the resolution, set aside while an amendment is debated. */
+  held?: Debate | null;
   speech: Speech | null;
   amendments: Amendment[];
   amend: { id: string; stage: AmendStage } | null;
@@ -362,7 +364,7 @@ export function callSpeaker(c: Chamber, who: string, side: Side, secs?: number):
     const next = start(c, who, side, "speaker", (secs ?? (per || c.speakSecs)) + bonus, c.debate.list.find((s) => s.id === who)?.stance);
     return bonus || t.bonus?.id === who ? { ...next, tr: { ...next.tr!, bonus: null } } : next;
   }
-  if (c.step !== "amend" || c.amend?.stage !== "debate") return c;
+  if (c.step !== "floor" && (c.step !== "amend" || c.amend?.stage !== "debate")) return c;
   return start(c, who, side, "speaker", secs);
 }
 // Evatt: the proposer, seconder and opposer in any order. Trinity: the opposer, then the co-proposer, then the proposer.
@@ -538,12 +540,12 @@ export function moveAmendment(c: Chamber, id: string, by: -1 | 1): Chamber {
 export function entertain(c: Chamber, id: string): Chamber {
   const a = c.amendments.find((x) => x.id === id);
   if (c.step !== "floor" || c.speech || c.amend || a?.status !== "waiting") return c;
-  return note({ ...setAmendment(c, id, "entertained"), step: "amend", amend: { id, stage: "read" }, debate: emptyDebate(), result: null, ...(c.tr ? { tr: { ...c.tr, saved: c.debate } } : {}) }, `Amendment from ${nameOf(c, a.by)} read to the council`);
+  return note({ ...setAmendment(c, id, "entertained"), step: "amend", amend: { id, stage: "read" }, debate: emptyDebate(), result: null, ...(c.tr ? { tr: { ...c.tr, saved: c.debate } } : { held: c.debate }) }, `Amendment from ${nameOf(c, a.by)} read to the council`);
 }
 // Think better of it before any ruling: the amendment goes back to waiting.
 export function backOutAmendment(c: Chamber, id: string): Chamber {
   if (c.step !== "amend" || c.amend?.id !== id || c.amend.stage !== "read") return c;
-  return note({ ...setAmendment(c, id, "waiting"), step: "floor", amend: null, debate: c.tr?.saved ?? emptyDebate(), ...(c.tr ? { tr: { ...c.tr, saved: null } } : {}) }, "Amendment set aside for now");
+  return note({ ...setAmendment(c, id, "waiting"), step: "floor", amend: null, debate: c.tr ? c.tr.saved ?? emptyDebate() : c.held ?? emptyDebate(), held: null, ...(c.tr ? { tr: { ...c.tr, saved: null } } : {}) }, "Amendment set aside for now");
 }
 // Trinity: an amendment is debated in a 10-minute moderated caucus, the chair setting the time per speaker.
 const toDebate = (c: Chamber, a: Amendment | undefined): Chamber => (!c.tr || !c.amend ? { ...c, amend: c.amend && { ...c.amend, stage: "debate" } } : {
@@ -591,16 +593,16 @@ export function decideAmendment(c: Chamber, ruling: Ruling, id: string): Chamber
   const result: Result = { title: `Amendment from ${nameOf(c, a.by)}`, kind: "amendment", amendment: a.id, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain };
   const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}`;
   // On to the next amendment.
-  const next: Chamber = { ...setAmendment(c, a.id, yes ? "passed" : "failed"), step: "floor", amend: null, poll: null, debate: c.tr?.saved ?? emptyDebate(), result, timer: null, ...(c.tr ? { tr: { ...c.tr, saved: null, cauc: null } } : {}) };
+  const next: Chamber = { ...setAmendment(c, a.id, yes ? "passed" : "failed"), step: "floor", amend: null, poll: null, debate: c.tr ? c.tr.saved ?? emptyDebate() : c.held ?? emptyDebate(), held: null, result, timer: null, ...(c.tr ? { tr: { ...c.tr, saved: null, cauc: null } } : {}) };
   return note(next, `Amendment from ${nameOf(c, a.by)} ${yes ? "passed" : "failed"} (${tail})`);
 }
 
 /* The speakers' list for the amendment in hand */
 
-// Evatt: only while an amendment is debated. Trinity: the general speakers' list, a moderated caucus, the draft resolution's own list, an amendment's debate.
+// Evatt: the opening caucus, the debate on the resolution as a whole, and an amendment's debate. Trinity: the general speakers' list, a moderated caucus, the draft resolution's own list, an amendment's debate.
 export const listOpen = (c: Chamber) => c.tr
   ? c.step === "proposer" || c.step === "seconder" || c.step === "opposer" || c.step === "floor" || (c.step === "amend" && c.amend?.stage === "debate") || (c.step === "caucus" && c.tr.cauc?.kind === "mod")
-  : c.step === "amend" && c.amend?.stage === "debate";
+  : c.step === "floor" || c.step === "caucus" || (c.step === "amend" && c.amend?.stage === "debate");
 /** Whether the list has For and Against columns. The general list and a moderated caucus are one list of states. */
 export const sided = (c: Chamber) => !c.tr || c.step === "floor" || c.step === "amend" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer";
 export const spokeOn = (c: Chamber, who: string, side: Side) => c.debate.run.some((s) => s.id === who && s.side === side);
@@ -762,7 +764,7 @@ export function rooms(c: Chamber): { negotiation: boolean; amendments: boolean; 
     const labels = [list && "Speakers\u2019 List Open", amendmentsOpen(c) && "Amendments Open", motionsOpen(c) && "Motions Open"].filter((x): x is string => !!x);
     return { negotiation: false, amendments: amendmentsOpen(c), speakers: list, labels };
   }
-  const speakers = c.amend?.stage === "debate" && (c.step === "amend" || (c.step === "caucus" && c.after === "amend"));
+  const speakers = listOpen(c);
   return {
     negotiation: c.step === "floor" || (c.step === "amend" && c.amend?.stage === "debate"),
     amendments: c.step === "caucus" || c.step === "floor" || c.step === "amend",

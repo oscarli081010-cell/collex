@@ -273,7 +273,7 @@ export default function ChamberDisplay() {
         : <Screen heading="Amendments" lines={["Send amendments to the chair's desk"]} />;
   }
 
-  const listed = !!c && (c.tr ? ch.listOpen(c) : c.step === "amend");
+  const listed = !!c && ch.listOpen(c);
   const first = c && listed ? ch.nextCandidate(c) : null;
   const rest = c && listed ? c.debate.list.slice(0, 4) : [];
   const ordered = first ? [first, ...rest.filter((x) => x.id !== first.id)] : rest;

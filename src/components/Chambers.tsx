@@ -570,7 +570,9 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
           {waiting[0]
             ? <button type="button" className="button" onClick={() => act((x) => ch.entertain(x, waiting[0].id))}>Entertain the Next Amendment</button>
             : null}
-          <button type="button" className={waiting[0] ? "button secondary" : "button"} onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a Caucus</button>
+          {next && timeField}
+          {next && <button type="button" className={waiting[0] ? "button secondary" : "button"} onClick={() => act((x) => ch.callSpeaker(x, next.id, next.side, secs))}>Call {name(next.id)}</button>}
+          <button type="button" className="button secondary" onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a Caucus</button>
           <button type="button" className="button secondary" onClick={() => act(ch.closeDebate)}>Close the Debate</button>
         </>
       );
@@ -820,7 +822,7 @@ function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
   const spoken = c.debate.run.map((x) => ch.nameOf(c, x.id));
   const plain = !ch.sided(c); // the general list and a moderated caucus are one list of states
   const fixedPer = !!c.tr && (c.step === "caucus" || c.step === "amend"); // the caucus sets the time per speech
-  const heading = c.tr ? (c.step === "general" ? "General Speakers\u2019 List" : c.step === "caucus" ? "Moderated Caucus Speakers\u2019 List" : (c.step === "floor" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer") ? `${ch.resNoun(c).replace("resolution", "Resolution")} Speakers\u2019 List` : "Speakers\u2019 List") : "Speakers\u2019 List";
+  const heading = c.tr ? (c.step === "general" ? "General Speakers\u2019 List" : c.step === "caucus" ? "Moderated Caucus Speakers\u2019 List" : (c.step === "floor" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer") ? `${ch.resNoun(c).replace("resolution", "Resolution")} Speakers\u2019 List` : "Speakers\u2019 List") : c.step === "amend" ? "Speakers\u2019 List" : "Resolution Speakers\u2019 List";
 
   const form = (
     <>
