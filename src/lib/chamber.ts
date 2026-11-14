@@ -802,7 +802,7 @@ export function substep(c: Chamber): string {
     case "seconder": return c.tr ? roleName(c, "seconder") : "Seconder";
     case "opposer": return "Opposer";
     case "caucus": return c.tr?.cauc?.kind === "mod" ? "Moderated Caucus" : c.tr?.cauc?.kind === "final" ? "Final Unmoderated Caucus" : c.tr ? "Unmoderated Caucus" : "Caucus";
-    case "floor": return c.tr ? `${res} Debate` : "Amendments";
+    case "floor": return c.tr ? `${res} Debate` : c.debate.list.length || !c.amendments.some((a) => a.status === "waiting") ? "Speakers\u2019 List" : "Amendments";
     case "amend": return c.amend?.stage === "read" ? "Amendment Read" : c.amend?.stage === "ask" ? "Vote on Whether to Debate" : c.amend?.stage === "debate" ? (c.tr ? "Amendment Moderated Caucus" : "Amendment Debate") : "Vote on the Amendment";
     case "closing": return c.tr ? "Closing" : "Closing Speeches";
     case "vote": return "Roll Call Vote";

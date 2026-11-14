@@ -270,7 +270,12 @@ export default function ChamberDisplay() {
         ? (c.result?.kind === "motion"
           ? <Screen pill={motionOf(c.result.motion) ? ch.motionPill(c, motionOf(c.result.motion)!) : ["Motion"]} heading={c.result.passed ? "Motion Passes" : "Motion Fails"} pass={c.result.passed} lines={[motionOf(c.result.motion) ? ch.motionDetail(c, motionOf(c.result.motion)!) : c.result.title]}>{votes(c.result)}</Screen>
           : <Screen heading={`${ch.resNoun(c).replace("resolution", "Resolution")} Debate`} lines={[doc?.title]} />)
-        : <Screen heading="Amendments" lines={["Send amendments to the chair's desk"]} />;
+        : (() => { // Evatt: the speakers' list on the resolution comes first; amendments only when no one is listed
+          const up = ch.nextCandidate(c);
+          if (up) return <Screen pill={["Speakers\u2019 List", SIDE[up.side]]} side={up.side} heading={name(up.id)} lines={["Next to speak"]} />;
+          if (c.amendments.some((a) => a.status === "waiting")) return <Screen heading="Amendments" lines={["Send amendments to the chair's desk"]} />;
+          return <Screen heading="Speakers\u2019 List" lines={["Raise your placard to be added", "Send amendments to the chair's desk"]} />;
+        })();
   }
 
   const listed = !!c && ch.listOpen(c);

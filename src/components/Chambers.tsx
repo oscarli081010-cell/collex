@@ -431,7 +431,12 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
   else if (c.step === "seconder") { title = name(c.roles.seconder); sub = t ? `Speaks as ${ch.roleName(c, "seconder").toLowerCase()}` : "Seconds the resolution"; }
   else if (c.step === "opposer") { title = name(c.roles.opposer); sub = t ? `Speaks against the ${ch.resNoun(c).toLowerCase()}` : "Speaks against the resolution"; }
   else if (c.step === "caucus") { title = k?.kind === "mod" ? "Moderated caucus" : k?.kind === "final" ? "Final unmoderated caucus" : t ? "Unmoderated caucus" : "Caucus"; sub = k?.kind === "mod" ? k.topic : ""; }
-  else if (c.step === "floor") { title = t ? `${ch.resNoun(c).replace("resolution", "Resolution")} Debate` : "Amendments"; sub = t ? ch.currentDoc(c)?.title ?? "" : ""; }
+  else if (c.step === "floor" && t) { title = `${ch.resNoun(c).replace("resolution", "Resolution")} Debate`; sub = ch.currentDoc(c)?.title ?? ""; }
+  else if (c.step === "floor") { // Evatt: the speakers' list on the resolution comes first; amendments only when no one is listed
+    if (next) { title = name(next.id); sub = "Next on the speakers\u2019 list"; }
+    else if (waiting.length) { title = "Amendments"; sub = `${waiting.length} waiting`; }
+    else { title = "Speakers\u2019 List"; sub = "Add states to the speakers\u2019 list, For or Against"; }
+  }
   else if (c.step === "closing") { title = t ? "Closing" : "Closing speeches"; sub = t && !c.closers.length ? "Final caucus, then the closing speeches" : ""; }
   else if (c.step === "vote") { title = "Roll Call Vote"; }
   else if (c.step === "ended") { title = "Committee Ended"; sub = "The analytics are still here."; }
@@ -567,11 +572,9 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
         </>
       ) : (
         <>
-          {waiting[0]
-            ? <button type="button" className="button" onClick={() => act((x) => ch.entertain(x, waiting[0].id))}>Entertain the Next Amendment</button>
-            : null}
           {next && timeField}
-          {next && <button type="button" className={waiting[0] ? "button secondary" : "button"} onClick={() => act((x) => ch.callSpeaker(x, next.id, next.side, secs))}>Call {name(next.id)}</button>}
+          {next && <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, next.id, next.side, secs))}>Call {name(next.id)}</button>}
+          {waiting[0] && <button type="button" className={next ? "button secondary" : "button"} onClick={() => act((x) => ch.entertain(x, waiting[0].id))}>Entertain the Next Amendment</button>}
           <button type="button" className="button secondary" onClick={() => act((x) => ch.callCaucus(x, 120))}>Call a Caucus</button>
           <button type="button" className="button secondary" onClick={() => act(ch.closeDebate)}>Close the Debate</button>
         </>
