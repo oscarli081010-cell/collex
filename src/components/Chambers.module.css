@@ -547,3 +547,13 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .timesGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px 24px; }
 .timesAll { display: flex; flex-direction: column; gap: 8px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
 .timesAll > :global(.field) { width: min(100%, 280px); }
+
+/* Share tab: join code */
+.h3 { font-size: 15px; font-weight: 500; margin-top: 4px; }
+.codeBox { display: flex; flex-direction: column; gap: 10px; padding: 16px 0; border-block: 1px solid var(--line); }
+.code { font-size: 40px; letter-spacing: 0.18em; font-weight: 500; line-height: 1.1; }
+.codeActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.codeActions :global(.button) { display: inline-flex; align-items: center; gap: 8px; }
+.joinRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.joinRow :global(.button) { height: auto; align-self: stretch; min-width: 96px; }
+.codeInput { font-size: 22px; letter-spacing: 0.18em; text-transform: uppercase; }

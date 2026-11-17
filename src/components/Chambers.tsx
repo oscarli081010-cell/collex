@@ -22,6 +22,7 @@ const svg = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 
 const MONITOR = svg(<><rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.6" /><path d="M5.5 13.5h5M8 11v2.5" /></>);
 const SLIDERS = svg(<><path d="M2.5 4.5h6.5M12 4.5h1.5M2.5 11.5h1.5M7 11.5h6.5" /><circle cx="10.5" cy="4.5" r="1.6" /><circle cx="5.5" cy="11.5" r="1.6" /></>);
 const COPY = svg(<><rect x="5.5" y="5.5" width="8" height="8" rx="1.6" /><path d="M10.5 3.5V3a1 1 0 00-1-1H3.5a1 1 0 00-1 1v6a1 1 0 001 1H4" /></>);
+const BACK = svg(<path d="M6.5 3L2.5 7l4 4M2.5 7H10a3.5 3.5 0 010 7H7" />);
 const SWAP = svg(<path d="M3 5.5h9.5M10 3l2.5 2.5L10 8M13 10.5H3.5M6 8l-2.5 2.5L6 13" />);
 
 // The time left, redrawn a few times a second while a timer is running and not at all otherwise.
@@ -85,7 +86,7 @@ export default function Chambers() {
   const router = useRouter();
   const { c, status, owner, act, setLocal } = useChamber(cloudId, { signedIn: !!session, authReady });
   const [live, setLive] = useState("");
-  const [view, setView] = useState<"manage" | "analytics" | "settings">("manage");
+  const [view, setView] = useState<"manage" | "analytics" | "settings" | "share">("manage");
   const { say, node } = useToast();
 
   const clockRun = ch.running(c?.tr?.cauc?.clock ?? null);
@@ -189,7 +190,7 @@ export default function Chambers() {
         </dl>
         </div>
         <div className={s.topActions}>
-          <button type="button" className={`button secondary ${s.topBtn}`} disabled={!ch.canGoBack(c)} onClick={() => act((x) => ch.goBack(x, ch.now()), false)}>Back</button>
+          <button type="button" className={`button secondary ${s.topBtn}`} disabled={!ch.canGoBack(c)} onClick={() => act((x) => ch.goBack(x, ch.now()), false)}>{BACK}Back</button>
           <a className={`button secondary ${s.topBtn}`} href={display} target="_blank" rel="noopener">{MONITOR}Open display</a>
           <ConfirmIconButton label={cloudId && !owner ? "Leave this committee" : cloudId ? "Delete this committee" : "Close this committee"}
             confirm="Click again to confirm" icon={cloudId && !owner ? ICONS.leave : ICONS.trash} onConfirm={() => void remove()} />
@@ -200,7 +201,7 @@ export default function Chambers() {
       <div className="sr-only" role="status" aria-live="polite">{live}</div>
 
       <PanelTabs idPrefix="chv" label="Committee" tab={view} setTab={setView}
-        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage }, { id: "analytics", label: "Analytics", icon: ICONS.chart }, { id: "settings", label: status === "offline" ? "Settings (offline)" : "Settings", icon: cloudId ? <i className={s.liveDot} data-off={status === "offline"} aria-hidden="true" /> : SLIDERS }]} />
+        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage }, { id: "analytics", label: "Analytics", icon: ICONS.chart }, { id: "share", label: "Share", icon: ICONS.share }, { id: "settings", label: status === "offline" ? "Settings (offline)" : "Settings", icon: cloudId ? <i className={s.liveDot} data-off={status === "offline"} aria-hidden="true" /> : SLIDERS }]} />
 
       {view === "manage" ? (
         <div id="chv-panel-manage" role="tabpanel" aria-labelledby="chv-tab-manage" className={s.manage}>
@@ -216,6 +217,10 @@ export default function Chambers() {
           {trWork && c.step !== "statements" && <Documents c={c} act={act} />}
           {trWork && <ChairTools c={c} act={act} now={now} />}
         </div>
+      ) : view === "share" ? (
+        <div id="chv-panel-share" role="tabpanel" aria-labelledby="chv-tab-share" className={s.manage}>
+          <Share c={c} cloudId={cloudId} owner={owner} signedIn={!!session} meId={session?.user.id} say={say} setLocal={setLocal} />
+        </div>
       ) : view === "analytics" ? (
         <Analytics c={c} say={say} />
       ) : (
@@ -223,7 +228,6 @@ export default function Chambers() {
           {t && <Resolutions c={c} act={act} />}
           <Times c={c} act={act} />
           <Background c={c} act={act} say={say} userId={session?.user.id} />
-          <Share c={c} cloudId={cloudId} owner={owner} signedIn={!!session} meId={session?.user.id} say={say} setLocal={setLocal} />
         </div>
       )}
       {node}
@@ -1503,9 +1507,8 @@ function Times({ c, act }: { c: Chamber; act: Act }) {
   const t = !!c.tr;
   const rows: { k: ch.TimeKey; label: string; min: number; max: number }[] = [
     ...(t ? [{ k: "statement" as const, label: "Opening Statement", min: 5, max: 3600 }] : []),
-    { k: "proposer", label: `Proposer, ${ch.roleName(c, "seconder")} and Opposer`, min: 5, max: 3600 },
+    { k: "proposer", label: `Proposer, ${ch.roleName(c, "seconder")}, Opposer and Closing`, min: 5, max: 3600 },
     { k: "speaker", label: t ? "Speaker from the List" : "Speaker from the List", min: 5, max: 3600 },
-    { k: "closer", label: "Closing Speech", min: 5, max: 3600 },
     ...(t ? [{ k: "amendPer" as const, label: "Amendment Debate, per Speaker", min: 5, max: ch.TR.maxCaucus }, { k: "amendTotal" as const, label: "Amendment Debate, Total", min: 10, max: ch.TR.maxCaucus }] : [{ k: "amender" as const, label: "Amendment Proposer\u2019s Speech", min: 5, max: 3600 }]),
     { k: "poi", label: "Point of Information, Question and Reply", min: 5, max: 300 },
   ];
@@ -1520,7 +1523,7 @@ function Times({ c, act }: { c: Chamber; act: Act }) {
       <div className={s.timesGrid}>
         {rows.map((r) => (
           <Duration key={r.k} id={`tm-${r.k}`} label={r.label} value={ch.timeOf(c, r.k)} min={r.min} max={r.max}
-            onChange={(v, ok) => { if (ok && v !== null) act((x) => (r.k === "proposer" ? ch.setTime(ch.setTime(ch.setTime(x, "proposer", v), "seconder", v), "opposer", v) : ch.setTime(x, r.k, v))); }} />
+            onChange={(v, ok) => { if (ok && v !== null) act((x) => (r.k === "proposer" ? ch.setTime(ch.setTime(ch.setTime(ch.setTime(x, "proposer", v), "seconder", v), "opposer", v), "closer", v) : ch.setTime(x, r.k, v))); }} />
         ))}
       </div>
       <button type="button" className="button secondary" disabled={!set} onClick={() => act(ch.resetTimes)}>Use the Standard Times</button>
@@ -1615,9 +1618,25 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
     setBusy(false);
     if (error) { say(error.message); return; }
     setEmail("");
-    say(`${data} added`);
+    say(`${data} added and emailed`);
+    supabase.functions.invoke("chamber-invite").catch(() => {});
     void load();
   };
+  const [code, setCode] = useState<string | null>(null);
+  useEffect(() => {
+    if (!cloudId || !supabase) return;
+    supabase.rpc("chamber_code", { cid: cloudId, action: "get" }).then(({ data }) => setCode((data as string | null) ?? null));
+  }, [cloudId]);
+  const codeDo = async (action: "new" | "off") => {
+    if (!supabase || !cloudId) return;
+    setBusy(true);
+    const { data, error } = await supabase.rpc("chamber_code", { cid: cloudId, action });
+    setBusy(false);
+    if (error) { say(error.message); return; }
+    setCode((data as string | null) ?? null);
+    say(action === "off" ? "Join code turned off" : "New join code made");
+  };
+  const copy = (text: string, done: string) => navigator.clipboard?.writeText(text).then(() => say(done), () => say("Couldn't copy"));
   const drop = async (target: string) => {
     if (!supabase || !cloudId) return;
     const { error } = await supabase.rpc("remove_chamber_member", { cid: cloudId, target });
@@ -1629,7 +1648,7 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
       <h2 id="st-share" className={s.h2}>Share</h2>
       {!cloudId ? (
         <>
-          <p className="muted">Share this committee and add other chairs by the email on their Collex account.</p>
+          <p className="muted">Share this committee to give other chairs a join code, or add them by the email on their Collex account.</p>
           {signedIn
             ? <button type="button" className="button" onClick={share} disabled={busy}>Share This Committee</button>
             : <Link href="/login" className="button">Log in to share</Link>}
@@ -1637,6 +1656,7 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
       ) : (
         <>
           <p className="muted">Everyone here can run the console and open the display. They need to be logged in on their own device.</p>
+          <h3 className={s.h3}>People</h3>
           <ul className={s.team}>
             {(team ?? []).map((m) => (
               <li key={m.user_id}>
@@ -1646,6 +1666,27 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
               </li>
             ))}
           </ul>
+          <div className={s.codeBox}>
+            <h3 className={s.h3}>Join Code</h3>
+            {code ? (
+              <>
+                <p className={`num ${s.code}`} aria-label={`Join code ${code.split("").join(" ")}`}>{code}</p>
+                <p className="muted">Other chairs go to Chambers, choose Join, and type this code. They need to be logged in.</p>
+                <div className={s.codeActions}>
+                  <button type="button" className="button secondary" onClick={() => copy(code, "Code copied")}>{COPY}Copy Code</button>
+                  <button type="button" className="button secondary" onClick={() => copy(`${location.origin}/chambers?join=${code}`, "Link copied")}>{COPY}Copy Link</button>
+                  {owner && <button type="button" className="button secondary" disabled={busy} onClick={() => codeDo("new")}>New Code</button>}
+                  {owner && <button type="button" className="button secondary" disabled={busy} onClick={() => codeDo("off")}>Turn Off</button>}
+                </div>
+              </>
+            ) : owner ? (
+              <>
+                <p className="muted">Make a code other chairs can type in to join, instead of adding them one by one.</p>
+                <button type="button" className="button" disabled={busy} onClick={() => codeDo("new")}>Make a Join Code</button>
+              </>
+            ) : <p className="muted">There is no join code. The person who shared it can make one.</p>}
+          </div>
+          <h3 className={s.h3}>Add by Email</h3>
           {owner ? (
             <form className={s.addRow2} onSubmit={add}>
               <label htmlFor="ch-inv" className="sr-only">Email on Their Collex Account</label>
@@ -1655,6 +1696,40 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
           ) : <p className="muted">Only the person who shared it can add people.</p>}
         </>
       )}
+    </section>
+  );
+}
+
+/* Join a shared committee by the code its chair gives out. */
+function Join({ signedIn, initial }: { signedIn: boolean; initial: string }) {
+  const router = useRouter();
+  const [code, setCode] = useState(initial.toUpperCase());
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const clean = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const join = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase || clean.length !== 6) return;
+    setBusy(true); setErr("");
+    const { data, error } = await supabase.rpc("join_chamber", { code: clean });
+    setBusy(false);
+    if (error) { setErr(error.message); return; }
+    if (!data) { setErr("No committee has that code. Check it with the chair."); return; }
+    router.push(`/chambers?c=${data}`);
+  };
+  return (
+    <section id="cs-panel-join" role="tabpanel" aria-labelledby="cs-tab-join" className={`panel ${s.setupCard}`}>
+      <h2 className={s.h2}>Join a Committee</h2>
+      <p className="muted">Type the six-character code from the chair running the committee.</p>
+      {signedIn ? (
+        <form className={s.joinRow} onSubmit={join}>
+          <label htmlFor="cs-code" className="sr-only">Join code</label>
+          <input id="cs-code" className={`control num ${s.codeInput}`} value={code} onChange={(e) => { setCode(e.target.value.toUpperCase()); setErr(""); }}
+            maxLength={9} autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="ABC234" aria-invalid={!!err} />
+          <button type="submit" className="button" disabled={busy || clean.length !== 6}>{busy ? "Joining…" : "Join"}</button>
+        </form>
+      ) : <Link href="/login" className="button">Log in to join</Link>}
+      {err && <p className={s.result} data-pass="false" role="alert">{err}</p>}
     </section>
   );
 }
@@ -1671,6 +1746,8 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
   const [text, setText] = useState("");
   const [res, setRes] = useState(["", ""]); // the committee's resolutions: the seen one, then the unseen one
   const [mine, setMine] = useState<Mine[]>([]);
+  const joinQ = useSearchParams().get("join");
+  const [tab, setTab] = useState<"start" | "join">(joinQ ? "join" : "start");
   const names = ch.parseNames(text);
   const ok = name.trim().length >= 2 && resolution.trim().length >= 2 && (proc !== "trinity" || res.every((r) => r.trim().length >= 2)) && speakOk && speak !== null && names.length > 0;
 
@@ -1685,6 +1762,9 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
     <main id="top" className={`container ${s.setup}`}>
       <PageBand title="Chambers" />
       <div className={s.setupStack}>
+        <PanelTabs idPrefix="cs" label="Chambers" tab={tab} setTab={setTab}
+          tabs={[{ id: "start", label: "Start a Committee", icon: ICONS.manage }, { id: "join", label: "Join a Committee", icon: ICONS.share }]} />
+        {tab === "join" ? <Join signedIn={signedIn} initial={joinQ ?? ""} /> : <>
         {mine.length > 0 && (
           <section className={`panel ${s.setupCard}`} aria-labelledby="cs-mine">
             <h2 id="cs-mine" className={s.h2}>Shared with You</h2>
@@ -1752,6 +1832,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
           </div>
           <button type="submit" className="button lg block" disabled={!ok}>Open Committee</button>
         </form>
+        </>}
       </div>
     </main>
   );
