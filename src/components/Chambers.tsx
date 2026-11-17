@@ -17,6 +17,9 @@ import PanelTabs from "./PanelTabs";
 import { useToast } from "./useToast";
 import s from "./Chambers.module.css";
 import Select from "./Select";
+import CodeInput, { CodeBoxes } from "./CodeInput";
+import { Gavel } from "./Drawings";
+import board from "./board.module.css";
 
 const svg = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
 const MONITOR = svg(<><rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.6" /><path d="M5.5 13.5h5M8 11v2.5" /></>);
@@ -1669,7 +1672,7 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
             <h3 className={s.h3}>Join Code</h3>
             {code ? (
               <>
-                <p className={`num ${s.code}`} aria-label={`Join code ${code.split("").join(" ")}`}>{code}</p>
+                <CodeBoxes code={code} label="Join code" />
                 <p className="muted">Other chairs go to Chambers, choose Join, and type this code. They need to be logged in.</p>
                 <div className={s.codeActions}>
                   <button type="button" className="button secondary" onClick={() => copy(code, "Code copied")}>{COPY}Copy Code</button>
@@ -1685,10 +1688,9 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
               </>
             ) : <p className="muted">There is no join code. The person who shared it can make one.</p>}
           </div>
-          <h3 className={s.h3}>Add by Email</h3>
+          <h3 className={s.h3}><label htmlFor="ch-inv">Add by Email</label></h3>
           {owner ? (
             <form className={s.addRow2} onSubmit={add}>
-              <label htmlFor="ch-inv" className="sr-only">Email on Their Collex Account</label>
               <input id="ch-inv" type="email" className="control" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email on their Collex account" maxLength={254} />
               <button type="submit" className="button secondary" disabled={busy || !email.trim()}>Add</button>
             </form>
@@ -1699,37 +1701,60 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
   );
 }
 
-/* Join a shared committee by the code its chair gives out. */
-function Join({ signedIn, initial }: { signedIn: boolean; initial: string }) {
+/* Join a shared committee by the code its chair gives out, or open one already shared with you. */
+function Join({ signedIn, initial, mine }: { signedIn: boolean; initial: string; mine: Mine[] | null }) {
   const router = useRouter();
-  const [code, setCode] = useState(initial.toUpperCase());
+  const [code, setCode] = useState(initial.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const clean = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  const join = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!supabase || clean.length !== 6) return;
+  const [wrong, setWrong] = useState(0);
+  const join = async (typed = code) => {
+    if (!supabase || typed.length !== 6 || busy) return;
     setBusy(true); setErr("");
-    const { data, error } = await supabase.rpc("join_chamber", { code: clean });
+    const { data, error } = await supabase.rpc("join_chamber", { code: typed });
     setBusy(false);
-    if (error) { setErr(error.message); return; }
-    if (!data) { setErr("No committee has that code. Check it with the chair."); return; }
+    if (error) { setErr(error.message); setWrong((n) => n + 1); return; }
+    if (!data) { setErr("No committee has that code. Check it with the chair."); setWrong((n) => n + 1); return; }
     router.push(`/chambers?c=${data}`);
   };
   return (
-    <section id="cs-panel-join" role="tabpanel" aria-labelledby="cs-tab-join" className={`panel ${s.setupCard}`}>
-      <h2 className={s.h2}>Join a Committee</h2>
-      <p className="muted">Type the six-character code from the chair running the committee.</p>
-      {signedIn ? (
-        <form className={s.joinRow} onSubmit={join}>
-          <label htmlFor="cs-code" className="sr-only">Join code</label>
-          <input id="cs-code" className={`control num ${s.codeInput}`} value={code} onChange={(e) => { setCode(e.target.value.toUpperCase()); setErr(""); }}
-            maxLength={9} autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="ABC234" aria-invalid={!!err} />
-          <button type="submit" className="button" disabled={busy || clean.length !== 6}>{busy ? "Joining…" : "Join"}</button>
-        </form>
-      ) : <Link href={`/login?next=${encodeURIComponent(clean ? `/chambers?join=${clean}` : "/chambers?join=")}`} className="button">Log in to join</Link>}
-      {err && <p className={s.result} data-pass="false" role="alert">{err}</p>}
-    </section>
+    <div id="cs-panel-join" role="tabpanel" aria-labelledby="cs-tab-join" className={s.setupStack}>
+      <section className={`panel ${s.setupCard}`} aria-labelledby="cs-join-h">
+        <h2 id="cs-join-h" className={s.h2}>Join a Committee</h2>
+        <p className="muted">Type the six-character code from the chair running the committee.</p>
+        {signedIn ? (
+          <form className={s.joinForm} onSubmit={(e) => { e.preventDefault(); void join(); }}>
+            <CodeInput letters initial={initial} label="Join code" errors={wrong} disabled={busy}
+              onChange={(v) => { setCode(v); if (v) setErr(""); }} onComplete={(v) => void join(v)} />
+            <button type="submit" className="button" disabled={busy || code.length !== 6}>{busy ? "Joining…" : "Join"}</button>
+          </form>
+        ) : <Link href={`/login?next=${encodeURIComponent(code ? `/chambers?join=${code}` : "/chambers?join=")}`} className="button">Log in to join</Link>}
+        {err && <p className={s.result} data-pass="false" role="alert">{err}</p>}
+      </section>
+      {signedIn && mine && (
+        <section className={`panel ${s.setupCard}`} aria-labelledby="cs-mine">
+          <h2 id="cs-mine" className={s.h2}>Shared with You</h2>
+          {mine.length ? (
+            <ul className={s.mine}>
+              {mine.map((m) => (
+                <li key={m.id}>
+                  <button type="button" className={s.mineBtn} onClick={() => router.push(`/chambers?c=${m.id}`)}>
+                    <span className={s.tname}>{m.name}</span>
+                    <small>{m.is_owner ? "You run this" : `Run by ${m.owner_name}`}</small>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className={`${board.empty} ${s.emptyCard}`}>
+              <Gavel />
+              <p className={board.emptyTitle}>Nothing shared yet</p>
+              <p className="muted">When a chair adds you or you join with a code, the committee appears here.</p>
+            </div>
+          )}
+        </section>
+      )}
+    </div>
   );
 }
 
@@ -1744,7 +1769,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
   const [proc, setProc] = useState<"evatt" | "trinity">("evatt");
   const [text, setText] = useState("");
   const [res, setRes] = useState(["", ""]); // the committee's resolutions: the seen one, then the unseen one
-  const [mine, setMine] = useState<Mine[]>([]);
+  const [mine, setMine] = useState<Mine[] | null>(null);
   const joinQ = useSearchParams().get("join");
   const [tab, setTab] = useState<"start" | "join">(joinQ ? "join" : "start");
   const names = ch.parseNames(text);
@@ -1763,22 +1788,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
       <div className={s.setupStack}>
         <PanelTabs idPrefix="cs" label="Chambers" tab={tab} setTab={setTab}
           tabs={[{ id: "start", label: "Start a Committee", icon: ICONS.manage }, { id: "join", label: "Join a Committee", icon: ICONS.share }]} />
-        {tab === "join" ? <Join signedIn={signedIn} initial={joinQ ?? ""} /> : <>
-        {mine.length > 0 && (
-          <section className={`panel ${s.setupCard}`} aria-labelledby="cs-mine">
-            <h2 id="cs-mine" className={s.h2}>Shared with You</h2>
-            <ul className={s.mine}>
-              {mine.map((m) => (
-                <li key={m.id}>
-                  <button type="button" className={s.mineBtn} onClick={() => router.push(`/chambers?c=${m.id}`)}>
-                    <span className={s.tname}>{m.name}</span>
-                    <small>{m.is_owner ? "You run this" : `Run by ${m.owner_name}`}</small>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        {tab === "join" ? <Join signedIn={signedIn} initial={joinQ ?? ""} mine={mine} /> : <>
         <form className={`panel ${s.setupCard}`} onSubmit={(e) => { e.preventDefault(); if (!ok || speak === null) return; const ids = names.map(uid); onCreate(proc === "trinity" ? ch.createTrinity(name, resolution, speak, names, ids, res.map((title, i) => ({ title, week: 1 as const, seen: i === 0 }))) : ch.create(name, resolution, speak, names, ids)); if (signedIn && supabase) void supabase.rpc("note_chamber_started", { label: name, procedure: proc === "trinity" ? "Trinity Grammar MUN" : "Evatt" }); }}>
           <div className={s.two}>
             <div className="field">

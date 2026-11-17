@@ -6,10 +6,15 @@ import s from "./CodeInput.module.css";
 // One rounded box per digit. Typing moves forward, Backspace moves back, pasting fills every box,
 // and the code is handed to onComplete once the last box is filled.
 // `errors` counts wrong attempts; each new one shakes and clears the boxes.
-export default function CodeInput({ length = 6, onComplete, errors = 0, disabled }: {
-  length?: number; onComplete: (code: string) => void; errors?: number; disabled?: boolean;
+// `letters` also takes A to Z (shown in capitals), for join codes; `initial` fills the boxes to start with.
+const clean = (v: string, letters: boolean) => (letters ? v.toUpperCase().replace(/[^A-Z0-9]/g, "") : v.replace(/\D/g, ""));
+
+export default function CodeInput({ length = 6, onComplete, onChange, errors = 0, disabled, letters = false, initial = "", label }: {
+  length?: number; onComplete: (code: string) => void; onChange?: (code: string) => void; errors?: number; disabled?: boolean;
+  letters?: boolean; initial?: string; label?: string;
 }) {
-  const [digits, setDigits] = useState<string[]>(() => Array(length).fill(""));
+  const [digits, setDigits] = useState<string[]>(() => Array.from({ length }, (_, i) => clean(initial, letters)[i] ?? ""));
+  useEffect(() => { onChange?.(digits.join("")); }, [digits]); // eslint-disable-line react-hooks/exhaustive-deps
   const [shake, setShake] = useState(0);
   const boxes = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -24,7 +29,7 @@ export default function CodeInput({ length = 6, onComplete, errors = 0, disabled
   const fill = (from: number, chars: string) => {
     const next = [...digits];
     let i = from;
-    for (const c of chars.replace(/\D/g, "")) { if (i >= length) break; next[i++] = c; }
+    for (const c of clean(chars, letters)) { if (i >= length) break; next[i++] = c; }
     setDigits(next);
     boxes.current[Math.min(i, length - 1)]?.focus();
     if (next.every(Boolean)) onComplete(next.join(""));
@@ -42,7 +47,7 @@ export default function CodeInput({ length = 6, onComplete, errors = 0, disabled
   };
 
   return (
-    <div key={shake} className={`${s.row} ${shake ? s.shake : ""}`} role="group" aria-label={`${length}-digit code`}>
+    <div key={shake} className={`${s.row} ${shake ? s.shake : ""}`} role="group" aria-label={label ?? `${length}-${letters ? "character" : "digit"} code`}>
       {digits.map((d, i) => (
         <input
           key={i}
@@ -52,13 +57,15 @@ export default function CodeInput({ length = 6, onComplete, errors = 0, disabled
           data-error={errors > 0 && digits.every((x) => !x) ? true : undefined}
           value={d}
           disabled={disabled}
-          inputMode="numeric"
-          autoComplete={i === 0 ? "one-time-code" : "off"}
+          inputMode={letters ? "text" : "numeric"}
+          autoCapitalize={letters ? "characters" : undefined}
+          spellCheck={false}
+          autoComplete={i === 0 && !letters ? "one-time-code" : "off"}
           maxLength={length}
-          aria-label={`Digit ${i + 1}`}
+          aria-label={`${letters ? "Character" : "Digit"} ${i + 1}`}
           onFocus={(e) => e.target.select()}
           onChange={(e) => {
-            const v = e.target.value.replace(/\D/g, "");
+            const v = clean(e.target.value, letters);
             if (!v) { const next = [...digits]; next[i] = ""; setDigits(next); return; }
             fill(i, d && v.length === 2 ? v.slice(-1) : v);
           }}
@@ -66,6 +73,15 @@ export default function CodeInput({ length = 6, onComplete, errors = 0, disabled
           onKeyDown={onKey(i)}
         />
       ))}
+    </div>
+  );
+}
+
+/** A code to read out or copy, in the same boxes as the input. */
+export function CodeBoxes({ code, label }: { code: string; label: string }) {
+  return (
+    <div className={s.row} role="img" aria-label={`${label}: ${code.split("").join(" ")}`}>
+      {code.split("").map((ch, i) => <span key={i} className={`${s.box} ${s.still}`} data-filled="true" aria-hidden="true">{ch}</span>)}
     </div>
   );
 }

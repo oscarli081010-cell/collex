@@ -549,11 +549,11 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .timesAll > :global(.field) { width: min(100%, 280px); }
 
 /* Share tab: join code */
-.h3 { font-size: 15px; font-weight: 500; margin-top: 4px; }
-.codeBox { display: flex; flex-direction: column; gap: 10px; padding: 16px 0; border-block: 1px solid var(--line); }
-.code { font-size: 40px; letter-spacing: 0.18em; font-weight: 500; line-height: 1.1; }
+/* A label over a part of a panel, the same size and weight as a field's label. */
+.h3 { font-size: 13px; font-weight: 500; }
+.codeBox { display: flex; flex-direction: column; gap: 12px; padding: 16px 0; border-block: 1px solid var(--line); }
 .codeActions { display: flex; flex-wrap: wrap; gap: 8px; }
 .codeActions :global(.button) { display: inline-flex; align-items: center; gap: 8px; }
-.joinRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
-.joinRow :global(.button) { height: auto; align-self: stretch; min-width: 96px; }
-.codeInput { font-size: 22px; letter-spacing: 0.18em; text-transform: uppercase; }
+.joinForm { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.joinForm > :global(.button) { min-width: 120px; }
+.setupCard > .emptyCard { margin-top: 0; padding-block: 36px; }
