@@ -38,7 +38,7 @@ export function useNow(active: boolean) {
 
 const uid = () => crypto.randomUUID();
 const SIDE: Record<Side, string> = { for: "In Favour", against: "Against" };
-type Act = (fn: (x: Chamber) => Chamber) => void;
+type Act = (fn: (x: Chamber) => Chamber, track?: boolean) => void;
 
 // A length of time as minutes and seconds. `value` is the total in seconds; `onChange` hears the total (null when both
 // boxes are empty) and whether it is allowed. The boxes only follow `value` when it changes from outside.
@@ -96,7 +96,7 @@ export default function Chambers() {
   // A timer that reaches zero stops there, so the saved copy (and the display) agree it is over.
   useEffect(() => {
     if (state !== "up" || !c?.timer || c.timer.endsAt === null) return;
-    act((x) => ch.pauseTimer(x, ch.now()));
+    act((x) => ch.pauseTimer(x, ch.now()), false);
     setLive("Time's up");
   }, [state, c?.timer, act]);
   // The same for the clock of a whole moderated caucus.
@@ -104,7 +104,7 @@ export default function Chambers() {
   const caucUp = !!cauc && cauc.endsAt !== null && ch.remaining(cauc, now) === 0;
   useEffect(() => {
     if (!caucUp) return;
-    act((x) => ch.pauseCauc(x, ch.now()));
+    act((x) => ch.pauseCauc(x, ch.now()), false);
     setLive("The caucus is over");
   }, [caucUp, act]);
 
@@ -116,7 +116,7 @@ export default function Chambers() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp?.who, sp?.phase, sp?.asker, c?.step, c?.amend?.stage]);
 
-  const toggle = () => act((x) => (ch.running(x.timer) ? ch.pauseTimer(x, ch.now()) : ch.startTimer(x, ch.now())));
+  const toggle = () => act((x) => (ch.running(x.timer) ? ch.pauseTimer(x, ch.now()) : ch.startTimer(x, ch.now())), false);
   // Space starts or pauses the timer. N calls the next speaker, and only when no one is speaking, so a stray key can't end a speech.
   const callNext = () => {
     if (c?.tr && !c.speech && ch.listOpen(c)) {
@@ -189,6 +189,7 @@ export default function Chambers() {
         </dl>
         </div>
         <div className={s.topActions}>
+          <button type="button" className={`button secondary ${s.topBtn}`} disabled={!ch.canGoBack(c)} onClick={() => act((x) => ch.goBack(x, ch.now()), false)}>Back</button>
           <a className={`button secondary ${s.topBtn}`} href={display} target="_blank" rel="noopener">{MONITOR}Open display</a>
           <ConfirmIconButton label={cloudId && !owner ? "Leave this committee" : cloudId ? "Delete this committee" : "Close this committee"}
             confirm="Click again to confirm" icon={cloudId && !owner ? ICONS.leave : ICONS.trash} onConfirm={() => void remove()} />
@@ -220,6 +221,7 @@ export default function Chambers() {
       ) : (
         <div id="chv-panel-settings" role="tabpanel" aria-labelledby="chv-tab-settings" className={s.manage}>
           {t && <Resolutions c={c} act={act} />}
+          <Times c={c} act={act} />
           <Background c={c} act={act} say={say} userId={session?.user.id} />
           <Share c={c} cloudId={cloudId} owner={owner} signedIn={!!session} meId={session?.user.id} say={say} setLocal={setLocal} />
         </div>
@@ -373,13 +375,14 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
   const name = (id: string | null) => ch.nameOf(c, id);
   const [asker, setAsker] = useState("");
   const [callSecs, setCallSecs] = useState<number | null>(null);
+  const [callBad, setCallBad] = useState(false);
   const [nextRes, setNextRes] = useState("");
   const [anyWho, setAnyWho] = useState("");
   const [anySide, setAnySide] = useState<Side>("for");
   const [anyOpen, setAnyOpen] = useState(false);
   // The time the chair allots is for one speech: the next one starts from the default again.
-  useEffect(() => { setCallSecs(null); }, [c.speakSecs, c.debate.run.length]);
-  const secs = callSecs ?? c.speakSecs;
+  useEffect(() => { setCallSecs(null); setCallBad(false); }, [c.speakSecs, c.debate.run.length, !!c.speech]);
+  const secs = callBad ? c.speakSecs : callSecs ?? c.speakSecs;
   const next = ch.nextCandidate(c);
   const aid = c.amend?.id ?? "";
   const amendment = c.amend ? c.amendments.find((a) => a.id === c.amend!.id) : undefined;
@@ -389,7 +392,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
   const askers = sp ? c.delegates.filter((d) => d.id !== sp.who) : [];
   const askerId = asker && askers.some((d) => d.id === asker) ? asker : "";
   const spokeFromList = c.debate.run.length > 1;
-  const timeField = <Duration id="fl-secs" label="Time for This Speech" value={c.speakSecs} min={5} max={3600} onChange={(v, ok) => setCallSecs(ok ? v : null)} />;
+  const timeField = <Duration id="fl-secs" label="Time for This Speech" value={callSecs ?? c.speakSecs} min={5} max={3600} onChange={(v, ok) => { setCallBad(!ok); if (ok) setCallSecs(v); }} />;
   // Trinity Grammar MUN
   const t = c.tr;
   const k = t?.cauc ?? null;
@@ -412,7 +415,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
   ) : null;
 
   const timerBtn = (cls = "button") => state === "up"
-    ? <button type="button" className={cls} onClick={() => act(ch.resetTimer)}>Reset Time</button>
+    ? <button type="button" className={cls} onClick={() => act(ch.resetTimer, false)}>Reset Time</button>
     : <button type="button" className={cls} onClick={toggle} disabled={state === "none"}>{state === "running" ? "Pause" : "Start"} timer</button>;
   const sm = "button secondary sm";
 
@@ -424,7 +427,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
     else { title = name(sp.who); sub = sp.phase === "speech" ? "Speaking" : sp.phase === "after" ? "" : "Replying to the Point of Information"; }
   }
   else if (poll?.kind === "motion") { title = "Motion"; sub = poll.title; }
-  else if (t && c.step === "statements") { title = stNext ? name(stNext) : "Opening statements"; sub = stNext ? `Next opening statement, up to ${ch.TR.statement} seconds` : "Every state has given its statement"; }
+  else if (t && c.step === "statements") { title = stNext ? name(stNext) : "Opening statements"; sub = stNext ? `Next opening statement, up to ${ch.timeOf(c, "statement")} seconds` : "Every state has given its statement"; }
   else if (t && c.step === "general") { title = "The Chair Is Choosing a Resolution"; sub = ch.drafts(c).length > 0 ? "" : "No resolutions yet. Add them in Settings."; }
   else if (t && c.step === "general") { title = next ? name(next.id) : "General Speakers\u2019 List"; sub = next ? "Next on the general speakers\u2019 list" : "Add states to the speakers\u2019 list"; }
   else if (c.step === "proposer") { title = name(c.roles.proposer); sub = t ? `Introduces the ${ch.resNoun(c).toLowerCase()}` : "Proposes the resolution"; }
@@ -734,9 +737,9 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
         <div className={s.floorFoot}>
           <div className={s.nudges}>
             {!sp && c.step !== "caucus" && timerBtn("button secondary")}
-            <button type="button" className="button secondary" onClick={() => act((x) => ch.nudgeTimer(x, -15, ch.now()))} aria-label="Take 15 seconds off">−15s</button>
-            <button type="button" className="button secondary" onClick={() => act((x) => ch.nudgeTimer(x, 15, ch.now()))} aria-label="Add 15 seconds">+15s</button>
-            <button type="button" className="button secondary" onClick={() => act(ch.resetTimer)}>Reset</button>
+            <button type="button" className="button secondary" onClick={() => act((x) => ch.nudgeTimer(x, -15, ch.now()), false)} aria-label="Take 15 seconds off">−15s</button>
+            <button type="button" className="button secondary" onClick={() => act((x) => ch.nudgeTimer(x, 15, ch.now()), false)} aria-label="Add 15 seconds">+15s</button>
+            <button type="button" className="button secondary" onClick={() => act(ch.resetTimer, false)}>Reset</button>
           </div>
         </div>
       )}
@@ -824,13 +827,10 @@ function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
   const col = (k: Side) => c.debate.list.filter((x) => x.side === k);
   const spoken = c.debate.run.map((x) => ch.nameOf(c, x.id));
   const plain = !ch.sided(c); // the general list and a moderated caucus are one list of states
-  const fixedPer = !!c.tr && (c.step === "caucus" || c.step === "amend"); // the caucus sets the time per speech
   const heading = c.tr ? (c.step === "general" ? "General Speakers\u2019 List" : c.step === "caucus" ? "Moderated Caucus Speakers\u2019 List" : (c.step === "floor" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer") ? `${ch.resNoun(c).replace("resolution", "Resolution")} Speakers\u2019 List` : "Speakers\u2019 List") : c.step === "amend" ? "Speakers\u2019 List" : "Resolution Speakers\u2019 List";
 
   const form = (
     <>
-      {!fixedPer && <Duration id="ch-sp" label="Time per Speech" value={c.speakSecs} min={5} max={3600}
-        onChange={(secs, ok) => { if (ok && secs !== null) act((x) => ch.setSpeakSecs(x, secs)); }} />}
       <form className={s.addRow} onSubmit={(e) => { e.preventDefault(); if (pick) { act((x) => ch.addToList(x, pick, stance === "against" ? "against" : plain ? "for" : side, plain && stance !== "none")); setWho(""); } }}>
         <label htmlFor="ch-add" className="sr-only">Add a State to the List</label>
         <Select id="ch-add" className={`control ${s.addWho}`} value={pick} onChange={(e) => setWho(e.target.value)}>
@@ -1498,11 +1498,41 @@ function Pager({ at, pages, go, label }: { at: number; pages: number; go: (n: nu
 }
 
 /* Settings, 1: a photo behind the display. */
+/* Settings: how long each kind of speech is, for the whole committee. The time the chair changes while someone is speaking is only for that speech. */
+function Times({ c, act }: { c: Chamber; act: Act }) {
+  const t = !!c.tr;
+  const rows: { k: ch.TimeKey; label: string; min: number; max: number }[] = [
+    ...(t ? [{ k: "statement" as const, label: "Opening Statement", min: 5, max: 3600 }] : []),
+    { k: "proposer", label: `Proposer, ${ch.roleName(c, "seconder")} and Opposer`, min: 5, max: 3600 },
+    { k: "speaker", label: t ? "Speaker from the List" : "Speaker from the List", min: 5, max: 3600 },
+    { k: "closer", label: "Closing Speech", min: 5, max: 3600 },
+    ...(t ? [{ k: "amendPer" as const, label: "Amendment Debate, per Speaker", min: 5, max: ch.TR.maxCaucus }, { k: "amendTotal" as const, label: "Amendment Debate, Total", min: 10, max: ch.TR.maxCaucus }] : [{ k: "amender" as const, label: "Amendment Proposer\u2019s Speech", min: 5, max: 3600 }]),
+    { k: "poi", label: "Point of Information, Question and Reply", min: 5, max: 300 },
+  ];
+  const set = Object.keys(c.times ?? {}).length > 0;
+  return (
+    <section className={`panel ${s.share}`} aria-labelledby="st-times">
+      <h2 id="st-times" className={s.h2}>Speaking Times</h2>
+      <div className={s.timesAll}>
+        <Duration id="tm-all" label="All Speeches" value={c.speakSecs} min={5} max={ch.TR.maxCaucus}
+          onChange={(v, ok) => { if (ok && v !== null) act((x) => ch.setAllSpeeches(x, v)); }} />
+      </div>
+      <div className={s.timesGrid}>
+        {rows.map((r) => (
+          <Duration key={r.k} id={`tm-${r.k}`} label={r.label} value={ch.timeOf(c, r.k)} min={r.min} max={r.max}
+            onChange={(v, ok) => { if (ok && v !== null) act((x) => (r.k === "proposer" ? ch.setTime(ch.setTime(ch.setTime(x, "proposer", v), "seconder", v), "opposer", v) : ch.setTime(x, r.k, v))); }} />
+        ))}
+      </div>
+      <button type="button" className="button secondary" disabled={!set} onClick={() => act(ch.resetTimes)}>Use the Standard Times</button>
+    </section>
+  );
+}
+
 function Background({ c, act, say, userId }: { c: Chamber; act: Act; say: (t: string) => void; userId?: string }) {
   const [busy, setBusy] = useState(false);
   const [strength, setStrength] = useState(c.backgroundStrength);
   useEffect(() => { setStrength(c.backgroundStrength); }, [c.backgroundStrength]);
-  const commit = () => { if (strength !== c.backgroundStrength) act((x) => ch.setBackgroundStrength(x, strength)); };
+  const commit = () => { if (strength !== c.backgroundStrength) act((x) => ch.setBackgroundStrength(x, strength), false); };
 
   const choose = async (file: File | undefined) => {
     if (!file) return;
@@ -1512,7 +1542,7 @@ function Background({ c, act, say, userId }: { c: Chamber; act: Act; say: (t: st
     setBusy(false);
     if ("error" in r) { say(r.error); return; }
     const bg = "url" in r ? r.url : r.data;
-    act((x) => ch.setBackground(x, bg));
+    act((x) => ch.setBackground(x, bg), false);
   };
 
   return (
@@ -1526,7 +1556,7 @@ function Background({ c, act, say, userId }: { c: Chamber; act: Act; say: (t: st
           {busy ? "Uploading…" : c.background ? "Change photo" : "Choose a photo"}
           <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} onChange={(e) => { void choose(e.target.files?.[0]); e.target.value = ""; }} />
         </label>
-        {c.background && <button type="button" className="button secondary" onClick={() => act((x) => ch.setBackground(x, null))}>Remove Photo</button>}
+        {c.background && <button type="button" className="button secondary" onClick={() => act((x) => ch.setBackground(x, null), false)}>Remove Photo</button>}
       </div>
       {c.background && (
         <div className={s.strength}>

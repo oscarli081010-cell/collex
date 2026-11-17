@@ -109,8 +109,10 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
   }, [cloudId, show]);
 
   // Every change is a function from the committee to the next one, so it can be replayed on a newer copy.
-  const act = useCallback((fn: (x: Chamber) => Chamber) => {
+  // Each one is kept for Back, unless it is a clock, a setting or the clock stopping itself (track = false).
+  const act = useCallback((fn0: (x: Chamber) => Chamber, track = true) => {
     if (!cur.current || o.readOnly) return;
+    const fn = track ? (x: Chamber) => ch.remember(x, fn0(x)) : fn0;
     if (cloudId) pending.current.push(fn);
     show(fn(cur.current));
     if (cloudId) void push();

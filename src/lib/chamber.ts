@@ -116,7 +116,45 @@ export type Chamber = {
   log: Entry[];
   /** Only a Trinity Grammar MUN committee has this. */
   tr: Trin | null;
+  /** The committee as it stood before each of the chair's last few actions, newest last: what Back returns to. */
+  hist?: Chamber[];
+  /** The times the chair has set for each kind of speech, in seconds; any not set keep the procedure's own. */
+  times?: Partial<Record<TimeKey, number>>;
 };
+
+/** The times a committee can set for itself, in the order the settings show them. */
+export type TimeKey = "speaker" | "statement" | "proposer" | "seconder" | "opposer" | "closer" | "amender" | "poi" | "amendPer" | "amendTotal";
+/** What each time is when the chair has not set it: Evatt gives every speech the committee's one time; Trinity fixes most of them. */
+export function defaultTime(c: Chamber, k: TimeKey): number {
+  if (k === "poi") return POI_SECS;
+  if (c.tr) {
+    switch (k) {
+      case "statement": return TR.statement;
+      case "proposer": case "seconder": return TR.speech;
+      case "opposer": return TR.introOppose;
+      case "closer": return TR.oppose;
+      case "amendPer": case "amender": return TR.amendPer;
+      case "amendTotal": return TR.amend;
+    }
+  }
+  return c.speakSecs;
+}
+export const timeOf = (c: Chamber, k: TimeKey): number => (k === "speaker" ? c.speakSecs : c.times?.[k] ?? defaultTime(c, k));
+/** Set one time for the whole committee (null: back to the default). It applies to speeches not yet begun. */
+export function setTime(c: Chamber, k: TimeKey, secs: number | null): Chamber {
+  if (k === "speaker") return secs === null ? c : { ...c, speakSecs: secs };
+  const times = { ...c.times };
+  if (secs === null) delete times[k]; else times[k] = secs;
+  return { ...c, times };
+}
+/** One time for every speech at once: the speakers, the roles and (Trinity) the statements and each speaker in an amendment's debate. Points of Information and the amendment debate's total keep their own. */
+export function setAllSpeeches(c: Chamber, secs: number): Chamber {
+  const keys: TimeKey[] = c.tr ? ["statement", "proposer", "seconder", "opposer", "closer", "amendPer"] : ["proposer", "seconder", "opposer", "closer", "amender"];
+  const times = { ...c.times };
+  for (const k of keys) times[k] = secs;
+  return { ...c, speakSecs: secs, times };
+}
+export const resetTimes = (c: Chamber): Chamber => ({ ...c, times: {} });
 
 export const KEY = "collex:chamber";
 export const MAX_DELEGATES = 200;
@@ -228,6 +266,26 @@ export function normalise(x: unknown): Chamber | null {
   return { ...fresh, delegates: old.map((d) => ({ id: d.id, name: d.name })).sort(byName), log: (o.log as Entry[]).slice(-200) };
 }
 
+/* Back: every action the chair takes keeps the committee as it was, so the last few can be taken back. The photo and its strength
+   are the chair's own setting, not part of the debate, so they are neither kept nor taken back. */
+export const HISTORY = 12;
+/** The committee after `fn`, with the one before it kept for Back. A change that does nothing keeps nothing. */
+export function remember(before: Chamber, after: Chamber): Chamber {
+  if (after === before) return after;
+  const { hist, ...rest } = before;
+  return { ...after, hist: [...(hist ?? []).slice(-(HISTORY - 1)), { ...rest, background: null }] };
+}
+export const canGoBack = (c: Chamber) => !!c.hist?.length;
+/** Take back the last action. A clock that was running is stopped where it stands, so the chair starts it again. */
+export function goBack(c: Chamber, at: number): Chamber {
+  const hist = c.hist ?? [];
+  const prev = hist[hist.length - 1];
+  if (!prev) return c;
+  const stop = (t: Timer | null) => (t && t.endsAt !== null ? { ...t, endsAt: null, left: remaining(t, at) } : t);
+  const tr = prev.tr ? { ...prev.tr, cauc: prev.tr.cauc ? { ...prev.tr.cauc, clock: stop(prev.tr.cauc.clock) } : prev.tr.cauc } : prev.tr;
+  return note({ ...prev, tr, timer: stop(prev.timer), background: c.background, backgroundStrength: c.backgroundStrength, hist: hist.slice(0, -1) }, "Went back one step");
+}
+
 export const note = (c: Chamber, text: string): Chamber => ({ ...c, log: [...c.log, { at: now(), text }] });
 export const nameOf = (c: Chamber, who: string | null) => c.delegates.find((d) => d.id === who)?.name ?? "";
 export const has = (c: Chamber, who: string | null | undefined): who is string => !!who && c.delegates.some((d) => d.id === who);
@@ -321,14 +379,7 @@ export function startSpeeches(c: Chamber): Chamber {
 /* Speeches */
 
 // How long each kind of speech is. A Trinity committee fixes the introduction, opposing, closing and opening statements; the rest is the chair's setting.
-const roleSecs = (c: Chamber, role: Role) => {
-  if (!c.tr) return c.speakSecs;
-  if (role === "statement") return TR.statement;
-  if (role === "proposer" || role === "seconder") return TR.speech;
-  if (role === "opposer") return TR.introOppose;
-  if (role === "closer") return TR.oppose;
-  return c.speakSecs;
-};
+const roleSecs = (c: Chamber, role: Role) => timeOf(c, role);
 // A state is called to speak: it comes off the list, goes on the run of speakers, and gets a fresh timer to start.
 function start(c: Chamber, who: string, side: Side, role: Role, secs?: number, stance?: boolean): Chamber {
   const debate: Debate = { list: c.debate.list.filter((s) => s.id !== who), run: role === "closer" || role === "proposer" || role === "seconder" || role === "opposer" || role === "statement" ? c.debate.run : [...c.debate.run, { id: who, side }] };
@@ -351,7 +402,7 @@ export function callOpposer(c: Chamber): Chamber {
 export function callAmender(c: Chamber, secs?: number): Chamber {
   const a = c.amendments.find((x) => x.id === c.amend?.id);
   if (c.step !== "amend" || c.amend?.stage !== "debate" || c.speech || c.debate.run.length || !a || !has(c, a.by)) return c;
-  return start(c, a.by, "for", "amender", secs ?? (c.tr?.cauc?.kind === "amend" ? c.tr.cauc.per : undefined));
+  return start(c, a.by, "for", "amender", secs ?? (c.tr?.cauc?.kind === "amend" ? c.tr.cauc.per : timeOf(c, "amender")));
 }
 /** Anyone, on the side the chair names, for the time the chair allots. */
 export function callSpeaker(c: Chamber, who: string, side: Side, secs?: number): Chamber {
@@ -397,12 +448,12 @@ export function endSpeech(c: Chamber, at: number, who: string): Chamber {
 export function askPoi(c: Chamber, asker: string, who: string, n: number): Chamber {
   const sp = c.speech;
   if (!sp || sp.who !== who || sp.phase !== "after" || sp.pois !== n || !has(c, asker) || asker === who) return c;
-  return note({ ...c, speech: { ...sp, phase: "ask", asker }, timer: timerFor(`${nameOf(c, asker)} asks`, POI_SECS) }, `${nameOf(c, asker)} asks ${nameOf(c, who)} a Point of Information`);
+  return note({ ...c, speech: { ...sp, phase: "ask", asker }, timer: timerFor(`${nameOf(c, asker)} asks`, timeOf(c, "poi")) }, `${nameOf(c, asker)} asks ${nameOf(c, who)} a Point of Information`);
 }
 export function answerPoi(c: Chamber, who: string, asker: string, n: number, at: number): Chamber {
   const sp = c.speech;
   if (!sp || sp.who !== who || sp.phase !== "ask" || sp.asker !== asker || sp.pois !== n) return c;
-  return { ...record(c, asker, "poi", used(c, at), at, who), speech: { ...sp, phase: "answer" }, timer: timerFor(`${nameOf(c, who)} replies`, POI_SECS) };
+  return { ...record(c, asker, "poi", used(c, at), at, who), speech: { ...sp, phase: "answer" }, timer: timerFor(`${nameOf(c, who)} replies`, timeOf(c, "poi")) };
 }
 export function donePoi(c: Chamber, who: string, asker: string, n: number, at: number): Chamber {
   const sp = c.speech;
@@ -420,7 +471,7 @@ export function backPhase(c: Chamber, who: string, n: number): Chamber {
   if (!sp || sp.who !== who || sp.pois !== n) return c;
   if (sp.phase === "after" && n === 0 && c.timer) return { ...c, speech: { ...sp, phase: "speech" } };
   if (sp.phase === "ask") return { ...c, speech: { ...sp, phase: "after", asker: null }, timer: null };
-  if (sp.phase === "answer") return { ...c, speech: { ...sp, phase: "ask" }, timer: timerFor(`${nameOf(c, sp.asker)} asks`, POI_SECS) };
+  if (sp.phase === "answer") return { ...c, speech: { ...sp, phase: "ask" }, timer: timerFor(`${nameOf(c, sp.asker)} asks`, timeOf(c, "poi")) };
   return c;
 }
 
@@ -550,7 +601,7 @@ export function backOutAmendment(c: Chamber, id: string): Chamber {
 // Trinity: an amendment is debated in a 10-minute moderated caucus, the chair setting the time per speaker.
 const toDebate = (c: Chamber, a: Amendment | undefined): Chamber => (!c.tr || !c.amend ? { ...c, amend: c.amend && { ...c.amend, stage: "debate" } } : {
   ...c, amend: { ...c.amend, stage: "debate" },
-  tr: { ...c.tr, cauc: { kind: "amend", topic: a?.text ?? "Amendment", per: TR.amendPer, total: TR.amend, ext: 0, clock: timerFor("Amendment debate", TR.amend) } },
+  tr: { ...c.tr, cauc: { kind: "amend", topic: a?.text ?? "Amendment", per: timeOf(c, "amendPer"), total: timeOf(c, "amendTotal"), ext: 0, clock: timerFor("Amendment debate", timeOf(c, "amendTotal")) } },
 });
 const poll = (title: string, kind: Poll["kind"]): Poll => ({ title, kind, yes: 0, no: 0, abstain: 0 });
 export function amendAsk(c: Chamber, id: string): Chamber {

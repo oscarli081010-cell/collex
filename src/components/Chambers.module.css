@@ -543,3 +543,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .seenTag { display: inline-flex; align-items: center; gap: 9px; width: fit-content; font-size: 16px; font-weight: 500; color: var(--ink); }
 .seenTag::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px var(--ok-soft); }
 .seenTag[data-seen="false"]::before { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+
+.timesGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px 24px; }
+.timesAll { display: flex; flex-direction: column; gap: 8px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.timesAll > :global(.field) { width: min(100%, 280px); }
