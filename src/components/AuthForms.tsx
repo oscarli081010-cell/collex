@@ -27,6 +27,21 @@ const friendly = (msg: string) =>
   : msg;
 
 const origin = () => window.location.origin;
+/** Where to go after logging in or signing up: a page on this site named in ?next= (a join link, say), or the account page. */
+const nextPage = () => {
+  if (typeof window === "undefined") return "/account";
+  const n = new URLSearchParams(window.location.search).get("next");
+  return n && n.startsWith("/") && !n.startsWith("//") && !n.startsWith("/\\") ? n : "/account";
+};
+/** A link to the other auth page that carries ?next= along (read after the page loads, so the server and browser agree). */
+function NextLink({ path, className, children }: { path: string; className: string; children: React.ReactNode }) {
+  const [href, setHref] = useState(path);
+  useEffect(() => {
+    const n = new URLSearchParams(window.location.search).get("next");
+    if (n) setHref(`${path}?next=${encodeURIComponent(n)}`);
+  }, [path]);
+  return <Link href={href} className={className}>{children}</Link>;
+}
 
 // The page's headline band, with the page's content centred underneath.
 function Banded({ band, children }: { band: BandProps; children: React.ReactNode }) {
@@ -114,7 +129,7 @@ function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"
       setWrong((n) => n + 1);
       return say(/expired/i.test(error.message) ? "That code has expired. Send a new one." : "That code isn't right. Try again.");
     }
-    router.push("/account");
+    router.push(nextPage());
   };
   const resend = async () => {
     if (!supabase) return;
@@ -198,7 +213,7 @@ export function SignupForm() {
       <button className={`button lg ${s.submit}`} disabled={busy || !supabase}>
         <span key={String(busy)} className="t-swap">{busy ? "Creating account…" : "Create account"}</span>
       </button>
-      <p className={s.switch}>Already have an account? <Link href="/login" className="link">Log in</Link></p>
+      <p className={s.switch}>Already have an account? <NextLink path="/login" className="link">Log in</NextLink></p>
     </form>
     </Banded>
   );
@@ -232,7 +247,7 @@ export function LoginForm() {
       setUnconfirmed(/not confirmed/i.test(error.message) ? email : "");
       return;
     }
-    router.push("/account");
+    router.push(nextPage());
   }
 
   if (sent) return <Sent email={sent} kind="reset" onBack={() => { setSent(null); setMode("login"); }} />;
@@ -263,7 +278,7 @@ export function LoginForm() {
           <>
             <button type="button" className={s.textBtn} onClick={() => { setMode("reset"); setError(""); }}>Forgot password?</button>
             <span className={s.dot} aria-hidden="true">·</span>
-            <Link href="/signup" className="link">Create an account</Link>
+            <NextLink path="/signup" className="link">Create an account</NextLink>
           </>
         ) : (
           <button type="button" className={s.textBtn} onClick={() => { setMode("login"); setError(""); }}>← Back to log in</button>

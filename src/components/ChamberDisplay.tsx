@@ -189,7 +189,7 @@ export default function ChamberDisplay() {
     const n = ch.rollCount(c);
     mid = (
       <Screen heading="Roll Call">
-        {tallies(c.tr ? [["Present", n.present], ["Present & Voting", n.voting]] : [["Present", n.present], ["Present & Voting", n.voting], ["Abstain", n.abstain]])}
+        {tallies([["Present & Voting", n.voting], ["Present", n.present], ["Absent", n.absent]])}
         <RollBoard c={c} tag={obsTag} />
       </Screen>
     );
@@ -241,7 +241,7 @@ export default function ChamberDisplay() {
         lines={done ? [`${c.outcome!.yes} For · ${c.outcome!.no} Against · ${c.outcome!.abstain} ${c.tr ? "Neutral" : "Abstaining"}${!c.outcome!.passed ? ` · ${c.outcome!.needed} needed` : ""}`] : []}>
         {c.step === "vote" && votes(n, !!c.tr)}
         <div className={s.dBoard}>
-          {c.delegates.map((d) => <div key={d.id} className={s.dSeat} data-b={c.ballots[d.id]}><i /><span className={s.dSeatName}>{d.name}</span>{obsTag(d.id)}</div>)}
+          {c.delegates.filter((d) => ch.isHere(c, d.id)).map((d) => <div key={d.id} className={s.dSeat} data-b={c.ballots[d.id]}><i /><span className={s.dSeatName}>{d.name}</span>{obsTag(d.id)}</div>)}
         </div>
       </Screen>
     );

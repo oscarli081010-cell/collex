@@ -300,12 +300,12 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dSeat[data-b="for"] i { background: var(--ok); }
 .dSeat[data-b="against"] { background: var(--danger-soft); color: var(--danger); }
 .dSeat[data-b="against"] i { background: var(--danger); }
-.dSeat[data-b="abstain"] i, .dSeat[data-a="abstain"] i { background: var(--warn); }
+.dSeat[data-b="abstain"] i, .dSeat[data-a="absent"] i { background: var(--warn); }
 .dSeat[data-a="voting"] { background: var(--ok-soft); color: var(--ok); }
 .dSeat[data-a="voting"] i { background: var(--ok); }
 .dSeat[data-a="present"] { background: var(--accent-soft); color: var(--accent); }
 .dSeat[data-a="present"] i { background: var(--accent); }
-.dSeat[data-a="abstain"] { background: var(--warn-soft); color: var(--warn); }
+.dSeat[data-a="absent"] { background: var(--warn-soft); color: var(--warn); }
 .dSeat em { margin-left: auto; font-style: normal; font-size: 0.7em; opacity: 0.85; }
 .dSeat small { margin-left: auto; font-size: 0.7em; opacity: 0.8; }
 .dBottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px 32px; flex-wrap: wrap; font-size: clamp(16px, 1.7vw, 24px); align-self: end; padding: 0 var(--edge) var(--edge); z-index: 2; }

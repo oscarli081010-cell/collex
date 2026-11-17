@@ -309,8 +309,7 @@ function Welcome({ c, act }: { c: Chamber; act: Act }) {
 }
 
 /* Opening, 2: the roll call. */
-const ATTEND: ch.Attend[] = ["present", "voting", "abstain"];
-const ATTEND_TRINITY: ch.Attend[] = ["present", "voting"];
+const ATTEND: ch.Attend[] = ["absent", "present", "voting"];
 function RollCallOpen({ c, act }: { c: Chamber; act: Act }) {
   const n = ch.rollCount(c);
   return (
@@ -321,7 +320,7 @@ function RollCallOpen({ c, act }: { c: Chamber; act: Act }) {
       <Stats label="Roll Call So Far" bar items={[
         { label: "Present & Voting", value: n.voting, tone: "ok" },
         { label: "Present", value: n.present },
-        ...(c.tr ? [] : [{ label: "Abstain", value: n.abstain, tone: "warn" as const }]),
+        { label: "Absent", value: n.absent, tone: "warn" as const },
         { label: "Not Marked Yet", value: n.unmarked },
       ]} />
       <div className={s.btnRow}>
@@ -333,7 +332,7 @@ function RollCallOpen({ c, act }: { c: Chamber; act: Act }) {
           <li key={d.id} className={s.ballot}>
             <span className={s.cname2}>{d.name}</span>
             <Seg label={`Roll call: ${d.name}`} value={c.roll[d.id]} className={`${s.ballotSeg} ${s.rollSeg}`}
-              items={(c.tr ? ATTEND_TRINITY : ATTEND).map((a) => ({ id: a, label: ch.ATTEND_LABEL[a] }))}
+              items={ATTEND.map((a) => ({ id: a, label: ch.ATTEND_LABEL[a] }))}
               onPick={(a) => act((x) => ch.markRoll(x, d.id, c.roll[d.id] === a ? null : a))} />
           </li>
         ))}
@@ -346,7 +345,7 @@ function RollCallOpen({ c, act }: { c: Chamber; act: Act }) {
 /* Opening, 3: the chair chooses the Proposer, Seconder and Opposer. Each choice is saved as it is made, so the display shows it at once. */
 const PICK = [["proposer", "Proposer"], ["seconder", "Seconder"], ["opposer", "Opposer (optional)"]] as const;
 function Pick({ c, act }: { c: Chamber; act: Act }) {
-  const here = c.delegates.filter((d) => c.roll[d.id]);
+  const here = c.delegates.filter((d) => c.roll[d.id] === "present" || c.roll[d.id] === "voting");
   const pool = here.length ? here : c.delegates;
   const ok = !!(c.roles.proposer && c.roles.seconder); // nobody has to oppose
   return (
@@ -1108,11 +1107,11 @@ function RollCall({ c, act }: { c: Chamber; act: Act }) {
       ]} />
       {t ? <p className={s.hint}>More For than Against, so {need} For at the moment. Abstentions count for neither.</p> : <p className={s.hint}>Needs at least {need} in favour</p>}
       <ul className={s.ballots}>
-        {c.delegates.map((d) => (
+        {c.delegates.filter((d) => ch.isHere(c, d.id)).map((d) => (
           <li key={d.id} className={s.ballot}>
             <span className={s.cname2}>{d.name}</span>
             <Seg label={`Vote of ${d.name}`} value={c.ballots[d.id]} disabled={closed} className={s.ballotSeg}
-              items={[{ id: "for", label: "For" }, { id: "against", label: "Against" }, { id: "abstain", label: t ? "Neutral" : "Abstain", off: !!t && c.roll[d.id] === "voting" }]}
+              items={[{ id: "for", label: "For" }, { id: "against", label: "Against" }, { id: "abstain", label: t ? "Neutral" : "Abstain", off: c.roll[d.id] === "voting" }]}
               onPick={(b) => act((x) => ch.cast(x, d.id, c.ballots[d.id] === b ? null : (b as Ballot)))} />
           </li>
         ))}
@@ -1728,7 +1727,7 @@ function Join({ signedIn, initial }: { signedIn: boolean; initial: string }) {
             maxLength={9} autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="ABC234" aria-invalid={!!err} />
           <button type="submit" className="button" disabled={busy || clean.length !== 6}>{busy ? "Joining…" : "Join"}</button>
         </form>
-      ) : <Link href="/login" className="button">Log in to join</Link>}
+      ) : <Link href={`/login?next=${encodeURIComponent(clean ? `/chambers?join=${clean}` : "/chambers?join=")}`} className="button">Log in to join</Link>}
       {err && <p className={s.result} data-pass="false" role="alert">{err}</p>}
     </section>
   );

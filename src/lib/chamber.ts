@@ -11,7 +11,8 @@
 
 export type Side = "for" | "against";
 /** A state's answer at roll call. */
-export type Attend = "present" | "voting" | "abstain";
+/** The roll call: absent, present (may abstain on the resolution), or present and voting (must vote For or Against). */
+export type Attend = "absent" | "present" | "voting";
 export type Ballot = "for" | "against" | "abstain";
 export type Delegate = { id: string; name: string };
 /** A state on a speakers' list, or one that has spoken, with the side it spoke on. */
@@ -259,7 +260,8 @@ export function normalise(x: unknown): Chamber | null {
   if (o.v !== 1 || !Array.isArray(o.delegates) || !Array.isArray(o.log)) return null;
   const ok = (o.rules === "evatt" || (o.rules === "trinity" && isTrin(o.tr))) && o.rev === 2 && typeof o.step === "string" && o.debate && Array.isArray(o.debate.list) && Array.isArray(o.debate.run)
     && o.roll && typeof o.roll === "object" && o.roles && Array.isArray(o.closers) && Array.isArray(o.amendments) && o.ballots && typeof o.ballots === "object";
-  if (ok) return { ...(o as Chamber), tr: o.rules === "trinity" ? { ...(o.tr as Trin), cauc: (o.tr as Trin).cauc ?? null, saved: (o.tr as Trin).saved ?? null, current: (o.tr as Trin).current ?? null, bonus: (o.tr as Trin).bonus ?? null, stash: (o.tr as Trin).stash ?? null, reply: (o.tr as Trin).reply ?? null, finalDone: !!(o.tr as Trin).finalDone } : null, stats: Array.isArray(o.stats) ? o.stats : [], background: validBackground(o.background) ? o.background : null, backgroundStrength: typeof o.backgroundStrength === "number" ? Math.min(100, Math.max(20, o.backgroundStrength)) : 55, amendments: (o.amendments as Amendment[]).map((a, i) => ({ ...a, at: a.at ?? i })) };
+  const fixRoll = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v === "abstain" ? "present" : v])) as Record<string, Attend>;
+  if (ok) return { ...(o as Chamber), roll: fixRoll(o.roll as Record<string, string>), tr: o.rules === "trinity" ? { ...(o.tr as Trin), cauc: (o.tr as Trin).cauc ?? null, saved: (o.tr as Trin).saved ?? null, current: (o.tr as Trin).current ?? null, bonus: (o.tr as Trin).bonus ?? null, stash: (o.tr as Trin).stash ?? null, reply: (o.tr as Trin).reply ?? null, finalDone: !!(o.tr as Trin).finalDone } : null, stats: Array.isArray(o.stats) ? o.stats : [], background: validBackground(o.background) ? o.background : null, backgroundStrength: typeof o.backgroundStrength === "number" ? Math.min(100, Math.max(20, o.backgroundStrength)) : 55, amendments: (o.amendments as Amendment[]).map((a, i) => ({ ...a, at: a.at ?? i })) };
   const old = o.delegates as { id: string; name: string }[];
   const resolution = String(o.topic ?? "").trim() || String(o.resolution?.title ?? "").trim();
   const fresh = create(String(o.name ?? "Committee"), resolution, Number(o.speakSecs) || 120, [], []);
@@ -297,7 +299,9 @@ export const ROLE_LABEL: Record<Role, string> = { proposer: "Proposer", seconder
 export const roleName = (c: Chamber, r: Role) => (c.tr && r === "seconder" ? "Co-sponsor" : ROLE_LABEL[r]);
 /** What the document being debated is called. */
 export const resNoun = (_c: Chamber) => "Resolution";
-export const ATTEND_LABEL: Record<Attend, string> = { present: "Present", voting: "Present & Voting", abstain: "Abstain" };
+export const ATTEND_LABEL: Record<Attend, string> = { absent: "Absent", present: "Present", voting: "Present & Voting" };
+/** A state there for the vote: marked present or present and voting (or not marked at all). */
+export const isHere = (c: Chamber, who: string) => c.roll[who] !== "absent";
 
 /* The display's background photo */
 const BG_URL = /^https:\/\/npdaczdwmhbtgitmplxc\.supabase\.co\/storage\/v1\/object\/public\/photos\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
@@ -349,14 +353,14 @@ export function markAllRoll(c: Chamber, a: Attend): Chamber {
   return { ...c, roll: Object.fromEntries(c.delegates.map((d) => [d.id, a])) };
 }
 export function rollCount(c: Chamber) {
-  const out = { present: 0, voting: 0, abstain: 0, unmarked: 0 };
+  const out = { absent: 0, present: 0, voting: 0, unmarked: 0 };
   for (const d of c.delegates) { const a = c.roll[d.id]; if (a) out[a]++; else out.unmarked++; }
   return out;
 }
 export function beginDebate(c: Chamber): Chamber {
   if (c.step !== "roll") return c;
   const n = rollCount(c);
-  return note({ ...c, step: c.tr ? "statements" : "pick" }, `Roll call: ${n.present} present, ${n.voting} present and voting, ${n.abstain} abstaining${n.unmarked ? `, ${n.unmarked} not marked` : ""}`);
+  return note({ ...c, step: c.tr ? "statements" : "pick" }, `Roll call: ${n.voting} present and voting, ${n.present} present, ${n.absent} absent${n.unmarked ? `, ${n.unmarked} not marked` : ""}`);
 }
 /** The chair picks each of the three as they go, so the display shows the choice at once. A state holds one role at a time. */
 export function pickRole(c: Chamber, role: "proposer" | "seconder" | "opposer", who: string | null): Chamber {
@@ -698,7 +702,8 @@ export function startVote(c: Chamber): Chamber {
 
 export function cast(c: Chamber, who: string, ballot: Ballot | null): Chamber {
   if (c.step !== "vote" || !has(c, who)) return c;
-  if (c.tr && ballot === "abstain" && c.roll[who] === "voting") return c; // Present and Voting must vote For or Against
+  if (!isHere(c, who)) return c; // an absent state has no vote
+  if (ballot === "abstain" && c.roll[who] === "voting") return c; // Present and Voting must vote For or Against
   const ballots = { ...c.ballots };
   if (ballot) ballots[who] = ballot; else delete ballots[who];
   return { ...c, ballots };
@@ -706,6 +711,7 @@ export function cast(c: Chamber, who: string, ballot: Ballot | null): Chamber {
 export function count(c: Chamber) {
   const out = { yes: 0, no: 0, abstain: 0, left: 0 };
   for (const d of c.delegates) {
+    if (!isHere(c, d.id)) continue;
     const b = c.ballots[d.id];
     if (b === "for") out.yes++;
     else if (b === "against") out.no++;
