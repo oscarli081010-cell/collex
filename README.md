@@ -18,6 +18,11 @@ for delegates, chairs, teachers and organisers.
 - **Chambers**: a speaking-time timer and a display screen for running a committee.
 - **Admin review** of listings, with a "Verified" status for confirmed conferences.
 
+## Usage
+
+Collex launched on 2 November 2026. As of 17 November 2026 it has 18 accounts (17 email-confirmed),
+and 10 of them signed in during the past week.
+
 ## Stack
 
 Next.js (App Router) and TypeScript, Supabase (Postgres, auth, edge functions), Lenis for smooth
