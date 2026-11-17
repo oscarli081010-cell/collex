@@ -51,6 +51,8 @@
 .segIcon { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 /* Two tabs (Profile / Conferences) on the same control, with a badge when an invite is waiting. */
 .segTwo { grid-template-columns: repeat(2, 1fr); }
+/* Four or more tabs in one row: on a phone the icons give way so the words fit. */
+@media (max-width: 560px) { .segMany .segIcon { gap: 0; padding-inline: 4px; font-size: 13px; } .segMany .segIcon > svg { display: none; } }
 .segThree { grid-template-columns: repeat(3, 1fr); }
 .segBadge {
   min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center;

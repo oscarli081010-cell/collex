@@ -187,9 +187,13 @@ export default function Chambers() {
     <main id="top" className={`container ${s.page}`}>
       <header className={s.top}>
         <div className={s.nameBox}>
-        <h1 className={`serif ${s.name}`}>{c.name}{c.topic && ` · ${c.topic}`}</h1>
+        <h1 className={`serif ${s.name}`}>
+          {c.name}
+          {cloudId && <i className={`${s.liveDot} ${s.nameDot}`} data-off={status === "offline"} title={status === "offline" ? "Offline" : "Shared and live"} aria-hidden="true" />}
+        </h1>
         <dl className={s.facts3}>
           <div><dt>Procedure</dt><dd>{t ? "Trinity Grammar MUN" : "Evatt"}</dd></div>
+          {c.topic && <div className={s.factWide}><dt>{t ? "Topic" : "Resolution"}</dt><dd>{c.topic}</dd></div>}
         </dl>
         </div>
         <div className={s.topActions}>
@@ -204,7 +208,7 @@ export default function Chambers() {
       <div className="sr-only" role="status" aria-live="polite">{live}</div>
 
       <PanelTabs idPrefix="chv" label="Committee" tab={view} setTab={setView}
-        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage }, { id: "analytics", label: "Analytics", icon: ICONS.chart }, { id: "share", label: "Share", icon: ICONS.share }, { id: "settings", label: status === "offline" ? "Settings (offline)" : "Settings", icon: cloudId ? <i className={s.liveDot} data-off={status === "offline"} aria-hidden="true" /> : SLIDERS }]} />
+        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage }, { id: "analytics", label: "Analytics", icon: ICONS.chart }, { id: "share", label: "Share", icon: ICONS.share }, { id: "settings", label: status === "offline" ? "Settings (offline)" : "Settings", icon: SLIDERS }]} />
 
       {view === "manage" ? (
         <div id="chv-panel-manage" role="tabpanel" aria-labelledby="chv-tab-manage" className={s.manage}>
@@ -1646,8 +1650,9 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
   };
 
   return (
+    <>
     <section id="ch-share" className={`panel ${s.share}`} aria-labelledby="st-share">
-      <h2 id="st-share" className={s.h2}>Share</h2>
+      <h2 id="st-share" className={s.h2}>{cloudId ? "People" : "Share"}</h2>
       {!cloudId ? (
         <>
           <p className="muted">Share this committee to give other chairs a join code, or add them by the email on their Collex account.</p>
@@ -1658,7 +1663,6 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
       ) : (
         <>
           <p className="muted">Everyone here can run the console and open the display. They need to be logged in on their own device.</p>
-          <h3 className={s.h3}>People</h3>
           <ul className={s.team}>
             {(team ?? []).map((m) => (
               <li key={m.user_id}>
@@ -1668,8 +1672,13 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
               </li>
             ))}
           </ul>
-          <div className={s.codeBox}>
-            <h3 className={s.h3}>Join Code</h3>
+        </>
+      )}
+    </section>
+    {cloudId && (
+      <div className={s.pair2}>
+          <section className={`panel ${s.share}`} aria-labelledby="st-code">
+            <h2 id="st-code" className={s.h2}>Join Code</h2>
             {code ? (
               <>
                 <CodeBoxes code={code} label="Join code" />
@@ -1687,17 +1696,21 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
                 <button type="button" className="button" disabled={busy} onClick={() => codeDo("new")}>Make a Join Code</button>
               </>
             ) : <p className="muted">There is no join code. The person who shared it can make one.</p>}
-          </div>
-          <h3 className={s.h3}><label htmlFor="ch-inv">Add by Email</label></h3>
-          {owner ? (
+          </section>
+          <section className={`panel ${s.share}`} aria-labelledby="st-email">
+            <h2 id="st-email" className={s.h2}>Add by Email</h2>
+          {owner ? (<>
+            <p className="muted">Add a chair by the email on their Collex account. They&rsquo;re emailed a link to the committee.</p>
             <form className={s.addRow2} onSubmit={add}>
+              <label htmlFor="ch-inv" className="sr-only">Email on Their Collex Account</label>
               <input id="ch-inv" type="email" className="control" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email on their Collex account" maxLength={254} />
               <button type="submit" className="button secondary" disabled={busy || !email.trim()}>Add</button>
             </form>
-          ) : <p className="muted">Only the person who shared it can add people.</p>}
-        </>
-      )}
-    </section>
+          </>) : <p className="muted">Only the person who shared it can add people.</p>}
+          </section>
+      </div>
+    )}
+    </>
   );
 }
 

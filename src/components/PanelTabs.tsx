@@ -21,7 +21,7 @@ export default function PanelTabs<T extends string>({ tabs, tab, setTab, label, 
     box.current?.querySelector<HTMLElement>(`#${idPrefix}-tab-${next}`)?.focus();
   };
   return (
-    <div ref={box} className={`${s.seg} ${tabs.length === 2 ? s.segTwo : ""}`} role="tablist" aria-label={label} onKeyDown={onKey}>
+    <div ref={box} className={`${s.seg} ${tabs.length === 2 ? s.segTwo : ""} ${tabs.length > 3 ? s.segMany : ""}`} style={tabs.length > 3 ? { gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` } : undefined} role="tablist" aria-label={label} onKeyDown={onKey}>
       <span ref={pill} className={`t-pill ${s.segPill}`} aria-hidden="true" />
       {tabs.map((a) => (
         <button key={a.id} id={`${idPrefix}-tab-${a.id}`} type="button" role="tab" aria-selected={tab === a.id} aria-controls={`${idPrefix}-panel-${a.id}`}
