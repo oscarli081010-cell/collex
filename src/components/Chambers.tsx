@@ -21,6 +21,7 @@ import CodeInput, { CodeBoxes } from "./CodeInput";
 import { Gavel } from "./Drawings";
 import board from "./board.module.css";
 import { STEP, ago, procName } from "@/lib/chamberLabels";
+import Flag from "./Flag";
 
 const svg = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
 const MONITOR = svg(<><rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.6" /><path d="M5.5 13.5h5M8 11v2.5" /></>);
@@ -43,6 +44,28 @@ export function useNow(active: boolean) {
 }
 
 const uid = () => crypto.randomUUID();
+
+// A short two-note chime when a speaker's time is up. It is this device's own setting, on unless the chair turns it off.
+const SOUND_KEY = "collex:chamber-sound";
+const soundOn = () => { try { return localStorage.getItem(SOUND_KEY) !== "off"; } catch { return true; } };
+let audio: AudioContext | null = null;
+function chime(force = false) {
+  if (!force && !soundOn()) return;
+  try {
+    audio ??= new AudioContext();
+    const ctx = audio;
+    if (ctx.state === "suspended") void ctx.resume();
+    [[880, 0], [660, 0.22]].forEach(([hz, at]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "sine"; o.frequency.value = hz;
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + at);
+      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + at + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + 0.45);
+      o.connect(g).connect(ctx.destination);
+      o.start(ctx.currentTime + at); o.stop(ctx.currentTime + at + 0.5);
+    });
+  } catch { /* no sound on this device */ }
+}
 const SIDE: Record<Side, string> = { for: "In Favour", against: "Against" };
 type Act = (fn: (x: Chamber) => Chamber, track?: boolean) => void;
 
@@ -104,6 +127,7 @@ export default function Chambers() {
     if (state !== "up" || !c?.timer || c.timer.endsAt === null) return;
     act((x) => ch.pauseTimer(x, ch.now()), false);
     setLive("Time's up");
+    chime();
   }, [state, c?.timer, act]);
   // The same for the clock of a whole moderated caucus.
   const cauc = c?.tr?.cauc?.clock ?? null;
@@ -194,7 +218,7 @@ export default function Chambers() {
           {cloudId && <i className={`${s.liveDot} ${s.nameDot}`} data-off={status === "offline"} title={status === "offline" ? "Offline" : "Shared and live"} aria-hidden="true" />}
         </h1>
         <dl className={s.facts3}>
-          <div><dt>Procedure</dt><dd>{t ? "Trinity Grammar MUN" : "Evatt"}</dd></div>
+          <div><dt>Procedure</dt><dd>{ch.procedureName(c)}</dd></div>
           {c.topic && <div className={s.factWide}><dt>{t ? "Topic" : "Resolution"}</dt><dd>{c.topic}</dd></div>}
         </dl>
         </div>
@@ -231,11 +255,12 @@ export default function Chambers() {
           <Share c={c} cloudId={cloudId} manage={manage} signedIn={!!session} meId={session?.user.id} say={say} setLocal={setLocal} />
         </div>
       ) : view === "analytics" ? (
-        <Analytics c={c} say={say} />
+        <Analytics c={c} say={say} act={act} />
       ) : (
         <div id="chv-panel-settings" role="tabpanel" aria-labelledby="chv-tab-settings" className={s.manage}>
-          {t && <Resolutions c={c} act={act} />}
+          {t && !c.style && <Resolutions c={c} act={act} />}
           <Times c={c} act={act} />
+          <Sound />
           <Background c={c} act={act} say={say} userId={session?.user.id} />
         </div>
       )}
@@ -339,7 +364,7 @@ function RollCallOpen({ c, act }: { c: Chamber; act: Act }) {
       <ul className={s.ballots}>
         {c.delegates.map((d) => (
           <li key={d.id} className={s.ballot}>
-            <span className={s.cname2}>{d.name}</span>
+            <span className={s.cname2}><Flag name={d.name} />{d.name}</span>
             <Seg label={`Roll call: ${d.name}`} value={c.roll[d.id]} className={`${s.ballotSeg} ${s.rollSeg}`}
               items={ATTEND.map((a) => ({ id: a, label: ch.ATTEND_LABEL[a] }))}
               onPick={(a) => act((x) => ch.markRoll(x, d.id, c.roll[d.id] === a ? null : a))} />
@@ -440,7 +465,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
   }
   else if (poll?.kind === "motion") { title = "Motion"; sub = poll.title; }
   else if (t && c.step === "statements") { title = stNext ? name(stNext) : "Opening statements"; sub = stNext ? `Next opening statement, up to ${ch.timeOf(c, "statement")} seconds` : "Every state has given its statement"; }
-  else if (t && c.step === "general") { title = "The Chair Is Choosing a Resolution"; sub = ch.drafts(c).length > 0 ? "" : "No resolutions yet. Add them in Settings."; }
+  else if (t && c.step === "general" && !c.style) { title = "The Chair Is Choosing a Resolution"; sub = ch.drafts(c).length > 0 ? "" : "No resolutions yet. Add them in Settings."; }
   else if (t && c.step === "general") { title = next ? name(next.id) : "General Speakers\u2019 List"; sub = next ? "Next on the general speakers\u2019 list" : "Add states to the speakers\u2019 list"; }
   else if (c.step === "proposer") { title = name(c.roles.proposer); sub = t ? `Introduces the ${ch.resNoun(c).toLowerCase()}` : "Proposes the resolution"; }
   else if (c.step === "seconder") { title = name(c.roles.seconder); sub = t ? `Speaks as ${ch.roleName(c, "seconder").toLowerCase()}` : "Seconds the resolution"; }
@@ -541,7 +566,8 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
         const readyAll = t ? ch.drafts(c).filter((d) => d.status === "approved" && !d.result) : [];
         return (
           <>
-            {!!t && readyAll.map((d, i) => <button key={d.id} type="button" className={i === 0 ? "button" : "button secondary"} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce {d.title}</button>)}
+            {!!t && readyAll.map((d, i) => <button key={d.id} type="button" className={i === 0 && !(c.style && next) ? "button" : "button secondary"} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce {d.title}</button>)}
+            {c.style && next && <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, next.id, next.side))}>Call {name(next.id)}</button>}
             <div className={s.btnRow}>
               {stNext && <button type="button" className={readyAll.length ? "button secondary sm" : "button"} onClick={() => act(ch.startStatements)}>Opening Statements</button>}
             </div>
@@ -786,20 +812,38 @@ function PollBox({ c, act }: { c: Chamber; act: Act }) {
   const cast = p.yes + p.no + p.abstain;
   const id = p.kind === "motion" ? p.motion ?? "" : c.amend?.id ?? "";
   const decide = p.kind === "motion" ? ch.decideMotion : p.kind === "debate" ? ch.decideAsk : ch.decideAmendment;
+  const byRoll = !!p.ballots;
   return (
     <>
+      <Seg label="How the vote is taken" value={byRoll ? "roll" : "placard"} className={s.pollMode}
+        items={[{ id: "placard", label: "By Placard" }, { id: "roll", label: "By Roll Call" }]}
+        onPick={(m) => { if ((m === "roll") !== byRoll) act((x) => ch.pollByRoll(x, m === "roll")); }} />
       <div className={s.counters}>
         {([["yes", "For"], ["no", "Against"], ["abstain", "Abstain"]] as const).map(([k, label]) => (
           <div key={k} className={s.counter} data-kind={k}>
             <span className={s.cname}>{label}</span>
             <output className={`${s.count} num`} aria-live="polite">{p[k]}</output>
-            <div className={s.step}>
-              <button type="button" className="button secondary" onClick={() => act((x) => ch.tally(x, k, -1))} aria-label={`One fewer ${label.toLowerCase()}`} disabled={!p[k]}>−</button>
-              <button type="button" className="button secondary" onClick={() => act((x) => ch.tally(x, k, 1))} aria-label={`One more ${label.toLowerCase()}`}>+</button>
-            </div>
+            {!byRoll && (
+              <div className={s.step}>
+                <button type="button" className="button secondary" onClick={() => act((x) => ch.tally(x, k, -1))} aria-label={`One fewer ${label.toLowerCase()}`} disabled={!p[k]}>−</button>
+                <button type="button" className="button secondary" onClick={() => act((x) => ch.tally(x, k, 1))} aria-label={`One more ${label.toLowerCase()}`}>+</button>
+              </div>
+            )}
           </div>
         ))}
       </div>
+      {byRoll && (
+        <ul className={s.ballots}>
+          {c.delegates.filter((d) => ch.isHere(c, d.id)).map((d) => (
+            <li key={d.id} className={s.ballot}>
+              <span className={s.cname2}><Flag name={d.name} />{d.name}</span>
+              <Seg label={`Vote of ${d.name}`} value={p.ballots?.[d.id]} className={s.ballotSeg}
+                items={[{ id: "for", label: "For" }, { id: "against", label: "Against" }, { id: "abstain", label: "Abstain" }]}
+                onPick={(b) => act((x) => ch.pollCast(x, d.id, p.ballots?.[d.id] === b ? null : (b as Ballot)))} />
+            </li>
+          ))}
+        </ul>
+      )}
       {cast > 0 && <p className={s.verdict}><strong data-pass={would}>{would ? "Would pass" : "Would fail"}</strong></p>}
       <button type="button" className="button" onClick={() => act((x) => decide(x, null, id))}>Record the Result</button>
       {overrule ? (
@@ -1094,7 +1138,8 @@ function AmendmentQueue({ c, act }: { c: Chamber; act: Act }) {
 function RollCall({ c, act }: { c: Chamber; act: Act }) {
   const n = ch.count(c);
   const t = c.tr;
-  const need = t ? Math.floor((n.yes + n.no) / 2) + 1 : ch.needed(c.delegates.length);
+  const two = !!t && c.pass === "twothirds";
+  const need = two ? Math.max(1, Math.ceil(((n.yes + n.no) * 2) / 3)) : t ? Math.floor((n.yes + n.no) / 2) + 1 : ch.needed(c.delegates.length);
   const closed = c.step === "closed" || c.step === "ended";
   return (
     <section className={`panel ${s.side}`}>
@@ -1114,11 +1159,11 @@ function RollCall({ c, act }: { c: Chamber; act: Act }) {
         { label: t ? "Neutral" : "Abstain", value: n.abstain },
         { label: "Still to Vote", value: n.left },
       ]} />
-      {t ? <p className={s.hint}>More For than Against, so {need} For at the moment. Abstentions count for neither.</p> : <p className={s.hint}>Needs at least {need} in favour</p>}
+      {two ? <p className={s.hint}>Two-thirds of the votes cast, so {need} For at the moment. Abstentions count for neither.</p> : t ? <p className={s.hint}>More For than Against, so {need} For at the moment. Abstentions count for neither.</p> : <p className={s.hint}>Needs at least {need} in favour</p>}
       <ul className={s.ballots}>
         {c.delegates.filter((d) => ch.isHere(c, d.id)).map((d) => (
           <li key={d.id} className={s.ballot}>
-            <span className={s.cname2}>{d.name}</span>
+            <span className={s.cname2}><Flag name={d.name} />{d.name}</span>
             <Seg label={`Vote of ${d.name}`} value={c.ballots[d.id]} disabled={closed} className={s.ballotSeg}
               items={[{ id: "for", label: "For" }, { id: "against", label: "Against" }, { id: "abstain", label: t ? "Neutral" : "Abstain", off: c.roll[d.id] === "voting" }]}
               onPick={(b) => act((x) => ch.cast(x, d.id, c.ballots[d.id] === b ? null : (b as Ballot)))} />
@@ -1297,6 +1342,7 @@ function Motions({ c, act }: { c: Chamber; act: Act }) {
 const DOC_RESULT = { passed: "Passed", failed: "Failed" } as const;
 function Documents({ c, act }: { c: Chamber; act: Act }) {
   const t = c.tr!;
+  const [title, setTitle] = useState("");
   return (
     <section className={`panel ${s.list}`} aria-labelledby="ch-docs">
       <div className={s.head}>
@@ -1313,15 +1359,23 @@ function Documents({ c, act }: { c: Chamber; act: Act }) {
                   ? <span className={s.chip} data-tone={d.result === "passed" ? "ok" : "bad"}>{DOC_RESULT[d.result]}</span>
                   : t.current === d.id && <span className={s.chip} data-tone="accent">Being debated</span>}
               </span>
-              <span className={s.seenTag} data-seen={d.seen}>{d.seen ? "Seen" : "Unseen"}</span>
+              {!c.style && <span className={s.seenTag} data-seen={d.seen}>{d.seen ? "Seen" : "Unseen"}</span>}
               {d.link && <a className={s.docLink} href={d.link} target="_blank" rel="noopener noreferrer">Open the document</a>}
               <span className={s.kActions}>
                 {!d.result && t.current !== d.id && <button type="button" className="button secondary sm" disabled={c.step !== "general" || !!c.speech || !!c.poll} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce</button>}
+                {c.style && !d.result && t.current !== d.id && <button type="button" className="button secondary sm" onClick={() => act((x) => ch.removeDraft(x, d.id))}>Remove</button>}
               </span>
             </li>
           ))}
         </ul>
-      ) : <p className={s.empty}>No resolutions yet. Add them in Settings.</p>}
+      ) : <p className={s.empty}>{c.style ? "No resolutions yet. Add each draft here as it is handed in." : "No resolutions yet. Add them in Settings."}</p>}
+      {c.style && (
+        <form className={s.addRow2} onSubmit={(e) => { e.preventDefault(); if (!title.trim()) return; act((x) => ch.addDraft(x, uid(), title)); setTitle(""); }}>
+          <label htmlFor="ch-doc-new" className="sr-only">Title of the Draft Resolution</label>
+          <input id="ch-doc-new" className="control" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} placeholder="Title of the draft resolution" />
+          <button type="submit" className="button secondary" disabled={!title.trim()}>Add</button>
+        </form>
+      )}
     </section>
   );
 }
@@ -1403,8 +1457,8 @@ const PER_PAGE = 10;
 const FILTERS: ch.StatKind[] = ["speaker", "amender", "poi", "reply", "amendment"];
 
 /* Analytics: what each state did and for how long, to help decide awards. */
-function Analytics({ c, say }: { c: Chamber; say: (t: string) => void }) {
-  const [tab, setTab] = useState<"states" | "activity">("states");
+function Analytics({ c, say, act }: { c: Chamber; say: (t: string) => void; act: Act }) {
+  const [tab, setTab] = useState<"states" | "activity" | "scores">("states");
   const [kind, setKind] = useState<"" | ch.StatKind>("");
   const [sat, setSat] = useState(0);
   const [aat, setAat] = useState(0);
@@ -1432,8 +1486,8 @@ function Analytics({ c, say }: { c: Chamber; say: (t: string) => void }) {
         <button type="button" className={`button secondary ${s.csvBtn}`} onClick={csv} disabled={!c.stats.length}>{COPY}Copy as CSV</button>
       </div>
       <PanelTabs idPrefix="cha" label="Analytics Views" tab={tab} setTab={setTab}
-        tabs={[{ id: "states", label: "By State", icon: ICONS.chart }, { id: "activity", label: "Activity", icon: ICONS.clock }]} />
-      {tab === "states" ? (
+        tabs={[{ id: "states", label: "By State", icon: ICONS.chart }, { id: "activity", label: "Activity", icon: ICONS.clock }, { id: "scores", label: "Scores & Awards", icon: ICONS.verify }]} />
+      {tab === "scores" ? <Scores c={c} act={act} /> : tab === "states" ? (
         <div id="cha-panel-states" role="tabpanel" aria-labelledby="cha-tab-states" className={s.panelBody}>
           <div className={s.tableWrap}>
             <table className={s.aTable}>
@@ -1495,6 +1549,114 @@ function Analytics({ c, say }: { c: Chamber; say: (t: string) => void }) {
           {aPages > 1 && <Pager at={ap} pages={aPages} go={setAat} label="Activity Pages" />}
         </div>
       )}
+    </section>
+  );
+}
+
+/* The chairs' own marks for each state, out of 10 for each of four things, and the awards given at the end. Only chairs see these. */
+function Scores({ c, act }: { c: Chamber; act: Act }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const [title, setTitle] = useState(ch.AWARD_TITLES[0]);
+  const [custom, setCustom] = useState("");
+  const [who, setWho] = useState("");
+  const stats = new Map(ch.summary(c).map((r) => [r.id, r]));
+  const rows = c.delegates.map((d) => ({ d, sc: ch.scoreOf(c, d.id), st: stats.get(d.id) }))
+    .sort((a, b) => ch.scoreTotal(b.sc) - ch.scoreTotal(a.sc) || (b.st?.secs ?? 0) - (a.st?.secs ?? 0) || a.d.name.localeCompare(b.d.name));
+  const awards = c.awards ?? [];
+  const name = title === "__custom" ? custom : title;
+  return (
+    <div id="cha-panel-scores" role="tabpanel" aria-labelledby="cha-tab-scores" className={s.panelBody}>
+      <p className="muted">Mark each state out of 10 for the four things chairs look for. Only the chairs on this committee see the marks.</p>
+      <div className={s.tableWrap}>
+        <table className={s.aTable}>
+          <thead>
+            <tr><th scope="col">State</th>{ch.SCORE_KEYS.map((k) => <th key={k} scope="col">{ch.SCORE_LABEL[k]}</th>)}<th scope="col">Total</th><th scope="col">Speeches</th><th scope="col"><span className="sr-only">Mark</span></th></tr>
+          </thead>
+          <tbody>
+            {rows.map(({ d, sc, st }) => (
+              <tr key={d.id}>
+                <th scope="row"><span className={s.aName}><Flag name={d.name} />{d.name}</span>{awards.filter((a) => a.who === d.id).map((a) => <span key={a.id} className={s.pbadge}>{a.title}</span>)}</th>
+                {ch.SCORE_KEYS.map((k) => <td key={k}>{sc[k]}</td>)}
+                <td><strong>{ch.scoreTotal(sc)}</strong> / 40</td>
+                <td>{st?.speeches ?? 0}</td>
+                <td><button type="button" className="button secondary sm" aria-expanded={open === d.id} onClick={() => setOpen(open === d.id ? null : d.id)}>{open === d.id ? "Done" : "Mark"}</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {open && ch.has(c, open) && (() => {
+        const sc = ch.scoreOf(c, open);
+        return (
+          <fieldset className={`${s.procedure} ${s.scoreBox}`}>
+            <legend>Marks for {ch.nameOf(c, open)}</legend>
+            <div className={s.scoreGrid}>
+              {ch.SCORE_KEYS.map((k) => (
+                <div className="field" key={k}>
+                  <label htmlFor={`sc-${k}`}>{ch.SCORE_LABEL[k]} <span className="num">{sc[k]} / 10</span></label>
+                  <input id={`sc-${k}`} type="range" min={0} max={10} step={1} value={sc[k]} onChange={(e) => act((x) => ch.setScore(x, open, { [k]: Number(e.target.value) }), false)} />
+                </div>
+              ))}
+            </div>
+            <div className="field">
+              <label htmlFor="sc-note">Chair&rsquo;s Note</label>
+              <textarea id="sc-note" className="control" rows={2} maxLength={400} defaultValue={sc.note} key={open} onBlur={(e) => { if (e.target.value !== sc.note) act((x) => ch.setScore(x, open, { note: e.target.value }), false); }} placeholder="What stood out, for the awards discussion" />
+            </div>
+          </fieldset>
+        );
+      })()}
+      <fieldset className={s.procedure}>
+        <legend>Awards</legend>
+        {awards.length > 0 ? (
+          <ul className={s.team}>
+            {awards.map((a) => (
+              <li key={a.id}>
+                <span className={s.tname}>{a.title}</span>
+                <span className="badge accent">{ch.nameOf(c, a.who) || "A removed state"}</span>
+                <IconButton label={`Remove ${a.title}`} icon={ICONS.close} onClick={() => act((x) => ch.removeAward(x, a.id), false)} />
+              </li>
+            ))}
+          </ul>
+        ) : <p className={s.empty}>No awards yet.</p>}
+        <form className={s.awardRow} onSubmit={(e) => { e.preventDefault(); if (!name.trim() || !who) return; act((x) => ch.addAward(x, uid(), name, who)); setWho(""); setCustom(""); }}>
+          <div className="field">
+            <label htmlFor="aw-title">Award</label>
+            <Select id="aw-title" className="control" value={title} onChange={(e) => setTitle(e.target.value)}>
+              {ch.AWARD_TITLES.map((a) => <option key={a} value={a}>{a}</option>)}
+              <option value="__custom">Another award…</option>
+            </Select>
+          </div>
+          {title === "__custom" && (
+            <div className="field">
+              <label htmlFor="aw-custom">Name of the Award</label>
+              <input id="aw-custom" className="control" value={custom} onChange={(e) => setCustom(e.target.value)} maxLength={60} />
+            </div>
+          )}
+          <div className="field">
+            <label htmlFor="aw-who">Goes To</label>
+            <Select id="aw-who" className="control" value={who} onChange={(e) => setWho(e.target.value)}>
+              <option value="">Choose a state…</option>
+              {rows.map(({ d, sc }) => <option key={d.id} value={d.id}>{d.name} ({ch.scoreTotal(sc)})</option>)}
+            </Select>
+          </div>
+          <button type="submit" className="button secondary" disabled={!name.trim() || !who}>Give Award</button>
+        </form>
+      </fieldset>
+    </div>
+  );
+}
+
+/* Settings: the chime when a speaker's time is up. Kept on this device only. */
+function Sound() {
+  const [on, setOn] = useState(true);
+  useEffect(() => { setOn(soundOn()); }, []);
+  return (
+    <section className={`panel ${s.share}`} aria-labelledby="st-sound">
+      <h2 id="st-sound" className={s.h2}>Sound</h2>
+      <label className="check">
+        <input type="checkbox" checked={on} onChange={(e) => { setOn(e.target.checked); try { localStorage.setItem(SOUND_KEY, e.target.checked ? "on" : "off"); } catch { /* private window */ } if (e.target.checked) chime(true); }} />
+        <span>Play a chime on this device when a speaker&rsquo;s time is up</span>
+      </label>
     </section>
   );
 }
@@ -1826,13 +1988,23 @@ function Yours({ signedIn, mine }: { signedIn: boolean; mine: Mine[] | null }) {
   );
 }
 
+type Proc = "evatt" | "trinity" | "standard" | "custom";
+const PROC_LABEL: Record<Proc, string> = { evatt: "Evatt", trinity: "Trinity Grammar MUN", standard: "Standard", custom: "Custom" };
+const PROC_HINT: Record<Proc, string> = {
+  evatt: "UN Youth Australia\u2019s Evatt: a proposer, seconder and opposer, a caucus, then one amendment at a time.",
+  trinity: "Trinity Grammar MUN\u2019s rules: opening statements, a general speakers\u2019 list, motions, a seen and an unseen resolution.",
+  standard: "The usual rules of procedure: a general speakers\u2019 list, motions for moderated and unmoderated caucuses, draft resolutions and amendments.",
+  custom: "The Standard rules with your own choices. Every speaking time can be changed in Settings once the committee is open.",
+};
+
 function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedIn: boolean }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [resolution, setResolution] = useState("");
   const [speak, setSpeak] = useState<number | null>(120);
   const [speakOk, setSpeakOk] = useState(true);
-  const [proc, setProc] = useState<"evatt" | "trinity">("evatt");
+  const [proc, setProc] = useState<Proc>("evatt");
+  const [pass, setPass] = useState<"simple" | "twothirds">("simple");
   const [text, setText] = useState("");
   const [res, setRes] = useState(["", ""]); // the committee's resolutions: the seen one, then the unseen one
   const [mine, setMine] = useState<Mine[] | null>(null);
@@ -1855,27 +2027,48 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
       <div className={s.setupStack}>
         <PanelTabs idPrefix="cs" label="Chambers" tab={tab} setTab={setTab}
           tabs={[{ id: "start", label: "Start a Committee", icon: ICONS.manage }, { id: "join", label: "Join a Committee", icon: ICONS.share }, { id: "yours", label: "Your Committees", icon: STACK }]} />
-        {tab === "join" ? <Join signedIn={signedIn} initial={joinQ ?? ""} /> : tab === "yours" ? <Yours signedIn={signedIn} mine={mine} /> : <>
-        <form className={`panel ${s.setupCard}`} onSubmit={(e) => { e.preventDefault(); if (!ok || speak === null) return; const ids = names.map(uid); onCreate(proc === "trinity" ? ch.createTrinity(name, resolution, speak, names, ids, res.map((title, i) => ({ title, week: 1 as const, seen: i === 0 }))) : ch.create(name, resolution, speak, names, ids)); if (signedIn && supabase) void supabase.rpc("note_chamber_started", { label: name, procedure: proc === "trinity" ? "Trinity Grammar MUN" : "Evatt" }); }}>
+        {tab === "join" ? <Join signedIn={signedIn} initial={joinQ ?? ""} /> : tab === "yours" ? <Yours signedIn={signedIn} mine={mine} /> : !signedIn ? (
+          <section className={`panel ${s.setupCard}`}>
+            <div className={`${board.empty} ${s.emptyCard}`}>
+              <Gavel />
+              <p className={board.emptyTitle}>Log in to start a committee</p>
+              <p className="muted">Committees are run from a free Collex account, so yours is kept and can be shared with your co-chairs.</p>
+              <div className="btnStack">
+                <Link href="/login?next=%2Fchambers" className="button">Log In</Link>
+                <Link href="/signup" className="button secondary">Create an Account</Link>
+              </div>
+            </div>
+          </section>
+        ) : <>
+        <form className={`panel ${s.setupCard}`} onSubmit={(e) => { e.preventDefault(); if (!ok || speak === null) return; const ids = names.map(uid); onCreate(proc === "trinity" ? ch.createTrinity(name, resolution, speak, names, ids, res.map((title, i) => ({ title, week: 1 as const, seen: i === 0 }))) : proc === "standard" ? ch.createStandard(name, resolution, speak, names, ids) : proc === "custom" ? ch.createStandard(name, resolution, speak, names, ids, [], { pass }) : ch.create(name, resolution, speak, names, ids)); if (signedIn && supabase) void supabase.rpc("note_chamber_started", { label: name, procedure: PROC_LABEL[proc] }); }}>
           <div className={s.two}>
             <div className="field">
               <label htmlFor="cs-proc">Procedure</label>
-              <Select id="cs-proc" className="control" value={proc} onChange={(e) => { const v = e.target.value as "evatt" | "trinity"; setProc(v); setSpeak(v === "trinity" ? 60 : 120); setSpeakOk(true); }}>
-                <option value="evatt">Evatt</option>
-                <option value="trinity">Trinity Grammar MUN</option>
+              <Select id="cs-proc" className="control" value={proc} onChange={(e) => { const v = e.target.value as Proc; setProc(v); setSpeak(v === "evatt" ? 120 : 60); setSpeakOk(true); }}>
+                {(Object.keys(PROC_LABEL) as Proc[]).map((k) => <option key={k} value={k}>{PROC_LABEL[k]}</option>)}
               </Select>
+              <small>{PROC_HINT[proc]}</small>
             </div>
+            {proc === "custom" && (
+              <div className="field">
+                <label htmlFor="cs-pass">A Resolution Passes With</label>
+                <Select id="cs-pass" className="control" value={pass} onChange={(e) => setPass(e.target.value as "simple" | "twothirds")}>
+                  <option value="simple">More For than Against</option>
+                  <option value="twothirds">Two-thirds of the votes cast</option>
+                </Select>
+              </div>
+            )}
           </div>
           <div className={s.two}>
             <div className="field">
               <label htmlFor="cs-name">Committee</label>
-              <input id="cs-name" className="control" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required list={proc === "trinity" ? "cs-committees" : undefined} />
-              {proc === "trinity" && <datalist id="cs-committees">{["Security Council", "SPECPOL", "DISEC", "SOCHUM"].map((n) => <option key={n} value={n} />)}</datalist>}
+              <input id="cs-name" className="control" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required list={proc !== "evatt" ? "cs-committees" : undefined} />
+              {proc !== "evatt" && <datalist id="cs-committees">{["Security Council", "SPECPOL", "DISEC", "SOCHUM"].map((n) => <option key={n} value={n} />)}</datalist>}
             </div>
-            <Duration key={proc} id="cs-sp" label={proc === "trinity" ? "Time per speaker" : "Speaking time"} value={proc === "trinity" ? 60 : 120} min={5} max={3600} onChange={(v, good) => { setSpeak(v); setSpeakOk(good); }} />
+            <Duration key={proc} id="cs-sp" label={proc !== "evatt" ? "Time per speaker" : "Speaking time"} value={proc !== "evatt" ? 60 : 120} min={5} max={3600} onChange={(v, good) => { setSpeak(v); setSpeakOk(good); }} />
           </div>
           <div className="field">
-            <label htmlFor="cs-res">{proc === "trinity" ? "Topic" : "Resolution"}</label>
+            <label htmlFor="cs-res">{proc !== "evatt" ? "Topic" : "Resolution"}</label>
             <input id="cs-res" className="control" value={resolution} onChange={(e) => setResolution(e.target.value)} maxLength={160} required />
           </div>
           {proc === "trinity" && (

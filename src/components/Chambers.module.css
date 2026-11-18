@@ -574,3 +574,12 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .yourFacts { display: flex; flex-wrap: wrap; gap: 4px 0; font-size: 13px; color: var(--muted); }
 .yourFacts > span + span::before { content: "·"; margin-inline: 8px; color: var(--faint); }
 .setupCard > .emptyCard { margin-top: 0; padding-block: 36px; }
+
+/* A vote taken by placard or by roll call; the chairs' marks and awards. */
+.pollMode { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+.scoreBox { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); gap: 14px; }
+.scoreGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 14px 20px; }
+.scoreGrid label { display: flex; justify-content: space-between; gap: 10px; }
+.scoreGrid input[type="range"] { width: 100%; accent-color: var(--accent); }
+.awardRow { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; align-items: end; }
+.awardRow > :global(.button) { height: 44px; }

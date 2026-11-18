@@ -6,7 +6,7 @@ export const STEP: Record<string, string> = {
   amend: "Amendment", closing: "Closing", vote: "Vote", closed: "Result", ended: "Ended", statements: "Opening Statements", general: "General Debate",
 };
 
-export const procName = (rules?: string | null) => (rules === "trinity" ? "Trinity Grammar MUN" : "Evatt");
+export const procName = (rules?: string | null) => (rules === "custom" ? "Custom" : rules === "standard" ? "Standard" : rules === "trinity" ? "Trinity Grammar MUN" : "Evatt");
 
 export const ago = (iso: string) => {
   const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);

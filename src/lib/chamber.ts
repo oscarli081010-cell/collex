@@ -36,9 +36,10 @@ export type Stat = { at: number; who: string; kind: StatKind; secs: number; with
 export type AmendStage = "read" | "ask" | "debate" | "vote";
 /** A vote by placard: counts only. */
 /** `motion` is the Trinity motion being voted on. */
-export type Poll = { title: string; kind: "debate" | "amendment" | "motion"; yes: number; no: number; abstain: number; motion?: string };
+/** `ballots`: when the chair takes the vote by roll call, each state's answer; the three counts are then worked out from it. */
+export type Poll = { title: string; kind: "debate" | "amendment" | "motion"; yes: number; no: number; abstain: number; motion?: string; ballots?: Record<string, Ballot> };
 /** `kind` says which vote it was (whether to debate an amendment, or whether to adopt it) and `amendment` which one. */
-export type Result = { title: string; kind: "debate" | "amendment" | "motion"; amendment?: string; /** The Trinity motion a result is for. */ motion?: string; passed: boolean; yes: number; no: number; abstain: number };
+export type Result = { title: string; kind: "debate" | "amendment" | "motion"; amendment?: string; /** The Trinity motion a result is for. */ motion?: string; passed: boolean; yes: number; no: number; abstain: number; ballots?: Record<string, Ballot> };
 export type Outcome = { passed: boolean; yes: number; no: number; abstain: number; needed: number };
 export type Entry = { at: number; text: string };
 export type Step = "welcome" | "roll" | "pick" | "proposer" | "seconder" | "opposer" | "caucus" | "floor" | "amend" | "closing" | "vote" | "closed" | "ended"
@@ -77,11 +78,24 @@ export type Trin = {
 
 // Times are milliseconds. A running timer has `endsAt`; a paused one keeps what is left in `left`. The time on screen
 // is always worked out from the clock, never counted down, so a throttled background tab can't drift.
+/** A chair's marks for one state: points out of 10 for each of the four things chairs look for, and a private note. */
+export type Score = { speaking: number; diplomacy: number; knowledge: number; procedure: number; note: string };
+export type Award = { id: string; title: string; who: string };
+export const SCORE_KEYS = ["speaking", "diplomacy", "knowledge", "procedure"] as const;
+export const SCORE_LABEL: Record<(typeof SCORE_KEYS)[number], string> = { speaking: "Speaking", diplomacy: "Diplomacy", knowledge: "Knowledge", procedure: "Procedure" };
+export const AWARD_TITLES = ["Best Delegate", "Outstanding Delegate", "Honourable Mention", "Best Position Paper", "Most Improved"];
 export type Timer = { label: string; total: number; endsAt: number | null; left: number };
 
 export type Chamber = {
   v: 1;
   rules: "evatt" | "trinity";
+  /** A committee on the general rules of procedure runs on the same engine as Trinity Grammar MUN; this says which it is, for its name and its own few rules. */
+  style?: "standard" | "custom";
+  /** Custom only: what a resolution needs to pass. Without it, more For than Against. */
+  pass?: "simple" | "twothirds";
+  /** The chairs' marks for each state, and the awards they give at the end. */
+  scores?: Record<string, Score>;
+  awards?: Award[];
   /** Which shape of committee this is, so older saved ones can be brought up to date. */
   rev: 2;
   name: string;
@@ -245,6 +259,16 @@ export function createTrinity(name: string, topic: string, speakSecs: number, na
     tr: { week: 1, docs, motions: [], opened: [], cauc: null, saved: null, current: null, bonus: null, points: [], replies: [], observers: {}, rolls: {}, stash: null, reply: null, finalDone: false },
   };
 }
+
+/** A committee on the general rules of procedure: roll call, a general speakers' list, motions for moderated and unmoderated
+    caucuses, draft resolutions the chair adds as they are handed in, amendments, and a vote. `custom` lets the chair choose what a resolution needs to pass. */
+export function createStandard(name: string, topic: string, speakSecs: number, names: string[], ids: string[], resolutions: string[] = [], custom?: { pass: "simple" | "twothirds" }): Chamber {
+  const base = createTrinity(name, topic, speakSecs, names, ids);
+  const docs = resolutions.map((r) => r.trim()).filter(Boolean).map((title, i) => ({ ...agendaDoc(i, title, 1, true), id: `res${i}` }));
+  return { ...base, style: custom ? "custom" : "standard", ...(custom ? { pass: custom.pass } : {}), tr: { ...base.tr!, docs } };
+}
+/** What the committee's procedure is called. */
+export const procedureName = (c: Pick<Chamber, "rules" | "style">) => (c.style === "custom" ? "Custom" : c.style === "standard" ? "Standard" : c.rules === "trinity" ? "Trinity Grammar MUN" : "Evatt");
 
 const isTrin = (t: unknown): t is Trin => {
   const o = t as Partial<Trin> | null;
@@ -624,6 +648,26 @@ export function tally(c: Chamber, which: "yes" | "no" | "abstain", by: 1 | -1): 
   if (!c.poll) return c;
   return { ...c, poll: { ...c.poll, [which]: Math.min(c.delegates.length, Math.max(0, c.poll[which] + by)) } };
 }
+/** Take the vote in hand by roll call (or go back to counting placards). The counts follow the answers. */
+export function pollByRoll(c: Chamber, on: boolean): Chamber {
+  if (!c.poll) return c;
+  if (!on) { const { ballots: _b, ...rest } = c.poll; return { ...c, poll: rest }; }
+  return { ...c, poll: { ...c.poll, ballots: {}, yes: 0, no: 0, abstain: 0 } };
+}
+export function pollCast(c: Chamber, who: string, ballot: Ballot | null): Chamber {
+  const p = c.poll;
+  if (!p?.ballots || !has(c, who) || !isHere(c, who)) return c;
+  const ballots = { ...p.ballots };
+  if (ballot) ballots[who] = ballot; else delete ballots[who];
+  const n = (b: Ballot) => Object.entries(ballots).filter(([id, v]) => v === b && has(c, id)).length;
+  return { ...c, poll: { ...p, ballots, yes: n("for"), no: n("against"), abstain: n("abstain") } };
+}
+/** Who voted which way, for the minutes, when the vote was by roll call. */
+const rollTail = (c: Chamber, p: Poll) => {
+  if (!p.ballots) return "";
+  const names = (b: Ballot) => Object.entries(p.ballots!).filter(([id, v]) => v === b && has(c, id)).map(([id]) => nameOf(c, id)).sort().join(", ");
+  return `. By roll call. For: ${names("for") || "none"}. Against: ${names("against") || "none"}. Abstaining: ${names("abstain") || "none"}`;
+};
 // More in favour than against passes. The President may overrule the result.
 export const passes = (p: Pick<Poll, "yes" | "no">) => p.yes > p.no;
 
@@ -634,8 +678,8 @@ export function decideAsk(c: Chamber, ruling: Ruling, id: string): Chamber {
   if (c.step !== "amend" || c.amend?.id !== id || c.amend.stage !== "ask" || p?.kind !== "debate") return c;
   const yes = ruling ? ruling === "for" : passes(p);
   const overrule = ruling !== null && yes !== passes(p);
-  const result: Result = { title: p.title, kind: "debate", amendment: id, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain };
-  const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}`;
+  const result: Result = { title: p.title, kind: "debate", amendment: id, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain, ...(p.ballots ? { ballots: p.ballots } : {}) };
+  const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}${rollTail(c, p)}`;
   if (yes) return note({ ...toDebate(c, c.amendments.find((x) => x.id === id)), poll: null, result }, `Amendment to be debated (${tail})`);
   return note({ ...c, amend: { ...c.amend, stage: "vote" }, poll: poll("Adopt this amendment?", "amendment"), result }, `Not to be debated (${tail}); straight to the vote`);
 }
@@ -645,8 +689,8 @@ export function decideAmendment(c: Chamber, ruling: Ruling, id: string): Chamber
   if (c.step !== "amend" || c.amend?.id !== id || c.amend.stage !== "vote" || p?.kind !== "amendment" || !a) return c;
   const yes = ruling ? ruling === "for" : passes(p);
   const overrule = ruling !== null && yes !== passes(p);
-  const result: Result = { title: `Amendment from ${nameOf(c, a.by)}`, kind: "amendment", amendment: a.id, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain };
-  const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}`;
+  const result: Result = { title: `Amendment from ${nameOf(c, a.by)}`, kind: "amendment", amendment: a.id, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain, ...(p.ballots ? { ballots: p.ballots } : {}) };
+  const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}${rollTail(c, p)}`;
   // On to the next amendment.
   const next: Chamber = { ...setAmendment(c, a.id, yes ? "passed" : "failed"), step: "floor", amend: null, poll: null, debate: c.tr ? c.tr.saved ?? emptyDebate() : c.held ?? emptyDebate(), held: null, result, timer: null, ...(c.tr ? { tr: { ...c.tr, saved: null, cauc: null } } : {}) };
   return note(next, `Amendment from ${nameOf(c, a.by)} ${yes ? "passed" : "failed"} (${tail})`);
@@ -656,7 +700,7 @@ export function decideAmendment(c: Chamber, ruling: Ruling, id: string): Chamber
 
 // Evatt: the opening caucus, the debate on the resolution as a whole, and an amendment's debate. Trinity: the general speakers' list, a moderated caucus, the draft resolution's own list, an amendment's debate.
 export const listOpen = (c: Chamber) => c.tr
-  ? c.step === "proposer" || c.step === "seconder" || c.step === "opposer" || c.step === "floor" || (c.step === "amend" && c.amend?.stage === "debate") || (c.step === "caucus" && c.tr.cauc?.kind === "mod")
+  ? (c.step === "general" && !!c.style) || c.step === "proposer" || c.step === "seconder" || c.step === "opposer" || c.step === "floor" || (c.step === "amend" && c.amend?.stage === "debate") || (c.step === "caucus" && c.tr.cauc?.kind === "mod")
   : c.step === "floor" || c.step === "caucus" || (c.step === "amend" && c.amend?.stage === "debate");
 /** Whether the list has For and Against columns. The general list and a moderated caucus are one list of states. */
 export const sided = (c: Chamber) => !c.tr || c.step === "floor" || c.step === "amend" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer";
@@ -754,6 +798,27 @@ export function newResolution(c: Chamber, title: string): Chamber {
   }, `Next resolution: ${t}`);
 }
 
+/* The chairs' marks and awards */
+const clampScore = (n: number) => Math.min(10, Math.max(0, Math.round(n)));
+export const emptyScore = (): Score => ({ speaking: 0, diplomacy: 0, knowledge: 0, procedure: 0, note: "" });
+export const scoreOf = (c: Chamber, who: string): Score => c.scores?.[who] ?? emptyScore();
+export const scoreTotal = (sc: Score) => SCORE_KEYS.reduce((n, k) => n + sc[k], 0);
+export function setScore(c: Chamber, who: string, patch: Partial<Score>): Chamber {
+  if (!has(c, who)) return c;
+  const cur = scoreOf(c, who);
+  const next: Score = { ...cur, ...patch, note: (patch.note ?? cur.note).slice(0, 400) };
+  for (const k of SCORE_KEYS) next[k] = clampScore(next[k]);
+  return { ...c, scores: { ...(c.scores ?? {}), [who]: next } };
+}
+export function addAward(c: Chamber, id: string, title: string, who: string): Chamber {
+  const name = title.trim().slice(0, 60);
+  if (!name || !has(c, who) || (c.awards ?? []).length >= 40 || (c.awards ?? []).some((a) => a.id === id)) return c;
+  return note({ ...c, awards: [...(c.awards ?? []), { id, title: name, who }] }, `Award: ${name} to ${nameOf(c, who)}`);
+}
+export function removeAward(c: Chamber, id: string): Chamber {
+  return { ...c, awards: (c.awards ?? []).filter((a) => a.id !== id) };
+}
+
 /* Timer */
 
 /** In a moderated caucus (and an amendment's debate) every speech is taken out of the whole caucus's time: its clock runs when a speaker's does. */
@@ -832,7 +897,8 @@ export function rooms(c: Chamber): { negotiation: boolean; amendments: boolean; 
 /* Where the council is: three parts, each with a step inside it (Trinity has four) */
 export const STAGES = ["Opening", "Debate", "Closing"] as const;
 export const TRINITY_STAGES = ["Opening", "Resolutions", "Debate", "Closing"] as const;
-export const stagesOf = (c: Chamber): readonly string[] => (c.tr ? TRINITY_STAGES : STAGES);
+export const STANDARD_STAGES = ["Opening", "General Debate", "Resolution", "Closing"] as const;
+export const stagesOf = (c: Chamber): readonly string[] => (c.style ? STANDARD_STAGES : c.tr ? TRINITY_STAGES : STAGES);
 export function stageIndex(c: Chamber): number {
   if (c.tr) {
     switch (c.step) {
@@ -864,7 +930,7 @@ export function substep(c: Chamber): string {
     case "closing": return c.tr ? "Closing" : "Closing Speeches";
     case "vote": return "Roll Call Vote";
     case "statements": return "Opening Statements";
-    case "general": return "Choosing a Resolution";
+    case "general": return c.style ? "General Speakers\u2019 List" : "Choosing a Resolution";
     case "ended": return "Ended";
     default: return "Result";
   }
@@ -876,11 +942,23 @@ export function substep(c: Chamber): string {
 function finishTrinityVote(c: Chamber, n: { yes: number; no: number; abstain: number }): Chamber {
   const t = c.tr!;
   const cast = n.yes + n.no;
-  const need = Math.floor(cast / 2) + 1;
-  const passed = n.yes > n.no;
+  const two = c.pass === "twothirds";
+  const need = two ? Math.max(1, Math.ceil((cast * 2) / 3)) : Math.floor(cast / 2) + 1;
+  const passed = two ? n.yes >= need : n.yes > n.no;
   const outcome: Outcome = { passed, yes: n.yes, no: n.no, abstain: n.abstain, needed: need };
   const docs = t.docs.map((d) => (d.id === t.current ? { ...d, result: (passed ? "passed" : "failed") as Doc["result"] } : d));
-    return note({ ...c, step: "closed", outcome, tr: { ...t, docs } }, `${resNoun(c)} ${passed ? "approved" : "not approved"}: ${n.yes} for, ${n.no} against, ${n.abstain} abstaining`);
+    return note({ ...c, step: "closed", outcome, tr: { ...t, docs } }, `${resNoun(c)} ${passed ? "approved" : "not approved"}: ${n.yes} for, ${n.no} against, ${n.abstain} abstaining${two && !passed ? `, ${need} needed` : ""}`);
+}
+/** Standard and Custom: the chair adds a draft resolution as it is handed in, and takes away one not yet debated. */
+export function addDraft(c: Chamber, id: string, title: string): Chamber {
+  const name = title.trim().slice(0, 160);
+  if (!c.tr || !c.style || !name || c.tr.docs.length >= 30 || c.tr.docs.some((d) => d.id === id)) return c;
+  return note({ ...c, tr: { ...c.tr, docs: [...c.tr.docs, { ...agendaDoc(c.tr.docs.length, name, 1, true), id, at: now() }] } }, `Resolution added: ${name}`);
+}
+export function removeDraft(c: Chamber, id: string): Chamber {
+  const d = docOf(c, id);
+  if (!c.tr || !c.style || !d || d.result || c.tr.current === id) return c;
+  return note({ ...c, tr: { ...c.tr, docs: c.tr.docs.filter((x) => x.id !== id) } }, `Resolution removed: ${d.title}`);
 }
 
 /* Documents */
@@ -1039,7 +1117,7 @@ export const motionKinds = (c: Chamber): MotionKind[] => {
   return ["mod", "unmod", "extend", "closemod", "close"];
 };
 /** Whether delegates can raise motions now. */
-export const motionsOpen = (c: Chamber) => !!c.tr && (c.step === "floor" || (c.step === "caucus" && c.tr.cauc?.kind !== "final") || (c.step === "amend" && c.amend?.stage === "debate"));
+export const motionsOpen = (c: Chamber) => !!c.tr && ((c.step === "general" && !!c.style) || c.step === "floor" || (c.step === "caucus" && c.tr.cauc?.kind !== "final") || (c.step === "amend" && c.amend?.stage === "debate"));
 
 export type MotionInput = { kind: MotionKind; by: string | null; topic?: string; total?: number; per?: number; ref?: string | null };
 export function motionError(c: Chamber, m: MotionInput): string | null {
@@ -1103,8 +1181,8 @@ export function decideMotion(c: Chamber, ruling: Ruling, id: string): Chamber {
   if (!c.tr || !m || p?.kind !== "motion" || p.motion !== id) return c;
   const yes = ruling ? ruling === "for" : passes(p);
   const overrule = ruling !== null && yes !== passes(p);
-  const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}`;
-  const result: Result = { title: p.title, kind: "motion", motion: id, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain };
+  const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}${rollTail(c, p)}`;
+  const result: Result = { title: p.title, kind: "motion", motion: id, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain, ...(p.ballots ? { ballots: p.ballots } : {}) };
   const closed = setMotion({ ...c, poll: null, result }, id, yes ? "passed" : "failed");
   if (!yes) return note(closed, `Motion failed (${tail}): ${p.title}`);
   const done = applyMotion(closed, m);

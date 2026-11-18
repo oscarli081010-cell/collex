@@ -436,3 +436,6 @@ p, li, dd, small, figcaption { text-wrap: pretty; }
 @media (prefers-reduced-motion: reduce) { .tip::after { translate: none; } }
 /* A longer explanation (the Verified badge): opens from the left edge and wraps. */
 .tip[data-tip-align="start"]::after { right: auto; left: 0; white-space: normal; width: max-content; max-width: 240px; line-height: 1.4; }
+
+/* A member state's flag beside its name (Chambers). */
+.flag { display: inline-block; vertical-align: -0.12em; margin-right: 0.5em; border-radius: 3px; box-shadow: 0 0 0 1px var(--line); object-fit: cover; flex: none; }

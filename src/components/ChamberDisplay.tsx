@@ -9,6 +9,7 @@ import { Mark, Wordmark } from "@/lib/brand";
 import { isId, useChamber } from "@/lib/useChamber";
 import { useAuth } from "./AuthProvider";
 import { useNow } from "./Chambers";
+import Flag from "./Flag";
 import s from "./Chambers.module.css";
 
 // What the room sees. Every screen is built the same way, top to bottom: a pill only when it says something the heading
@@ -72,7 +73,7 @@ function Screen({ pill, side, heading, pass, lines, foot, children }: {
       {text && <span className={s.dPill} data-side={side}>{text}</span>}
       {heading && (lead
         ? <h1 className={`serif ${s.dWelcome}`} data-pass={pass} style={{ "--k": fit(big, !children) } as React.CSSProperties}><span>{lead}</span><b>{big}</b></h1>
-        : <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": fit(heading, !children) } as React.CSSProperties}>{heading}</h1>)}
+        : <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": fit(heading, !children) } as React.CSSProperties}><Flag name={heading} em />{heading}</h1>)}
       {rows.length > 0 && <div className={s.dLines}>{rows.map((r, i) => <p key={i} className={s.dSub}>{r}</p>)}</div>}
       {children}
       {foot && <div className={s.dFoot}>{foot}</div>}
@@ -205,6 +206,7 @@ export default function ChamberDisplay() {
     const m = c.result?.kind === "motion" ? motionOf(c.result.motion) : undefined;
     mid = c.result?.kind === "motion"
       ? <Screen pill={m ? ch.motionPill(c, m) : ["Motion"]} heading={c.result.passed ? "Motion Passes" : "Motion Fails"} pass={c.result.passed} lines={[m ? ch.motionDetail(c, m) : c.result.title]}>{votes(c.result)}</Screen>
+      : c.style ? <Screen heading="General Speakers\u2019 List" lines={[ch.nextCandidate(c) ? `Next: ${name(ch.nextCandidate(c)!.id)}` : "The floor is open"]} />
       : <Screen heading="The Chair Is Choosing a Resolution" />;
   } else if (c.step === "caucus" && c.tr && k?.kind === "mod") {
     mid = (
@@ -302,7 +304,7 @@ export default function ChamberDisplay() {
           {c && ordered.length > 0 && (
             <>
               <span>Up next</span>
-              <ol>{ordered.map((x) => <li key={x.id} data-side={c && (ch.sided(c) || x.stance) ? x.side : undefined} data-plain={(c && !ch.sided(c) && !x.stance) || undefined}><i />{name(x.id)}{x.stance && <small>{SIDE[x.side]}</small>}</li>)}</ol>
+              <ol>{ordered.map((x) => <li key={x.id} data-side={c && (ch.sided(c) || x.stance) ? x.side : undefined} data-plain={(c && !ch.sided(c) && !x.stance) || undefined}><i /><Flag name={name(x.id)} em />{name(x.id)}{x.stance && <small>{SIDE[x.side]}</small>}</li>)}</ol>
             </>
           )}
         </div>
