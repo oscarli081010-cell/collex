@@ -28,18 +28,10 @@
 }
 .stage[data-dragging] .grip { opacity: 0; }
 
-/* What it will look like: the page's wide cover and the lists' square, side by side. */
-.previews { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
-.preview { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+/* What it will look like, centred under the photo. */
+.preview { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 0; }
 .preview figcaption { font-size: 12.5px; color: var(--muted); }
-.pageShot, .listShot { display: block; overflow: hidden; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
-.pageShot { width: 216px; aspect-ratio: 3 / 1; }
-.listShot { width: 72px; aspect-ratio: 1; }
-.pageShot img, .listShot img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.centre { margin-left: auto; }
+.shot { display: block; overflow: hidden; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+.shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
-@media (max-width: 480px) {
-  .pageShot { width: 160px; }
-  .listShot { width: 54px; }
-}
 @media (prefers-reduced-motion: reduce) { .frame, .stage:not([data-dragging]) .frame { transition: none; } }

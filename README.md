@@ -16,11 +16,11 @@ for delegates, chairs, teachers and organisers.
 - **Accounts**: follow conferences and get updates.
 - **Organiser tools**: list a conference, manage it, and register delegations.
 - **Chambers**: run a committee from one laptop under Evatt, Trinity Grammar MUN, Standard or Custom procedure: roll call,
-  speakers' list, timers, motions, amendments, votes by placard or roll call, chairs' marks and awards, and a display
+  speakers' list, timers, motions, amendments, votes by placard or roll call, chairs' marks, and a display
   for the projector. Optionally, delegates join from their own devices to ask for the floor, vote and pass notes.
 - **Applications and allocation**: delegates and chairs apply on Collex; organisers answer, allocate committees and
   countries, and email everyone at once.
-- **Live committee wall** for the secretariat, and awards published to the conference's page.
+- **Live committee wall** for the secretariat.
 - **Reminders** before key dates, **role alerts**, and a public **MUN record** for delegates who turn it on.
 - **Guides** for chairs, delegates and organisers, and an installable app that opens Chambers offline.
 - **Admin review** of listings, with a "Verified" status for confirmed conferences.

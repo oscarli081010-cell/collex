@@ -117,7 +117,7 @@ export default function UpcomingBoard({ band = false }: { band?: boolean }) {
         </div>
       )}
 
-      <div key={filterKey}>
+      <div key={filterKey} className={band ? undefined : s.flat}>
         {[...groups].map(([group, list]) => (
           <section key={group} className={s.group}>
             {/* The month heading helps on the Conferences page; on the home page each row's date says it. */}

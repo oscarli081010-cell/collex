@@ -151,33 +151,6 @@ export function ApplyOnCollex({ c }: { c: Conference }) {
   );
 }
 
-type Award = { id: string; committee: string; title: string; state: string; person: string };
-
-/* Awards the chairs published from their committees, on the conference's page. */
-export function Results({ id }: { id: string }) {
-  const [rows, setRows] = useState<Award[] | null>(null);
-  useEffect(() => {
-    if (!supabase) return;
-    supabase.from("conference_awards").select("id, committee, title, state, person").eq("conference_id", id).order("committee").order("created_at")
-      .then(({ data }) => setRows((data as Award[] | null) ?? []));
-  }, [id]);
-  if (!rows || rows.length === 0) return null;
-  return (
-    <section id="awards" className={inner.block}>
-      <h2 className={inner.h2}>Awards</h2>
-      <div className={h.awards}>
-        {rows.map((a) => (
-          <div key={a.id} className={h.award}>
-            <small>{a.committee}</small>
-            <strong>{a.title}</strong>
-            <span>{a.state}{a.person ? ` · ${a.person}` : ""}</span>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 /* On a listing Collex added: its organisers ask to take it over. An admin checks the claim. */
 export function ClaimListing({ c }: { c: Conference }) {
   const { session } = useAuth();

@@ -11,9 +11,8 @@ ok(c.step === "statements", "statements after roll: " + c.step); c = ch.endState
 c = ch.addDraft(c, "x1", "Draft 1.1"); ok(c.tr!.docs.length === 1, "draft added");
 c = ch.addDraft(c, "x2", "Draft 1.2"); c = ch.removeDraft(c, "x2"); ok(c.tr!.docs.length === 1, "draft removed");
 c = ch.introduceDraft(c, "x1"); ok(c.step === "pick", "introduced: " + c.step);
-// scores and awards
+// scores
 c = ch.setScore(c, "d0", { speaking: 8, diplomacy: 12 }); ok(ch.scoreTotal(ch.scoreOf(c, "d0")) === 18, "score clamp");
-c = ch.addAward(c, "a1", "Best Delegate", "d0"); ok(c.awards!.length === 1, "award");
 // roll-call poll
 let m = ch.createStandard("X", "T", 60, names, names.map((_, i) => `d${i}`));
 m = ch.endStatements(ch.beginDebate(ch.markAllRoll(ch.startRoll(m), "present")));

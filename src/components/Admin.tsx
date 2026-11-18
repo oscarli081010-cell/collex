@@ -25,7 +25,7 @@ import AdminChambers, { type AdminChamber } from "./AdminChambers";
 type Row = {
   id: string; slug: string; status: string; name: string; host: string; start_date: string | null; end_date: string | null;
   venue: string; level: string | null; contact: string; fee: string; overview: string; submitter_role: string;
-  delegation_url: string | null; chair_url: string | null; interest_url?: string | null; committees: { name: string; topic: string }[]; cover_path?: string | null; cover_x?: number | null; cover_y?: number | null;
+  delegation_url: string | null; chair_url: string | null; interest_url?: string | null; committees: { name: string; topic: string }[]; cover_path?: string | null; thumb_path?: string | null; thumb_x?: number | null; thumb_y?: number | null; cover_x?: number | null; cover_y?: number | null;
   review_note: string; created_at: string; verified: boolean;
 };
 type User = { id: string; email: string; full_name: string; school: string; role: string; is_admin: boolean; created_at: string };
@@ -466,6 +466,8 @@ function ReviewCard({ r, i, picked, onPick, onApprove, onReject }: { r: Row; i: 
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element -- the organiser's photo, shown so it can be checked before approving */}
       {r.cover_path && <img src={coverUrl(r.cover_path)!} alt={`Cover photo sent with ${r.name}`} className={s.reviewCover} style={{ objectPosition: coverPosition(r.cover_x, r.cover_y) ?? undefined }} />}
+      {/* eslint-disable-next-line @next/next/no-img-element -- the list photo, if one was sent */}
+      {r.thumb_path && <img src={coverUrl(r.thumb_path)!} alt={`Photo in the lists sent with ${r.name}`} className={s.reviewCover} style={{ width: 120, aspectRatio: "1", objectPosition: coverPosition(r.thumb_x, r.thumb_y) ?? undefined }} />}
       <dl className={s.facts}>
         {facts.filter(([, v]) => v).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
         {webUrl(r.delegation_url) && <div><dt>Registration</dt><dd><a className="link" href={webUrl(r.delegation_url)!} target="_blank" rel="noreferrer">Open link</a></dd></div>}

@@ -10,7 +10,10 @@ import { APP_KIND, type AppRow } from "./ConferenceHub";
 import { ICONS } from "./IconButton";
 import SearchBox from "./SearchBox";
 import Select from "./Select";
+import { Gavel } from "./Drawings";
+import bd from "./board.module.css";
 import h from "./Hub.module.css";
+import m from "./Manage.module.css";
 
 type Say = (t: string) => void;
 type Status = AppRow["status"];
@@ -124,13 +127,19 @@ export function Applications({ c, canEdit, live, say, onChanged }: { c: Conferen
   };
 
   return (
-    <section className={`panel ${h.card}`} aria-labelledby="apps-h">
-      <div className={h.head}>
-        <h2 id="apps-h" className={h.h2}>Applications{list.length > 0 && <span className={h.count}>{list.length}</span>}</h2>
-        <button type="button" className={`button ${on ? "secondary" : ""}`} onClick={toggle} disabled={busy === "toggle" || !canEdit} aria-pressed={on}>{on ? "Turn off" : "Turn on"}</button>
+    <section className={`panel ${m.card}`} aria-labelledby="apps-h">
+      <div className={m.cardTop}>
+        <div className={m.cardHead}>
+          <h2 id="apps-h" className={m.cardTitle}>Applications <span className={m.dot} data-on={on} aria-hidden="true" /><span className="sr-only" aria-live="polite">{on ? "On" : "Off"}</span></h2>
+        </div>
+        <button type="button" className={`button ${on ? "secondary" : ""} ${m.switchBtn}`} onClick={toggle} disabled={busy === "toggle" || !canEdit} aria-pressed={on}>
+          <span key={String(on)} className="t-swap">{on ? "Turn off" : "Turn on"}</span>
+        </button>
       </div>
-      <p className={h.note}>{on ? (live ? "Delegates, chairs and people for your open roles apply from your conference’s page. Each is emailed when you answer." : "People can apply once the listing is live.") : "Off. Turn this on to take applications from individual delegates and chairs on Collex, then allocate committees and countries here."}</p>
-      {rows === "error" ? <p className={h.note}>Couldn&rsquo;t load the applications. Try again in a moment.</p> : list.length === 0 ? null : (
+      {on && !live && <p className={m.note}>People can apply once the listing is live.</p>}
+      {rows === "error" ? <p className={m.note}>Couldn&rsquo;t load the applications. Try again in a moment.</p> : list.length === 0 ? (
+        <div className={`${bd.empty} ${m.empty}`}><Gavel /><p className={bd.emptyTitle}>No applications yet</p><p className="muted">{on ? "They appear here as people apply." : "Turn this on to take applications on Collex."}</p></div>
+      ) : (
         <>
           <div className={h.two}>
             <div className="field">
@@ -229,9 +238,8 @@ export function Emails({ c, canEdit, say }: { c: Conference; canEdit: boolean; s
     send(); load();
   };
   return (
-    <section className={`panel ${h.card}`} aria-labelledby="mail-h">
-      <div className={h.head}><h2 id="mail-h" className={h.h2}>Emails</h2></div>
-      <p className={h.note}>Write once and send to a whole group. Each email comes from Collex with {c.shortName}&rsquo;s name and a link to your page. Up to five a day.</p>
+    <section className={`panel ${m.card}`} aria-labelledby="mail-h">
+      <h2 id="mail-h" className={m.cardTitle}>Emails</h2>
       <div className={h.two}>
         <div className="field">
           <label htmlFor="mail-to">Send To</label>
@@ -245,7 +253,7 @@ export function Emails({ c, canEdit, say }: { c: Conference; canEdit: boolean; s
           </Select>
         </div>
       </div>
-      <div className="field"><label htmlFor="mail-sub">Subject</label><input id="mail-sub" className="control" value={subject} maxLength={120} onChange={(e) => setSubject(e.target.value)} disabled={!canEdit} /><small>It is sent as &ldquo;{c.name}: {subject || "your subject"}&rdquo;.</small></div>
+      <div className="field"><label htmlFor="mail-sub">Subject</label><input id="mail-sub" className="control" value={subject} maxLength={120} onChange={(e) => setSubject(e.target.value)} disabled={!canEdit} /></div>
       <div className="field"><label htmlFor="mail-body">Message</label><textarea id="mail-body" className="control" rows={7} value={body} maxLength={3000} onChange={(e) => setBody(e.target.value)} disabled={!canEdit} /></div>
       <button type="button" className="button" disabled={!canEdit || !ok || busy} onClick={() => void go()}>{busy ? "Sending…" : armed ? "Click Again to Send" : "Send Email"}</button>
       {sent.length > 0 && (
@@ -285,14 +293,15 @@ export function Wall({ c }: { c: Conference }) {
     return () => { live = false; clearInterval(t); clearInterval(tick); };
   }, [c.id]);
   if (rooms === null) return null;
-  const parsed = rooms.map((r) => ({ r, s: ch.normalise(r.state) }));
+  // The wall leaves out each committee's log (it can be long), so give it an empty one to read.
+  const parsed = rooms.map((r) => ({ r, s: r.state && typeof r.state === "object" ? ch.normalise({ ...(r.state as object), log: [] }) : null }));
   const board = parsed.flatMap(({ r, s }) => (s ? s.delegates.map((d) => ({ key: `${r.id}-${d.id}`, state: d.name, committee: r.committee || r.name, total: ch.scoreTotal(ch.scoreOf(s, d.id)), speeches: s.stats.filter((x) => x.who === d.id && ch.isSpeech(x.kind)).length })) : []))
     .filter((x) => x.total > 0).sort((a, b) => b.total - a.total || b.speeches - a.speeches).slice(0, 15);
   return (
-    <section className={`panel ${h.card}`} aria-labelledby="wall-h">
-      <div className={h.head}><h2 id="wall-h" className={h.h2}>Committees Live{rooms.length > 0 && <span className={h.count}>{rooms.length}</span>}</h2></div>
+    <section className={`panel ${m.card}`} aria-labelledby="wall-h">
+      <h2 id="wall-h" className={m.cardTitle}>Committees Live{rooms.length > 0 && <span className={h.count}>{rooms.length}</span>}</h2>
       {rooms.length === 0 ? (
-        <p className={h.note}>No committees are linked yet. A chair opens their committee in <Link className="link" href="/chambers">Chambers</Link>, shares it, and links it to this conference in its Settings. It then shows here while it runs, and its awards can be published to your page.</p>
+        <div className={`${bd.empty} ${m.empty}`}><Gavel /><p className={bd.emptyTitle}>No committees linked yet</p><p className="muted">Chairs link theirs in <Link className="link" href="/chambers">Chambers</Link>, under Settings.</p></div>
       ) : (
         <>
           <div className={h.wall}>
@@ -319,7 +328,7 @@ export function Wall({ c }: { c: Conference }) {
                         {r.asks > 0 && <span>{r.asks} requests waiting</span>}
                       </span>
                     </>
-                  ) : <span className={h.note}>This committee can&rsquo;t be read.</span>}
+                  ) : null}
                   <span className={h.note}>Chaired by {r.chairs.join(", ") || "nobody yet"}</span>
                 </div>
               );

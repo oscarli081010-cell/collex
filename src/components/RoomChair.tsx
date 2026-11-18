@@ -10,6 +10,7 @@ import Flag from "./Flag";
 import IconButton, { ICONS } from "./IconButton";
 import Select from "./Select";
 import s from "./Chambers.module.css";
+import mg from "./Manage.module.css";
 import r from "./Room.module.css";
 
 type Act = (fn: (x: Chamber) => Chamber, track?: boolean) => void;
@@ -102,21 +103,25 @@ export function DevicesCard({ c, cid, room, manage, say, refresh }: { c: Chamber
   const code = room?.code ?? null;
   return (
     <section className={`panel ${s.share}`} aria-labelledby="st-dev">
-      <h2 id="st-dev" className={s.h2}>Delegates&rsquo; Devices{on && room && room.seats.length > 0 && <span className={r.count}>{room.seats.length} seated</span>}</h2>
-      {!on ? (
-        <>
-          <p className="muted">Off. Most school conferences are device-free, so the committee runs from this console and the display alone. Turn this on to let delegates follow the debate, ask for the floor, vote and pass notes from their own phone or laptop.</p>
-          {manage ? <button type="button" className="button block" disabled={busy} onClick={() => void set("on")}>Let Delegates Join</button> : <p className={s.hint}>The person who shared the committee can turn this on.</p>}
-        </>
-      ) : (
+      <div className={mg.cardTop}>
+        <h2 id="st-dev" className={s.h2}>Delegates&rsquo; Devices <span className={mg.dot} data-on={on} aria-hidden="true" /><span className="sr-only" aria-live="polite">{on ? "On" : "Off"}</span>{on && room && room.seats.length > 0 && <span className={r.count}>{room.seats.length} seated</span>}</h2>
+        {manage ? (
+          <button type="button" className={`button ${on ? "secondary" : ""} ${mg.switchBtn}`} disabled={busy} aria-pressed={on} onClick={() => void set(on ? "off" : "on")}>
+            <span key={String(on)} className="t-swap">{on ? "Turn off" : "Turn on"}</span>
+          </button>
+        ) : (
+          <span className="tip" data-tip="Only the person who shared the committee can change this" tabIndex={0}>
+            <button type="button" className={`button ${on ? "secondary" : ""} ${mg.switchBtn}`} disabled aria-pressed={on}>{on ? "Turn off" : "Turn on"}</button>
+          </span>
+        )}
+      </div>
+      {on && (
         <>
           {code && <CodeBoxes code={code} label="Delegates' code" />}
-          <p className="muted">Delegates go to Chambers, choose Join, and type this code, then pick their state. They need to be logged in. This is not the chairs&rsquo; code.</p>
           <div className={s.codeActions}>
             {code && <button type="button" className="button secondary" onClick={() => copy(code, "Code copied")}>Copy Code</button>}
             {code && <button type="button" className="button secondary" onClick={() => copy(`${location.origin}/chambers/room?join=${code}`, "Link copied")}>Copy Link</button>}
             {manage && <button type="button" className="button secondary" disabled={busy} onClick={() => void set("new")}>New Code</button>}
-            {manage && <button type="button" className="button secondary" disabled={busy} onClick={() => void set("off")}>Turn Off</button>}
           </div>
           {room && room.seats.length > 0 && (
             <ul className={s.team}>

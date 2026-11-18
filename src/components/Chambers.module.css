@@ -123,6 +123,13 @@
 .ballotSeg { grid-template-columns: repeat(3, minmax(64px, auto)); }
 .rollSeg { grid-template-columns: repeat(3, auto); }
 .rollSeg button { padding: 0 12px; white-space: nowrap; }
+/* Roll call: one colour per answer, the same on the tiles, the buttons and the display. */
+.rollSeg button[aria-pressed="true"][data-v="voting"] { color: var(--ok); }
+.rollSeg button[aria-pressed="true"][data-v="present"] { color: var(--accent); }
+.rollSeg button[aria-pressed="true"][data-v="absent"] { color: var(--warn); }
+.rollSeg:has(button[aria-pressed="true"][data-v="voting"]) .segPill { background: var(--ok-soft); box-shadow: none; }
+.rollSeg:has(button[aria-pressed="true"][data-v="present"]) .segPill { background: var(--accent-soft); box-shadow: none; }
+.rollSeg:has(button[aria-pressed="true"][data-v="absent"]) .segPill { background: var(--warn-soft); box-shadow: none; }
 @media (max-width: 560px) {
   .ballotSeg, .rollSeg { width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .rollSeg { grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr) minmax(0, 1fr); }
@@ -298,6 +305,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dSeat[data-a="present"] { background: var(--accent-soft); color: var(--accent); }
 .dSeat[data-a="present"] i { background: var(--accent); }
 .dSeat[data-a="absent"] { background: var(--warn-soft); color: var(--warn); }
+.dSeat[data-a="absent"] i { background: var(--warn); }
 .dSeat em { margin-left: auto; font-style: normal; font-size: 0.7em; opacity: 0.85; }
 .dSeat small { margin-left: auto; font-size: 0.7em; opacity: 0.8; }
 .dBottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px 32px; flex-wrap: wrap; font-size: clamp(16px, 1.7vw, 24px); align-self: end; padding: 0 var(--edge) var(--edge); z-index: 2; }
@@ -361,7 +369,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .display[data-photo] {
   background:
     linear-gradient(color-mix(in srgb, var(--bg) var(--bgw), transparent), color-mix(in srgb, var(--bg) var(--bgw), transparent)),
-    var(--photo) center / cover no-repeat;
+    var(--photo) var(--photo-pos, center) / cover no-repeat;
   background-color: var(--bg);
   /* Over a photo, the quieter text is darker (or lighter, in the dark theme) and the tiles are frosted, so everything still reads. */
   --muted: color-mix(in srgb, var(--ink) 80%, transparent);
@@ -468,11 +476,14 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .stat[data-tone="bad"] b { color: var(--danger); }
 .stat[data-tone="warn"] { background: var(--warn-soft); }
 .stat[data-tone="warn"] b { color: var(--warn); }
+.stat[data-tone="accent"] { background: var(--accent-soft); }
+.stat[data-tone="accent"] b { color: var(--accent); }
 .statBar { display: flex; gap: 3px; height: 6px; border-radius: 999px; overflow: hidden; }
 .statBar i { display: block; min-width: 4px; border-radius: 999px; background: var(--line-strong); }
 .statBar i[data-tone="ok"] { background: var(--ok); }
 .statBar i[data-tone="bad"] { background: var(--danger); }
 .statBar i[data-tone="warn"] { background: var(--warn); }
+.statBar i[data-tone="accent"] { background: var(--accent); }
 
 /* Motion and document cards: a title, who is behind it, and one row of actions. */
 .queue li.card { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 10px; padding: 14px; }
@@ -575,11 +586,12 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .yourFacts > span + span::before { content: "·"; margin-inline: 8px; color: var(--faint); }
 .setupCard > .emptyCard { margin-top: 0; padding-block: 36px; }
 
-/* A vote taken by placard or by roll call; the chairs' marks and awards. */
+/* A vote taken by placard or by roll call; the chairs' marks. */
 .pollMode { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
 .scoreBox { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); gap: 14px; }
 .scoreGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 14px 20px; }
 .scoreGrid label { display: flex; justify-content: space-between; gap: 10px; }
 .scoreGrid input[type="range"] { width: 100%; accent-color: var(--accent); }
-.awardRow { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; align-items: end; }
-.awardRow > :global(.button) { height: 44px; }
+/* Under the join code boxes: the one thing people get wrong, centred, with the form's red mark. */
+.codeNote { text-align: center; }
+.req { color: var(--danger); font-weight: 600; }

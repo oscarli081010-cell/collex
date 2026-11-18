@@ -7,15 +7,17 @@ import { META_ICONS } from "./MetaIcons";
 import s from "./board.module.css";
 
 // The listing's photo, or its initials when it has none. It morphs into the conference page's cover on the way in.
+// A separate list photo (a logo, say) doesn't morph, since it isn't the photo the page opens on.
 export function Thumb({ c, size }: { c: Conference; size?: "sm" }) {
-  return (
-    <ViewTransition name={`cover-${c.slug}`} share="morph" default="none">
-      <span className={`${s.thumb} ${size === "sm" ? s.thumbSm : ""}`} aria-hidden="true">
-        {/* eslint-disable-next-line @next/next/no-img-element -- organisers' photos come straight from storage */}
-        {c.cover ? <img src={c.cover} alt="" loading="lazy" decoding="async" style={c.coverPos ? { objectPosition: c.coverPos } : undefined} /> : <span className="serif">{monogram(c)}</span>}
-      </span>
-    </ViewTransition>
+  const src = c.thumb ?? c.cover;
+  const pos = c.thumb ? c.thumbPos : c.coverPos;
+  const box = (
+    <span className={`${s.thumb} ${size === "sm" ? s.thumbSm : ""}`} aria-hidden="true">
+      {/* eslint-disable-next-line @next/next/no-img-element -- organisers' photos come straight from storage */}
+      {src ? <img src={src} alt="" loading="lazy" decoding="async" style={pos ? { objectPosition: pos } : undefined} /> : <span className="serif">{monogram(c)}</span>}
+    </span>
   );
+  return c.thumb ? box : <ViewTransition name={`cover-${c.slug}`} share="morph" default="none">{box}</ViewTransition>;
 }
 
 // A listing: the whole card opens the page; the two buttons go straight to applying (not once it has finished).

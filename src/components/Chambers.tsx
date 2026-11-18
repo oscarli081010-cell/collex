@@ -21,6 +21,7 @@ import CodeInput, { CodeBoxes } from "./CodeInput";
 import { Gavel } from "./Drawings";
 import board from "./board.module.css";
 import { STEP, ago, procName } from "@/lib/chamberLabels";
+import CoverFrame from "./CoverFrame";
 import Flag from "./Flag";
 import { useChairRoom } from "@/lib/useRoom";
 import { DevicesCard, Inbox, RoomSettings } from "./RoomChair";
@@ -288,7 +289,7 @@ export default function Chambers() {
       ) : (
         <div id="chv-panel-settings" role="tabpanel" aria-labelledby="chv-tab-settings" className={s.manage}>
           {t && !c.style && <Resolutions c={c} act={act} />}
-          {cloudId && <ConferenceLink cid={cloudId} manage={manage} awards={(c.awards ?? []).length} say={say} />}
+          {cloudId && <ConferenceLink cid={cloudId} name={c.name} manage={manage} say={say} />}
           <Times c={c} act={act} />
           <Sound />
           <Background c={c} act={act} say={say} userId={session?.user.id} />
@@ -383,8 +384,8 @@ function RollCallOpen({ c, act }: { c: Chamber; act: Act }) {
       </div>
       <Stats label="Roll Call So Far" bar items={[
         { label: "Present & Voting", value: n.voting, tone: "ok" },
-        { label: "Present", value: n.present },
-        { label: "Absent", value: n.absent, tone: "warn" as const },
+        { label: "Present", value: n.present, tone: "accent" },
+        { label: "Absent", value: n.absent, tone: "warn" },
         { label: "Not Marked Yet", value: n.unmarked },
       ]} />
       <div className={s.btnRow}>
@@ -889,7 +890,7 @@ function PollBox({ c, act }: { c: Chamber; act: Act }) {
 }
 
 /* Figures, the same everywhere: a big number over its label, and a bar of how they split. */
-type Stat = { label: string; value: number; tone?: "ok" | "bad" | "warn" };
+type Stat = { label: string; value: number; tone?: "ok" | "bad" | "warn" | "accent" };
 function Stats({ items, bar, label }: { items: Stat[]; bar?: boolean; label: string }) {
   const total = items.reduce((n, i) => n + i.value, 0);
   return (
@@ -1483,10 +1484,10 @@ function ChairTools({ c, act, now }: { c: Chamber; act: Act; now: number }) {
 }
 
 const PER_PAGE = 10;
-// The activity can be narrowed to what is worth looking at for awards; the three opening speeches and the closing ones are already in the table.
+// The activity can be narrowed to what is worth looking at when marking; the three opening speeches and the closing ones are already in the table.
 const FILTERS: ch.StatKind[] = ["speaker", "amender", "poi", "reply", "amendment"];
 
-/* Analytics: what each state did and for how long, to help decide awards. */
+/* Analytics: what each state did and for how long, to help with marking. */
 function Analytics({ c, say, act }: { c: Chamber; say: (t: string) => void; act: Act }) {
   const [tab, setTab] = useState<"states" | "activity" | "scores">("states");
   const [kind, setKind] = useState<"" | ch.StatKind>("");
@@ -1516,7 +1517,7 @@ function Analytics({ c, say, act }: { c: Chamber; say: (t: string) => void; act:
         <button type="button" className={`button secondary ${s.csvBtn}`} onClick={csv} disabled={!c.stats.length}>{COPY}Copy as CSV</button>
       </div>
       <PanelTabs idPrefix="cha" label="Analytics Views" tab={tab} setTab={setTab}
-        tabs={[{ id: "states", label: "By State", icon: ICONS.chart }, { id: "activity", label: "Activity", icon: ICONS.clock }, { id: "scores", label: "Scores & Awards", icon: ICONS.verify }]} />
+        tabs={[{ id: "states", label: "By State", icon: ICONS.chart }, { id: "activity", label: "Activity", icon: ICONS.clock }, { id: "scores", label: "Scores", icon: ICONS.verify }]} />
       {tab === "scores" ? <Scores c={c} act={act} /> : tab === "states" ? (
         <div id="cha-panel-states" role="tabpanel" aria-labelledby="cha-tab-states" className={s.panelBody}>
           <div className={s.tableWrap}>
@@ -1583,20 +1584,14 @@ function Analytics({ c, say, act }: { c: Chamber; say: (t: string) => void; act:
   );
 }
 
-/* The chairs' own marks for each state, out of 10 for each of four things, and the awards given at the end. Only chairs see these. */
+/* The chairs' own marks for each state, out of 10 for each of four things. Only chairs see these. */
 function Scores({ c, act }: { c: Chamber; act: Act }) {
   const [open, setOpen] = useState<string | null>(null);
-  const [title, setTitle] = useState(ch.AWARD_TITLES[0]);
-  const [custom, setCustom] = useState("");
-  const [who, setWho] = useState("");
   const stats = new Map(ch.summary(c).map((r) => [r.id, r]));
   const rows = c.delegates.map((d) => ({ d, sc: ch.scoreOf(c, d.id), st: stats.get(d.id) }))
     .sort((a, b) => ch.scoreTotal(b.sc) - ch.scoreTotal(a.sc) || (b.st?.secs ?? 0) - (a.st?.secs ?? 0) || a.d.name.localeCompare(b.d.name));
-  const awards = c.awards ?? [];
-  const name = title === "__custom" ? custom : title;
   return (
     <div id="cha-panel-scores" role="tabpanel" aria-labelledby="cha-tab-scores" className={s.panelBody}>
-      <p className="muted">Mark each state out of 10 for the four things chairs look for. Only the chairs on this committee see the marks.</p>
       <div className={s.tableWrap}>
         <table className={s.aTable}>
           <thead>
@@ -1605,7 +1600,7 @@ function Scores({ c, act }: { c: Chamber; act: Act }) {
           <tbody>
             {rows.map(({ d, sc, st }) => (
               <tr key={d.id}>
-                <th scope="row"><span className={s.aName}><Flag name={d.name} />{d.name}</span>{awards.filter((a) => a.who === d.id).map((a) => <span key={a.id} className={s.pbadge}>{a.title}</span>)}</th>
+                <th scope="row"><span className={s.aName}><Flag name={d.name} />{d.name}</span></th>
                 {ch.SCORE_KEYS.map((k) => <td key={k}>{sc[k]}</td>)}
                 <td><strong>{ch.scoreTotal(sc)}</strong> / 40</td>
                 <td>{st?.speeches ?? 0}</td>
@@ -1618,8 +1613,8 @@ function Scores({ c, act }: { c: Chamber; act: Act }) {
       {open && ch.has(c, open) && (() => {
         const sc = ch.scoreOf(c, open);
         return (
-          <fieldset className={`${s.procedure} ${s.scoreBox}`}>
-            <legend>Marks for {ch.nameOf(c, open)}</legend>
+          <section className={`${s.procedure} ${s.scoreBox}`} aria-labelledby="sc-h">
+            <h3 id="sc-h" className={s.h2}>Marks for {ch.nameOf(c, open)}</h3>
             <div className={s.scoreGrid}>
               {ch.SCORE_KEYS.map((k) => (
                 <div className="field" key={k}>
@@ -1630,48 +1625,11 @@ function Scores({ c, act }: { c: Chamber; act: Act }) {
             </div>
             <div className="field">
               <label htmlFor="sc-note">Chair&rsquo;s Note</label>
-              <textarea id="sc-note" className="control" rows={2} maxLength={400} defaultValue={sc.note} key={open} onBlur={(e) => { if (e.target.value !== sc.note) act((x) => ch.setScore(x, open, { note: e.target.value }), false); }} placeholder="What stood out, for the awards discussion" />
+              <textarea id="sc-note" className="control" rows={2} maxLength={400} defaultValue={sc.note} key={open} onBlur={(e) => { if (e.target.value !== sc.note) act((x) => ch.setScore(x, open, { note: e.target.value }), false); }} placeholder="What stood out" />
             </div>
-          </fieldset>
+          </section>
         );
       })()}
-      <fieldset className={s.procedure}>
-        <legend>Awards</legend>
-        {awards.length > 0 ? (
-          <ul className={s.team}>
-            {awards.map((a) => (
-              <li key={a.id}>
-                <span className={s.tname}>{a.title}</span>
-                <span className="badge accent">{ch.nameOf(c, a.who) || "A removed state"}</span>
-                <IconButton label={`Remove ${a.title}`} icon={ICONS.close} onClick={() => act((x) => ch.removeAward(x, a.id), false)} />
-              </li>
-            ))}
-          </ul>
-        ) : <p className={s.empty}>No awards yet.</p>}
-        <form className={s.awardRow} onSubmit={(e) => { e.preventDefault(); if (!name.trim() || !who) return; act((x) => ch.addAward(x, uid(), name, who)); setWho(""); setCustom(""); }}>
-          <div className="field">
-            <label htmlFor="aw-title">Award</label>
-            <Select id="aw-title" className="control" value={title} onChange={(e) => setTitle(e.target.value)}>
-              {ch.AWARD_TITLES.map((a) => <option key={a} value={a}>{a}</option>)}
-              <option value="__custom">Another award…</option>
-            </Select>
-          </div>
-          {title === "__custom" && (
-            <div className="field">
-              <label htmlFor="aw-custom">Name of the Award</label>
-              <input id="aw-custom" className="control" value={custom} onChange={(e) => setCustom(e.target.value)} maxLength={60} />
-            </div>
-          )}
-          <div className="field">
-            <label htmlFor="aw-who">Goes To</label>
-            <Select id="aw-who" className="control" value={who} onChange={(e) => setWho(e.target.value)}>
-              <option value="">Choose a state…</option>
-              {rows.map(({ d, sc }) => <option key={d.id} value={d.id}>{d.name} ({ch.scoreTotal(sc)})</option>)}
-            </Select>
-          </div>
-          <button type="submit" className="button secondary" disabled={!name.trim() || !who}>Give Award</button>
-        </form>
-      </fieldset>
     </div>
   );
 }
@@ -1736,6 +1694,15 @@ function Background({ c, act, say, userId }: { c: Chamber; act: Act; say: (t: st
   const [strength, setStrength] = useState(c.backgroundStrength);
   useEffect(() => { setStrength(c.backgroundStrength); }, [c.backgroundStrength]);
   const commit = () => { if (strength !== c.backgroundStrength) act((x) => ch.setBackgroundStrength(x, strength), false); };
+  // Framing follows the drag here at once, and reaches the committee (and the display) once the drag pauses.
+  const [at, setAt] = useState<[number, number]>(c.backgroundAt ?? [50, 50]);
+  const atKey = (c.backgroundAt ?? [50, 50]).join();
+  useEffect(() => { setAt(c.backgroundAt ?? [50, 50]); }, [atKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (at.join() === atKey) return;
+    const t = setTimeout(() => act((v) => ch.setBackgroundAt(v, at[0], at[1]), false), 250);
+    return () => clearTimeout(t);
+  }, [at]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const choose = async (file: File | undefined) => {
     if (!file) return;
@@ -1751,9 +1718,9 @@ function Background({ c, act, say, userId }: { c: Chamber; act: Act; say: (t: st
   return (
     <section className={`panel ${s.share}`} aria-labelledby="st-bg">
       <h2 id="st-bg" className={s.h2}>Display Background</h2>
-      <div className={s.bgPreview} data-empty={!c.background}>
-        {c.background ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={c.background} alt="The display background" /> : <span>No photo</span>}
-      </div>
+      {c.background ? (
+        <CoverFrame src={c.background} ratio={16 / 9} label="On the display" x={at[0]} y={at[1]} onChange={(x, y) => setAt([x, y])} />
+      ) : <div className={s.bgPreview} data-empty><span>No photo</span></div>}
       <div className={s.bgActions} data-one={!c.background}>
         <label className={`button ${s.fileBtn}`} aria-disabled={busy}>
           {busy ? "Uploading…" : c.background ? "Change photo" : "Choose a photo"}
@@ -1857,7 +1824,6 @@ function Share({ c, cloudId, manage, signedIn, meId, say, setLocal }: {
         </>
       ) : (
         <>
-          <p className="muted">Everyone here can run the console and open the display. They need to be logged in on their own device.</p>
           <ul className={s.team}>
             {(team ?? []).map((m) => {
               const r = m.role ?? (m.is_owner ? "owner" : "chair");
@@ -1891,7 +1857,6 @@ function Share({ c, cloudId, manage, signedIn, meId, say, setLocal }: {
               </>
             ) : manage ? (
               <>
-                <p className="muted">Make a code other chairs can type in to join, instead of adding them one by one.</p>
                 <button type="button" className="button" disabled={busy} onClick={() => codeDo("new")}>Make a Join Code</button>
               </>
             ) : <p className="muted">There is no join code. The person who shared it can make one.</p>}
@@ -1899,7 +1864,6 @@ function Share({ c, cloudId, manage, signedIn, meId, say, setLocal }: {
           <section className={`panel ${s.share}`} aria-labelledby="st-email">
             <h2 id="st-email" className={s.h2}>Add by Email</h2>
           {manage ? (<>
-            <p className="muted">Add a chair by the email on their Collex account. They&rsquo;re emailed a link to the committee.</p>
             <form className={s.addRow2} onSubmit={add}>
               <label htmlFor="ch-inv" className="sr-only">Email on Their Collex Account</label>
               <input id="ch-inv" type="email" className="control" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email on their Collex account" maxLength={254} />
@@ -1943,7 +1907,7 @@ function Join({ signedIn, initial }: { signedIn: boolean; initial: string }) {
               <span id="cs-join-l">Join Code</span>
               <CodeInput letters stretch initial={initial} label="Join code" errors={wrong} disabled={busy}
                 onChange={(v) => { setCode(v); if (v) setErr(""); }} onComplete={(v) => void join(v)} />
-              <small>The six characters from the chair running the committee. Chairs and delegates each have their own code.</small>
+              <small className={s.codeNote}><span className={s.req} aria-hidden="true">*</span> Chairs and delegates each have their own code.</small>
             </div>
             <button type="submit" className="button lg block" disabled={busy || code.length !== 6}>{busy ? "Joining…" : "Join Committee"}</button>
           </form>
@@ -2041,12 +2005,6 @@ function Yours({ signedIn, mine, seats }: { signedIn: boolean; mine: Mine[] | nu
 
 type Proc = "evatt" | "trinity" | "standard" | "custom";
 const PROC_LABEL: Record<Proc, string> = { evatt: "Evatt", trinity: "Trinity Grammar MUN", standard: "Standard", custom: "Custom" };
-const PROC_HINT: Record<Proc, string> = {
-  evatt: "UN Youth Australia\u2019s Evatt: a proposer, seconder and opposer, a caucus, then one amendment at a time.",
-  trinity: "Trinity Grammar MUN\u2019s rules: opening statements, a general speakers\u2019 list, motions, a seen and an unseen resolution.",
-  standard: "The usual rules of procedure: a general speakers\u2019 list, motions for moderated and unmoderated caucuses, draft resolutions and amendments.",
-  custom: "The Standard rules with your own choices. Every speaking time can be changed in Settings once the committee is open.",
-};
 
 function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber, devices: boolean) => void; signedIn: boolean }) {
   const router = useRouter();
@@ -2101,7 +2059,6 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber, devices: boolean
               <Select id="cs-proc" className="control" value={proc} onChange={(e) => { const v = e.target.value as Proc; setProc(v); setSpeak(v === "evatt" ? 120 : 60); setSpeakOk(true); }}>
                 {(Object.keys(PROC_LABEL) as Proc[]).map((k) => <option key={k} value={k}>{PROC_LABEL[k]}</option>)}
               </Select>
-              <small>{PROC_HINT[proc]}</small>
             </div>
             {proc === "custom" && (
               <div className="field">

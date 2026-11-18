@@ -1,4 +1,4 @@
-/* Applications, allocations, organisers' emails, the committee wall, awards and claims: the rows, chips and small forms they share. */
+/* Applications, allocations, organisers' emails, the committee wall and claims: the rows, chips and small forms they share. */
 .card { padding: 22px; display: flex; flex-direction: column; gap: 16px; }
 .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .h2 { font-size: 17px; font-weight: 500; }
@@ -45,11 +45,6 @@
 .board th, .board td { padding: 9px 10px; text-align: left; border-top: 1px solid var(--line); }
 .board thead th { border-top: 0; color: var(--muted); font-size: 13px; font-weight: 500; }
 .board td:last-child, .board th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
-/* Awards on a conference's page */
-.awards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 12px; }
-.award { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); display: flex; flex-direction: column; gap: 4px; }
-.award small { font-size: 12.5px; color: var(--muted); }
-.award strong { font-size: 15px; font-weight: 500; }
 @media (max-width: 640px) {
   .rows > li { flex-wrap: wrap; }
   .btns { flex: 1 1 100%; justify-content: flex-start; }

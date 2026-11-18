@@ -3,7 +3,13 @@
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; }
 .card { padding: 22px; display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: inherit; transition: border-color 150ms, translate 150ms; }
 .card:hover { border-color: var(--line-strong); translate: 0 -2px; }
+.title em { font-style: italic; color: var(--accent); }
 .title { font-size: 24px; line-height: 1.15; text-wrap: balance; }
 .lead { font-size: 14.5px; line-height: 1.5; color: var(--muted); }
 .meta { font-size: 13px; color: var(--faint); margin-top: auto; padding-top: 6px; }
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } .card:hover { translate: none; } }
+/* The line that used to sit in the band, now the page's opening line under it. */
+.intro { font-size: 17px; line-height: 1.6; color: var(--muted); max-width: 62ch; text-wrap: pretty; }
+.guide .intro { margin-bottom: 8px; }
+/* The words a guide marks as the ones not to miss, in the band's accent italic. */
+.guide em { font-style: italic; color: var(--accent); }

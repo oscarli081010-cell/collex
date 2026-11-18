@@ -8,7 +8,7 @@ import ReportProblem from "@/components/ReportProblem";
 import roleStyles from "@/components/Roles.module.css";
 import { getBySlug, getPublished } from "@/lib/data";
 import ApplyBand from "@/components/ApplyBand";
-import { ApplyOnCollex, ClaimListing, Results } from "@/components/ConferenceHub";
+import { ApplyOnCollex, ClaimListing } from "@/components/ConferenceHub";
 import ConferenceActions from "@/components/ConferenceActions";
 import ConferenceTabs from "@/components/ConferenceTabs";
 import FollowButton from "@/components/FollowButton";
@@ -253,7 +253,6 @@ export default async function ConferencePage({ params }: Props) {
               )}
             </section>
 
-            {c.id && !c.isTemplate && <Results id={c.id} />}
             {hasRoles && (
               <section id="roles" className={s.block}>
                 <h2 className={s.h2}>Get involved</h2>

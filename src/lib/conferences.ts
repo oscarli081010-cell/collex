@@ -67,6 +67,9 @@ export type Conference = {
   cover?: string | null;
   /** Which part of the cover photo shows where it is cropped, as CSS object-position ("50% 30%"). */
   coverPos?: string | null;
+  /** A separate photo for the lists (square), and where it is framed. Without one the lists use the cover. */
+  thumb?: string | null;
+  thumbPos?: string | null;
   /** ISO timestamp of the last change to the listing. */
   updatedAt?: string;
 };

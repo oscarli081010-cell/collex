@@ -15,16 +15,16 @@ const GROUPS = ["Chairs", "Delegates", "Organisers"] as const;
 export default function GuidesPage() {
   return (
     <main id="top" className="container">
-      <PageBand title="Guides" lead="Short and practical, for chairs, delegates and the people who run conferences."
-        figures={[{ label: "Guides", value: String(GUIDES.length) }]} />
+      <PageBand centre title="MUN" accent="guides" figures={[{ label: "Guides", value: String(GUIDES.length) }]} />
       <div className={s.wrap}>
+        <p className={s.intro}>Short and practical, for chairs, delegates and the people who run conferences.</p>
         {GROUPS.map((g) => (
           <section key={g} aria-labelledby={`g-${g}`}>
             <h2 id={`g-${g}`} className={s.group}>For {g}</h2>
             <div className={s.grid}>
               {GUIDES.filter((x) => x.for === g).map((x) => (
                 <Link key={x.slug} href={`/guides/${x.slug}`} className={`panel ${s.card}`}>
-                  <span className={`serif ${s.title}`}>{x.title}</span>
+                  <span className={`serif ${s.title}`}>{x.title} <em>{x.accent}</em></span>
                   <span className={s.lead}>{x.lead}</span>
                   <span className={s.meta}>{x.minutes} min read</span>
                 </Link>

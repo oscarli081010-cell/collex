@@ -28,6 +28,8 @@
 .group { margin-top: 28px; }
 .groupHead { font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 12px; }
 .list { display: flex; flex-direction: column; gap: 12px; }
+/* Without month headings (the home page), rows from different months sit the same distance apart as the rest. */
+.flat .list { gap: 28px; }
 .row {
   position: relative;
   display: grid; grid-template-columns: 80px 1fr auto; gap: 24px; align-items: center;

@@ -3,15 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import s from "./CoverFrame.module.css";
 
-// The page's cover is wide (about 3 to 1 on a laptop); the lists show a square. Both are cropped from the photo
-// around the same point, saved as two percentages like CSS object-position, so the framing chosen here is the
-// framing everywhere.
-const PAGE = 3;
+// A photo is shown cropped to one shape (a conference page's wide cover, a list's square, a committee display's
+// 16:9). Where it is cropped is saved as two percentages like CSS object-position, so the framing chosen here is
+// the framing wherever that shape shows.
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
-/** The whole photo with the part the conference page keeps lit and the rest dimmed. Drag the frame, or click
- *  where it should be, or use the arrow keys, to choose what shows. Live previews of the page and the lists below. */
-export default function CoverFrame({ src, x, y, onChange }: { src: string; x: number; y: number; onChange: (x: number, y: number) => void }) {
+/** The whole photo with the part that shows kept lit and the rest dimmed. Drag the frame, click where it should be,
+ *  or use the arrow keys. A live preview of the cropped shape sits underneath, then a button to centre it. */
+export default function CoverFrame({ src, x, y, onChange, ratio = 3, label = "On its page" }: {
+  src: string; x: number; y: number; onChange: (x: number, y: number) => void;
+  /** Width over height of the shape the photo is cropped to. */ ratio?: number; label?: string;
+}) {
+  const PAGE = ratio;
   const box = useRef<HTMLDivElement>(null);
   const [nat, setNat] = useState<{ w: number; h: number } | null>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
@@ -94,7 +97,7 @@ export default function CoverFrame({ src, x, y, onChange }: { src: string; x: nu
             style={{ left, top, width: fw, height: fh }}
             role="slider"
             tabIndex={moves ? 0 : -1}
-            aria-label="Cover photo position"
+            aria-label={`Photo position, ${label.toLowerCase()}`}
             aria-orientation={wide ? "horizontal" : "vertical"}
             aria-valuemin={0} aria-valuemax={100} aria-valuenow={at}
             aria-valuetext={moves ? `${where} of the photo` : "The whole photo shows"}
@@ -111,19 +114,12 @@ export default function CoverFrame({ src, x, y, onChange }: { src: string; x: nu
           </div>
         )}
       </div>
-      <div className={s.previews}>
-        <figure className={s.preview}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- preview */}
-          <span className={s.pageShot}><img src={src} alt="" style={{ objectPosition: pos }} /></span>
-          <figcaption>On its page</figcaption>
-        </figure>
-        <figure className={s.preview}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- preview */}
-          <span className={s.listShot}><img src={src} alt="" style={{ objectPosition: pos }} /></span>
-          <figcaption>In the lists</figcaption>
-        </figure>
-        <button type="button" className={`button secondary ${s.centre}`} disabled={x === 50 && y === 50} onClick={() => onChange(50, 50)}>Centre</button>
-      </div>
+      <figure className={s.preview}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- preview */}
+        <span className={s.shot} style={{ aspectRatio: String(ratio), width: ratio > 1.2 ? "min(100%, 320px)" : 96 }}><img src={src} alt="" style={{ objectPosition: pos }} /></span>
+        <figcaption>{label}</figcaption>
+      </figure>
+      <button type="button" className="button secondary block" disabled={x === 50 && y === 50} onClick={() => onChange(50, 50)}>Centre</button>
     </div>
   );
 }

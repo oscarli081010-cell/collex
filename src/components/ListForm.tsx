@@ -57,6 +57,59 @@ const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": 
 const COVER_MAX = 5 * 1024 * 1024;
 const GUIDE_MAX = 10 * 1024 * 1024;
 
+// A photo field: a newly picked file (uploaded on send), what the picker shows (the new one, the saved one, or
+// nothing), and where it is framed (percentages across and down; 50, 50 is the middle).
+// One photo in the form: the picker, then the framing editor, then buttons to change or remove it.
+function PhotoField({ id, label, frame, ratio, ph, error, hint }: {
+  id: string; label: string; frame: string; ratio: number; ph: ReturnType<typeof usePhoto>; error?: string; hint?: string;
+}) {
+  return (
+    <div id={`sec-${id}`} className={`field ${s.wide} ${error ? s.invalid : ""}`}>
+      <label htmlFor={`f-${id}`}>{label} <span className="muted">(optional)</span></label>
+      {ph.shown ? (
+        <CoverFrame src={ph.shown} x={ph.at[0]} y={ph.at[1]} ratio={ratio} label={frame} onChange={(x, y) => ph.setAt([x, y])} />
+      ) : (
+        <label htmlFor={`f-${id}`} className={s.coverPick}>
+          <span className={s.coverEmpty}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2.5" /><circle cx="9" cy="10" r="1.8" /><path d="M21 16l-5-5-8 8.5" /></svg>
+            Add a photo
+          </span>
+        </label>
+      )}
+      <input id={`f-${id}`} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-invalid={Boolean(error)} aria-describedby={`f-${id}-hint`} onChange={ph.pick} />
+      {error
+        ? <small key="err" id={`f-${id}-hint`} className={`t-reveal ${s.error}`}>{error}</small>
+        : !ph.shown && <small id={`f-${id}-hint`}>{hint ? `${hint} ` : ""}JPG, PNG or WebP, up to 5MB.</small>}
+      {ph.shown && (
+        <div className="btnStack">
+          <label htmlFor={`f-${id}`} className="button secondary">Change photo</label>
+          <button type="button" className="button secondary" onClick={ph.remove}>Remove photo</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function usePhoto(saved: string | null | undefined, fail: (msg: string | null) => void) {
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [removed, setRemoved] = useState(false);
+  const [at, setAt] = useState<[number, number]>([50, 50]);
+  const savedUrl = saved && !removed ? coverUrl(saved) : null;
+  const pick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    if (!COVER_TYPES[f.type]) return fail("Use a JPG, PNG or WebP photo.");
+    if (f.size > COVER_MAX) return fail("That photo is over 5 MB. Try a smaller one.");
+    fail(null);
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(f); setPreview(URL.createObjectURL(f)); setRemoved(false); setAt([50, 50]); // a new photo starts in the middle
+  };
+  const remove = () => { if (preview) URL.revokeObjectURL(preview); setFile(null); setPreview(null); setRemoved(Boolean(saved)); };
+  return { file, removed, at, setAt, savedUrl, shown: preview ?? savedUrl, pick, remove };
+}
+
 // The fields an organiser can change on their listing, read back to fill the form.
 type Editing = Record<string, string | null> & { id: string; status: string; guides: Conference["guides"]; committees: Conference["committees"] };
 const asText = (e: Editing, k: string) => (e[k] as string | null) ?? "";
@@ -77,15 +130,12 @@ export default function ListForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [firstDay, setFirstDay] = useState("");
   const [lastDay, setLastDay] = useState("");
-  // A newly picked photo (uploaded on send), and what the picker shows: the new photo, the saved one, or nothing.
-  const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(null);
-  const [coverRemoved, setCoverRemoved] = useState(false);
-  // Which part of the photo shows where it is cropped (percentages across and down; 50, 50 is the middle).
-  const [coverAt, setCoverAt] = useState<[number, number]>([50, 50]);
   // ?edit=<id> opens one of your own listings for editing instead of a blank form.
   const [editing, setEditing] = useState<Editing | null | "missing" | "viewonly">(null);
   const [editId, setEditId] = useState<string | null>(null);
+  const editRow = editing && typeof editing === "object" ? editing : null;
+  const coverPhoto = usePhoto(editRow?.cover_path, (m) => setErrors(({ cover: _, ...rest }) => (m ? { ...rest, cover: m } : rest)));
+  const thumbPhoto = usePhoto(editRow?.thumb_path, (m) => setErrors(({ thumb: _, ...rest }) => (m ? { ...rest, thumb: m } : rest)));
   const [committees, setCommittees] = useState<CommitteeRow[]>([]);
   const [secretariat, setSecretariat] = useState<SecretariatRow[]>(() => secretariatRows());
   const [roles, setRoles] = useState<RoleRow[]>([]);
@@ -120,7 +170,8 @@ export default function ListForm() {
     setKeyDates(keyDateRows(row ? (row.key_dates as unknown as { label: string; date: string | null }[] | null) ?? [] : undefined));
     setStray(strayGuides(row?.committees ?? [], row?.guides ?? []));
     const at = (k: string) => { const n = Number((row as Record<string, unknown> | null)?.[k]); return row?.[k] != null && Number.isFinite(n) ? n : 50; };
-    setCoverAt([at("cover_x"), at("cover_y")]);
+    coverPhoto.setAt([at("cover_x"), at("cover_y")]);
+    thumbPhoto.setAt([at("thumb_x"), at("thumb_y")]);
   }, [userId]);
   // Layout effect, so a form whose listing was loaded a moment ago (from the Activity page) shows it on its first paint
   // instead of a skeleton. A kept copy is used as it is when it is recent: the form never reloads over what someone has
@@ -182,14 +233,21 @@ export default function ListForm() {
       return;
     }
     setBusy(true);
-    // Upload the photo first, into this account's own folder, so the listing only ever points at a file that exists.
-    let cover: { cover_path: string | null } | null = coverRemoved ? { cover_path: null } : null;
-    if (coverFile) {
-      const path = `${session.user.id}/${crypto.randomUUID()}.${COVER_TYPES[coverFile.type]}`;
-      const { error: upError } = await supabase.storage.from("covers").upload(path, coverFile, { contentType: coverFile.type, cacheControl: "31536000" });
-      if (upError) { setBusy(false); return setErrors({ cover: "The photo didn't upload. Try again, or try a smaller one." }); }
-      cover = { cover_path: path };
-    }
+    // Upload the photos first, into this account's own folder, so the listing only ever points at files that exist.
+    const upload = async (f: File) => {
+      const path = `${session.user.id}/${crypto.randomUUID()}.${COVER_TYPES[f.type]}`;
+      const { error: upError } = await supabase!.storage.from("covers").upload(path, f, { contentType: f.type, cacheControl: "31536000" });
+      return upError ? null : path;
+    };
+    const photo = async (ph: typeof coverPhoto, key: "cover" | "thumb") => {
+      const pos = ph.file || ph.savedUrl ? { [`${key}_x`]: ph.at[0], [`${key}_y`]: ph.at[1] } : ph.removed ? { [`${key}_x`]: null, [`${key}_y`]: null } : {};
+      if (!ph.file) return { ...(ph.removed ? { [`${key}_path`]: null } : {}), ...pos };
+      const path = await upload(ph.file);
+      return path ? { [`${key}_path`]: path, ...pos } : null;
+    };
+    const cover = await photo(coverPhoto, "cover");
+    const thumb = cover && await photo(thumbPhoto, "thumb");
+    if (!cover || !thumb) { setBusy(false); return setErrors({ [cover ? "thumb" : "cover"]: "The photo didn't upload. Try again, or try a smaller one." }); }
     const guideList = toGuides(committees, stray);
     const people = toSecretariat(secretariat);
     const roleList = toRoles(roles);
@@ -210,9 +268,8 @@ export default function ListForm() {
       interest_url: v("interest_url") || null,
       overview: v("overview"),
       committees: toCommittees(committees),
-      ...cover,
-      // Saved with any photo; cleared with it.
-      ...(coverFile || savedCover ? { cover_x: coverAt[0], cover_y: coverAt[1] } : coverRemoved ? { cover_x: null, cover_y: null } : {}),
+      // Each photo with where it is framed; a removed photo clears both.
+      ...cover, ...thumb,
     };
     // .select() returns the saved row, so an edit that changed nothing (no access any more) is caught, not shown as saved.
     const { data: saved, error } = edit
@@ -240,28 +297,6 @@ export default function ListForm() {
     const { error } = await supabase!.storage.from("guides").upload(path, file, { contentType: "application/pdf", cacheControl: "31536000" });
     if (error) return { error: "The PDF didn't upload. Try again, or paste a link." };
     return { url: supabase!.storage.from("guides").getPublicUrl(path).data.publicUrl };
-  };
-
-  const savedCover = edit && !coverRemoved ? coverUrl(edit.cover_path) : null;
-  const shownCover = coverPreview ?? savedCover;
-  const pickCover = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    if (!COVER_TYPES[file.type]) return setErrors((x) => ({ ...x, cover: "Use a JPG, PNG or WebP photo." }));
-    if (file.size > COVER_MAX) return setErrors((x) => ({ ...x, cover: "That photo is over 5 MB. Try a smaller one." }));
-    setErrors(({ cover: _, ...rest }) => rest);
-    if (coverPreview) URL.revokeObjectURL(coverPreview);
-    setCoverFile(file);
-    setCoverPreview(URL.createObjectURL(file));
-    setCoverRemoved(false);
-    setCoverAt([50, 50]); // a new photo starts in the middle
-  };
-  const removeCover = () => {
-    if (coverPreview) URL.revokeObjectURL(coverPreview);
-    setCoverFile(null);
-    setCoverPreview(null);
-    setCoverRemoved(Boolean(edit?.cover_path));
   };
 
   // The headline band above every state of this page, with the state's content centred underneath.
@@ -404,29 +439,9 @@ export default function ListForm() {
           {errors.roles && <small key="err" className={`t-reveal ${s.error}`}>{errors.roles}</small>}
           <RolesEditor rows={roles} setRows={(a) => { setRoles(a); if (errors.roles) setErrors(({ roles: _, ...rest }) => rest); }} />
         </fieldset>
-        <div id="sec-cover" className={`field ${s.wide} ${errors.cover ? s.invalid : ""}`}>
-          <label htmlFor="f-cover">Cover photo <span className="muted">(optional)</span></label>
-          {shownCover ? (
-            <CoverFrame src={shownCover} x={coverAt[0]} y={coverAt[1]} onChange={(x, y) => setCoverAt([x, y])} />
-          ) : (
-            <label htmlFor="f-cover" className={s.coverPick}>
-              <span className={s.coverEmpty}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2.5" /><circle cx="9" cy="10" r="1.8" /><path d="M21 16l-5-5-8 8.5" /></svg>
-                Add a photo
-              </span>
-            </label>
-          )}
-          <input id="f-cover" type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-invalid={Boolean(errors.cover)} aria-describedby="f-cover-hint" onChange={pickCover} />
-          {errors.cover
-            ? <small key="err" id="f-cover-hint" className={`t-reveal ${s.error}`}>{errors.cover}</small>
-            : <small id="f-cover-hint">{shownCover ? "The lit part is what shows on the conference page. Drag it, click where it should go, or use the arrow keys." : "JPG, PNG or WebP, up to 5MB."}</small>}
-          {shownCover && (
-            <div className="btnStack">
-              <label htmlFor="f-cover" className="button secondary">Change photo</label>
-              <button type="button" className="button secondary" onClick={removeCover}>Remove photo</button>
-            </div>
-          )}
-        </div>
+        <PhotoField id="cover" label="Cover photo" frame="On its page" ratio={3} ph={coverPhoto} error={errors.cover} />
+        <PhotoField id="thumb" label="Photo in the lists" frame="In the lists" ratio={1} ph={thumbPhoto} error={errors.thumb}
+          hint={coverPhoto.shown ? "Leave empty to use the cover photo." : undefined} />
         <div className={`field ${s.wide}`}>
           <label className={`check ${errors.publish ? "invalid" : ""}`} style={{ marginBottom: 8 }}>
             <input type="checkbox" name="publish" aria-invalid={Boolean(errors.publish)} aria-describedby={errors.publish ? "publish-err" : undefined} onChange={() => errors.publish && setErrors(({ publish: _, ...rest }) => rest)} />

@@ -138,7 +138,7 @@ function Saved() {
     <section className={`panel ${s.card}`} style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="saved-h">
       <div>
         <h2 id="saved-h" className={s.cardTitle}>Saved</h2>
-        {saved !== null && list.length === 0 && <p className="muted">Follow a conference, or send it your interest, and it shows up here with its next key date.</p>}
+        {saved !== null && list.length === 0 && <p className="muted">Nothing saved yet.</p>}
       </div>
       {clashing.length > 0 && (
         <p className={s.clashBanner} role="status">
@@ -247,9 +247,9 @@ function ListingsLink({ userId, version, onCount }: { userId: string; version: n
       <div>
         <h2 id="listings-h" className={s.cardTitle}>Your listings</h2>
         <p className="muted">
-          {rows === null ? "Conferences you run or help run."
+          {rows === null ? "\u00a0"
             : rows.length === 0 ? "You don\u2019t run a conference yet."
-            : `You run or help run ${rows.length} ${rows.length === 1 ? "conference" : "conferences"}. Edit them, see their activity and where they stand in review.`}
+            : `You run ${rows.length} ${rows.length === 1 ? "conference" : "conferences"}.`}
         </p>
       </div>
       <Link href="/listings" className="button block">{ICONS.view}See my listings</Link>

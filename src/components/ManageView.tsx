@@ -20,6 +20,8 @@ import type { Loaded } from "./ActivityView";
 import { useToast } from "./useToast";
 import adm from "@/app/admin.module.css";
 import auth from "@/app/auth.module.css";
+import { Placard } from "./Drawings";
+import board from "./board.module.css";
 import s from "./Manage.module.css";
 
 export type Reg = {
@@ -188,7 +190,7 @@ export function ManageBody({ data, regs, onChanged, onSet }: {
             {regs === "error" ? <p className={s.note}>Couldn&rsquo;t load the registrations. Try again in a moment.</p>
               : regs === null ? <p className={s.note}>Loading…</p>
               : rows.length === 0 ? (
-                <p className={s.note}>{on ? "No registrations yet. They appear here as schools send them." : "Nothing here yet."}</p>
+                <div className={`${board.empty} ${s.empty}`}><Placard /><p className={board.emptyTitle}>No registrations yet</p><p className="muted">{on ? "They appear here as schools send them." : "Turn this on to take registrations on Collex."}</p></div>
               ) : (
                 <>
                   <div ref={tabsRef} className={`${adm.tabs} ${s.tabsFit}`} role="tablist" aria-label="Show registrations">

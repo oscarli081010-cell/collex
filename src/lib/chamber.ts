@@ -80,10 +80,8 @@ export type Trin = {
 // is always worked out from the clock, never counted down, so a throttled background tab can't drift.
 /** A chair's marks for one state: points out of 10 for each of the four things chairs look for, and a private note. */
 export type Score = { speaking: number; diplomacy: number; knowledge: number; procedure: number; note: string };
-export type Award = { id: string; title: string; who: string };
 export const SCORE_KEYS = ["speaking", "diplomacy", "knowledge", "procedure"] as const;
 export const SCORE_LABEL: Record<(typeof SCORE_KEYS)[number], string> = { speaking: "Speaking", diplomacy: "Diplomacy", knowledge: "Knowledge", procedure: "Procedure" };
-export const AWARD_TITLES = ["Best Delegate", "Outstanding Delegate", "Honourable Mention", "Best Position Paper", "Most Improved"];
 export type Timer = { label: string; total: number; endsAt: number | null; left: number };
 
 export type Chamber = {
@@ -93,9 +91,8 @@ export type Chamber = {
   style?: "standard" | "custom";
   /** Custom only: what a resolution needs to pass. Without it, more For than Against. */
   pass?: "simple" | "twothirds";
-  /** The chairs' marks for each state, and the awards they give at the end. */
+  /** The chairs' marks for each state. */
   scores?: Record<string, Score>;
-  awards?: Award[];
   /** Which shape of committee this is, so older saved ones can be brought up to date. */
   rev: 2;
   name: string;
@@ -128,6 +125,8 @@ export type Chamber = {
   background: string | null;
   /** How much of the photo shows through, 20 to 100. */
   backgroundStrength: number;
+  /** Where the photo is framed on the display, as percentages across and down. Missing means the middle. */
+  backgroundAt?: [number, number];
   log: Entry[];
   /** Only a Trinity Grammar MUN committee has this. */
   tr: Trin | null;
@@ -285,7 +284,7 @@ export function normalise(x: unknown): Chamber | null {
   const ok = (o.rules === "evatt" || (o.rules === "trinity" && isTrin(o.tr))) && o.rev === 2 && typeof o.step === "string" && o.debate && Array.isArray(o.debate.list) && Array.isArray(o.debate.run)
     && o.roll && typeof o.roll === "object" && o.roles && Array.isArray(o.closers) && Array.isArray(o.amendments) && o.ballots && typeof o.ballots === "object";
   const fixRoll = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v === "abstain" ? "present" : v])) as Record<string, Attend>;
-  if (ok) return { ...(o as Chamber), roll: fixRoll(o.roll as Record<string, string>), tr: o.rules === "trinity" ? { ...(o.tr as Trin), cauc: (o.tr as Trin).cauc ?? null, saved: (o.tr as Trin).saved ?? null, current: (o.tr as Trin).current ?? null, bonus: (o.tr as Trin).bonus ?? null, stash: (o.tr as Trin).stash ?? null, reply: (o.tr as Trin).reply ?? null, finalDone: !!(o.tr as Trin).finalDone } : null, stats: Array.isArray(o.stats) ? o.stats : [], background: validBackground(o.background) ? o.background : null, backgroundStrength: typeof o.backgroundStrength === "number" ? Math.min(100, Math.max(20, o.backgroundStrength)) : 55, amendments: (o.amendments as Amendment[]).map((a, i) => ({ ...a, at: a.at ?? i })) };
+  if (ok) return { ...(o as Chamber), roll: fixRoll(o.roll as Record<string, string>), tr: o.rules === "trinity" ? { ...(o.tr as Trin), cauc: (o.tr as Trin).cauc ?? null, saved: (o.tr as Trin).saved ?? null, current: (o.tr as Trin).current ?? null, bonus: (o.tr as Trin).bonus ?? null, stash: (o.tr as Trin).stash ?? null, reply: (o.tr as Trin).reply ?? null, finalDone: !!(o.tr as Trin).finalDone } : null, stats: Array.isArray(o.stats) ? o.stats : [], background: validBackground(o.background) ? o.background : null, backgroundStrength: typeof o.backgroundStrength === "number" ? Math.min(100, Math.max(20, o.backgroundStrength)) : 55, ...("backgroundAt" in o ? { backgroundAt: Array.isArray(o.backgroundAt) && o.backgroundAt.length === 2 && o.backgroundAt.every((n) => typeof n === "number" && n >= 0 && n <= 100) ? [o.backgroundAt[0] as number, o.backgroundAt[1] as number] as [number, number] : undefined } : {}), amendments: (o.amendments as Amendment[]).map((a, i) => ({ ...a, at: a.at ?? i })) };
   const old = o.delegates as { id: string; name: string }[];
   const resolution = String(o.topic ?? "").trim() || String(o.resolution?.title ?? "").trim();
   const fresh = create(String(o.name ?? "Committee"), resolution, Number(o.speakSecs) || 120, [], []);
@@ -309,7 +308,7 @@ export function goBack(c: Chamber, at: number): Chamber {
   if (!prev) return c;
   const stop = (t: Timer | null) => (t && t.endsAt !== null ? { ...t, endsAt: null, left: remaining(t, at) } : t);
   const tr = prev.tr ? { ...prev.tr, cauc: prev.tr.cauc ? { ...prev.tr.cauc, clock: stop(prev.tr.cauc.clock) } : prev.tr.cauc } : prev.tr;
-  return note({ ...prev, tr, timer: stop(prev.timer), background: c.background, backgroundStrength: c.backgroundStrength, hist: hist.slice(0, -1) }, "Went back one step");
+  return note({ ...prev, tr, timer: stop(prev.timer), background: c.background, backgroundStrength: c.backgroundStrength, ...(c.backgroundAt ? { backgroundAt: c.backgroundAt } : {}), hist: hist.slice(0, -1) }, "Went back one step");
 }
 
 export const note = (c: Chamber, text: string): Chamber => ({ ...c, log: [...c.log, { at: now(), text }] });
@@ -333,7 +332,11 @@ const BG_DATA = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/;
 /** Only a file in our own photos bucket or a small JPEG carried in the committee: it ends up inside a CSS url(), so nothing else gets through. */
 export const validBackground = (v: unknown): v is string => typeof v === "string" && ((v.length <= 600 && BG_URL.test(v)) || (v.length <= 700_000 && BG_DATA.test(v)));
 export function setBackground(c: Chamber, bg: string | null): Chamber {
-  return bg === null || validBackground(bg) ? { ...c, background: bg } : c;
+  return bg === null || validBackground(bg) ? { ...c, background: bg, backgroundAt: undefined } : c;
+}
+export function setBackgroundAt(c: Chamber, x: number, y: number): Chamber {
+  const k = (n: number) => Math.min(100, Math.max(0, Math.round(n)));
+  return Number.isFinite(x) && Number.isFinite(y) ? { ...c, backgroundAt: [k(x), k(y)] } : c;
 }
 export function setBackgroundStrength(c: Chamber, n: number): Chamber {
   return Number.isFinite(n) ? { ...c, backgroundStrength: Math.min(100, Math.max(20, Math.round(n))) } : c;
@@ -805,7 +808,7 @@ export function newResolution(c: Chamber, title: string): Chamber {
   }, `Next resolution: ${t}`);
 }
 
-/* The chairs' marks and awards */
+/* The chairs' marks */
 const clampScore = (n: number) => Math.min(10, Math.max(0, Math.round(n)));
 export const emptyScore = (): Score => ({ speaking: 0, diplomacy: 0, knowledge: 0, procedure: 0, note: "" });
 export const scoreOf = (c: Chamber, who: string): Score => c.scores?.[who] ?? emptyScore();
@@ -816,14 +819,6 @@ export function setScore(c: Chamber, who: string, patch: Partial<Score>): Chambe
   const next: Score = { ...cur, ...patch, note: (patch.note ?? cur.note).slice(0, 400) };
   for (const k of SCORE_KEYS) next[k] = clampScore(next[k]);
   return { ...c, scores: { ...(c.scores ?? {}), [who]: next } };
-}
-export function addAward(c: Chamber, id: string, title: string, who: string): Chamber {
-  const name = title.trim().slice(0, 60);
-  if (!name || !has(c, who) || (c.awards ?? []).length >= 40 || (c.awards ?? []).some((a) => a.id === id)) return c;
-  return note({ ...c, awards: [...(c.awards ?? []), { id, title: name, who }] }, `Award: ${name} to ${nameOf(c, who)}`);
-}
-export function removeAward(c: Chamber, id: string): Chamber {
-  return { ...c, awards: (c.awards ?? []).filter((a) => a.id !== id) };
 }
 
 /* Timer */

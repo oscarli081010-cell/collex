@@ -284,7 +284,7 @@ export default function ChamberDisplay() {
   const first = c && listed ? ch.nextCandidate(c) : null;
   const rest = c && listed ? c.debate.list.slice(0, 4) : [];
   const ordered = first ? [first, ...rest.filter((x) => x.id !== first.id)] : rest;
-  const photo = c?.background ? ({ "--photo": `url("${c.background}")`, "--bgw": `${100 - c.backgroundStrength}%` } as React.CSSProperties) : undefined;
+  const photo = c?.background ? ({ "--photo": `url("${c.background}")`, "--bgw": `${100 - c.backgroundStrength}%`, "--photo-pos": c.backgroundAt ? `${c.backgroundAt[0]}% ${c.backgroundAt[1]}%` : "center" } as React.CSSProperties) : undefined;
   const body = (
     <div className={s.display} data-photo={photo ? "" : undefined} style={photo}>
       <div className={s.dTop}>

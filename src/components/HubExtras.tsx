@@ -10,7 +10,9 @@ import { Placard } from "./Drawings";
 import PageBand from "./PageBand";
 import Select from "./Select";
 import board from "./board.module.css";
+import au from "@/app/auth.module.css";
 import h from "./Hub.module.css";
+import rs from "./Roles.module.css";
 
 type Say = (t: string) => void;
 const send = () => { supabase?.functions.invoke("mailer").catch(() => {}); };
@@ -49,13 +51,16 @@ export function RoleAlerts() {
       <p className={h.note}>Get an email when a conference starts looking for the kinds of help you choose.</p>
       {!ready ? null : !session ? <div className="btnStack one"><Link href="/login?next=%2Froles" className="button block">Log in to Set an Alert</Link></div> : (
         <>
-          <div className={h.three} role="group" aria-label="Kinds of role">
-            {ROLE_KINDS.map((k) => (
-              <label key={k.id} className="check">
-                <input type="checkbox" checked={kinds.includes(k.id)} onChange={(e) => setKinds(e.target.checked ? [...kinds, k.id] : kinds.filter((x) => x !== k.id))} />
-                <span>{k.label}</span>
-              </label>
-            ))}
+          <div className={rs.chips} role="group" aria-label="Kinds of role">
+            {ROLE_KINDS.map((k) => {
+              const on = kinds.includes(k.id);
+              return (
+                <button key={k.id} type="button" className={rs.chip} aria-pressed={on} onClick={() => setKinds(on ? kinds.filter((x) => x !== k.id) : [...kinds, k.id])}>
+                  {on && <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" /></svg>}
+                  {k.label}
+                </button>
+              );
+            })}
           </div>
           <button type="button" className="button block" disabled={busy || same} onClick={() => void save(kinds)}>{same && kinds.length ? "Alert Saved" : kinds.length ? "Save Alert" : saved?.length ? "Turn Alerts Off" : "Choose at Least One"}</button>
           {msg && <p className={h.note} role="status">{msg}</p>}
@@ -109,7 +114,7 @@ type Mine = AppRow & { conferences: { name: string; slug: string } | null };
 
 /* Account: the conferences you applied to as one person, and whether your record of them is public. */
 export function MyApplications({ userId }: { userId: string }) {
-  const { profile, refresh } = useAuth();
+  const { refresh } = useAuth();
   const [rows, setRows] = useState<Mine[] | null>(null);
   const [pub, setPub] = useState<boolean | null>(null);
   const [copied, setCopied] = useState(false);
@@ -127,11 +132,12 @@ export function MyApplications({ userId }: { userId: string }) {
   };
   const url = typeof location === "undefined" ? "" : `${location.origin}/delegates/${userId}`;
   return (
-    <section className={`panel ${h.card}`} aria-labelledby="myapps-h" style={{ marginTop: 16 }}>
-      <div className={h.head}><h2 id="myapps-h" className={h.h2}>Your Applications{rows && rows.length > 0 && <span className={h.count}>{rows.length}</span>}</h2></div>
-      {rows === null ? <p className={h.note}>Loading…</p> : rows.length === 0 ? (
-        <p className={h.note}>When you apply to a conference on Collex as a delegate or a chair, it shows here with the organisers&rsquo; answer and your allocation.</p>
-      ) : (
+    <section className={`panel ${au.card}`} aria-labelledby="myapps-h">
+      <div>
+        <h2 id="myapps-h" className={au.cardTitle}>Your applications</h2>
+        {rows !== null && rows.length === 0 && <p className="muted">Nothing applied for yet.</p>}
+      </div>
+      {rows && rows.length > 0 && (
         <ul className={h.rows}>
           {rows.map((a) => (
             <li key={a.id}>
@@ -149,7 +155,6 @@ export function MyApplications({ userId }: { userId: string }) {
           <input type="checkbox" checked={Boolean(pub)} disabled={pub === null} onChange={(e) => void toggle(e.target.checked)} />
           <span>Make my MUN record public</span>
         </label>
-        <small>A page with {profile?.full_name ? "your name" : "your name (add it in your profile)"}, your school, the conferences that accepted you and any awards published on Collex. Off unless you turn it on.</small>
       </div>
       <div className={h.btnRow}>
         <Link href={`/delegates/${userId}`} className="button secondary">See My Record</Link>
@@ -162,10 +167,9 @@ export function MyApplications({ userId }: { userId: string }) {
 type Rec = {
   name: string; school: string; public: boolean;
   conferences: { name: string; slug: string; start: string | null; kind: string; role: string; committee: string; country: string }[];
-  awards: { title: string; committee: string; state: string; conference: string; slug: string; start: string | null }[];
 };
 
-/* A delegate's record: the conferences that accepted them and the awards chairs published. Only there when its owner made it public. */
+/* A delegate's record: the conferences that accepted them. Only there when its owner made it public. */
 export function DelegateRecord({ id }: { id: string }) {
   const { ready, session } = useAuth();
   const [rec, setRec] = useState<Rec | null | "none">(null);
@@ -185,17 +189,9 @@ export function DelegateRecord({ id }: { id: string }) {
   return (
     <main id="top" className="container" style={{ paddingBottom: 72 }}>
       <PageBand title={rec.name || "A delegate"} lead={rec.school || undefined}
-        figures={[{ label: "Conferences", value: String(rec.conferences.length) }, { label: "Awards", value: String(rec.awards.length) }]} />
+        figures={[{ label: "Conferences", value: String(rec.conferences.length) }]} />
       {!rec.public && <p className={h.note} style={{ margin: "16px 0" }}>Only you can see this. Make it public from your account to share it.</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 20 }}>
-        <section className={`panel ${h.card}`} aria-labelledby="rec-a">
-          <div className={h.head}><h2 id="rec-a" className={h.h2}>Awards</h2></div>
-          {rec.awards.length === 0 ? <p className={h.note}>No awards published yet.</p> : (
-            <div className={h.awards}>
-              {rec.awards.map((a, i) => <div key={i} className={h.award}><small>{a.conference}{a.start ? ` · ${day(a.start)}` : ""}</small><strong>{a.title}</strong><span>{a.state} · {a.committee}</span></div>)}
-            </div>
-          )}
-        </section>
         <section className={`panel ${h.card}`} aria-labelledby="rec-c">
           <div className={h.head}><h2 id="rec-c" className={h.h2}>Conferences</h2></div>
           {rec.conferences.length === 0 ? <p className={h.note}>No conferences yet.</p> : (
@@ -219,67 +215,47 @@ export function DelegateRecord({ id }: { id: string }) {
 type Conf = { id: string; name: string; slug: string; committees: string[] };
 type Link_ = { conference_id: string | null; committee: string; name: string | null; slug: string | null };
 
-/* Chambers, Settings: link the committee to the conference it belongs to, so the secretariat sees it live and its awards can go on the conference's page. */
-export function ConferenceLink({ cid, manage, awards, say }: { cid: string; manage: boolean; awards: number; say: Say }) {
+/* Chambers, Settings: link the committee to the conference it belongs to, so the secretariat sees it live. */
+export function ConferenceLink({ cid, name, manage, say }: { cid: string; name: string; manage: boolean; say: Say }) {
   const [confs, setConfs] = useState<Conf[]>([]);
   const [link, setLink] = useState<Link_ | null>(null);
   const [conf, setConf] = useState("");
-  const [committee, setCommittee] = useState("");
   const [busy, setBusy] = useState(false);
   const load = () => {
     if (!supabase) return;
-    supabase.rpc("chamber_link", { cid }).then(({ data }) => { const l = data as Link_ | null; setLink(l); setConf(l?.conference_id ?? ""); setCommittee(l?.committee ?? ""); });
+    supabase.rpc("chamber_link", { cid }).then(({ data }) => { const l = data as Link_ | null; setLink(l); setConf(l?.conference_id ?? ""); });
     supabase.rpc("my_conferences").then(({ data }) => setConfs((data as Conf[] | null) ?? []));
   };
   useEffect(load, [cid]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The committee shows on the conference's Manage page under its own name, as the chairs named it.
   const save = async (to: string | null) => {
     if (!supabase) return;
     setBusy(true);
-    const { error } = await supabase.rpc("link_chamber", { cid, conf: to, committee_name: committee });
+    const { error } = await supabase.rpc("link_chamber", { cid, conf: to, committee_name: name });
     setBusy(false);
     if (error) return say(error.message);
     say(to ? "Linked to the conference" : "Link removed");
     load();
   };
-  const publish = async () => {
-    if (!supabase) return;
-    setBusy(true);
-    const { data, error } = await supabase.rpc("publish_awards", { cid });
-    setBusy(false);
-    if (error) return say(error.message);
-    say(`${data} ${data === 1 ? "award" : "awards"} published on the conference’s page`);
-  };
-  const names = confs.find((x) => x.id === conf)?.committees ?? [];
   const linked = Boolean(link?.conference_id);
+  const same = conf === (link?.conference_id ?? "") && (!linked || link?.committee === name);
   return (
     <section className={`panel ${h.card}`} aria-labelledby="cl-h">
       <div className={h.head}><h2 id="cl-h" className={h.h2}>Conference</h2></div>
-      <p className={h.note}>{linked ? <>Linked to <Link className="link" href={`/conferences/${link!.slug}`}>{link!.name}</Link>{link!.committee ? ` as ${link!.committee}` : ""}. Its secretariat sees this committee live from the listing&rsquo;s Manage page.</> : "Link this committee to the conference it is part of. Its secretariat then sees it live, and you can publish its awards to the conference’s page."}</p>
+      {linked && <p className={h.note}>Linked to <Link className="link" href={`/conferences/${link!.slug}`}>{link!.name}</Link>. Its secretariat sees this committee live.</p>}
       {manage && (confs.length === 0 && !linked ? <p className={h.note}>You can link to a conference you help run. Ask its organisers to add you to the listing.</p> : (
         <>
-          <div className={h.two}>
-            <div className="field">
-              <label htmlFor="cl-conf">Conference</label>
-              <Select id="cl-conf" className="control" value={conf} onChange={(e) => { setConf(e.target.value); setCommittee(""); }}>
-                <option value="">Not linked</option>
-                {confs.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-                {linked && !confs.some((x) => x.id === link!.conference_id) && <option value={link!.conference_id!}>{link!.name}</option>}
-              </Select>
-            </div>
-            <div className="field">
-              <label htmlFor="cl-com">Committee</label>
-              {names.length > 0 ? (
-                <Select id="cl-com" className="control" value={committee} onChange={(e) => setCommittee(e.target.value)}>
-                  <option value="">Choose…</option>
-                  {names.map((n) => <option key={n} value={n}>{n}</option>)}
-                </Select>
-              ) : <input id="cl-com" className="control" value={committee} maxLength={120} onChange={(e) => setCommittee(e.target.value)} placeholder="As it is named at the conference" disabled={!conf} />}
-            </div>
+          <div className="field">
+            <label htmlFor="cl-conf">Conference</label>
+            <Select id="cl-conf" className="control" value={conf} onChange={(e) => setConf(e.target.value)}>
+              <option value="">Not linked</option>
+              {confs.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+              {linked && !confs.some((x) => x.id === link!.conference_id) && <option value={link!.conference_id!}>{link!.name}</option>}
+            </Select>
           </div>
-          <button type="button" className="button block" disabled={busy || (conf === (link?.conference_id ?? "") && committee === (link?.committee ?? ""))} onClick={() => void save(conf || null)}>{conf ? "Save the Link" : "Remove the Link"}</button>
+          <button type="button" className="button block" disabled={busy || same} onClick={() => void save(conf || null)}>{conf ? "Save the Link" : "Remove the Link"}</button>
         </>
       ))}
-      {linked && <button type="button" className="button secondary block" disabled={busy || awards === 0} onClick={() => void publish()}>{awards ? `Publish ${awards} ${awards === 1 ? "Award" : "Awards"} to the Conference’s Page` : "Give Awards in Analytics to Publish Them"}</button>}
     </section>
   );
 }

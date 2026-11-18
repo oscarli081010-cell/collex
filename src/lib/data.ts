@@ -9,7 +9,7 @@ type Row = {
   delegation_url: string | null; chair_url: string | null; delegation_opens_at?: string | null; chair_opens_at?: string | null; interest_url?: string | null; collex_registration?: boolean;
   key_dates: Conference["keyDates"]; committees: Conference["committees"]; guides: Conference["guides"];
   secretariat: Conference["secretariat"]; roles?: Partial<Role>[] | null;
-  verified?: boolean; updated_at?: string; collex_applications?: boolean; submitted_by?: string | null; cover_path?: string | null; cover_x?: number | null; cover_y?: number | null;
+  verified?: boolean; updated_at?: string; collex_applications?: boolean; submitted_by?: string | null; cover_path?: string | null; cover_x?: number | null; cover_y?: number | null; thumb_path?: string | null; thumb_x?: number | null; thumb_y?: number | null;
 };
 
 const or = (v: string | null | undefined) => (v && v.trim() ? v : NA);
@@ -46,6 +46,8 @@ export const fromRow = (r: Row): Conference => ({
   verified: r.verified ?? false,
   cover: coverUrl(r.cover_path),
   coverPos: coverPosition(r.cover_x, r.cover_y),
+  thumb: coverUrl(r.thumb_path ?? null),
+  thumbPos: coverPosition(r.thumb_x, r.thumb_y),
   updatedAt: r.updated_at,
 });
 

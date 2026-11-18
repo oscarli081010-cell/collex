@@ -33,7 +33,7 @@ const FIELD: Record<string, string> = {
   name: "the name", short_name: "the short name", host: "the host school", start_date: "the first day", end_date: "the last day",
   venue: "the venue", level: "the level", contact: "the contact email", fee: "the delegate fee", delegates: "the delegate count",
   delegation_url: "the registration link", collex_registration: "registering on Collex", chair_url: "the chair application link", interest_url: "the interest form link",
-  overview: "the overview", committees: "the committees", guides: "the background guides", cover_path: "the cover photo", cover_x: "the cover photo position", cover_y: "the cover photo position",
+  overview: "the overview", committees: "the committees", guides: "the background guides", cover_path: "the cover photo", cover_x: "the cover photo position", thumb_path: "the photo in the lists", thumb_x: "the list photo position", thumb_y: "the list photo position", cover_y: "the cover photo position",
   key_dates: "the key dates", delegation_opens_at: "when registration opens", chair_opens_at: "when chair applications open", roles: "the help wanted", secretariat: "the secretariat", submitter_role: "the submitter's role", verified: "the Verified badge",
 };
 const fieldName = (k: string) => FIELD[k] ?? `the ${k.replaceAll("_", " ")}`;
