@@ -586,6 +586,13 @@ export function submitAmendment(c: Chamber, id: string, by: string, clause: stri
   for (const b of ids) next = record(next, b, "signatory", 0, at, by);
   return note(next, `Amendment from ${nameOf(c, by)}${a.clause ? ` (${a.clause})` : ""}, ${ids.length} signator${ids.length === 1 ? "y" : "ies"}`);
 }
+/** A state signs an amendment that is still waiting (a delegate asked to from their own device, and the chair agreed). */
+export function signAmendment(c: Chamber, id: string, who: string): Chamber {
+  const a = c.amendments.find((x) => x.id === id);
+  if (!a || a.status !== "waiting" || !has(c, who) || a.by === who || a.seconder === who || a.backers.includes(who) || observing(c, who)) return c;
+  const next = { ...c, amendments: c.amendments.map((x) => (x.id === id ? { ...x, backers: [...x.backers, who] } : x)) };
+  return note(record(next, who, "signatory", 0, now(), a.by), `${nameOf(c, who)} signed the amendment from ${nameOf(c, a.by)}`);
+}
 const setAmendment = (c: Chamber, id: string, status: Amendment["status"]): Chamber => ({ ...c, amendments: c.amendments.map((a) => (a.id === id ? { ...a, status } : a)) });
 export function withdrawAmendment(c: Chamber, id: string): Chamber {
   const a = c.amendments.find((x) => x.id === id);

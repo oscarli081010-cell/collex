@@ -22,6 +22,10 @@ import { Gavel } from "./Drawings";
 import board from "./board.module.css";
 import { STEP, ago, procName } from "@/lib/chamberLabels";
 import Flag from "./Flag";
+import { useChairRoom } from "@/lib/useRoom";
+import { DevicesCard, Inbox, RoomSettings } from "./RoomChair";
+import { FilesPanel, NotesPanel } from "./RoomParts";
+import Papers from "./Papers";
 
 const svg = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
 const MONITOR = svg(<><rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.6" /><path d="M5.5 13.5h5M8 11v2.5" /></>);
@@ -114,7 +118,11 @@ export default function Chambers() {
   const router = useRouter();
   const { c, status, owner, manage, act, setLocal } = useChamber(cloudId, { signedIn: !!session, authReady });
   const [live, setLive] = useState("");
-  const [view, setView] = useState<"manage" | "analytics" | "settings" | "share">("manage");
+  const [view, setView] = useState<"manage" | "papers" | "room" | "analytics" | "settings" | "share">("manage");
+  // Delegates' devices and papers, for a shared committee. Asked for often while devices are on; otherwise only now and then, for the papers.
+  const [devOn, setDevOn] = useState(false);
+  const rm = useChairRoom(cloudId && session && status !== "denied" && status !== "signin" ? cloudId : null, devOn);
+  useEffect(() => { setDevOn(!!rm.data?.on); }, [rm.data?.on]);
   const { say, node } = useToast();
 
   const clockRun = ch.running(c?.tr?.cauc?.clock ?? null);
@@ -189,7 +197,20 @@ export default function Chambers() {
     );
   }
   if (status === "loading" || (cloudId && !c)) return <main id="top" className="container" />;
-  if (!c) return <Setup signedIn={!!session} onCreate={(x) => { setLocal(x); say("Committee opened"); }} />;
+  if (!c) return <>
+    <Setup signedIn={!!session} onCreate={async (x, devices) => {
+      // With delegates' devices the committee has to live on Collex from the start, so it is shared straight away.
+      if (devices && supabase) {
+        const { data, error } = await supabase.rpc("create_chamber", { initial: x });
+        if (error || !data) { say(error?.message ?? "Couldn't share the committee"); setLocal(x); return; }
+        await supabase.rpc("chamber_devices", { cid: data, action: "on" });
+        router.replace(`/chambers?c=${data}`);
+        return;
+      }
+      setLocal(x); say("Committee opened");
+    }} />
+    {node}
+  </>;
 
   const display = cloudId ? `/chambers/display?c=${cloudId}` : "/chambers/display";
 
@@ -234,11 +255,12 @@ export default function Chambers() {
       <div className="sr-only" role="status" aria-live="polite">{live}</div>
 
       <PanelTabs idPrefix="chv" label="Committee" tab={view} setTab={setView}
-        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage }, { id: "analytics", label: "Analytics", icon: ICONS.chart }, { id: "share", label: "Share", icon: ICONS.share }, { id: "settings", label: status === "offline" ? "Settings (offline)" : "Settings", icon: SLIDERS }]} />
+        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage, badge: (devOn && rm.data?.asks.length) || undefined, badgeNote: "from delegates" }, { id: "papers", label: "Papers", icon: ICONS.edit, badge: rm.data?.papers.filter((x) => x.status === "submitted").length || undefined, badgeNote: "handed in" }, ...(devOn ? [{ id: "room" as const, label: "Room", icon: ICONS.view }] : []), { id: "analytics", label: "Analytics", icon: ICONS.chart }, { id: "share", label: "Share", icon: ICONS.share }, { id: "settings", label: status === "offline" ? "Settings (offline)" : "Settings", icon: SLIDERS }]} />
 
       {view === "manage" ? (
         <div id="chv-panel-manage" role="tabpanel" aria-labelledby="chv-tab-manage" className={s.manage}>
           <Rail c={c} />
+          {devOn && rm.data && <Inbox c={c} act={act} room={rm.data} say={say} refresh={rm.refresh} />}
           {c.step === "welcome" ? <Welcome c={c} act={act} />
             : c.step === "roll" ? <RollCallOpen c={c} act={act} />
             : c.step === "pick" ? (t ? <TrinityPick c={c} act={act} /> : <Pick c={c} act={act} />)
@@ -253,6 +275,25 @@ export default function Chambers() {
       ) : view === "share" ? (
         <div id="chv-panel-share" role="tabpanel" aria-labelledby="chv-tab-share" className={s.manage}>
           <Share c={c} cloudId={cloudId} manage={manage} signedIn={!!session} meId={session?.user.id} say={say} setLocal={setLocal} />
+          {cloudId && <DevicesCard c={c} cid={cloudId} room={rm.data} manage={manage} say={say} refresh={rm.refresh} />}
+        </div>
+      ) : view === "papers" ? (
+        <div id="chv-panel-papers" role="tabpanel" aria-labelledby="chv-tab-papers" className={s.manage}>
+          {cloudId && rm.data ? (
+            <Papers c={c} cid={cloudId} papers={rm.data.papers} chair seat={null} say={say} refresh={rm.refresh}
+              onIntroduce={(id, title) => { if (c.style) act((x) => ch.addDraft(x, id, title)); }} />
+          ) : (
+            <section className={`panel ${s.share}`}>
+              <h2 className={s.h2}>Papers</h2>
+              <p className="muted">{cloudId ? "Loading…" : "Working papers and draft resolutions are written together, so the committee has to be shared first. Share it from the Share tab."}</p>
+            </section>
+          )}
+        </div>
+      ) : view === "room" && cloudId && rm.data ? (
+        <div id="chv-panel-room" role="tabpanel" aria-labelledby="chv-tab-room" className={s.manage}>
+          <NotesPanel c={c} cid={cloudId} notes={rm.data.notes} me="chair" rule={rm.data.room.notes ?? "on"} say={say} onSent={rm.refresh} />
+          <RoomSettings cid={cloudId} room={rm.data} say={say} refresh={rm.refresh} />
+          <FilesPanel c={c} cid={cloudId} files={rm.data.files} userId={session?.user.id} chair say={say} onChange={rm.refresh} />
         </div>
       ) : view === "analytics" ? (
         <Analytics c={c} say={say} act={act} />
@@ -786,7 +827,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
 }
 
 // Two or three choices in one pill, with a highlight that slides to the one picked like every other tab control on the site.
-function Seg<T extends string>({ items, value, onPick, label, className, disabled }: {
+export function Seg<T extends string>({ items, value, onPick, label, className, disabled }: {
   items: { id: T; label: string; off?: boolean }[]; value: T | null | undefined; onPick: (id: T) => void; label: string; className?: string; disabled?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -1896,7 +1937,12 @@ function Join({ signedIn, initial }: { signedIn: boolean; initial: string }) {
     const { data, error } = await supabase.rpc("join_chamber", { code: typed });
     setBusy(false);
     if (error) { setErr(error.message); setWrong((n) => n + 1); return; }
-    if (!data) { setErr("No committee has that code. Check it with the chair."); setWrong((n) => n + 1); return; }
+    if (!data) {
+      // Not a chairs' code: it may be a delegates' one, which leads to choosing a state.
+      const seat = await supabase.rpc("room_peek", { code: typed });
+      if (seat.data) { router.push(`/chambers/room?join=${typed}`); return; }
+      setErr(seat.error?.message ?? "No committee has that code. Check it with the chair."); setWrong((n) => n + 1); return;
+    }
     router.push(`/chambers?c=${data}`);
   };
   return (
@@ -1908,7 +1954,7 @@ function Join({ signedIn, initial }: { signedIn: boolean; initial: string }) {
               <span id="cs-join-l">Join Code</span>
               <CodeInput letters stretch initial={initial} label="Join code" errors={wrong} disabled={busy}
                 onChange={(v) => { setCode(v); if (v) setErr(""); }} onComplete={(v) => void join(v)} />
-              <small>The six characters from the chair running the committee.</small>
+              <small>The six characters from the chair running the committee. Chairs and delegates each have their own code.</small>
             </div>
             <button type="submit" className="button lg block" disabled={busy || code.length !== 6}>{busy ? "Joining…" : "Join Committee"}</button>
           </form>
@@ -1933,7 +1979,8 @@ type Mine = {
 };
 
 /* Every committee you can open: the ones you started, and the ones shared with you. */
-function Yours({ signedIn, mine }: { signedIn: boolean; mine: Mine[] | null }) {
+type SeatRow = { id: string; name: string; topic: string; delegate: string; updated_at: string };
+function Yours({ signedIn, mine, seats }: { signedIn: boolean; mine: Mine[] | null; seats: SeatRow[] | null }) {
   const router = useRouter();
   const started = (mine ?? []).filter((m) => m.is_owner);
   const shared = (mine ?? []).filter((m) => !m.is_owner);
@@ -1983,6 +2030,21 @@ function Yours({ signedIn, mine }: { signedIn: boolean; mine: Mine[] | null }) {
       ) : (<>
         {group("cs-started", "Started by You", started, "Nothing started yet", "Share a committee from its Share tab and it appears here, so you can open it on any device.")}
         {group("cs-shared", "Shared with You", shared, "Nothing shared yet", "When a chair adds you or you join with a code, the committee appears here.")}
+        {seats && seats.length > 0 && (
+          <section className={`panel ${s.setupCard}`} aria-labelledby="cs-seats">
+            <h2 id="cs-seats" className={s.h2}>Joined as a Delegate<span className={s.count}>{seats.length}</span></h2>
+            <ul className={s.mine}>
+              {seats.map((m) => (
+                <li key={m.id}>
+                  <button type="button" className={s.yourCard} onClick={() => router.push(`/chambers/room?c=${m.id}`)}>
+                    <span className={s.yourTop}><span className={s.yourName}>{m.name}</span><span className="badge"><Flag name={m.delegate} size={16} />{m.delegate || "Delegate"}</span></span>
+                    {m.topic ? <span className={s.yourTopic}>{m.topic}</span> : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </>)}
     </div>
   );
@@ -1997,7 +2059,7 @@ const PROC_HINT: Record<Proc, string> = {
   custom: "The Standard rules with your own choices. Every speaking time can be changed in Settings once the committee is open.",
 };
 
-function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedIn: boolean }) {
+function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber, devices: boolean) => void; signedIn: boolean }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [resolution, setResolution] = useState("");
@@ -2005,6 +2067,8 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
   const [speakOk, setSpeakOk] = useState(true);
   const [proc, setProc] = useState<Proc>("evatt");
   const [pass, setPass] = useState<"simple" | "twothirds">("simple");
+  const [devices, setDevices] = useState(false);
+  const [seats, setSeats] = useState<SeatRow[] | null>(null);
   const [text, setText] = useState("");
   const [res, setRes] = useState(["", ""]); // the committee's resolutions: the seen one, then the unseen one
   const [mine, setMine] = useState<Mine[] | null>(null);
@@ -2018,6 +2082,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
     if (!signedIn || !supabase) return;
     let live = true;
     supabase.rpc("my_chambers").then(({ data }) => { if (live) setMine((data as Mine[] | null) ?? []); });
+    supabase.rpc("my_seats").then(({ data }) => { if (live) setSeats((data as SeatRow[] | null) ?? []); });
     return () => { live = false; };
   }, [signedIn]);
 
@@ -2027,7 +2092,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
       <div className={s.setupStack}>
         <PanelTabs idPrefix="cs" label="Chambers" tab={tab} setTab={setTab}
           tabs={[{ id: "start", label: "Start a Committee", icon: ICONS.manage }, { id: "join", label: "Join a Committee", icon: ICONS.share }, { id: "yours", label: "Your Committees", icon: STACK }]} />
-        {tab === "join" ? <Join signedIn={signedIn} initial={joinQ ?? ""} /> : tab === "yours" ? <Yours signedIn={signedIn} mine={mine} /> : !signedIn ? (
+        {tab === "join" ? <Join signedIn={signedIn} initial={joinQ ?? ""} /> : tab === "yours" ? <Yours signedIn={signedIn} mine={mine} seats={seats} /> : !signedIn ? (
           <section className={`panel ${s.setupCard}`}>
             <div className={`${board.empty} ${s.emptyCard}`}>
               <Gavel />
@@ -2040,7 +2105,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
             </div>
           </section>
         ) : <>
-        <form className={`panel ${s.setupCard}`} onSubmit={(e) => { e.preventDefault(); if (!ok || speak === null) return; const ids = names.map(uid); onCreate(proc === "trinity" ? ch.createTrinity(name, resolution, speak, names, ids, res.map((title, i) => ({ title, week: 1 as const, seen: i === 0 }))) : proc === "standard" ? ch.createStandard(name, resolution, speak, names, ids) : proc === "custom" ? ch.createStandard(name, resolution, speak, names, ids, [], { pass }) : ch.create(name, resolution, speak, names, ids)); if (signedIn && supabase) void supabase.rpc("note_chamber_started", { label: name, procedure: PROC_LABEL[proc] }); }}>
+        <form className={`panel ${s.setupCard}`} onSubmit={(e) => { e.preventDefault(); if (!ok || speak === null) return; const ids = names.map(uid); onCreate(proc === "trinity" ? ch.createTrinity(name, resolution, speak, names, ids, res.map((title, i) => ({ title, week: 1 as const, seen: i === 0 }))) : proc === "standard" ? ch.createStandard(name, resolution, speak, names, ids) : proc === "custom" ? ch.createStandard(name, resolution, speak, names, ids, [], { pass }) : ch.create(name, resolution, speak, names, ids), devices); if (signedIn && supabase) void supabase.rpc("note_chamber_started", { label: name, procedure: PROC_LABEL[proc] }); }}>
           <div className={s.two}>
             <div className="field">
               <label htmlFor="cs-proc">Procedure</label>
@@ -2098,6 +2163,13 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
               <option value="">Add a Group…</option>
               {GROUPS.map((g) => <option key={g.name} value={g.name}>{g.name} · {g.states.length}</option>)}
             </Select>
+          </div>
+          <div className="field">
+            <label className="check">
+              <input type="checkbox" checked={devices} onChange={(e) => setDevices(e.target.checked)} />
+              <span>Delegates join on their own devices</span>
+            </label>
+            <small>Leave this off for a device-free conference: everything runs from your console and the display. With it on, delegates get a code to follow the debate, ask for the floor, vote and pass notes from a phone or laptop. You can change it later in Share.</small>
           </div>
           <button type="submit" className="button lg block" disabled={!ok}>Open Committee</button>
         </form>
