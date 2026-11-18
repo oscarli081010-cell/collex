@@ -20,6 +20,7 @@ export const NAV_GROUPS: NavGroup[] = [
     { href: "/conferences", label: "Conferences" },
     { href: "/calendar", label: "Calendar" },
     { href: "/roles", label: "Open roles" },
+    { href: "/guides", label: "Guides" },
   ] },
   { label: "Organisers", items: [
     { href: "/list", label: "List a conference" },

@@ -1,0 +1,9 @@
+.wrap { padding-block: 28px 72px; display: flex; flex-direction: column; gap: 32px; }
+.group { font-size: 17px; font-weight: 500; margin-bottom: 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+.card { padding: 22px; display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: inherit; transition: border-color 150ms, translate 150ms; }
+.card:hover { border-color: var(--line-strong); translate: 0 -2px; }
+.title { font-size: 24px; line-height: 1.15; text-wrap: balance; }
+.lead { font-size: 14.5px; line-height: 1.5; color: var(--muted); }
+.meta { font-size: 13px; color: var(--faint); margin-top: auto; padding-top: 6px; }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } .card:hover { translate: none; } }

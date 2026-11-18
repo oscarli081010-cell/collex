@@ -28,6 +28,10 @@
 .body p + p, .body p + ul, .body ul + p { margin-top: 12px; }
 .body ul { display: flex; flex-direction: column; gap: 8px; }
 .body ul li { position: relative; padding-left: 20px; }
+.body p + ol, .body ol + p { margin-top: 12px; }
+.body ol { display: flex; flex-direction: column; gap: 10px; counter-reset: step; }
+.body ol li { position: relative; padding-left: 30px; counter-increment: step; }
+.body ol li::before { content: counter(step); position: absolute; left: 0; top: 0; color: var(--accent); font-weight: 500; font-variant-numeric: tabular-nums; }
 .body ul li::before { content: ""; position: absolute; left: 4px; top: 0.72em; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
 .body section a { color: var(--accent); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .body strong { font-weight: 600; }
