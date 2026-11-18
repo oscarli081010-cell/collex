@@ -1,12 +1,11 @@
--- Delegates on their own devices, as an option a chair turns on for a shared committee, and the papers a committee writes.
+-- Delegates on their own devices, as an option a chair turns on for a shared committee.
 -- Most school conferences are device-free, so a committee starts with this off and nothing here is used.
 --
 -- With it on, the committee has a second code, for delegates. A delegate (logged in) types it, takes their state's seat
 -- and from then on can follow the debate, ask for the floor, raise a point, propose a motion, hand in or sign an
 -- amendment, vote, pass notes and share files. None of that changes the committee itself: a delegate's request waits
 -- in the chairs' inbox and a chair accepts it, so the President's ruling stays final and only chairs write the state.
--- Chairs can read every note. Papers (working papers and draft resolutions) are written together by their sponsors,
--- handed to the chairs, and approved or sent back.
+-- Chairs can read every note.
 -- No table here has a grant: everything goes through the functions below.
 
 alter table public.chambers
@@ -68,30 +67,12 @@ create table public.chamber_files (
 );
 create index chamber_files_idx on public.chamber_files (chamber_id, created_at);
 
-create table public.chamber_papers (
-  id uuid primary key default gen_random_uuid(),
-  chamber_id uuid not null references public.chambers (id) on delete cascade,
-  created_by uuid not null references auth.users (id) on delete cascade,
-  title text not null check (char_length(title) between 2 and 160),
-  body jsonb not null default '{"pre":[],"op":[]}'::jsonb check (jsonb_typeof(body) = 'object' and pg_column_size(body) <= 65536),
-  sponsors text[] not null default '{}',
-  signatories text[] not null default '{}',
-  status text not null default 'draft' check (status in ('draft', 'submitted', 'returned', 'approved', 'introduced')),
-  number text,
-  chair_note text not null default '' check (char_length(chair_note) <= 400),
-  version integer not null default 1,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-create index chamber_papers_idx on public.chamber_papers (chamber_id, created_at);
-
 alter table public.chamber_seats enable row level security;
 alter table public.chamber_asks enable row level security;
 alter table public.chamber_votes enable row level security;
 alter table public.chamber_notes enable row level security;
 alter table public.chamber_files enable row level security;
-alter table public.chamber_papers enable row level security;
-revoke all on public.chamber_seats, public.chamber_asks, public.chamber_votes, public.chamber_notes, public.chamber_files, public.chamber_papers from anon, authenticated;
+revoke all on public.chamber_seats, public.chamber_asks, public.chamber_votes, public.chamber_notes, public.chamber_files from anon, authenticated;
 
 -- The state whose seat the caller has taken, or null.
 create function private.seat_of(cid uuid) returns text
@@ -230,8 +211,6 @@ begin
        where chamber_id = cid and (to_id = 'all' or to_id = seat or from_id = seat) order by created_at desc limit 80) n),
     'files', (select coalesce(jsonb_agg(to_jsonb(f) order by f.created_at desc), '[]'::jsonb) from
       (select id, from_id, name, path, size, created_at, user_id = me as mine from public.chamber_files where chamber_id = cid order by created_at desc limit 60) f),
-    'papers', (select coalesce(jsonb_agg(to_jsonb(p) order by p.created_at), '[]'::jsonb) from
-      (select id, title, status, number, sponsors, signatories, chair_note, version, created_at, updated_at from public.chamber_papers where chamber_id = cid) p),
     'votes', (select coalesce(jsonb_object_agg(v.key, v.ballot), '{}'::jsonb) from public.chamber_votes v where v.chamber_id = cid and v.delegate_id = seat and v.at > now() - interval '6 hours'));
 end $$;
 
@@ -253,8 +232,6 @@ begin
       (select id, from_id, to_id, body, created_at from public.chamber_notes where chamber_id = cid order by created_at desc limit 150) n),
     'files', (select coalesce(jsonb_agg(to_jsonb(f) order by f.created_at desc), '[]'::jsonb) from
       (select id, from_id, name, path, size, created_at, true as mine from public.chamber_files where chamber_id = cid order by created_at desc limit 60) f),
-    'papers', (select coalesce(jsonb_agg(to_jsonb(p) order by p.created_at), '[]'::jsonb) from
-      (select id, title, status, number, sponsors, signatories, chair_note, version, created_at, updated_at from public.chamber_papers where chamber_id = cid) p),
     'votes', (select coalesce(jsonb_agg(jsonb_build_object('key', v.key, 'delegate_id', v.delegate_id, 'ballot', v.ballot)), '[]'::jsonb)
       from public.chamber_votes v where v.chamber_id = cid and v.at > now() - interval '6 hours'));
 end $$;
@@ -322,7 +299,8 @@ begin
   if (select count(*) from public.chamber_notes where chamber_id = cid and user_id = me and created_at > now() - interval '5 minutes') >= 30 then
     raise exception 'That''s a lot of notes. Wait a few minutes.' using errcode = '54000';
   end if;
-  if chair then
+  -- A chair who has also taken a seat (to see what delegates see) writes to the chairs as that state.
+  if chair and not (seat is not null and to_whom = 'chair') then
     if to_whom <> 'all' and not private.is_delegate(cid, to_whom) then raise exception 'Choose who the note is for' using errcode = '22023'; end if;
     insert into public.chamber_notes (chamber_id, user_id, from_id, to_id, body) values (cid, me, 'chair', to_whom, clean);
   else
@@ -392,107 +370,6 @@ begin
   return f.path;
 end $$;
 
--- Papers.
-create function public.paper_create(cid uuid, paper_title text) returns uuid
-language plpgsql security definer set search_path = '' as $$
-declare me uuid := (select auth.uid()); seat text := private.seat_of(cid); chair boolean := private.in_chamber(cid); new_id uuid;
-begin
-  if not chair and seat is null then raise exception 'You don''t have a seat in this committee' using errcode = '42501'; end if;
-  if (select count(*) from public.chamber_papers where chamber_id = cid) >= 60 then raise exception 'This committee has 60 papers. Delete one first.' using errcode = '54000'; end if;
-  insert into public.chamber_papers (chamber_id, created_by, title, sponsors)
-  values (cid, me, left(trim(paper_title), 160), case when chair then '{}'::text[] else array[seat] end) returning id into new_id;
-  return new_id;
-end $$;
-
--- Whether the caller may change a paper's text: a chair always (until it is introduced); a sponsor while it is a draft or was sent back.
-create function private.can_edit_paper(p public.chamber_papers) returns boolean
-language sql stable security definer set search_path = '' as $$
-  select (private.in_chamber(p.chamber_id) and p.status <> 'introduced')
-      or (private.seat_of(p.chamber_id) = any (p.sponsors) and p.status in ('draft', 'returned'))
-$$;
-revoke execute on function private.can_edit_paper(public.chamber_papers) from public, anon;
-
-create function public.paper_open(paper uuid) returns jsonb
-language plpgsql stable security definer set search_path = '' as $$
-declare p public.chamber_papers;
-begin
-  select * into p from public.chamber_papers where id = paper;
-  if p.id is null or not private.in_room(p.chamber_id) then raise exception 'That paper isn''t in a committee of yours' using errcode = '42501'; end if;
-  return (to_jsonb(p) - 'created_by') || jsonb_build_object('can_edit', private.can_edit_paper(p), 'chair', private.in_chamber(p.chamber_id), 'seat', private.seat_of(p.chamber_id));
-end $$;
-
--- Save the text. If someone else saved first nothing is written and the newer copy comes back, as the committee itself does.
-create function public.paper_save(paper uuid, new_title text, new_body jsonb, new_sponsors text[], expected integer) returns jsonb
-language plpgsql security definer set search_path = '' as $$
-declare p public.chamber_papers; sp text[];
-begin
-  select * into p from public.chamber_papers where id = paper for update;
-  if p.id is null or not private.can_edit_paper(p) then raise exception 'You can''t change this paper now' using errcode = '42501'; end if;
-  if p.version <> expected then
-    return jsonb_build_object('ok', false, 'paper', to_jsonb(p) - 'created_by');
-  end if;
-  select coalesce(array_agg(distinct x), '{}') into sp from unnest(coalesce(new_sponsors, p.sponsors)) x where private.is_delegate(p.chamber_id, x);
-  -- A sponsor can add co-sponsors but can't take themselves, or everyone, off.
-  if not private.in_chamber(p.chamber_id) and not (private.seat_of(p.chamber_id) = any (sp)) then sp := p.sponsors; end if;
-  update public.chamber_papers
-  set title = case when char_length(trim(coalesce(new_title, ''))) >= 2 then left(trim(new_title), 160) else title end,
-      body = coalesce(new_body, body), sponsors = sp,
-      signatories = (select coalesce(array_agg(x), '{}') from unnest(p.signatories) x where not (x = any (sp))),
-      version = version + 1, updated_at = now()
-  where id = paper;
-  return jsonb_build_object('ok', true, 'version', p.version + 1);
-end $$;
-
--- A sponsor hands it to the chairs (or takes it back); a chair approves it, sends it back with a note, or introduces it, which numbers and locks it.
-create function public.paper_status(paper uuid, new_status text, note text) returns jsonb
-language plpgsql security definer set search_path = '' as $$
-declare p public.chamber_papers; chair boolean; sponsor boolean; n integer;
-begin
-  select * into p from public.chamber_papers where id = paper for update;
-  if p.id is null then raise exception 'That paper no longer exists' using errcode = 'P0002'; end if;
-  chair := private.in_chamber(p.chamber_id);
-  sponsor := coalesce(private.seat_of(p.chamber_id) = any (p.sponsors), false);
-  if new_status = 'submitted' and (sponsor or chair) and p.status in ('draft', 'returned') then
-    update public.chamber_papers set status = 'submitted', updated_at = now() where id = paper;
-  elsif new_status = 'draft' and (sponsor or chair) and p.status in ('submitted', 'returned', 'approved') then
-    update public.chamber_papers set status = 'draft', updated_at = now() where id = paper;
-  elsif new_status in ('approved', 'returned') and chair and p.status <> 'introduced' then
-    update public.chamber_papers set status = new_status, chair_note = left(trim(coalesce(note, '')), 400), updated_at = now() where id = paper;
-  elsif new_status = 'introduced' and chair and p.status <> 'introduced' then
-    select count(*) + 1 into n from public.chamber_papers where chamber_id = p.chamber_id and status = 'introduced';
-    update public.chamber_papers set status = 'introduced', number = 'DR/' || n, updated_at = now() where id = paper;
-  else raise exception 'That can''t be done to this paper now' using errcode = '42501';
-  end if;
-  select * into p from public.chamber_papers where id = paper;
-  return jsonb_build_object('status', p.status, 'number', p.number);
-end $$;
-
--- A state that isn't a sponsor signs a paper, or takes its signature off, until it is introduced.
-create function public.paper_sign(paper uuid, signed boolean) returns void
-language plpgsql security definer set search_path = '' as $$
-declare p public.chamber_papers; seat text;
-begin
-  select * into p from public.chamber_papers where id = paper for update;
-  if p.id is null then return; end if;
-  seat := private.seat_of(p.chamber_id);
-  if seat is null or seat = any (p.sponsors) or p.status = 'introduced' then raise exception 'You can''t sign this paper' using errcode = '42501'; end if;
-  update public.chamber_papers
-  set signatories = case when signed then (select array_agg(distinct x) from unnest(p.signatories || seat) x) else array_remove(p.signatories, seat) end, updated_at = now()
-  where id = paper;
-end $$;
-
-create function public.paper_delete(paper uuid) returns void
-language plpgsql security definer set search_path = '' as $$
-declare p public.chamber_papers;
-begin
-  select * into p from public.chamber_papers where id = paper;
-  if p.id is null then return; end if;
-  if not (private.in_chamber(p.chamber_id) or (p.created_by = (select auth.uid()) and p.status in ('draft', 'returned'))) then
-    raise exception 'Only the chairs, or whoever started a draft, can delete it' using errcode = '42501';
-  end if;
-  delete from public.chamber_papers where id = paper;
-end $$;
-
 -- The lists of committees now say Standard or Custom for a committee on the general rules.
 create or replace function public.my_chambers()
 returns table (id uuid, name text, is_owner boolean, owner_name text, updated_at timestamptz,
@@ -515,8 +392,7 @@ begin
   foreach f in array array[
     'chamber_devices(uuid, text)', 'room_peek(text)', 'room_take_seat(text, text)', 'room_unseat(uuid, uuid)', 'my_seats()', 'room_sync(uuid)', 'room_chair(uuid)',
     'room_ask(uuid, text, jsonb)', 'room_ask_set(uuid, text)', 'room_vote(uuid, text, text)', 'room_clear_votes(uuid, text)', 'room_note(uuid, text, text)',
-    'room_set(uuid, jsonb)', 'room_file_add(uuid, text, text, integer)', 'room_file_remove(uuid)', 'paper_create(uuid, text)', 'paper_open(uuid)',
-    'paper_save(uuid, text, jsonb, text[], integer)', 'paper_status(uuid, text, text)', 'paper_sign(uuid, boolean)', 'paper_delete(uuid)']
+    'room_set(uuid, jsonb)', 'room_file_add(uuid, text, text, integer)', 'room_file_remove(uuid)']
   loop
     execute format('revoke execute on function public.%s from public, anon', f);
     execute format('grant execute on function public.%s to authenticated', f);

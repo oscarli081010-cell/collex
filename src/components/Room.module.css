@@ -1,7 +1,8 @@
-/* Delegates' devices and papers: the delegate's own page, and the chairs' inbox, notes, files and papers. */
+/* Delegates' devices: the delegate's own page, and the chairs' inbox, notes and files. */
 .room { padding-block: 24px 72px; display: flex; flex-direction: column; gap: 16px; max-width: 860px; }
-.now { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.now { padding: 22px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .nowStep { font-size: 13px; font-weight: 500; color: var(--muted); }
+.nowBig { font-size: 22px; line-height: 1.2; overflow-wrap: anywhere; }
 .nowWho { font-size: clamp(26px, 6vw, 38px); line-height: 1.1; overflow-wrap: anywhere; }
 .nowTime { font-variant-numeric: tabular-nums; font-size: clamp(56px, 16vw, 96px); font-weight: 500; letter-spacing: -0.03em; line-height: 0.95; }
 .nowTime[data-state="up"] { color: var(--danger); }
@@ -12,7 +13,9 @@
 .order li[data-me="true"] { color: var(--accent); }
 .announce { padding: 12px 14px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); font-size: 14.5px; line-height: 1.5; }
 .announce strong { font-weight: 500; display: block; font-size: 13px; }
-.acts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 10px; }
+.acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.acts :global(.button) { height: 48px; }
+@media (max-width: 480px) { .acts { grid-template-columns: minmax(0, 1fr); } }
 .acts :global(.button) { width: 100%; }
 .form { display: flex; flex-direction: column; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
@@ -41,30 +44,10 @@
 .tallyBar { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--surface); overflow: hidden; }
 .tallyBar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; transition: width 200ms var(--ease, ease); }
 .count { margin-left: 8px; font-size: 12.5px; font-weight: 500; color: var(--muted); padding: 2px 8px; border-radius: 999px; background: var(--surface); font-variant-numeric: tabular-nums; }
-/* Papers */
-.paperHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.clauses { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.clause { display: grid; grid-template-columns: 28px minmax(0, 200px) minmax(0, 1fr) auto; gap: 8px; align-items: start; }
-.clauseN { height: 44px; display: grid; place-items: center; font-size: 13px; color: var(--faint); font-variant-numeric: tabular-nums; }
-.clause textarea { min-height: 44px; resize: vertical; }
-.subs { grid-column: 3 / -1; display: flex; flex-direction: column; gap: 6px; }
-.subRow { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
-.clauseBtns { display: flex; gap: 4px; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.chipX { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 4px 0 10px; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 500; }
-.chipX button { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); }
-.chipX button:hover { background: var(--line); color: var(--ink); }
-.preview { padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); font-family: var(--font-serif, Georgia, serif); font-size: 15px; line-height: 1.6; }
-.preview h3 { text-align: center; font-size: 17px; font-weight: 500; margin-bottom: 8px; }
-.preview p { margin: 0 0 8px; }
-.preview :global(.pOp) { padding-left: 28px; text-indent: -20px; }
-.preview :global(.pSub) { padding-left: 56px; margin-bottom: 4px; }
-.preview :global(.pMeta) { margin: 0; font-size: 14px; }
+.emptyBox { margin-top: 0; padding-block: 28px; }
+.acts :global(.tip) { display: flex; }
 @media (max-width: 640px) {
   .compose { grid-template-columns: 1fr; }
-  .clause { grid-template-columns: 24px minmax(0, 1fr) auto; }
-  .clause textarea { grid-column: 2 / -1; }
-  .subs { grid-column: 2 / -1; }
   .rows > li { flex-wrap: wrap; }
   .rowBtns { flex: 1 1 100%; justify-content: stretch; }
   .rowBtns :global(.button) { flex: 1; }

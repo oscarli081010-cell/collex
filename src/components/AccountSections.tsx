@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MyApplications } from "./HubExtras";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatRange, isPast, monogram, todayInSydney, type Conference } from "@/lib/conferences";
 import { fromRow } from "@/lib/data";
@@ -27,6 +28,7 @@ export default function ConferencesTab({ userId, onListings, onInvites }: { user
       <Invites onAccepted={reload} onCount={onInvites} />
       <Saved />
       <ListingsLink userId={userId} version={version} onCount={onListings} />
+      <MyApplications userId={userId} />
     </>
   );
 }

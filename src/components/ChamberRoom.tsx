@@ -15,8 +15,7 @@ import { Gavel } from "./Drawings";
 import Flag from "./Flag";
 import { ICONS } from "./IconButton";
 import PanelTabs from "./PanelTabs";
-import Papers from "./Papers";
-import { FilesPanel, NotesPanel } from "./RoomParts";
+import { Empty, FilesPanel, NotesPanel } from "./RoomParts";
 import Select from "./Select";
 import { useToast } from "./useToast";
 import board from "./board.module.css";
@@ -25,7 +24,6 @@ import r from "./Room.module.css";
 
 const svg = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
 const NOTE = svg(<path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" />);
-const PAPER = svg(<><path d="M4 1.8h5.5L12.5 5v9.2H4z" /><path d="M9.5 1.8V5h3M6 8h4.5M6 10.5h4.5" /></>);
 const FILE = svg(<path d="M10.5 4.5l-5 5a1.8 1.8 0 002.5 2.5l5.5-5.5a3 3 0 00-4.3-4.2L3.5 8a4.3 4.3 0 006 6l4-4" />);
 
 type Peek = { id: string; name: string; topic: string; mine: string | null; delegates: { id: string; name: string; taken: number }[] };
@@ -45,7 +43,7 @@ function Shell({ title, text, children }: { title: string; text: string; childre
   );
 }
 
-/* A delegate's own page: follow the debate, ask the chairs for things, vote, pass notes, write papers and share files. */
+/* A delegate's own page: follow the debate, ask the chairs for things, vote, pass notes and share files. */
 export default function ChamberRoom() {
   const params = useSearchParams();
   const q = params.get("c");
@@ -111,7 +109,7 @@ function TakeSeat({ code, say, done }: { code: string; say: (t: string) => void;
   );
 }
 
-type Tab = "floor" | "vote" | "notes" | "papers" | "files";
+type Tab = "floor" | "vote" | "notes" | "files";
 
 function Seat({ cid, userId, say }: { cid: string; userId: string; say: (t: string) => void }) {
   const { data, c, status, refresh } = useDelegateRoom(cid, true);
@@ -147,13 +145,12 @@ function Seat({ cid, userId, say }: { cid: string; userId: string; say: (t: stri
       {lastAll && <p className={r.announce} role="status"><strong>From the chairs</strong>{lastAll.body}</p>}
 
       <PanelTabs idPrefix="rm" label="Your Seat" tab={tab} setTab={setTab}
-        tabs={[{ id: "floor", label: "Floor", icon: ICONS.manage }, { id: "vote", label: "Vote", icon: ICONS.check, badge: voting || undefined, badgeNote: "to vote on" }, { id: "notes", label: "Notes", icon: NOTE }, { id: "papers", label: "Papers", icon: PAPER }, { id: "files", label: "Files", icon: FILE }]} />
+        tabs={[{ id: "floor", label: "Floor", icon: ICONS.manage }, { id: "vote", label: "Vote", icon: ICONS.check, badge: voting || undefined, badgeNote: "to vote on" }, { id: "notes", label: "Notes", icon: NOTE }, { id: "files", label: "Files", icon: FILE }]} />
 
       <div id={`rm-panel-${tab}`} role="tabpanel" aria-labelledby={`rm-tab-${tab}`} className={s.manage}>
         {tab === "floor" && <><Now c={c} now={now} me={me} /><Requests c={c} cid={cid} me={me} asks={data.asks} say={say} refresh={refresh} /></>}
         {tab === "vote" && <Vote c={c} cid={cid} me={me} data={data} say={say} refresh={refresh} />}
         {tab === "notes" && <NotesPanel c={c} cid={cid} notes={data.notes} me={me} rule={data.room.notes ?? "on"} say={say} onSent={refresh} />}
-        {tab === "papers" && <Papers c={c} cid={cid} papers={data.papers} chair={false} seat={me} say={say} refresh={refresh} />}
         {tab === "files" && <FilesPanel c={c} cid={cid} files={data.files} userId={userId} chair={false} say={say} onChange={refresh} />}
       </div>
     </main>
@@ -221,30 +218,31 @@ function Requests({ c, cid, me, asks, say, refresh }: { c: Chamber; cid: string;
 
   const onList = c.debate.list.some((x) => x.id === me);
   const asked = asks.some((a) => a.kind === "floor" && a.status === "open");
-  const listOpen = ch.listOpen(c) && ch.isHere(c, me);
   const sided = ch.sided(c);
   const motionsOpen = ch.motionsOpen(c);
   const amendOpen = ch.amendmentsOpen(c);
   const total = Math.round(Number(mins) * 60);
   const motion: ch.MotionInput = { kind: mk, by: me, topic, total: mk === "mod" || mk === "unmod" || mk === "extend" ? total : 0, per: mk === "mod" ? Number(per) : 0 };
   const motionErr = form === "motion" ? ch.motionError(c, motion) : null;
+  const floorOff = !ch.isHere(c, me) ? "Your state was marked absent at roll call" : onList ? "Your state is already on the speakers’ list" : asked ? "You’ve already asked for the floor" : !ch.listOpen(c) ? "The speakers’ list isn’t open" : null;
+  // Every button is always there. One that can't be used now is greyed, and hovering (or pressing) it says why.
+  const btn = (label: string, off: string | null, onClick: () => void, primary: boolean, expanded?: boolean) => off
+    ? <span key={label} className="tip" data-tip={off} data-tip-align="start" tabIndex={0}><button type="button" className={primary ? "button" : "button secondary"} disabled>{label}</button></span>
+    : <button key={label} type="button" className={primary ? "button" : "button secondary"} disabled={busy} aria-expanded={expanded} onClick={onClick}>{label}</button>;
   const signable = ch.waitingAmendments(c).filter((a) => a.by !== me && a.seconder !== me && !a.backers.includes(me) && !asks.some((x) => x.kind === "sign" && x.status === "open" && x.body.amendment === a.id));
 
   return (
     <section className={`panel ${s.share}`} aria-labelledby="rq-h">
       <h2 id="rq-h" className={s.h2}>Ask the Chairs</h2>
       <div className={r.acts}>
-        {onList ? <button type="button" className="button" disabled>You&rsquo;re on the Speakers&rsquo; List</button>
-          : asked ? <button type="button" className="button" disabled>You&rsquo;ve Asked for the Floor</button>
-          : sided ? (<>
-            <button type="button" className="button" disabled={!listOpen || busy || !ch.canAdd(c, me, "for")} onClick={() => void ask("floor", { side: "for" }, "Asked for the floor")}>Speak In Favour</button>
-            <button type="button" className="button secondary" disabled={!listOpen || busy || !ch.canAdd(c, me, "against")} onClick={() => void ask("floor", { side: "against" }, "Asked for the floor")}>Speak Against</button>
-          </>) : <button type="button" className="button" disabled={!listOpen || busy} onClick={() => void ask("floor", {}, "Asked for the floor")}>Ask for the Floor</button>}
-        <button type="button" className="button secondary" aria-expanded={form === "point"} onClick={() => setForm(form === "point" ? "" : "point")}>Raise a Point</button>
-        {c.tr && <button type="button" className="button secondary" aria-expanded={form === "motion"} disabled={!motionsOpen} onClick={() => setForm(form === "motion" ? "" : "motion")}>Propose a Motion</button>}
-        <button type="button" className="button secondary" aria-expanded={form === "amendment"} disabled={!amendOpen} onClick={() => setForm(form === "amendment" ? "" : "amendment")}>Hand In an Amendment</button>
+        {sided ? (<>
+          {btn("Speak In Favour", floorOff ?? (ch.canAdd(c, me, "for") ? null : "Your state has already spoken in favour"), () => void ask("floor", { side: "for" }, "Asked for the floor"), true)}
+          {btn("Speak Against", floorOff ?? (ch.canAdd(c, me, "against") ? null : "Your state has already spoken against"), () => void ask("floor", { side: "against" }, "Asked for the floor"), true)}
+        </>) : btn("Ask for the Floor", floorOff, () => void ask("floor", {}, "Asked for the floor"), true)}
+        {btn("Raise a Point", null, () => setForm(form === "point" ? "" : "point"), false, form === "point")}
+        {btn("Propose a Motion", !c.tr ? "Motions aren’t part of this procedure" : motionsOpen ? null : "Motions aren’t being taken right now", () => setForm(form === "motion" ? "" : "motion"), false, form === "motion")}
+        {btn("Hand In an Amendment", amendOpen ? null : "Amendments aren’t open right now", () => setForm(form === "amendment" ? "" : "amendment"), false, form === "amendment")}
       </div>
-      {!listOpen && !onList && <p className={s.hint}>The speakers&rsquo; list isn&rsquo;t open right now.</p>}
 
       {form === "point" && (
         <form className={r.form} onSubmit={(e) => { e.preventDefault(); void ask("point", { kind: point, text }, "Point raised"); }}>
@@ -359,7 +357,7 @@ function Vote({ c, cid, me, data, say, refresh }: { c: Chamber; cid: string; me:
         <h2 id="vt-h" className={s.h2}>Vote</h2>
         {key ? (
           <>
-            <p className={`serif ${r.nowWho}`} style={{ fontSize: 22 }}>{voteTitle(c)}</p>
+            <p className={`serif ${r.nowBig}`}>{voteTitle(c)}</p>
             {!here ? <p className={s.hint}>Your state was marked absent at roll call, so it has no vote.</p> : (
               <div className={r.voteBtns} role="group" aria-label="Your vote">
                 {([["for", "For"], ["against", "Against"], ["abstain", "Abstain"]] as const).map(([b, label]) => (
@@ -369,12 +367,12 @@ function Vote({ c, cid, me, data, say, refresh }: { c: Chamber; cid: string; me:
             )}
             <p className={s.hint}>{mine(key) ? "Your vote is in. Tap it again to take it back, or tap another to change it. The chairs record the result." : noAbstain ? "Your state is Present and Voting, so it votes For or Against." : "Tap your vote. The chairs see it and record the result."}</p>
           </>
-        ) : <p className={s.empty}>Nothing is being voted on right now.</p>}
+        ) : <Empty title="Nothing to vote on yet" text="When the chairs put a motion, an amendment or the resolution to a vote, your ballot appears here." />}
       </section>
       {straw && (
         <section className={`panel ${s.share}`} aria-labelledby="vs-h">
           <h2 id="vs-h" className={s.h2}>Straw Poll{!straw.open && <span className={r.count}>Closed</span>}</h2>
-          <p className={`serif ${r.nowWho}`} style={{ fontSize: 22 }}>{straw.q}</p>
+          <p className={`serif ${r.nowBig}`}>{straw.q}</p>
           <div className={r.strawBtns} role="group" aria-label="Your answer">
             {straw.options.map((o, i) => <button key={i} type="button" className="button secondary" aria-pressed={mine(strawKey(straw)) === String(i)} disabled={!straw.open} onClick={() => void cast(strawKey(straw), String(i))}>{o}</button>)}
           </div>

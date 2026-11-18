@@ -8,6 +8,7 @@ import PageBand from "./PageBand";
 import RoleCard, { applyFor } from "./RoleCard";
 import s from "./Roles.module.css";
 import board from "./board.module.css";
+import { RoleAlerts } from "./HubExtras";
 
 export type BoardItem = {
   role: Role;
@@ -44,6 +45,7 @@ export default function RolesBoard({ items }: { items: BoardItem[] }) {
         )}
       </PageBand>
 
+      <RoleAlerts />
       {items.length === 0 ? (
         <div className={board.empty}>
           <Placard />

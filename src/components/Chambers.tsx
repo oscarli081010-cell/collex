@@ -25,7 +25,7 @@ import Flag from "./Flag";
 import { useChairRoom } from "@/lib/useRoom";
 import { DevicesCard, Inbox, RoomSettings } from "./RoomChair";
 import { FilesPanel, NotesPanel } from "./RoomParts";
-import Papers from "./Papers";
+import { ConferenceLink } from "./HubExtras";
 
 const svg = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
 const MONITOR = svg(<><rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.6" /><path d="M5.5 13.5h5M8 11v2.5" /></>);
@@ -118,8 +118,8 @@ export default function Chambers() {
   const router = useRouter();
   const { c, status, owner, manage, act, setLocal } = useChamber(cloudId, { signedIn: !!session, authReady });
   const [live, setLive] = useState("");
-  const [view, setView] = useState<"manage" | "papers" | "room" | "analytics" | "settings" | "share">("manage");
-  // Delegates' devices and papers, for a shared committee. Asked for often while devices are on; otherwise only now and then, for the papers.
+  const [view, setView] = useState<"manage" | "room" | "analytics" | "settings" | "share">("manage");
+  // Delegates' devices, for a shared committee. Asked for often while they are on; otherwise only now and then.
   const [devOn, setDevOn] = useState(false);
   const rm = useChairRoom(cloudId && session && status !== "denied" && status !== "signin" ? cloudId : null, devOn);
   useEffect(() => { setDevOn(!!rm.data?.on); }, [rm.data?.on]);
@@ -255,7 +255,7 @@ export default function Chambers() {
       <div className="sr-only" role="status" aria-live="polite">{live}</div>
 
       <PanelTabs idPrefix="chv" label="Committee" tab={view} setTab={setView}
-        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage, badge: (devOn && rm.data?.asks.length) || undefined, badgeNote: "from delegates" }, { id: "papers", label: "Papers", icon: ICONS.edit, badge: rm.data?.papers.filter((x) => x.status === "submitted").length || undefined, badgeNote: "handed in" }, ...(devOn ? [{ id: "room" as const, label: "Room", icon: ICONS.view }] : []), { id: "analytics", label: "Analytics", icon: ICONS.chart }, { id: "share", label: "Share", icon: ICONS.share }, { id: "settings", label: status === "offline" ? "Settings (offline)" : "Settings", icon: SLIDERS }]} />
+        tabs={[{ id: "manage", label: "Manage", icon: ICONS.manage, badge: (devOn && rm.data?.asks.length) || undefined, badgeNote: "from delegates" }, ...(devOn ? [{ id: "room" as const, label: "Room", icon: ICONS.view }] : []), { id: "analytics", label: "Analytics", icon: ICONS.chart }, { id: "share", label: "Share", icon: ICONS.share }, { id: "settings", label: status === "offline" ? "Settings (offline)" : "Settings", icon: SLIDERS }]} />
 
       {view === "manage" ? (
         <div id="chv-panel-manage" role="tabpanel" aria-labelledby="chv-tab-manage" className={s.manage}>
@@ -277,18 +277,6 @@ export default function Chambers() {
           <Share c={c} cloudId={cloudId} manage={manage} signedIn={!!session} meId={session?.user.id} say={say} setLocal={setLocal} />
           {cloudId && <DevicesCard c={c} cid={cloudId} room={rm.data} manage={manage} say={say} refresh={rm.refresh} />}
         </div>
-      ) : view === "papers" ? (
-        <div id="chv-panel-papers" role="tabpanel" aria-labelledby="chv-tab-papers" className={s.manage}>
-          {cloudId && rm.data ? (
-            <Papers c={c} cid={cloudId} papers={rm.data.papers} chair seat={null} say={say} refresh={rm.refresh}
-              onIntroduce={(id, title) => { if (c.style) act((x) => ch.addDraft(x, id, title)); }} />
-          ) : (
-            <section className={`panel ${s.share}`}>
-              <h2 className={s.h2}>Papers</h2>
-              <p className="muted">{cloudId ? "Loading…" : "Working papers and draft resolutions are written together, so the committee has to be shared first. Share it from the Share tab."}</p>
-            </section>
-          )}
-        </div>
       ) : view === "room" && cloudId && rm.data ? (
         <div id="chv-panel-room" role="tabpanel" aria-labelledby="chv-tab-room" className={s.manage}>
           <NotesPanel c={c} cid={cloudId} notes={rm.data.notes} me="chair" rule={rm.data.room.notes ?? "on"} say={say} onSent={rm.refresh} />
@@ -300,6 +288,7 @@ export default function Chambers() {
       ) : (
         <div id="chv-panel-settings" role="tabpanel" aria-labelledby="chv-tab-settings" className={s.manage}>
           {t && !c.style && <Resolutions c={c} act={act} />}
+          {cloudId && <ConferenceLink cid={cloudId} manage={manage} awards={(c.awards ?? []).length} say={say} />}
           <Times c={c} act={act} />
           <Sound />
           <Background c={c} act={act} say={say} userId={session?.user.id} />

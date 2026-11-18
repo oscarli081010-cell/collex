@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
 import { ICONS } from "./IconButton";
 import ListingNav from "./ListingNav";
+import { Applications, Emails, Wall } from "./ManageHub";
 import PageBand, { BandNote, type BandProps } from "./PageBand";
 import SearchBox from "./SearchBox";
 import { ActivitySkeleton } from "./Skeleton";
@@ -232,6 +233,11 @@ export function ManageBody({ data, regs, onChanged, onSet }: {
                 </>
               )}
           </section>
+          {!onSet && <>
+            <Applications c={c} canEdit={canEdit} live={live} say={say} onChanged={() => { forgetListing(c.id!); if (live) refreshSite().then(() => router.refresh()); onChanged?.(); }} />
+            <Wall c={c} />
+            <Emails c={c} canEdit={canEdit} say={say} />
+          </>}
           {node}
         </div>
       </div>

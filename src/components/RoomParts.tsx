@@ -8,8 +8,21 @@ import { supabase } from "@/lib/supabase";
 import IconButton, { ICONS } from "./IconButton";
 import Select from "./Select";
 import Flag from "./Flag";
+import { Gavel } from "./Drawings";
+import board from "./board.module.css";
 import s from "./Chambers.module.css";
 import r from "./Room.module.css";
+
+/** "Nothing here yet", the same way everywhere on Collex: the drawing, a line in the serif, and what to do about it. */
+export function Empty({ title, text }: { title: string; text: string }) {
+  return (
+    <div className={`${board.empty} ${r.emptyBox}`}>
+      <Gavel />
+      <p className={board.emptyTitle}>{title}</p>
+      <p className="muted">{text}</p>
+    </div>
+  );
+}
 
 const who = (c: Chamber, id: string) => (id === "chair" ? "The Chairs" : id === "all" ? "Everyone" : ch.nameOf(c, id) || "A removed state");
 
@@ -38,7 +51,6 @@ export function NotesPanel({ c, cid, notes, me, rule, say, onSent }: {
   return (
     <section className={`panel ${s.share}`} aria-labelledby="rm-notes">
       <h2 id="rm-notes" className={s.h2}>Notes</h2>
-      <p className="muted">{chair ? "Every note in the committee shows here. Send one to a state, or an announcement to everyone." : "Pass a note to the chairs or to another state. The chairs can read every note."}</p>
       {notes.length > 0 ? (
         <ul ref={end} className={r.thread}>
           {notes.map((n) => (
@@ -48,7 +60,7 @@ export function NotesPanel({ c, cid, notes, me, rule, say, onSent }: {
             </li>
           ))}
         </ul>
-      ) : <p className={s.empty}>No notes yet.</p>}
+      ) : <Empty title="No notes yet" text={chair ? "Every note in the committee shows here. Send one to a state, or an announcement to everyone." : "Pass a note to the chairs or to another state. The chairs can read every note."} />}
       {off ? <p className={s.hint}>The chairs have turned notes off.</p> : (
         <form className={r.compose} onSubmit={send}>
           <div className="field">
@@ -106,7 +118,6 @@ export function FilesPanel({ c, cid, files, userId, chair, say, onChange }: {
   return (
     <section className={`panel ${s.share}`} aria-labelledby="rm-files">
       <h2 id="rm-files" className={s.h2}>Files{files.length > 0 && <span className={r.count}>{files.length}</span>}</h2>
-      <p className="muted">Share a PDF, Word file, image or text file with the whole committee, up to 10 MB each.</p>
       {files.length > 0 ? (
         <ul className={r.rows}>
           {files.map((f) => (
@@ -122,10 +133,10 @@ export function FilesPanel({ c, cid, files, userId, chair, say, onChange }: {
             </li>
           ))}
         </ul>
-      ) : <p className={s.empty}>No files yet.</p>}
+      ) : <Empty title="No files yet" text="Share a PDF, Word file, image or text file with the whole committee, up to 10 MB each." />}
       <div>
         <input ref={input} id="rm-file" type="file" className="sr-only" accept={FILE_TYPES} onChange={(e) => void upload(e.target.files?.[0])} disabled={busy} />
-        <label htmlFor="rm-file" className="button secondary" aria-disabled={busy}>{busy ? "Sharing…" : "Share a File"}</label>
+        <label htmlFor="rm-file" className="button block" aria-disabled={busy}>{busy ? "Sharing…" : "Share a File"}</label>
       </div>
     </section>
   );

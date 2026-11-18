@@ -56,6 +56,10 @@ export type Conference = {
   interestUrl?: string | null;
   /** The organisers take registrations on Collex (their listing's Manage tab) rather than through their own form. */
   collexRegistration?: boolean;
+  /** The organisers take applications from individuals (delegates, chairs, people for open roles) on Collex. */
+  collexApplications?: boolean;
+  /** Collex added this listing and nobody runs it yet, so its organisers can claim it. */
+  claimable?: boolean;
   isTemplate?: boolean;
   /** Set by an admin when the listing came from the conference's own secretariat. */
   verified?: boolean;

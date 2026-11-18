@@ -28,4 +28,16 @@ let k = ch.createStandard("X", "T", 60, names, names.map((_, i) => `d${i}`), ["R
 ok(ch.procedureName(k) === "Custom" && k.tr!.docs.length === 1, "custom");
 ok(flagCode("the Democratic Republic of the Congo") === "cd" && flagCode("Côte d'Ivoire") === "ci" && flagCode("Observer Group") === null && flagCode("United States of America") === "us" && flagCode("Türkiye") === "tr", "flags");
 if (process.argv[2]) writeFileSync(process.argv[2], JSON.stringify(c));
-console.log("STD OK");
+// a delegate's request, accepted by the chair
+import("./room.ts").then(({ acceptAsk, voteKey }) => {
+  let g = ch.endStatements(ch.beginDebate(ch.markAllRoll(ch.startRoll(ch.createStandard("X", "T", 60, names, names.map((_, i) => `d${i}`))), "present")));
+  const ask = (kind: string, body: Record<string, unknown>, who = "d2") => ({ id: "a", delegate_id: who, kind, body, status: "open", created_at: "" }) as never;
+  let r = acceptAsk(g, ask("floor", {}), "n1"); ok(r.next !== g && r.next.debate.list.some((x) => x.id === "d2"), "floor accepted: " + r.why); g = r.next;
+  r = acceptAsk(g, ask("floor", {}), "n2"); ok(r.next === g && !!r.why, "floor twice refused");
+  r = acceptAsk(g, ask("motion", { kind: "mod", topic: "Drones", total: 600, per: 60 }), "n3"); ok(r.next !== g && ch.waitingMotions(r.next).length === 1, "motion accepted: " + r.why); g = r.next;
+  r = acceptAsk(g, ask("motion", { kind: "mod", topic: "", total: 600, per: 60 }), "n4"); ok(r.next === g && !!r.why, "bad motion refused");
+  r = acceptAsk(g, ask("point", { kind: "order" }), "n5"); ok(r.next !== g, "point noted");
+  r = acceptAsk(g, ask("floor", {}, "gone"), "n6"); ok(r.next === g, "removed state refused");
+  ok(voteKey(g) === null, "no vote key"); g = ch.voteMotion(g, "n3"); ok(voteKey(g) === "poll|motion|n3|", "vote key " + voteKey(g));
+  console.log("STD OK");
+});

@@ -48,8 +48,8 @@ export function useDelegateRoom(cid: string | null, signedIn: boolean) {
   return { ...r, c };
 }
 
-/** The chairs' side of delegates' devices and papers. `fast` while devices are on; otherwise it only keeps the papers fresh. */
+/** The chairs' side of delegates' devices. Asked for often while devices are on; otherwise only now and then, to notice them being turned on. */
 export function useChairRoom(cid: string | null, fast: boolean) {
   const db = supabase;
-  return usePolled<ChairSync>(cid && db ? () => db.rpc("room_chair", { cid }) : null, fast ? 2500 : 8000);
+  return usePolled<ChairSync>(cid && db ? () => db.rpc("room_chair", { cid }) : null, fast ? 2500 : 15000);
 }

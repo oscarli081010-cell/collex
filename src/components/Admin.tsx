@@ -19,6 +19,7 @@ import auth from "@/app/auth.module.css";
 import s from "@/app/admin.module.css";
 import act from "./Activity.module.css";
 import Select from "./Select";
+import { AdminClaims } from "./HubExtras";
 import AdminChambers, { type AdminChamber } from "./AdminChambers";
 
 type Row = {
@@ -247,6 +248,7 @@ export default function Admin() {
               </span>
             </div>
           )}
+          {tab === "Review" && <AdminClaims say={say} />}
           {tab === "Review" && (pending.length === 0 ? (
             <Empty title="Nothing to review" body="New listings land here for approval." />
           ) : (

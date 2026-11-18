@@ -57,7 +57,7 @@ export function Inbox({ c, act, room, say, refresh }: { c: Chamber; act: Act; ro
             <strong>Votes from devices: {n("for")} For, {n("against")} Against, {n("abstain")} Abstain</strong>
             <small>{votes.length} of {ch.present(c)} states present have voted on their own device. Using them records each state&rsquo;s answer, and you can still change any of them.</small>
           </div>
-          <button type="button" className="button secondary" disabled={!votes.length} onClick={useVotes}>Use These Votes</button>
+          <button type="button" className="button block" disabled={!votes.length} onClick={useVotes}>Use These Votes</button>
         </div>
       )}
       {room.asks.length > 0 && (
@@ -68,7 +68,7 @@ export function Inbox({ c, act, room, say, refresh }: { c: Chamber; act: Act; ro
             return (
               <li key={a.id}>
                 <span className={r.rowMain}>
-                  <strong><Flag name={name} />{name}: {t.title.charAt(0).toLowerCase() + t.title.slice(1)}</strong>
+                  <strong><Flag name={name} />{name} · {t.title}</strong>
                   <small>{[t.detail, shortTime(a.created_at)].filter(Boolean).join(" · ")}</small>
                 </span>
                 <span className={r.rowBtns}>
@@ -105,8 +105,8 @@ export function DevicesCard({ c, cid, room, manage, say, refresh }: { c: Chamber
       <h2 id="st-dev" className={s.h2}>Delegates&rsquo; Devices{on && room && room.seats.length > 0 && <span className={r.count}>{room.seats.length} seated</span>}</h2>
       {!on ? (
         <>
-          <p className="muted">Off. Most school conferences are device-free, so the committee runs from this console and the display alone. Turn this on to let delegates follow the debate, ask for the floor, vote, pass notes and write papers from their own phone or laptop.</p>
-          {manage ? <button type="button" className="button" disabled={busy} onClick={() => void set("on")}>Let Delegates Join</button> : <p className={s.hint}>The person who shared the committee can turn this on.</p>}
+          <p className="muted">Off. Most school conferences are device-free, so the committee runs from this console and the display alone. Turn this on to let delegates follow the debate, ask for the floor, vote and pass notes from their own phone or laptop.</p>
+          {manage ? <button type="button" className="button block" disabled={busy} onClick={() => void set("on")}>Let Delegates Join</button> : <p className={s.hint}>The person who shared the committee can turn this on.</p>}
         </>
       ) : (
         <>
@@ -167,7 +167,7 @@ export function RoomSettings({ cid, room, say, refresh }: { cid: string; room: C
         <h2 id="rs-straw" className={s.h2}>Straw Poll{straw && <span className={r.count}>{straw.open ? `${total} answered` : "Closed"}</span>}</h2>
         {straw ? (
           <>
-            <p className={`serif ${r.nowWho}`} style={{ fontSize: 22 }}>{straw.q}</p>
+            <p className={`serif ${r.nowBig}`}>{straw.q}</p>
             <div className={r.tally}>
               {straw.options.map((o, i) => (
                 <div key={i} className={r.tallyRow}>
@@ -186,7 +186,7 @@ export function RoomSettings({ cid, room, say, refresh }: { cid: string; room: C
             <p className="muted">Ask the room a question. Delegates answer from their devices; it binds no one.</p>
             <div className="field"><label htmlFor="rs-q">Question</label><input id="rs-q" className="control" value={q} maxLength={200} onChange={(e) => setQ(e.target.value)} /></div>
             <div className="field"><label htmlFor="rs-o">Answers</label><textarea id="rs-o" className="control" rows={3} value={opts} onChange={(e) => setOpts(e.target.value)} /><small>One per line, two to eight.</small></div>
-            <button type="submit" className="button secondary" disabled={busy || q.trim().length < 2 || options.length < 2}>Open the Straw Poll</button>
+            <button type="submit" className="button block" disabled={busy || q.trim().length < 2 || options.length < 2}>Open the Straw Poll</button>
           </form>
         )}
       </section>

@@ -8,6 +8,7 @@ import ReportProblem from "@/components/ReportProblem";
 import roleStyles from "@/components/Roles.module.css";
 import { getBySlug, getPublished } from "@/lib/data";
 import ApplyBand from "@/components/ApplyBand";
+import { ApplyOnCollex, ClaimListing, Results } from "@/components/ConferenceHub";
 import ConferenceActions from "@/components/ConferenceActions";
 import ConferenceTabs from "@/components/ConferenceTabs";
 import FollowButton from "@/components/FollowButton";
@@ -153,7 +154,7 @@ export default async function ConferencePage({ params }: Props) {
             <h2 className={s.finishedTitle}>This conference has finished</h2>
             <p className="muted">Its page stays up so committees and guides are easy to look back on. <Link href="/conferences" className="link">See what&rsquo;s coming up</Link></p>
           </section>
-        ) : <ApplyBand c={c} />}
+        ) : <><ApplyBand c={c} /><ApplyOnCollex c={c} /></>}
         {!past && !c.isTemplate && <StickyApply c={c} />}
         <a href="#details" className={s.cue}>
           Details
@@ -252,6 +253,7 @@ export default async function ConferencePage({ params }: Props) {
               )}
             </section>
 
+            {c.id && !c.isTemplate && <Results id={c.id} />}
             {hasRoles && (
               <section id="roles" className={s.block}>
                 <h2 className={s.h2}>Get involved</h2>
@@ -276,9 +278,7 @@ export default async function ConferencePage({ params }: Props) {
                 <div key={k} className={s.fact}><dt>{k}</dt><dd>{v}</dd></div>
               ))}
             </dl>
-            <p className="muted" style={{ fontSize: 13, padding: "12px 0 14px", borderTop: "1px solid var(--line)" }}>
-              Run this conference? <Link className="link" href="/list">Update the listing</Link>
-            </p>
+            <ClaimListing c={c} />
             {c.id && !c.isTemplate && <div className={reportStyles.wrap}><ReportProblem id={c.id} name={c.name} /></div>}
           </aside>
         </div>

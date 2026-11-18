@@ -1,0 +1,223 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import type { Conference } from "@/lib/conferences";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "./AuthProvider";
+import SchoolPicker from "./SchoolPicker";
+import Select from "./Select";
+import { useToast } from "./useToast";
+import inner from "@/app/inner.module.css";
+import h from "./Hub.module.css";
+
+export type AppRow = {
+  id: string; conference_id: string; kind: "delegate" | "chair" | "role"; role_title: string; name: string; school: string; year: string; experience: string;
+  prefs: { committees?: string[]; countries?: string[] }; note: string; status: "new" | "accepted" | "waitlisted" | "declined";
+  committee: string; country: string; allocation_sent_at: string | null; created_at: string; user_id?: string;
+};
+export const APP_KIND = (a: Pick<AppRow, "kind" | "role_title">) => (a.kind === "delegate" ? "Delegate" : a.kind === "chair" ? "Chair" : a.role_title || "Role");
+export const APP_STATUS: Record<AppRow["status"], [string, string | undefined]> = { new: ["Sent", "warn"], accepted: ["Accepted", "ok"], waitlisted: ["Waitlisted", "warn"], declined: ["Not accepted", "bad"] };
+export const allocationText = (a: Pick<AppRow, "kind" | "committee" | "country">) =>
+  !a.committee ? "" : a.kind === "chair" ? `Chairing ${a.committee}` : a.country ? `${a.country} in ${a.committee}` : a.committee;
+
+const YEARS = ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "University", "Other"];
+
+/* Apply to the conference as one person: a delegate, a chair, or for one of its open roles. Shown when the organisers
+   take applications on Collex. The form remembers nothing but what the profile already has. */
+export function ApplyOnCollex({ c }: { c: Conference }) {
+  const { ready, session, profile } = useAuth();
+  const { say, node } = useToast();
+  const [mine, setMine] = useState<AppRow[] | null>(null);
+  const [open, setOpen] = useState<"" | "delegate" | "chair" | "role">("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const roles = (c.roles ?? []).filter((r) => !r.url && r.kind !== "chair");
+
+  const load = () => {
+    if (!c.id || !session || !supabase) { setMine([]); return; }
+    supabase.from("applications").select("id, conference_id, kind, role_title, name, school, year, experience, prefs, note, status, committee, country, allocation_sent_at, created_at")
+      .eq("conference_id", c.id).eq("user_id", session.user.id).order("created_at")
+      .then(({ data }) => setMine((data as AppRow[] | null) ?? []));
+  };
+  useEffect(load, [c.id, session]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!c.collexApplications || !c.id) return null;
+  const has = (k: string) => (mine ?? []).some((a) => a.kind === k);
+
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!supabase || busy || !open) return;
+    const f = new FormData(e.currentTarget);
+    const text = (k: string) => String(f.get(k) ?? "").trim();
+    if (text("name").length < 2) return setError("Add your name.");
+    if (open === "role" && !text("role")) return setError("Choose the role.");
+    setError(null);
+    setBusy(true);
+    const { error: err } = await supabase.rpc("apply_to_conference", {
+      conf: c.id, app_kind: open, app_role: open === "role" ? text("role") : "", person_name: text("name"), person_school: text("school"), person_year: text("year"),
+      person_experience: text("experience"),
+      app_prefs: { committees: [text("c1"), text("c2"), text("c3")].filter(Boolean), countries: text("countries").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 5) },
+      app_note: text("note"),
+    });
+    setBusy(false);
+    if (err) return setError(err.code === "42501" || err.code === "23505" || err.code === "54000" ? err.message : "That didn’t send. Try again.");
+    say("Application sent");
+    setOpen("");
+    load();
+  };
+  const withdraw = async (a: AppRow) => {
+    if (!supabase) return;
+    const { error: err } = await supabase.rpc("withdraw_application", { app: a.id });
+    if (err) return say("That didn’t save. Try again.");
+    say("Application withdrawn");
+    load();
+  };
+
+  return (
+    <section className={`panel ${h.card}`} aria-labelledby="aoc-h" style={{ marginTop: 16 }}>
+      <div className={h.head}>
+        <h2 id="aoc-h" className={h.h2}>Apply on Collex</h2>
+      </div>
+      {mine && mine.length > 0 && (
+        <ul className={h.rows}>
+          {mine.map((a) => (
+            <li key={a.id}>
+              <span className={h.main}>
+                <strong>{APP_KIND(a)} application</strong>
+                <small>{a.status === "accepted" && allocationText(a) ? `Your allocation: ${allocationText(a)}` : a.status === "new" ? "The organisers haven’t answered yet. You can still change or withdraw it." : "The organisers have answered."}</small>
+              </span>
+              <span className={h.btns}>
+                <span className={h.chip} data-tone={APP_STATUS[a.status][1]}>{APP_STATUS[a.status][0]}</span>
+                {a.status === "new" && <button type="button" className="button secondary sm" onClick={() => void withdraw(a)}>Withdraw</button>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!ready ? null : !session ? (
+        <div className="btnStack one"><Link href={`/login?next=${encodeURIComponent(`/conferences/${c.slug}`)}`} className="button">Log in to apply</Link></div>
+      ) : (
+        <div className={h.btnRow}>
+          <button type="button" className={open === "delegate" ? "button" : "button secondary"} aria-expanded={open === "delegate"} onClick={() => setOpen(open === "delegate" ? "" : "delegate")}>{has("delegate") ? "Change Delegate Application" : "Apply as a Delegate"}</button>
+          <button type="button" className={open === "chair" ? "button" : "button secondary"} aria-expanded={open === "chair"} onClick={() => setOpen(open === "chair" ? "" : "chair")}>{has("chair") ? "Change Chair Application" : "Apply to Chair"}</button>
+          {roles.length > 0 && <button type="button" className={open === "role" ? "button" : "button secondary"} aria-expanded={open === "role"} onClick={() => setOpen(open === "role" ? "" : "role")}>Apply for a Role</button>}
+        </div>
+      )}
+      {open && session && (
+        <form key={open} className={`t-reveal ${h.form}`} onSubmit={submit} noValidate aria-label={`Apply to ${c.name}`}>
+          {open === "role" && (
+            <div className="field">
+              <label htmlFor="ap-role">Role</label>
+              <Select id="ap-role" name="role" className="control" defaultValue="">
+                <option value="">Choose a role…</option>
+                {roles.map((r, i) => <option key={i} value={r.title}>{r.title}</option>)}
+              </Select>
+            </div>
+          )}
+          <div className={h.two}>
+            <label className="field"><span>Your name</span><input name="name" className="control" defaultValue={profile?.full_name ?? ""} autoComplete="name" maxLength={100} /></label>
+            <div className="field">
+              <label htmlFor="ap-year">Year</label>
+              <Select id="ap-year" name="year" className="control" defaultValue="">
+                <option value="">Choose…</option>
+                {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+              </Select>
+            </div>
+          </div>
+          <div className="field"><span id="rg-school">School or University</span><SchoolPicker defaultValue={profile?.school ?? ""} /></div>
+          {open !== "role" && c.committees.length > 0 && (
+            <div className={h.three}>
+              {[1, 2, 3].map((n) => (
+                <div className="field" key={n}>
+                  <label htmlFor={`ap-c${n}`}>{n === 1 ? "First" : n === 2 ? "Second" : "Third"} choice of committee</label>
+                  <Select id={`ap-c${n}`} name={`c${n}`} className="control" defaultValue="">
+                    <option value="">No preference</option>
+                    {c.committees.map((k) => <option key={k.name} value={k.name}>{k.name}</option>)}
+                  </Select>
+                </div>
+              ))}
+            </div>
+          )}
+          {open === "delegate" && <label className="field"><span>Countries you&rsquo;d like <span className="muted">(optional, separated by commas)</span></span><input name="countries" className="control" maxLength={200} placeholder="France, Brazil, Japan" /></label>}
+          <label className="field"><span>{open === "chair" ? "Your chairing and MUN experience" : "Your MUN experience"} <span className="muted">(optional)</span></span><textarea name="experience" className="control" rows={3} maxLength={800} /></label>
+          <label className="field"><span>Anything the organisers should know <span className="muted">(optional)</span></span><textarea name="note" className="control" rows={2} maxLength={1000} /></label>
+          {error && <small role="alert" className={`t-reveal ${h.err}`}>{error}</small>}
+          <button className="button lg block" disabled={busy}><span key={String(busy)} className="t-swap">{busy ? "Sending…" : "Send application"}</span></button>
+        </form>
+      )}
+      {node}
+    </section>
+  );
+}
+
+type Award = { id: string; committee: string; title: string; state: string; person: string };
+
+/* Awards the chairs published from their committees, on the conference's page. */
+export function Results({ id }: { id: string }) {
+  const [rows, setRows] = useState<Award[] | null>(null);
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.from("conference_awards").select("id, committee, title, state, person").eq("conference_id", id).order("committee").order("created_at")
+      .then(({ data }) => setRows((data as Award[] | null) ?? []));
+  }, [id]);
+  if (!rows || rows.length === 0) return null;
+  return (
+    <section id="awards" className={inner.block}>
+      <h2 className={inner.h2}>Awards</h2>
+      <div className={h.awards}>
+        {rows.map((a) => (
+          <div key={a.id} className={h.award}>
+            <small>{a.committee}</small>
+            <strong>{a.title}</strong>
+            <span>{a.state}{a.person ? ` · ${a.person}` : ""}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* On a listing Collex added: its organisers ask to take it over. An admin checks the claim. */
+export function ClaimListing({ c }: { c: Conference }) {
+  const { session } = useAuth();
+  const { say, node } = useToast();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!c.id || !c.claimable) {
+    return <p className="muted" style={{ fontSize: 13, padding: "12px 0 14px", borderTop: "1px solid var(--line)" }}>Run this conference? <Link className="link" href="/list">Update the listing</Link></p>;
+  }
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!supabase || busy) return;
+    const f = new FormData(e.currentTarget);
+    const role = String(f.get("role") ?? "").trim(), proof = String(f.get("proof") ?? "").trim();
+    if (role.length < 2) return setError("Add your role at the conference.");
+    if (proof.length < 10) return setError("Tell us how we can check you run it.");
+    setError(null); setBusy(true);
+    const { error: err } = await supabase.rpc("claim_listing", { conf: c.id, your_role: role, your_proof: proof });
+    setBusy(false);
+    if (err) return setError(err.code === "42501" || err.code === "23505" || err.code === "54000" ? err.message : "That didn’t send. Try again.");
+    setSent(true); setOpen(false);
+    say("Claim sent");
+  };
+  return (
+    <div style={{ padding: "12px 0 14px", borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 10 }}>
+      <p className="muted" style={{ fontSize: 13 }}>Collex added this listing from public information. {sent ? "Your claim is with us; we’ll email you." : "Run this conference?"}</p>
+      {!sent && (session
+        ? <button type="button" className="button secondary sm" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "Close" : "Claim This Listing"}</button>
+        : <Link href={`/login?next=${encodeURIComponent(`/conferences/${c.slug}`)}`} className="button secondary sm">Log in to Claim It</Link>)}
+      {open && (
+        <form className={`t-reveal ${h.form}`} onSubmit={submit} noValidate aria-label={`Claim ${c.name}`}>
+          <label className="field"><span>Your role</span><input name="role" className="control" maxLength={80} placeholder="Secretary-General" /></label>
+          <label className="field"><span>How we can check</span><textarea name="proof" className="control" rows={3} maxLength={800} placeholder="A school email, the conference’s page that names you, or a teacher we can contact" /></label>
+          {error && <small role="alert" className={`t-reveal ${h.err}`}>{error}</small>}
+          <button className="button block" disabled={busy}>{busy ? "Sending…" : "Send Claim"}</button>
+        </form>
+      )}
+      {node}
+    </div>
+  );
+}

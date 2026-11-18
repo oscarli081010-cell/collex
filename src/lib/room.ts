@@ -1,4 +1,4 @@
-// Delegates on their own devices (an option a chair turns on for a shared committee) and the papers a committee writes.
+// Delegates on their own devices: an option a chair turns on for a shared committee.
 // A delegate never changes the committee: what they ask for waits in the chairs' inbox. This file is the words and
 // shapes both sides share; the database functions are in supabase/migrations/0025_chamber_rooms.sql.
 import * as ch from "./chamber";
@@ -8,17 +8,12 @@ export type AskKind = "floor" | "point" | "motion" | "amendment" | "sign";
 export type Ask = { id: string; delegate_id?: string; kind: AskKind; body: Record<string, unknown>; status: "open" | "done" | "dismissed" | "withdrawn"; created_at: string };
 export type Note = { id: string; from_id: string; to_id: string; body: string; created_at: string };
 export type RoomFile = { id: string; from_id: string; name: string; path: string; size: number; created_at: string; mine: boolean };
-export type PaperStatus = "draft" | "submitted" | "returned" | "approved" | "introduced";
-export type PaperRow = { id: string; title: string; status: PaperStatus; number: string | null; sponsors: string[]; signatories: string[]; chair_note: string; version: number; created_at: string; updated_at: string };
-export type Clause = { p: string; t: string; subs?: string[] };
-export type PaperBody = { pre: Clause[]; op: Clause[] };
-export type Paper = PaperRow & { body: PaperBody; chamber_id: string; can_edit: boolean; chair: boolean; seat: string | null };
 /** The room's own settings, kept by the chairs: who may pass notes, and a straw poll. */
 export type Straw = { id: string; q: string; options: string[]; open: boolean };
 export type RoomMeta = { notes?: "on" | "chair" | "off"; straw?: Straw | null };
 export type Seat = { user_id: string; delegate_id: string; name: string };
-export type DelegateSync = { state: Chamber; version: number; name: string; now: string; seat: string; room: RoomMeta; asks: Ask[]; notes: Note[]; files: RoomFile[]; papers: PaperRow[]; votes: Record<string, string> };
-export type ChairSync = { on: boolean; code: string | null; room: RoomMeta; seats: Seat[]; asks: Ask[]; notes: Note[]; files: RoomFile[]; papers: PaperRow[]; votes: { key: string; delegate_id: string; ballot: string }[] };
+export type DelegateSync = { state: Chamber; version: number; name: string; now: string; seat: string; room: RoomMeta; asks: Ask[]; notes: Note[]; files: RoomFile[]; votes: Record<string, string> };
+export type ChairSync = { on: boolean; code: string | null; room: RoomMeta; seats: Seat[]; asks: Ask[]; notes: Note[]; files: RoomFile[]; votes: { key: string; delegate_id: string; ballot: string }[] };
 
 /** What is being voted on now, as the name delegates' votes are kept under; null when nothing is. */
 export const voteKey = (c: Chamber): string | null =>
@@ -29,9 +24,6 @@ export const strawKey = (s: Straw) => `straw|${s.id}`;
 
 export const POINTS = [["order", "Point of Order"], ["privilege", "Point of Personal Privilege"], ["inquiry", "Point of Inquiry"]] as const;
 export const HOW_LABEL: Record<ch.AmendHow, string> = { strike: "Strike a clause", amend: "Change a clause", add: "Add a clause" };
-export const PAPER_STATUS: Record<PaperStatus, string> = { draft: "Draft", submitted: "With the Chairs", returned: "Sent Back", approved: "Approved", introduced: "Introduced" };
-export const PAPER_TONE: Record<PaperStatus, string | undefined> = { draft: undefined, submitted: "warn", returned: "bad", approved: "ok", introduced: "accent" };
-
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 
@@ -96,45 +88,3 @@ export function acceptAsk(c: Chamber, a: Ask, newId: string): { next: Chamber; w
 export const fileSize = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 export const FILE_TYPES = ".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx";
 export const shortTime = (iso: string) => new Date(iso).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" });
-
-/* Papers: the standard phrases, and the paper set out the way a resolution is written. */
-export const PRE_PHRASES = ["Acknowledging", "Affirming", "Alarmed by", "Aware of", "Bearing in mind", "Believing", "Concerned by", "Convinced", "Deeply concerned", "Emphasising", "Expressing its appreciation", "Guided by", "Having considered", "Keeping in mind", "Noting", "Noting with concern", "Reaffirming", "Recalling", "Recognising", "Welcoming"];
-export const OP_PHRASES = ["Accepts", "Affirms", "Approves", "Authorises", "Calls for", "Calls upon", "Condemns", "Confirms", "Decides", "Declares", "Encourages", "Endorses", "Further invites", "Further requests", "Invites", "Notes", "Reaffirms", "Recommends", "Requests", "Strongly condemns", "Supports", "Urges"];
-export const emptyBody = (): PaperBody => ({ pre: [], op: [] });
-export const cleanBody = (b: unknown): PaperBody => {
-  const o = (b ?? {}) as Partial<PaperBody>;
-  const cl = (x: unknown): Clause[] => (Array.isArray(x) ? x.slice(0, 60).map((c) => ({ p: str((c as Clause)?.p).slice(0, 60), t: str((c as Clause)?.t).slice(0, 1200), subs: Array.isArray((c as Clause)?.subs) ? (c as Clause).subs!.slice(0, 12).map((v) => str(v).slice(0, 600)) : [] })) : []);
-  return { pre: cl(o.pre), op: cl(o.op) };
-};
-const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const sub = (i: number) => String.fromCharCode(97 + (i % 26));
-/** The paper as a page of HTML, set out as a resolution: for printing (or saving as PDF) and for the Word file. */
-export function paperHtml(o: { committee: string; topic: string; title: string; number: string | null; sponsors: string[]; signatories: string[]; body: PaperBody }): string {
-  const pre = o.body.pre.filter((c) => c.p || c.t).map((c) => `<p class="pre"><i>${esc(c.p)}</i> ${esc(c.t.replace(/[,;.\s]+$/, ""))},</p>`).join("\n");
-  const ops = o.body.op.filter((c) => c.p || c.t);
-  const op = ops.map((c, i) => {
-    const subs = (c.subs ?? []).filter(Boolean);
-    const end = i === ops.length - 1 ? "." : ";";
-    const body = `${esc(c.t.replace(/[,;.:\s]+$/, ""))}${subs.length ? ":" : end}`;
-    const list = subs.length ? `<div class="subs">${subs.map((v, j) => `<p>(${sub(j)}) ${esc(v.replace(/[,;.\s]+$/, ""))}${j === subs.length - 1 ? end : ";"}</p>`).join("")}</div>` : "";
-    return `<p class="op">${i + 1}. <u>${esc(c.p)}</u> ${body}</p>${list}`;
-  }).join("\n");
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(o.title)}</title><style>
-body{font-family:"Times New Roman",Times,serif;font-size:12pt;line-height:1.5;color:#000;max-width:17cm;margin:2cm auto;padding:0 1cm}
-h1{font-size:14pt;text-align:center;margin:0 0 4pt}.meta{margin:0}.meta b{display:inline-block;min-width:3cm}
-.lead{margin:14pt 0 8pt}.pre,.op{margin:0 0 8pt}.op{padding-left:1cm;text-indent:-0.6cm}.subs{padding-left:2cm}.subs p{margin:0 0 4pt}
-hr{border:0;border-top:1px solid #000;margin:10pt 0}
-@media print{body{margin:0 auto}}
-</style></head><body>
-<h1>${esc(o.number ? `Draft Resolution ${o.number}` : o.title)}</h1>
-${o.number ? `<p class="meta"><b>Title:</b> ${esc(o.title)}</p>` : ""}
-<p class="meta"><b>Committee:</b> ${esc(o.committee)}</p>
-<p class="meta"><b>Topic:</b> ${esc(o.topic)}</p>
-<p class="meta"><b>Sponsors:</b> ${esc(o.sponsors.join(", ") || "None yet")}</p>
-<p class="meta"><b>Signatories:</b> ${esc(o.signatories.join(", ") || "None yet")}</p>
-<hr>
-<p class="lead"><i>The ${esc(o.committee)},</i></p>
-${pre}
-${op}
-</body></html>`;
-}
