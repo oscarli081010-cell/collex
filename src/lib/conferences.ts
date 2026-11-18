@@ -61,11 +61,17 @@ export type Conference = {
   verified?: boolean;
   /** Address of the organiser's cover photo, if they added one. */
   cover?: string | null;
+  /** Which part of the cover photo shows where it is cropped, as CSS object-position ("50% 30%"). */
+  coverPos?: string | null;
   /** ISO timestamp of the last change to the listing. */
   updatedAt?: string;
 };
 
 export const NA = "N/A";
+
+/** Where a cover photo is framed, from the two percentages saved with the listing. Neither saved means the middle. */
+export const coverPosition = (x: number | null | undefined, y: number | null | undefined) =>
+  x == null && y == null ? null : `${x ?? 50}% ${y ?? 50}%`;
 
 /** The public address of a cover photo stored in the "covers" bucket. */
 export const coverUrl = (path: string | null | undefined) =>

@@ -179,7 +179,7 @@ function ListingThumb({ c }: { c: Conference }) {
   return (
     <span className={s.listingThumb} aria-hidden="true">
       {/* eslint-disable-next-line @next/next/no-img-element -- organisers' photos come straight from storage */}
-      {c.cover ? <img src={c.cover} alt="" loading="lazy" decoding="async" /> : <span className="serif">{monogram(c)}</span>}
+      {c.cover ? <img src={c.cover} alt="" loading="lazy" decoding="async" style={c.coverPos ? { objectPosition: c.coverPos } : undefined} /> : <span className="serif">{monogram(c)}</span>}
     </span>
   );
 }

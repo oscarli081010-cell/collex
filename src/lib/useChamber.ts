@@ -18,6 +18,9 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
   const [c, setC] = useState<Chamber | null>(null);
   const [status, setStatus] = useState<Status>("loading");
   const [owner, setOwner] = useState(false);
+  // Owner, Admin (a Collex admin on the committee) or Chair. Owners and Admins manage the people and the join code.
+  const [role, setRole] = useState<"owner" | "admin" | "chair">("chair");
+  const [manage, setManage] = useState(false);
   const cur = useRef<Chamber | null>(null);
   const ver = useRef(0);
   const pending = useRef<((x: Chamber) => Chamber)[]>([]);
@@ -32,6 +35,8 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
     pending.current = [];
     ver.current = 0;
     setOwner(false);
+    setRole("chair");
+    setManage(false);
 
     if (!cloudId) {
       show(ch.load());
@@ -63,8 +68,12 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
         else if (error.code === "42501") setStatus("denied");
         return;
       }
-      const r = data as Remote & { owner: boolean };
-      if (first) setOwner(r.owner);
+      const r = data as Remote & { owner: boolean; role?: "owner" | "admin" | "chair"; manage?: boolean };
+      if (first) {
+        setOwner(r.owner);
+        setRole(r.role ?? (r.owner ? "owner" : "chair"));
+        setManage(r.manage ?? r.owner);
+      }
       adopt(r);
       setStatus("ready");
     };
@@ -121,5 +130,5 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
   // Start or clear the committee kept in this browser.
   const setLocal = useCallback((next: Chamber | null) => { show(next); ch.save(next); }, [show]);
 
-  return { c, status, owner, act, setLocal };
+  return { c, status, owner, role, manage, act, setLocal };
 }

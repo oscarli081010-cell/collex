@@ -1,19 +1,47 @@
 /* The debug view under a chamber: its facts, its recent activity and what is saved. */
 .detail { background: var(--surface); padding: 20px 22px !important; }
 .view, .editForm { display: flex; flex-direction: column; gap: 18px; }
-.facts { display: flex; flex-wrap: wrap; gap: 0; margin: 0; }
-.facts > div { display: flex; flex-direction: column; gap: 2px; padding: 0 22px; border-left: 1px solid var(--line-strong); }
-.facts > div:first-child { padding-left: 0; border-left: 0; }
+/* Each part of a committee in its own card, two to a row. */
+.inside { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.card {
+  display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 18px 20px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+}
+.wideCard { grid-column: 1 / -1; }
+.cardTitle { font-size: 14px; font-weight: 500; margin: 0; display: flex; align-items: center; }
+.count { margin-left: 8px; font-size: 13px; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+.adminHead { display: flex; align-items: center; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; }
+.adminHead > div:first-child { display: flex; flex-direction: column; gap: 4px; max-width: 560px; }
+.adminHead p { margin: 0; font-size: 13.5px; }
+.adminBtns { display: flex; gap: 8px; flex-wrap: wrap; }
+.adminBtns :global(.button) { display: inline-flex; align-items: center; gap: 8px; }
+.adminBtns :global(.button[aria-disabled]) { opacity: 0.55; }
+.nameLine { display: flex !important; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nameLine :global(.badge) { font-weight: 500; }
+.team { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.team li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.team li:first-child { border-top: 0; padding-top: 0; }
+.who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; overflow-wrap: anywhere; }
+.who strong { font-size: 14px; font-weight: 500; }
+.who small { font-size: 12.5px; color: var(--muted); }
+.gap { flex: none; width: 40px; }
+.addRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: auto; }
+.btnGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: auto; }
+.facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 14px 18px; margin: 0; }
+.facts > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.factWide { grid-column: 1 / -1; }
+.factWide dd { overflow-wrap: anywhere; }
 .facts dt { font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); }
 .facts dd { margin: 0; font-size: 14.5px; font-weight: 500; }
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px !important; word-break: break-all; }
 .h3 { font-size: 13px; font-weight: 500; color: var(--muted); margin: 0 0 8px; }
 .log { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13.5px; }
 .log li { display: flex; gap: 14px; }
-.log time { flex: none; width: 74px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.log time { flex: none; min-width: 84px; white-space: nowrap; color: var(--faint); font-variant-numeric: tabular-nums; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 640px) { .two { grid-template-columns: 1fr; } }
+@media (max-width: 860px) { .inside { grid-template-columns: minmax(0, 1fr); } }
 .json { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; }
-.raw summary { cursor: pointer; font-size: 13px; color: var(--muted); padding: 4px 0; }
+.raw summary { cursor: pointer; width: fit-content; font-size: 13px; color: var(--muted); padding: 4px 0; }
 .raw pre { max-height: 320px; overflow: auto; margin: 8px 0 0; padding: 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); font-size: 12px; line-height: 1.5; }

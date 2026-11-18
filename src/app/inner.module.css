@@ -74,11 +74,15 @@
   background: repeating-linear-gradient(-45deg, transparent 0 12px, color-mix(in srgb, var(--accent) 6%, transparent) 12px 13px), var(--accent-soft);
   color: color-mix(in srgb, var(--accent) 55%, var(--accent-soft)); font-size: clamp(72px, 12vw, 140px); line-height: 1; letter-spacing: 0.02em;
 }
-.confHead { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; padding-block: 36px 32px; flex-wrap: wrap; }
-/* The date tile sits beside the name and its facts. */
-.confLead { min-width: 0; }
-/* On the right, one row: the date pill, then share, calendar and follow, all the same 44px height. */
-.confSide { display: flex; align-items: center; gap: 8px; }
+/* The name on the left with its buttons across from it on the right; the facts underneath, the full width. */
+.confHead {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "lead side" "meta meta";
+  align-items: end; column-gap: 32px; padding-block: 36px 32px;
+}
+.confLead { grid-area: lead; min-width: 0; }
+.confHead > .confMeta { grid-area: meta; }
+/* Share, calendar and follow in one row, all the same 44px height. */
+.confSide { grid-area: side; display: flex; align-items: center; gap: 8px; padding-bottom: 4px; }
 .dateTile {
   flex: none; display: inline-flex; align-items: stretch; height: 44px; overflow: hidden;
   border: 1px solid var(--line); border-radius: 999px; background: var(--panel);
@@ -108,6 +112,9 @@
 @media (max-width: 720px) {
   /* On a phone the date is already in the line under the name, so the pill steps aside for the buttons. */
   .dateTile { display: none; }
+  .confHead { grid-template-columns: minmax(0, 1fr); grid-template-areas: "lead" "meta" "side"; row-gap: 20px; }
+  .confHead > .confMeta { margin-top: 0; }
+  .confSide { padding-bottom: 0; }
   .confSide, .confAside { width: 100%; }
   /* The calendar button sits at the left here, so its menu opens rightwards, on screen. */
   .calPop { left: 0; right: auto; }

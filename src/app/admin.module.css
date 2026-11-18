@@ -1,12 +1,22 @@
-.wrap { width: 100%; display: flex; flex-direction: column; gap: 32px; }
-.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+.wrap { width: 100%; display: flex; flex-direction: column; gap: 28px; }
+/* The band leaves its own space underneath, so the tabs sit closer to it than the rest do to each other. */
+.tabsRow { margin-top: -8px; }
 
-/* Sliding tabs */
-.tabs { position: relative; display: flex; gap: 2px; padding: 4px; border-radius: 12px; background: var(--surface); overflow-x: auto; scrollbar-width: none; }
+/* Sliding tabs, all the same width across the page. On a phone they keep a fixed width each and scroll sideways. */
+.tabs {
+  position: relative; display: grid; grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr)); gap: 2px; padding: 4px;
+  border-radius: 12px; background: var(--surface); overflow-x: auto; scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
 .tabs button {
-  position: relative; z-index: 1; height: 38px; padding: 0 16px; border: 0; border-radius: 8px; background: transparent;
-  font-size: 14px; color: var(--muted); cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px;
+  position: relative; z-index: 1; height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; min-width: 0;
+  font-size: 14px; color: var(--muted); cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   transition: color var(--duration-fast) var(--ease-smooth-out);
+}
+.tabs button:hover { color: var(--ink); }
+.tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (max-width: 760px) {
+  .tabs { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 132px; }
 }
 .tabs button[aria-selected="true"] { color: var(--ink); font-weight: 500; }
 .tabPill { top: 4px; bottom: 4px; border-radius: 8px; background: var(--panel); box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.1); }
@@ -85,7 +95,7 @@
 
 /* Ticking rows for bulk actions. The box is 20px; its label is a 44px target. */
 .pick { display: inline-grid; place-items: center; width: 44px; height: 44px; margin: -12px; cursor: pointer; flex: none; }
-.pick input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.pick input { margin: 0; }
 .pickCell { width: 44px; padding-right: 0 !important; }
 .table th.pickCell { padding-block: 0; }
 .table tr[data-picked] { background: var(--accent-soft); }
@@ -106,27 +116,42 @@
 .reportMeta { font-size: 13px; }
 @media (max-width: 640px) { .report { grid-template-columns: auto minmax(0, 1fr); padding: 16px; } .report > .actions { grid-column: 1 / -1; justify-content: flex-start; } }
 
-/* The bar that appears when something is ticked. */
+/* The bar that appears when something is ticked: a floating card in the page's own colours (light or dark), with the
+   count on the left, a close button to clear it (or Escape), and the actions for what is ticked. */
 .bulk {
   position: fixed; left: 50%; bottom: 20px; z-index: 50; transform: translateX(-50%);
-  display: flex; align-items: center; flex-wrap: wrap; gap: 8px; max-width: calc(100vw - 24px); padding: 10px 12px 10px 18px;
-  background: var(--ink); color: var(--on-ink); border-radius: 18px; box-shadow: 0 18px 50px rgba(var(--shadow-rgb), 0.35);
+  display: flex; align-items: center; gap: 12px; width: max-content; max-width: calc(100vw - 32px); padding: 8px 10px 8px 8px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent); color: var(--ink);
+  border: 1px solid var(--line-strong); border-radius: 18px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 48px rgba(var(--shadow-rgb), 0.18), 0 4px 12px rgba(var(--shadow-rgb), 0.08);
+  backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
   animation: bulkIn var(--duration-fast) var(--ease-smooth-out) both;
 }
-@keyframes bulkIn { from { opacity: 0; transform: translate(-50%, 12px); } }
-.bulkCount { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; margin-right: 6px; white-space: nowrap; }
-.bulk :global(.button) { height: 40px; background: var(--on-ink); border-color: transparent; color: var(--ink); font-size: 13.5px; }
-.bulk :global(.button:hover) { background: color-mix(in srgb, var(--on-ink) 88%, var(--ink)); }
+@keyframes bulkIn { from { opacity: 0; transform: translate(-50%, 12px) scale(0.98); } }
+.bulkLead { display: flex; align-items: center; gap: 8px; flex: none; }
+.bulkLead :global(.iconbtn) { width: 36px; height: 36px; }
+.bulkCount { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 13.5px; font-weight: 500; white-space: nowrap; }
+.bulkCount b { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bulkRule { flex: none; width: 1px; height: 24px; background: var(--line-strong); }
+.bulkActions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.bulk :global(.button) { height: 38px; padding: 0 14px; font-size: 13.5px; }
 .bulk :global(.button[disabled]) { opacity: 0.5; }
-.bulk .bulkDanger, .bulk .bulkDanger:hover { background: var(--danger); color: #fff; }
-.bulkClear { height: 40px; padding: 0 12px; border: 0; background: transparent; color: inherit; opacity: 0.75; font-size: 13.5px; cursor: pointer; border-radius: 8px; }
-.bulkClear:hover { opacity: 1; background: rgba(255, 255, 255, 0.08); }
-.bulkForm { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 360px; }
-.bulkForm :global(.control) { flex: 1 1 220px; height: 40px; background: var(--panel); color: var(--ink); }
+.bulk :global(.button).bulkDanger { color: var(--danger); }
+.bulk :global(.button).bulkDanger:hover { background: var(--danger-soft); border-color: var(--danger); }
+.bulk :global(.button).bulkDanger[data-armed] { background: var(--danger); border-color: var(--danger); color: #fff; }
+.bulkForm { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.bulkForm :global(.control) { width: min(320px, 60vw); height: 38px; }
+/* Room under the last row, so the bar never sits on top of it. */
+.wrap:has(.bulk) { padding-bottom: 120px; }
 @media (max-width: 640px) {
-  .bulk { left: 12px; right: 12px; bottom: 12px; transform: none; max-width: none; animation-name: bulkInMobile; padding-left: 14px; }
+  .bulk { left: 12px; right: 12px; bottom: 12px; width: auto; transform: none; max-width: none; flex-wrap: wrap; animation-name: bulkInMobile; }
+  .bulkRule { display: none; }
+  .bulkLead { width: 100%; }
+  .bulkActions { width: 100%; }
   .bulk :global(.button) { flex: 1 1 calc(50% - 8px); height: 44px; }
-  .bulkClear { height: 44px; }
+  .bulkForm { width: 100%; }
+  .bulkForm :global(.control) { width: 100%; height: 44px; }
+  .wrap:has(.bulk) { padding-bottom: 200px; }
 }
 @keyframes bulkInMobile { from { opacity: 0; transform: translateY(12px); } }
 @media (prefers-reduced-motion: reduce) { .bulk { animation: none; } }

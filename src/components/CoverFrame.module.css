@@ -1,0 +1,45 @@
+.wrap { display: flex; flex-direction: column; gap: 14px; }
+
+/* The whole photo, no taller than 340px, with what the page crops away dimmed. */
+.stage {
+  position: relative; width: 100%; margin-inline: auto; overflow: hidden; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--line-strong); touch-action: none; user-select: none;
+}
+.stage[data-loading] { aspect-ratio: 16 / 9; max-height: 340px; }
+.stage[data-loading] img { opacity: 0; }
+.stage[data-moves] { cursor: grab; }
+.stage[data-dragging] { cursor: grabbing; }
+.stage img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+
+/* The part the page keeps: clear, outlined, and everything around it under a dark wash. */
+.frame {
+  position: absolute; border-radius: 8px; outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 9999px rgba(10, 12, 16, 0.55);
+  transition: box-shadow var(--duration-quick) var(--ease-smooth-out);
+}
+.stage:not([data-dragging]) .frame { transition: left 120ms var(--ease-smooth-out), top 120ms var(--ease-smooth-out), box-shadow var(--duration-quick) var(--ease-smooth-out); }
+.frame:focus-visible { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 5px var(--accent), 0 0 0 9999px rgba(10, 12, 16, 0.55); }
+.grip {
+  position: absolute; left: 50%; top: 50%; translate: -50% -50%;
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px;
+  background: rgba(10, 12, 16, 0.6); color: #fff; font-size: 12.5px; font-weight: 500;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); pointer-events: none;
+  transition: opacity var(--duration-quick);
+}
+.stage[data-dragging] .grip { opacity: 0; }
+
+/* What it will look like: the page's wide cover and the lists' square, side by side. */
+.previews { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.preview { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.preview figcaption { font-size: 12.5px; color: var(--muted); }
+.pageShot, .listShot { display: block; overflow: hidden; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+.pageShot { width: 216px; aspect-ratio: 3 / 1; }
+.listShot { width: 72px; aspect-ratio: 1; }
+.pageShot img, .listShot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.centre { margin-left: auto; }
+
+@media (max-width: 480px) {
+  .pageShot { width: 160px; }
+  .listShot { width: 54px; }
+}
+@media (prefers-reduced-motion: reduce) { .frame, .stage:not([data-dragging]) .frame { transition: none; } }

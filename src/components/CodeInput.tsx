@@ -9,9 +9,9 @@ import s from "./CodeInput.module.css";
 // `letters` also takes A to Z (shown in capitals), for join codes; `initial` fills the boxes to start with.
 const clean = (v: string, letters: boolean) => (letters ? v.toUpperCase().replace(/[^A-Z0-9]/g, "") : v.replace(/\D/g, ""));
 
-export default function CodeInput({ length = 6, onComplete, onChange, errors = 0, disabled, letters = false, initial = "", label }: {
+export default function CodeInput({ length = 6, onComplete, onChange, errors = 0, disabled, letters = false, initial = "", label, stretch = false }: {
   length?: number; onComplete: (code: string) => void; onChange?: (code: string) => void; errors?: number; disabled?: boolean;
-  letters?: boolean; initial?: string; label?: string;
+  letters?: boolean; initial?: string; label?: string; stretch?: boolean;
 }) {
   const [digits, setDigits] = useState<string[]>(() => Array.from({ length }, (_, i) => clean(initial, letters)[i] ?? ""));
   useEffect(() => { onChange?.(digits.join("")); }, [digits]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -47,7 +47,7 @@ export default function CodeInput({ length = 6, onComplete, onChange, errors = 0
   };
 
   return (
-    <div key={shake} className={`${s.row} ${shake ? s.shake : ""}`} role="group" aria-label={label ?? `${length}-${letters ? "character" : "digit"} code`}>
+    <div key={shake} className={`${s.row} ${stretch ? s.stretch : ""} ${shake ? s.shake : ""}`} role="group" aria-label={label ?? `${length}-${letters ? "character" : "digit"} code`}>
       {digits.map((d, i) => (
         <input
           key={i}

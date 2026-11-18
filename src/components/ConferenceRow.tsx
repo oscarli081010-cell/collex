@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ViewTransition } from "react";
-import { formatRange, monogram, NA, type Conference } from "@/lib/conferences";
+import { formatRange, monogram, type Conference } from "@/lib/conferences";
 import RowAction from "./RowAction";
 import Verified from "./Verified";
 import { META_ICONS } from "./MetaIcons";
@@ -12,7 +12,7 @@ export function Thumb({ c, size }: { c: Conference; size?: "sm" }) {
     <ViewTransition name={`cover-${c.slug}`} share="morph" default="none">
       <span className={`${s.thumb} ${size === "sm" ? s.thumbSm : ""}`} aria-hidden="true">
         {/* eslint-disable-next-line @next/next/no-img-element -- organisers' photos come straight from storage */}
-        {c.cover ? <img src={c.cover} alt="" loading="lazy" decoding="async" /> : <span className="serif">{monogram(c)}</span>}
+        {c.cover ? <img src={c.cover} alt="" loading="lazy" decoding="async" style={c.coverPos ? { objectPosition: c.coverPos } : undefined} /> : <span className="serif">{monogram(c)}</span>}
       </span>
     </ViewTransition>
   );
@@ -20,16 +20,11 @@ export function Thumb({ c, size }: { c: Conference; size?: "sm" }) {
 
 // A listing: the whole card opens the page; the two buttons go straight to applying (not once it has finished).
 export default function ConferenceRow({ c, past = false }: { c: Conference; past?: boolean }) {
-  const d = c.startDate ? new Date(c.startDate + "T00:00:00") : null;
   const page = `/conferences/${c.slug}`;
   return (
     <div className={s.row}>
       <span className={s.lead}>
         <Thumb c={c} />
-        <span className={s.dateBlock} aria-hidden="true">
-          <span className={s.dateMonth}>{d ? d.toLocaleDateString("en-AU", { month: "short" }) : "Date"}</span>
-          <span className={`serif ${s.dateDay}`}>{d ? d.getDate() : NA}</span>
-        </span>
       </span>
       <div className={s.rowMain}>
         <span className={s.rowTitle}>

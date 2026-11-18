@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { coverUrl, NA, ROLE_KINDS, template, webUrl, type Conference, type Role } from "./conferences";
+import { coverPosition, coverUrl, NA, ROLE_KINDS, template, webUrl, type Conference, type Role } from "./conferences";
 
 // Server-side reads of published listings. Pages revalidate every minute, so an approval shows up quickly.
 
@@ -9,7 +9,7 @@ type Row = {
   delegation_url: string | null; chair_url: string | null; delegation_opens_at?: string | null; chair_opens_at?: string | null; interest_url?: string | null; collex_registration?: boolean;
   key_dates: Conference["keyDates"]; committees: Conference["committees"]; guides: Conference["guides"];
   secretariat: Conference["secretariat"]; roles?: Partial<Role>[] | null;
-  verified?: boolean; updated_at?: string; cover_path?: string | null;
+  verified?: boolean; updated_at?: string; cover_path?: string | null; cover_x?: number | null; cover_y?: number | null;
 };
 
 const or = (v: string | null | undefined) => (v && v.trim() ? v : NA);
@@ -43,6 +43,7 @@ export const fromRow = (r: Row): Conference => ({
   collexRegistration: r.collex_registration ?? false,
   verified: r.verified ?? false,
   cover: coverUrl(r.cover_path),
+  coverPos: coverPosition(r.cover_x, r.cover_y),
   updatedAt: r.updated_at,
 });
 

@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Admin · Collex", robots: { index: f
 
 export default function AdminPage() {
   return (
-    <main id="top" className="container" style={{ paddingBlock: "clamp(48px, 6vw, 80px)", minHeight: "calc(100svh - 73px)" }}>
+    <main id="top" className="container" style={{ paddingBottom: "clamp(48px, 6vw, 80px)", minHeight: "calc(100svh - 73px)" }}>
       <Admin />
     </main>
   );

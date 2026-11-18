@@ -21,6 +21,7 @@ import Team, { type Member } from "./Team";
 import auth from "@/app/auth.module.css";
 import s from "@/app/inner.module.css";
 import Select from "./Select";
+import CoverFrame from "./CoverFrame";
 
 type EditTab = "info" | "organisers";
 const EDIT_TABS: PanelTab<EditTab>[] = [
@@ -80,6 +81,8 @@ export default function ListForm() {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverRemoved, setCoverRemoved] = useState(false);
+  // Which part of the photo shows where it is cropped (percentages across and down; 50, 50 is the middle).
+  const [coverAt, setCoverAt] = useState<[number, number]>([50, 50]);
   // ?edit=<id> opens one of your own listings for editing instead of a blank form.
   const [editing, setEditing] = useState<Editing | null | "missing" | "viewonly">(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -116,6 +119,8 @@ export default function ListForm() {
     setRoles(roleRows(row?.roles as unknown as Partial<Role>[] | undefined));
     setKeyDates(keyDateRows(row ? (row.key_dates as unknown as { label: string; date: string | null }[] | null) ?? [] : undefined));
     setStray(strayGuides(row?.committees ?? [], row?.guides ?? []));
+    const at = (k: string) => { const n = Number((row as Record<string, unknown> | null)?.[k]); return row?.[k] != null && Number.isFinite(n) ? n : 50; };
+    setCoverAt([at("cover_x"), at("cover_y")]);
   }, [userId]);
   // Layout effect, so a form whose listing was loaded a moment ago (from the Activity page) shows it on its first paint
   // instead of a skeleton. A kept copy is used as it is when it is recent: the form never reloads over what someone has
@@ -206,6 +211,8 @@ export default function ListForm() {
       overview: v("overview"),
       committees: toCommittees(committees),
       ...cover,
+      // Saved with any photo; cleared with it.
+      ...(coverFile || savedCover ? { cover_x: coverAt[0], cover_y: coverAt[1] } : coverRemoved ? { cover_x: null, cover_y: null } : {}),
     };
     // .select() returns the saved row, so an edit that changed nothing (no access any more) is caught, not shown as saved.
     const { data: saved, error } = edit
@@ -248,6 +255,7 @@ export default function ListForm() {
     setCoverFile(file);
     setCoverPreview(URL.createObjectURL(file));
     setCoverRemoved(false);
+    setCoverAt([50, 50]); // a new photo starts in the middle
   };
   const removeCover = () => {
     if (coverPreview) URL.revokeObjectURL(coverPreview);
@@ -398,19 +406,20 @@ export default function ListForm() {
         </fieldset>
         <div id="sec-cover" className={`field ${s.wide} ${errors.cover ? s.invalid : ""}`}>
           <label htmlFor="f-cover">Cover photo <span className="muted">(optional)</span></label>
-          <label htmlFor="f-cover" className={s.coverPick} data-filled={Boolean(shownCover)}>
-            {shownCover
-              // eslint-disable-next-line @next/next/no-img-element -- a local preview of the picked file
-              ? <img src={shownCover} alt="The cover photo you picked" />
-              : <span className={s.coverEmpty}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2.5" /><circle cx="9" cy="10" r="1.8" /><path d="M21 16l-5-5-8 8.5" /></svg>
-                  Add a photo
-                </span>}
-          </label>
+          {shownCover ? (
+            <CoverFrame src={shownCover} x={coverAt[0]} y={coverAt[1]} onChange={(x, y) => setCoverAt([x, y])} />
+          ) : (
+            <label htmlFor="f-cover" className={s.coverPick}>
+              <span className={s.coverEmpty}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2.5" /><circle cx="9" cy="10" r="1.8" /><path d="M21 16l-5-5-8 8.5" /></svg>
+                Add a photo
+              </span>
+            </label>
+          )}
           <input id="f-cover" type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-invalid={Boolean(errors.cover)} aria-describedby="f-cover-hint" onChange={pickCover} />
           {errors.cover
             ? <small key="err" id="f-cover-hint" className={`t-reveal ${s.error}`}>{errors.cover}</small>
-            : <small id="f-cover-hint">JPG, PNG or WebP, up to 5MB.</small>}
+            : <small id="f-cover-hint">{shownCover ? "The lit part is what shows on the conference page. Drag it, click where it should go, or use the arrow keys." : "JPG, PNG or WebP, up to 5MB."}</small>}
           {shownCover && (
             <div className="btnStack">
               <label htmlFor="f-cover" className="button secondary">Change photo</label>

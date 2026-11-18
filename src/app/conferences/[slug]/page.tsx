@@ -115,7 +115,7 @@ export default async function ConferencePage({ params }: Props) {
           <div className={s.cover}>
             {c.cover
               // eslint-disable-next-line @next/next/no-img-element -- organisers' photos come straight from storage at their own size
-              ? <img src={c.cover} alt="" className={s.coverImg} fetchPriority="high" />
+              ? <img src={c.cover} alt="" className={s.coverImg} fetchPriority="high" style={c.coverPos ? { objectPosition: c.coverPos } : undefined} />
               : c.isTemplate
                 ? <span className={s.coverNote}>Cover image N/A</span>
                 // No photo yet: the conference's initials, as in the lists, so the page still opens on something of its own.
@@ -125,21 +125,20 @@ export default async function ConferencePage({ params }: Props) {
 
         <header className={s.confHead}>
           <div className={s.confLead}>
-            <div>
-              {c.isTemplate ? <span className="badge accent">Demo listing</span> : (
-                past && <span className={s.confBadges}><span className="badge">Finished</span></span>
-              )}
-              <ViewTransition name={`title-${c.slug}`} share="morph" default="none">
-                <h1 className={s.confTitle}>{c.name}</h1>
-              </ViewTransition>
-              <ul className={s.confMeta}>
-                <li>{ICONS.date}{formatRange(c)}</li>
-                <li>{ICONS.host}Hosted by {c.host}</li>
-                <li>{ICONS.venue}{c.venue}</li>
-              </ul>
-            </div>
+            {c.isTemplate ? <span className="badge accent">Demo listing</span> : (
+              past && <span className={s.confBadges}><span className="badge">Finished</span></span>
+            )}
+            <ViewTransition name={`title-${c.slug}`} share="morph" default="none">
+              <h1 className={s.confTitle}>{c.name}</h1>
+            </ViewTransition>
           </div>
-          {/* On the right: follow, then the share and calendar buttons, then the verified mark. */}
+          {/* Across from the name, however long it is: follow, then the share and calendar buttons, then the verified mark.
+              The facts go underneath, the full width, so they never push the buttons down. */}
+          <ul className={s.confMeta}>
+            <li>{ICONS.date}{formatRange(c)}</li>
+            <li>{ICONS.host}Hosted by {c.host}</li>
+            <li>{ICONS.venue}{c.venue}</li>
+          </ul>
           <div className={s.confSide}>
             <div className={s.confAside}>
               {c.id && !past && <FollowButton id={c.id} name={c.name} />}

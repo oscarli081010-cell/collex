@@ -8,11 +8,12 @@ import { Placard } from "./Drawings";
 import Verified from "./Verified";
 import IconButton, { ConfirmIconButton, ICONS } from "./IconButton";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import { coverUrl, formatDate, webUrl } from "@/lib/conferences";
+import { coverPosition, coverUrl, formatDate, webUrl } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
 import { useAuth } from "./AuthProvider";
 import { usePill } from "./usePill";
+import PageBand from "./PageBand";
 import { useToast } from "./useToast";
 import auth from "@/app/auth.module.css";
 import s from "@/app/admin.module.css";
@@ -23,7 +24,7 @@ import AdminChambers, { type AdminChamber } from "./AdminChambers";
 type Row = {
   id: string; slug: string; status: string; name: string; host: string; start_date: string | null; end_date: string | null;
   venue: string; level: string | null; contact: string; fee: string; overview: string; submitter_role: string;
-  delegation_url: string | null; chair_url: string | null; interest_url?: string | null; committees: { name: string; topic: string }[]; cover_path?: string | null;
+  delegation_url: string | null; chair_url: string | null; interest_url?: string | null; committees: { name: string; topic: string }[]; cover_path?: string | null; cover_x?: number | null; cover_y?: number | null;
   review_note: string; created_at: string; verified: boolean;
 };
 type User = { id: string; email: string; full_name: string; school: string; role: string; is_admin: boolean; created_at: string };
@@ -99,10 +100,22 @@ export default function Admin() {
   // The first click on a bulk Delete arms it; it disarms itself after three seconds.
   useEffect(() => { if (!armed) return; const t = setTimeout(() => setArmed(false), 3000); return () => clearTimeout(t); }, [armed]);
 
-  if (!ready) return <RowsSkeleton rows={5} height={72} />;
+  const bulkOn = sel.length > 0 && (tab === "Review" || tab === "Conferences" || tab === "Reports");
+  // Escape clears the selection, unless it's closing something else first (the reject reason box goes back).
+  useEffect(() => {
+    if (!bulkOn) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (rejecting) { setRejecting(false); return; }
+      setSel([]); setRejectNote(""); setArmed(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [bulkOn, rejecting]);
+  if (!ready) return <div style={{ marginTop: "clamp(48px, 6vw, 80px)" }}><RowsSkeleton rows={5} height={72} /></div>;
   if (!session || !profile?.is_admin) {
     return (
-      <div className={`t-reveal ${auth.form}`}>
+      <div className={`t-reveal ${auth.form}`} style={{ marginTop: "clamp(48px, 6vw, 80px)" }}>
         <h1 className={auth.title}>Admins only</h1>
         <p className="muted">{session ? "Your account doesn't have admin access." : "Log in with an admin account to continue."}</p>
         {!session && <Link href="/login" className="button lg">Log in</Link>}
@@ -195,9 +208,13 @@ export default function Admin() {
 
   return (
     <div className={s.wrap}>
-      <header className={s.head}>
-        <h1 className={auth.title}>Admin</h1>
-        <div ref={tabsRef} className={s.tabs} role="tablist">
+      <PageBand title="Admin" figures={[
+        { label: "To Review", value: rows === null ? "…" : String(pending.length) },
+        { label: "Open Reports", value: reports === null ? "…" : String(openReports.length) },
+        { label: "Users", value: users === null ? "…" : String(users.length) },
+      ]} />
+      <nav className={s.tabsRow} aria-label="Admin sections">
+        <div ref={tabsRef} className={s.tabs} role="tablist" style={{ "--n": TABS.length } as React.CSSProperties}>
           <span ref={pill} className={`t-pill ${s.tabPill}`} aria-hidden="true" />
           {TABS.map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} onClick={() => { clearSel(); setTab(t); }}>
@@ -205,7 +222,7 @@ export default function Admin() {
             </button>
           ))}
         </div>
-      </header>
+      </nav>
 
       {rows === null ? <RowsSkeleton rows={4} height={72} /> : (
         <div key={tab} className="t-reveal">
@@ -369,36 +386,41 @@ export default function Admin() {
           ))}
         </div>
       )}
-      {sel.length > 0 && (tab === "Review" || tab === "Conferences" || tab === "Reports") && (
+      {bulkOn && (
         <div className={s.bulk} role="region" aria-label="Bulk actions">
-          <span className={s.bulkCount} aria-live="polite">{sel.length} selected</span>
-          {tab === "Review" && (rejecting ? (
-            <form className={s.bulkForm} onSubmit={(e) => { e.preventDefault(); bulk("rejected", () => confStatus("rejected", rejectNote.trim())); }}>
-              <input className="control" placeholder="Reason, shown to each person" value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} aria-label="Reason for rejecting" autoFocus />
-              <button className={`button ${s.bulkDanger}`} disabled={bulkBusy}>Reject {sel.length}</button>
-              <button type="button" className="button" onClick={() => setRejecting(false)}>Back</button>
-            </form>
-          ) : (<>
-            <button className="button" disabled={bulkBusy} onClick={() => bulk("approved and live", () => confStatus("published"))}>Approve all</button>
-            <button className="button" disabled={bulkBusy} onClick={() => setRejecting(true)}>Reject…</button>
-          </>))}
-          {tab === "Conferences" && (<>
-            <button className="button" disabled={bulkBusy} onClick={() => bulk("published", () => confStatus("published"))}>Publish</button>
-            <button className="button" disabled={bulkBusy} onClick={() => bulk("taken down", () => confStatus("unpublished"))}>Take down</button>
-            <button className="button" disabled={bulkBusy} onClick={() => bulk("verified", () => db().from("conferences").update({ verified: true }).in("id", sel))}>Verify</button>
-            <button className="button" disabled={bulkBusy} onClick={() => bulk("unverified", () => db().from("conferences").update({ verified: false }).in("id", sel))}>Unverify</button>
-            <button className={`button ${armed ? s.bulkDanger : ""}`} disabled={bulkBusy} onClick={() => (armed ? bulk("deleted", () => db().from("conferences").delete().in("id", sel)) : setArmed(true))}>
-              {armed ? `Click again to delete ${sel.length}` : "Delete"}
-            </button>
-          </>)}
-          {tab === "Reports" && (<>
-            <button className="button" disabled={bulkBusy} onClick={() => bulk("resolved", () => db().from("reports").update({ status: "resolved", resolved_at: new Date().toISOString() }).in("id", reportIds), false)}>Resolve</button>
-            <button className="button" disabled={bulkBusy} onClick={() => bulk("reopened", () => db().from("reports").update({ status: "open", resolved_at: null }).in("id", reportIds), false)}>Reopen</button>
-            <button className={`button ${armed ? s.bulkDanger : ""}`} disabled={bulkBusy} onClick={() => (armed ? bulk("deleted", () => db().from("reports").delete().in("id", reportIds), false) : setArmed(true))}>
-              {armed ? `Click again to delete ${sel.length}` : "Delete"}
-            </button>
-          </>)}
-          <button className={s.bulkClear} onClick={clearSel}>Clear</button>
+          <div className={s.bulkLead}>
+            <IconButton label="Clear the selection" tip="Clear (Esc)" icon={ICONS.close} onClick={clearSel} />
+            <span className={s.bulkCount} aria-live="polite"><b>{sel.length}</b> selected</span>
+          </div>
+          <span className={s.bulkRule} aria-hidden="true" />
+          <div className={s.bulkActions}>
+            {tab === "Review" && (rejecting ? (
+              <form className={s.bulkForm} onSubmit={(e) => { e.preventDefault(); bulk("rejected", () => confStatus("rejected", rejectNote.trim())); }}>
+                <input className="control" placeholder="Reason, shown to each person" value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} aria-label="Reason for rejecting" autoFocus />
+                <button className={`button ${s.bulkDanger}`} disabled={bulkBusy} data-armed>Reject {sel.length}</button>
+                <button type="button" className="button secondary" onClick={() => setRejecting(false)}>Back</button>
+              </form>
+            ) : (<>
+              <button className="button" disabled={bulkBusy} onClick={() => bulk("approved and live", () => confStatus("published"))}>Approve {sel.length}</button>
+              <button className={`button secondary ${s.bulkDanger}`} disabled={bulkBusy} onClick={() => setRejecting(true)}>Reject…</button>
+            </>))}
+            {tab === "Conferences" && (<>
+              <button className="button secondary" disabled={bulkBusy} onClick={() => bulk("published", () => confStatus("published"))}>Publish</button>
+              <button className="button secondary" disabled={bulkBusy} onClick={() => bulk("taken down", () => confStatus("unpublished"))}>Take Down</button>
+              <button className="button secondary" disabled={bulkBusy} onClick={() => bulk("verified", () => db().from("conferences").update({ verified: true }).in("id", sel))}>Verify</button>
+              <button className="button secondary" disabled={bulkBusy} onClick={() => bulk("unverified", () => db().from("conferences").update({ verified: false }).in("id", sel))}>Unverify</button>
+              <button className={`button secondary ${s.bulkDanger}`} data-armed={armed || undefined} disabled={bulkBusy} onClick={() => (armed ? bulk("deleted", () => db().from("conferences").delete().in("id", sel)) : setArmed(true))}>
+                {armed ? `Click again to delete ${sel.length}` : "Delete"}
+              </button>
+            </>)}
+            {tab === "Reports" && (<>
+              <button className="button secondary" disabled={bulkBusy} onClick={() => bulk("resolved", () => db().from("reports").update({ status: "resolved", resolved_at: new Date().toISOString() }).in("id", reportIds), false)}>Resolve</button>
+              <button className="button secondary" disabled={bulkBusy} onClick={() => bulk("reopened", () => db().from("reports").update({ status: "open", resolved_at: null }).in("id", reportIds), false)}>Reopen</button>
+              <button className={`button secondary ${s.bulkDanger}`} data-armed={armed || undefined} disabled={bulkBusy} onClick={() => (armed ? bulk("deleted", () => db().from("reports").delete().in("id", reportIds), false) : setArmed(true))}>
+                {armed ? `Click again to delete ${sel.length}` : "Delete"}
+              </button>
+            </>)}
+          </div>
         </div>
       )}
       {node}
@@ -441,7 +463,7 @@ function ReviewCard({ r, i, picked, onPick, onApprove, onReject }: { r: Row; i: 
         </div>
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element -- the organiser's photo, shown so it can be checked before approving */}
-      {r.cover_path && <img src={coverUrl(r.cover_path)!} alt={`Cover photo sent with ${r.name}`} className={s.reviewCover} />}
+      {r.cover_path && <img src={coverUrl(r.cover_path)!} alt={`Cover photo sent with ${r.name}`} className={s.reviewCover} style={{ objectPosition: coverPosition(r.cover_x, r.cover_y) ?? undefined }} />}
       <dl className={s.facts}>
         {facts.filter(([, v]) => v).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
         {webUrl(r.delegation_url) && <div><dt>Registration</dt><dd><a className="link" href={webUrl(r.delegation_url)!} target="_blank" rel="noreferrer">Open link</a></dd></div>}

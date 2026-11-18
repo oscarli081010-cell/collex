@@ -20,12 +20,14 @@ import Select from "./Select";
 import CodeInput, { CodeBoxes } from "./CodeInput";
 import { Gavel } from "./Drawings";
 import board from "./board.module.css";
+import { STEP, ago, procName } from "@/lib/chamberLabels";
 
 const svg = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
 const MONITOR = svg(<><rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.6" /><path d="M5.5 13.5h5M8 11v2.5" /></>);
 const SLIDERS = svg(<><path d="M2.5 4.5h6.5M12 4.5h1.5M2.5 11.5h1.5M7 11.5h6.5" /><circle cx="10.5" cy="4.5" r="1.6" /><circle cx="5.5" cy="11.5" r="1.6" /></>);
 const COPY = svg(<><rect x="5.5" y="5.5" width="8" height="8" rx="1.6" /><path d="M10.5 3.5V3a1 1 0 00-1-1H3.5a1 1 0 00-1 1v6a1 1 0 001 1H4" /></>);
 const BACK = svg(<path d="M6.5 3L2.5 7l4 4M2.5 7H10a3.5 3.5 0 010 7H7" />);
+const STACK = svg(<><rect x="2.5" y="6" width="11" height="7.5" rx="1.6" /><path d="M4 3.8h8M5.5 1.8h5" /></>);
 const SWAP = svg(<path d="M3 5.5h9.5M10 3l2.5 2.5L10 8M13 10.5H3.5M6 8l-2.5 2.5L6 13" />);
 
 // The time left, redrawn a few times a second while a timer is running and not at all otherwise.
@@ -87,7 +89,7 @@ export default function Chambers() {
   const cloudId = isId(q) ? q : null;
   const { ready: authReady, session } = useAuth();
   const router = useRouter();
-  const { c, status, owner, act, setLocal } = useChamber(cloudId, { signedIn: !!session, authReady });
+  const { c, status, owner, manage, act, setLocal } = useChamber(cloudId, { signedIn: !!session, authReady });
   const [live, setLive] = useState("");
   const [view, setView] = useState<"manage" | "analytics" | "settings" | "share">("manage");
   const { say, node } = useToast();
@@ -226,7 +228,7 @@ export default function Chambers() {
         </div>
       ) : view === "share" ? (
         <div id="chv-panel-share" role="tabpanel" aria-labelledby="chv-tab-share" className={s.manage}>
-          <Share c={c} cloudId={cloudId} owner={owner} signedIn={!!session} meId={session?.user.id} say={say} setLocal={setLocal} />
+          <Share c={c} cloudId={cloudId} manage={manage} signedIn={!!session} meId={session?.user.id} say={say} setLocal={setLocal} />
         </div>
       ) : view === "analytics" ? (
         <Analytics c={c} say={say} />
@@ -1581,12 +1583,13 @@ function Background({ c, act, say, userId }: { c: Chamber; act: Act; say: (t: st
   );
 }
 
-type Member = { user_id: string; name: string; email: string; is_owner: boolean };
+type Member = { user_id: string; name: string; email: string; is_owner: boolean; role?: "owner" | "admin" | "chair" };
+const ROLE = { owner: "Owner", admin: "Admin", chair: "Chair" } as const;
 
 // Who can run this committee. A committee kept in this browser can be shared, which moves it to Collex so the people
 // added (by the email on their account) can open the console and the display from their own devices.
-function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
-  c: Chamber; cloudId: string | null; owner: boolean; signedIn: boolean; meId?: string; say: (t: string) => void; setLocal: (c: Chamber | null) => void;
+function Share({ c, cloudId, manage, signedIn, meId, say, setLocal }: {
+  c: Chamber; cloudId: string | null; manage: boolean; signedIn: boolean; meId?: string; say: (t: string) => void; setLocal: (c: Chamber | null) => void;
 }) {
   const router = useRouter();
   const [team, setTeam] = useState<Member[] | null>(null);
@@ -1664,13 +1667,17 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
         <>
           <p className="muted">Everyone here can run the console and open the display. They need to be logged in on their own device.</p>
           <ul className={s.team}>
-            {(team ?? []).map((m) => (
-              <li key={m.user_id}>
-                <span className={s.tname}>{m.name || m.email}{m.user_id === meId && " (you)"}</span>
-                <span className="badge">{m.is_owner ? "Owner" : "Chair"}</span>
-                {owner && !m.is_owner && <IconButton label={`Remove ${m.name || m.email}`} icon={ICONS.close} onClick={() => drop(m.user_id)} />}
-              </li>
-            ))}
+            {(team ?? []).map((m) => {
+              const r = m.role ?? (m.is_owner ? "owner" : "chair");
+              return (
+                <li key={m.user_id}>
+                  <span className={s.tname}>{m.name || m.email}{m.user_id === meId && " (you)"}</span>
+                  <span className={`badge${r === "admin" ? " accent" : ""}`} title={r === "admin" ? "A Collex admin. Can do everything the owner can, and doesn't take one of the 10 places." : undefined}>{ROLE[r]}</span>
+                  {/* An admin leaves on their own, from the Admin page or with Leave; nobody else removes them. */}
+                  {manage && r === "chair" ? <IconButton label={`Remove ${m.name || m.email}`} icon={ICONS.close} onClick={() => drop(m.user_id)} /> : manage ? <span className={s.teamGap} aria-hidden="true" /> : null}
+                </li>
+              );
+            })}
           </ul>
         </>
       )}
@@ -1686,11 +1693,11 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
                 <div className={s.codeActions}>
                   <button type="button" className="button secondary" onClick={() => copy(code, "Code copied")}>{COPY}Copy Code</button>
                   <button type="button" className="button secondary" onClick={() => copy(`${location.origin}/chambers?join=${code}`, "Link copied")}>{COPY}Copy Link</button>
-                  {owner && <button type="button" className="button secondary" disabled={busy} onClick={() => codeDo("new")}>New Code</button>}
-                  {owner && <button type="button" className="button secondary" disabled={busy} onClick={() => codeDo("off")}>Turn Off</button>}
+                  {manage && <button type="button" className="button secondary" disabled={busy} onClick={() => codeDo("new")}>New Code</button>}
+                  {manage && <button type="button" className="button secondary" disabled={busy} onClick={() => codeDo("off")}>Turn Off</button>}
                 </div>
               </>
-            ) : owner ? (
+            ) : manage ? (
               <>
                 <p className="muted">Make a code other chairs can type in to join, instead of adding them one by one.</p>
                 <button type="button" className="button" disabled={busy} onClick={() => codeDo("new")}>Make a Join Code</button>
@@ -1699,7 +1706,7 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
           </section>
           <section className={`panel ${s.share}`} aria-labelledby="st-email">
             <h2 id="st-email" className={s.h2}>Add by Email</h2>
-          {owner ? (<>
+          {manage ? (<>
             <p className="muted">Add a chair by the email on their Collex account. They&rsquo;re emailed a link to the committee.</p>
             <form className={s.addRow2} onSubmit={add}>
               <label htmlFor="ch-inv" className="sr-only">Email on Their Collex Account</label>
@@ -1714,8 +1721,8 @@ function Share({ c, cloudId, owner, signedIn, meId, say, setLocal }: {
   );
 }
 
-/* Join a shared committee by the code its chair gives out, or open one already shared with you. */
-function Join({ signedIn, initial, mine }: { signedIn: boolean; initial: string; mine: Mine[] | null }) {
+/* Join a shared committee by the code its chair gives out. */
+function Join({ signedIn, initial }: { signedIn: boolean; initial: string }) {
   const router = useRouter();
   const [code, setCode] = useState(initial.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6));
   const [busy, setBusy] = useState(false);
@@ -1732,46 +1739,92 @@ function Join({ signedIn, initial, mine }: { signedIn: boolean; initial: string;
   };
   return (
     <div id="cs-panel-join" role="tabpanel" aria-labelledby="cs-tab-join" className={s.setupStack}>
-      <section className={`panel ${s.setupCard}`} aria-labelledby="cs-join-h">
-        <h2 id="cs-join-h" className={s.h2}>Join a Committee</h2>
-        <p className="muted">Type the six-character code from the chair running the committee.</p>
+      <section className={`panel ${s.setupCard}`} aria-label="Join a Committee">
         {signedIn ? (
           <form className={s.joinForm} onSubmit={(e) => { e.preventDefault(); void join(); }}>
-            <CodeInput letters initial={initial} label="Join code" errors={wrong} disabled={busy}
-              onChange={(v) => { setCode(v); if (v) setErr(""); }} onComplete={(v) => void join(v)} />
-            <button type="submit" className="button" disabled={busy || code.length !== 6}>{busy ? "Joining…" : "Join"}</button>
+            <div className="field">
+              <span id="cs-join-l">Join Code</span>
+              <CodeInput letters stretch initial={initial} label="Join code" errors={wrong} disabled={busy}
+                onChange={(v) => { setCode(v); if (v) setErr(""); }} onComplete={(v) => void join(v)} />
+              <small>The six characters from the chair running the committee.</small>
+            </div>
+            <button type="submit" className="button lg block" disabled={busy || code.length !== 6}>{busy ? "Joining…" : "Join Committee"}</button>
           </form>
-        ) : <Link href={`/login?next=${encodeURIComponent(code ? `/chambers?join=${code}` : "/chambers?join=")}`} className="button">Log in to join</Link>}
+        ) : (
+          <div className={s.joinForm}>
+            <div className="field">
+              <span>Join Code</span>
+              <small>Log in, then type the six characters from the chair running the committee.</small>
+            </div>
+            <Link href={`/login?next=${encodeURIComponent(code ? `/chambers?join=${code}` : "/chambers?join=")}`} className="button lg block">Log in to Join</Link>
+          </div>
+        )}
         {err && <p className={s.result} data-pass="false" role="alert">{err}</p>}
       </section>
-      {signedIn && mine && (
-        <section className={`panel ${s.setupCard}`} aria-labelledby="cs-mine">
-          <h2 id="cs-mine" className={s.h2}>Shared with You</h2>
-          {mine.length ? (
-            <ul className={s.mine}>
-              {mine.map((m) => (
-                <li key={m.id}>
-                  <button type="button" className={s.mineBtn} onClick={() => router.push(`/chambers?c=${m.id}`)}>
-                    <span className={s.tname}>{m.name}</span>
-                    <small>{m.is_owner ? "You run this" : `Run by ${m.owner_name}`}</small>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className={`${board.empty} ${s.emptyCard}`}>
-              <Gavel />
-              <p className={board.emptyTitle}>Nothing shared yet</p>
-              <p className="muted">When a chair adds you or you join with a code, the committee appears here.</p>
-            </div>
-          )}
-        </section>
-      )}
     </div>
   );
 }
 
-type Mine = { id: string; name: string; is_owner: boolean; owner_name: string };
+type Mine = {
+  id: string; name: string; is_owner: boolean; owner_name: string; updated_at?: string;
+  role?: "owner" | "admin" | "chair"; topic?: string; rules?: string; step?: string; delegates?: number; members?: number;
+};
+
+/* Every committee you can open: the ones you started, and the ones shared with you. */
+function Yours({ signedIn, mine }: { signedIn: boolean; mine: Mine[] | null }) {
+  const router = useRouter();
+  const started = (mine ?? []).filter((m) => m.is_owner);
+  const shared = (mine ?? []).filter((m) => !m.is_owner);
+  const card = (m: Mine) => {
+    const r = m.role ?? (m.is_owner ? "owner" : "chair");
+    const facts = [procName(m.rules), m.step ? STEP[m.step] ?? m.step : "", m.delegates != null ? `${m.delegates} ${m.delegates === 1 ? "state" : "states"}` : "",
+      m.members != null ? `${m.members + 1} ${m.members === 0 ? "person" : "people"}` : "", m.updated_at ? `Updated ${ago(m.updated_at).replace(/^Just now$/, "just now")}` : ""].filter(Boolean);
+    return (
+      <li key={m.id}>
+        <button type="button" className={s.yourCard} onClick={() => router.push(`/chambers?c=${m.id}`)}>
+          <span className={s.yourTop}>
+            <span className={s.yourName}>{m.name}</span>
+            <span className={`badge${r === "admin" ? " accent" : ""}`}>{ROLE[r]}</span>
+          </span>
+          {m.topic ? <span className={s.yourTopic}>{m.topic}</span> : null}
+          <span className={s.yourFacts}>{facts.map((f) => <span key={f}>{f}</span>)}</span>
+          {!m.is_owner && <small>Run by {m.owner_name}</small>}
+        </button>
+      </li>
+    );
+  };
+  const group = (id: string, title: string, list: Mine[], emptyTitle: string, emptyText: string) => (
+    <section className={`panel ${s.setupCard}`} aria-labelledby={id}>
+      <h2 id={id} className={s.h2}>{title}{list.length > 0 && <span className={s.count}>{list.length}</span>}</h2>
+      {list.length ? <ul className={s.mine}>{list.map(card)}</ul> : (
+        <div className={`${board.empty} ${s.emptyCard}`}>
+          <Gavel />
+          <p className={board.emptyTitle}>{emptyTitle}</p>
+          <p className="muted">{emptyText}</p>
+        </div>
+      )}
+    </section>
+  );
+  return (
+    <div id="cs-panel-yours" role="tabpanel" aria-labelledby="cs-tab-yours" className={s.setupStack}>
+      {!signedIn ? (
+        <section className={`panel ${s.setupCard}`}>
+          <div className={`${board.empty} ${s.emptyCard}`}>
+            <Gavel />
+            <p className={board.emptyTitle}>Log in to see your committees</p>
+            <p className="muted">Committees you share, and ones other chairs share with you, are kept on your Collex account.</p>
+            <Link href="/login?next=%2Fchambers%3Ftab%3Dyours" className="button">Log In</Link>
+          </div>
+        </section>
+      ) : mine === null ? (
+        <section className={`panel ${s.setupCard}`}><p className="muted">Loading…</p></section>
+      ) : (<>
+        {group("cs-started", "Started by You", started, "Nothing started yet", "Share a committee from its Share tab and it appears here, so you can open it on any device.")}
+        {group("cs-shared", "Shared with You", shared, "Nothing shared yet", "When a chair adds you or you join with a code, the committee appears here.")}
+      </>)}
+    </div>
+  );
+}
 
 function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedIn: boolean }) {
   const router = useRouter();
@@ -1783,8 +1836,9 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
   const [text, setText] = useState("");
   const [res, setRes] = useState(["", ""]); // the committee's resolutions: the seen one, then the unseen one
   const [mine, setMine] = useState<Mine[] | null>(null);
-  const joinQ = useSearchParams().get("join");
-  const [tab, setTab] = useState<"start" | "join">(joinQ ? "join" : "start");
+  const params = useSearchParams();
+  const joinQ = params.get("join");
+  const [tab, setTab] = useState<"start" | "join" | "yours">(joinQ !== null ? "join" : params.get("tab") === "yours" ? "yours" : "start");
   const names = ch.parseNames(text);
   const ok = name.trim().length >= 2 && resolution.trim().length >= 2 && (proc !== "trinity" || res.every((r) => r.trim().length >= 2)) && speakOk && speak !== null && names.length > 0;
 
@@ -1800,8 +1854,8 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber) => void; signedI
       <PageBand title="Chambers" />
       <div className={s.setupStack}>
         <PanelTabs idPrefix="cs" label="Chambers" tab={tab} setTab={setTab}
-          tabs={[{ id: "start", label: "Start a Committee", icon: ICONS.manage }, { id: "join", label: "Join a Committee", icon: ICONS.share }]} />
-        {tab === "join" ? <Join signedIn={signedIn} initial={joinQ ?? ""} mine={mine} /> : <>
+          tabs={[{ id: "start", label: "Start a Committee", icon: ICONS.manage }, { id: "join", label: "Join a Committee", icon: ICONS.share }, { id: "yours", label: "Your Committees", icon: STACK }]} />
+        {tab === "join" ? <Join signedIn={signedIn} initial={joinQ ?? ""} /> : tab === "yours" ? <Yours signedIn={signedIn} mine={mine} /> : <>
         <form className={`panel ${s.setupCard}`} onSubmit={(e) => { e.preventDefault(); if (!ok || speak === null) return; const ids = names.map(uid); onCreate(proc === "trinity" ? ch.createTrinity(name, resolution, speak, names, ids, res.map((title, i) => ({ title, week: 1 as const, seen: i === 0 }))) : ch.create(name, resolution, speak, names, ids)); if (signedIn && supabase) void supabase.rpc("note_chamber_started", { label: name, procedure: proc === "trinity" ? "Trinity Grammar MUN" : "Evatt" }); }}>
           <div className={s.two}>
             <div className="field">

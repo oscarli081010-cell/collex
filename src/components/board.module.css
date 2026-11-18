@@ -40,20 +40,8 @@
 .row:hover .go { transform: translateX(4px); color: var(--ink); }
 .row:has(.rowLink:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
 .rowLink:focus-visible { outline: none; }
-.dateBlock {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  height: 68px; border-radius: 10px; background: var(--surface);
-}
-.dateMonth { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
-.dateDay { font-size: 25px; line-height: 1.1; }
-/* The cover photo (or the listing's initials) with the date pinned to its corner like a ticket stub. */
-.lead { position: relative; width: 80px; height: 80px; }
-.lead .dateBlock {
-  position: absolute; right: -10px; bottom: -10px; width: 46px; height: 46px; gap: 1px;
-  background: var(--panel); border: 1px solid var(--line); box-shadow: 0 4px 12px rgba(var(--shadow-rgb), 0.08);
-}
-.lead .dateMonth { font-size: 11px; line-height: 1; letter-spacing: 0.04em; }
-.lead .dateDay { font-size: 18px; line-height: 1; }
+/* The cover photo, or the listing's initials. The date is in the facts beside it. */
+.lead { width: 80px; height: 80px; }
 .thumb {
   display: grid; place-items: center; width: 100%; height: 100%; overflow: hidden;
   border-radius: 12px; background: var(--accent-soft); color: var(--accent);
@@ -62,7 +50,6 @@
 :global(:root[data-theme="dark"]) .thumb img { filter: brightness(0.9); }
 @media (prefers-color-scheme: dark) { :global(:root[data-theme="system"]) .thumb img { filter: brightness(0.9); } }
 .thumb > span { font-size: 30px; line-height: 1; letter-spacing: 0.02em; }
-.lead .thumb > span { margin: 0 12px 12px 0; } /* clear of the date stub */
 .thumbSm { width: 52px; height: 52px; flex: none; border-radius: 10px; }
 .thumbSm > span { font-size: 20px; }
 .rowMain { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
@@ -73,13 +60,10 @@
 /* Register and Apply fill their column, one above the other: wide buttons, like everywhere else. */
 .rowBtns { display: flex; flex-direction: column; gap: 8px; width: 220px; }
 .rowBtn { height: 44px; width: 100%; }
-/* When, who and where as separate icon facts, like the conference page header. */
-.rowMeta { display: flex; flex-wrap: wrap; gap: 6px 20px; color: var(--ink); font-size: 14px; }
+/* When, who and where as a list, one fact per line. */
+.rowMeta { display: flex; flex-direction: column; gap: 5px; color: var(--ink); font-size: 14px; }
 .rowMeta li { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
 .rowMeta svg { flex: none; width: 15px; height: 15px; color: var(--muted); }
-/* Where the row is narrow (the home page column, phones), one fact per line rather than a ragged wrap. */
-.rowMain { container-type: inline-size; }
-@container (max-width: 520px) { .rowMeta { flex-direction: column; gap: 5px; } }
 .go { color: var(--faint); font-size: 18px; padding: 8px 4px 8px 10px; transition: transform var(--duration-fast) var(--ease-smooth-out), color var(--duration-quick); }
 
 .empty {
@@ -136,10 +120,8 @@
   .toolbar { grid-template-columns: 1fr 1fr; }
   .toolbar .search { grid-column: 1 / -1; }
   .row { grid-template-columns: 64px 1fr; gap: 20px 22px; padding: 18px 18px 18px 16px; }
-  .lead { width: 64px; height: 64px; align-self: start; margin-top: 4px; }
+  .lead { width: 64px; height: 64px; }
   .thumb > span { font-size: 24px; }
-  .lead .dateBlock { right: -8px; bottom: -8px; width: 44px; height: 44px; }
-  .lead .dateDay { font-size: 16px; }
   .rowActions { grid-column: 1 / -1; }
   .rowActions { flex-direction: column; align-items: stretch; }
   .rowBtns { width: 100%; flex-direction: row; }
