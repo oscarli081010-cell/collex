@@ -17,7 +17,6 @@ export default function GuidesPage() {
     <main id="top" className="container">
       <PageBand centre title="MUN" accent="guides" figures={[{ label: "Guides", value: String(GUIDES.length) }]} />
       <div className={s.wrap}>
-        <p className={s.intro}>Short and practical, for chairs, delegates and the people who run conferences.</p>
         {GROUPS.map((g) => (
           <section key={g} aria-labelledby={`g-${g}`}>
             <h2 id={`g-${g}`} className={s.group}>For {g}</h2>
