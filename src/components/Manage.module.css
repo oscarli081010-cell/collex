@@ -1,5 +1,3 @@
-.wrap { width: 100%; max-width: 880px; display: flex; flex-direction: column; gap: 20px; }
-.back { align-self: flex-start; font-size: 14px; }
 .card { padding: 28px; display: flex; flex-direction: column; gap: 18px; }
 .cardHead { display: flex; flex-direction: column; gap: 6px; }
 .cardTitle { font-family: var(--serif); font-weight: 400; font-size: 26px; line-height: 1.1; scroll-margin-top: 96px; }
@@ -19,7 +17,8 @@
 }
 .switchBtn:active { transform: scale(0.97); }
 .switchBtn[aria-pressed="true"]:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
-@media (max-width: 640px) { .cardTop .switchBtn { width: 100%; } }
+.switchTip { flex: none; }
+@media (max-width: 640px) { .cardTop .switchBtn, .cardTop .switchTip { width: 100%; } }
 /* The status tabs are the admin's control; five of them need a little less padding to fit a phone. */
 .tabsFit.tabsFit button { padding: 0 12px; }
 

@@ -53,24 +53,10 @@
 .segTwo { grid-template-columns: repeat(2, 1fr); }
 /* Four or more tabs in one row: on a phone the icons give way so the words fit. */
 @media (max-width: 560px) { .segMany .segIcon { gap: 0; padding-inline: 4px; font-size: 13px; } .segMany .segIcon > svg { display: none; } }
-.segThree { grid-template-columns: repeat(3, 1fr); }
 .segBadge {
   min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center;
   background: var(--accent); color: var(--on-accent); font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums;
 }
-/* A listing's Activity / Edit listing tabs, with the button to its public page beside them at the same height. */
-.listingNav { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; }
-.listingNavOne { grid-template-columns: 1fr; }
-.listingNav .viewListing { height: 46px; border-radius: 10px; }
-@media (pointer: coarse) { .listingNav .viewListing { height: 52px; } }
-/* On a phone the button to the public page shrinks to its icon and stays beside the tabs, so the band isn't a row taller. */
-@media (max-width: 560px) {
-  .listingNav { grid-template-columns: minmax(0, 1fr) 46px; }
-  .listingNavOne { grid-template-columns: 1fr; }
-  .listingNav .viewListing { padding: 0; }
-  .listingNav .viewText { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-}
-@media (max-width: 560px) and (pointer: coarse) { .listingNav { grid-template-columns: minmax(0, 1fr) 52px; } }
 /* Touch screens: the control is a 44px target, like every other button. */
 @media (pointer: coarse) { .seg button, .seg a { height: 44px; } }
 /* One tab's worth of cards. hidden must still win over this display. */
@@ -119,9 +105,11 @@ a.listingName:hover { color: var(--accent); }
 .listingSearch { display: flex; align-items: center; gap: 12px; }
 .listingSearch > label { flex: 1; }
 .listingSearch > span { font-size: 13.5px; min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
-.listingList { display: flex; flex-direction: column; gap: 12px; }
+.listingList { display: flex; flex-direction: column; gap: 14px; }
+/* Each listing is a card of its own on the page, as wide as the band above it. */
+.listingsWide { width: 100%; display: flex; flex-direction: column; gap: 14px; }
 .listing {
-  display: flex; flex-direction: column; gap: 20px; padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface);
+  display: flex; flex-direction: column; gap: 18px; padding: 22px;
   transition: border-color var(--duration-quick);
 }
 .listing:hover { border-color: var(--line-strong); }
@@ -139,12 +127,9 @@ a.listingName:hover { color: var(--accent); }
 .listingButtons { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
 .listingButtons :global(.button) { height: 46px; gap: 8px; width: 100%; }
 @media (pointer: coarse) { .listingButtons :global(.button) { height: 48px; } }
-.listingNote { font-size: 13.5px; padding: 10px 12px; border-radius: 8px; background: var(--panel); color: var(--muted); }
+.listingNote { font-size: 13.5px; padding: 10px 12px; border-radius: 8px; background: var(--surface); color: var(--muted); }
 .listingNote[data-tone="danger"] { background: var(--danger-soft); color: var(--danger); }
-/* Pills and tags that are normally grey-on-grey need the panel colour to show on a listing's card. */
-.listing .tag, .listing .status:not([data-status="pending"], [data-status="published"], [data-status="rejected"]) { background: var(--panel); }
-.listing :global(.button.secondary) { background: var(--panel); }
-.listing :global(.button.secondary):hover { background: var(--surface-2); }
+.listingButtons :global(.tip) { display: flex; }
 .addTile {
   display: flex; align-items: center; gap: 14px; min-height: 72px; padding: 14px 16px; border: 1px dashed var(--line-strong); border-radius: 12px;
   transition: border-color var(--duration-quick), background-color var(--duration-quick);

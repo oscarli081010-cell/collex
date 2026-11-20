@@ -1,7 +1,7 @@
 import { fromRow } from "./data";
 import { supabase } from "./supabase";
-import type { Entry, Loaded } from "@/components/ActivityView";
-import type { Member } from "@/components/Team";
+import type { Entry, Loaded } from "@/components/listing/types";
+import type { Member } from "@/components/listing/organisers";
 
 // What a listing's Activity page and edit form load. Both are separate pages, so each load is kept for a short while:
 // moving from one to the other then shows the page at once instead of an empty frame while it loads again. The loads
@@ -52,7 +52,7 @@ export async function loadActivity(id: string, uid: string): Promise<Loaded | "m
     .filter((w) => w.conference_id === id).map((w) => ({ week: w.week, interested: Number(w.interested) }));
   const me = ((team.data ?? []) as { user_id: string; is_owner: boolean; role: string }[]).find((m) => m.user_id === uid);
   const value: Loaded = {
-    c: fromRow(row), status: row.status, createdAt: row.created_at, canEdit: !me || me.is_owner || me.role === "editor",
+    c: fromRow(row), status: row.status, createdAt: row.created_at, canEdit: !me || me.is_owner || me.role === "editor", isOwner: Boolean(me?.is_owner),
     interest: { total, weeks }, followers: followers.error || followers.data == null ? null : Number(followers.data),
     team: ((team.data ?? []) as { accepted: boolean }[]).filter((m) => m.accepted).length,
     history: history.error ? null : ((history.data ?? []) as (Omit<Entry, "fields"> & { fields: string[] | null })[]).map((h) => ({ ...h, fields: h.fields ?? [] })),

@@ -21,6 +21,7 @@ for delegates, chairs, teachers and organisers.
 - **Applications and allocation**: delegates and chairs apply on Collex; organisers answer, allocate committees and
   countries, and email everyone at once.
 - **Live committee wall** for the secretariat.
+- **Printable placards and country lists** for each committee, from the allocations or a typed list.
 - **Reminders** before key dates, **role alerts**, and a public **MUN record** for delegates who turn it on.
 - **Guides** for chairs, delegates and organisers, and an installable app that opens Chambers offline.
 - **Admin review** of listings, with a "Verified" status for confirmed conferences.
@@ -34,6 +35,19 @@ and 10 of them signed in during the past week.
 
 Next.js (App Router) and TypeScript, Supabase (Postgres, auth, edge functions), Lenis for smooth
 scroll, deployed on Vercel.
+
+## How a listing's workspace is organised
+
+Everything an organiser does with one listing lives in `src/components/listing/`. A listing has tabs (Activity,
+Manage, Edit listing, Organisers), and each tab is a stack of sections with a list beside them.
+
+- `tabs.tsx` says which tabs there are and their addresses; `registry.tsx` says what each one shows.
+- `Workspace.tsx` loads the listing once and frames whichever tab the address names (`Shell.tsx`, `Nav.tsx`).
+- Each tab has a folder (`activity/`, `manage/`, `edit/`, `organisers/`) whose `index.tsx` lists its sections.
+- A section is one file that is handed the listing (`types.ts`, `ListingCtx`) and draws one card (`Section.tsx`).
+
+To add a feature, write a section and add one line to its tab's list. To add a tab, add it to `tabs.tsx` and
+`registry.tsx` and give it a route that renders `ListingPages`.
 
 ## Run it locally
 

@@ -54,11 +54,10 @@ export function ConferenceSkeleton({ band }: { band: string }) {
   );
 }
 
-/** The Activity page while it loads: the tiles, the chart card and the history card, in their real places. */
+/** A listing's workspace while it loads: tiles and two cards, as wide as the sections they stand in for. */
 export function ActivitySkeleton() {
   return (
-    <div className="skelWrap" style={{ width: "100%", maxWidth: 880, display: "flex", flexDirection: "column", gap: 20 }} aria-busy="true" aria-label="Loading">
-      <B w={110} h={14} />
+    <div className="skelWrap" style={{ width: "100%", display: "flex", flexDirection: "column", gap: 20 }} aria-busy="true" aria-label="Loading">
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
         {Array.from({ length: 6 }, (_, i) => <B key={i} h={104} r={12} style={{ opacity: 1 - (i % 3) * 0.12 }} />)}
       </div>

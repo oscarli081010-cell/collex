@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import PageBand, { BandNote, type BandProps } from "./PageBand";
+import PageBand, { type BandProps } from "./PageBand";
 import { FormSkeleton } from "./Skeleton";
 import { Fragment, useCallback, useEffect, useLayoutEffect, useState } from "react";
-import { coverUrl, formatRange, webUrl, type Conference, type Role } from "@/lib/conferences";
+import { coverUrl, formatRange, type Conference, type Role } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
@@ -14,20 +14,16 @@ import { uploadPhoto } from "@/lib/photo";
 import { isoToSydney, sydneyToIso } from "@/lib/schedule";
 import { useAuth } from "./AuthProvider";
 import { badGuide, badRole, CommitteesEditor, committeeRows, KeyDatesEditor, keyDateRows, RolesEditor, roleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toKeyDates, toRoles, toSecretariat, type CommitteeRow, type KeyDateRow, type RoleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
-import ListingNav from "./ListingNav";
-import PanelTabs, { type PanelTab } from "./PanelTabs";
-import SectionNav from "./SectionNav";
-import Team, { type Member } from "./Team";
+import Section from "./listing/Section";
+import { Work } from "./listing/Shell";
+import type { ListingCtx } from "./listing/types";
 import auth from "@/app/auth.module.css";
+import card from "./Manage.module.css";
+import { Placard } from "./Drawings";
+import board from "./board.module.css";
 import s from "@/app/inner.module.css";
 import Select from "./Select";
 import CoverFrame from "./CoverFrame";
-
-type EditTab = "info" | "organisers";
-const EDIT_TABS: PanelTab<EditTab>[] = [
-  { id: "info", label: "Information", icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3.5 2.5h6l3 3v8h-9z" /><path d="M9.5 2.5v3h3M5.5 8.5h5M5.5 11h5" /></svg> },
-  { id: "organisers", label: "Organisers", icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="6" cy="5.5" r="2.3" /><path d="M1.8 13c.5-2.1 2.2-3.2 4.2-3.2s3.7 1.1 4.2 3.2M10.5 3.4a2.3 2.3 0 010 4.2M12 9.9c1.3.4 2.2 1.3 2.5 3.1" /></svg> },
-];
 
 type F = { name: string; label: string; type: "text" | "date" | "email" | "url" | "select" | "textarea" | "datetime-local"; wide?: boolean; required?: boolean; hint?: string; options?: string[] };
 
@@ -64,7 +60,7 @@ function PhotoField({ id, label, frame, ratio, ph, error, hint }: {
   id: string; label: string; frame: string; ratio: number; ph: ReturnType<typeof usePhoto>; error?: string; hint?: string;
 }) {
   return (
-    <div id={`sec-${id}`} className={`field ${s.wide} ${error ? s.invalid : ""}`}>
+    <div className={`field ${error ? s.invalid : ""}`}>
       <label htmlFor={`f-${id}`}>{label} <span className="muted">(optional)</span></label>
       {ph.shown ? (
         <CoverFrame src={ph.shown} x={ph.at[0]} y={ph.at[1]} ratio={ratio} label={frame} onChange={(x, y) => ph.setAt([x, y])} />
@@ -116,13 +112,16 @@ const asText = (e: Editing, k: string) => (e[k] as string | null) ?? "";
 // The two scheduled buttons are typed as Sydney time but stored as instants.
 const OPENS: Record<string, string> = { delegation_opens: "delegation_opens_at", chair_opens: "chair_opens_at" };
 
-const SECTIONS = [
+/** The form's cards, in order: what the list beside it jumps to. */
+export const FORM_SECTIONS = [
   { id: "sec-details", label: "Details" }, { id: "sec-overview", label: "Overview" }, { id: "sec-keydates", label: "Key dates" },
   { id: "sec-committees", label: "Committees" },
-  { id: "sec-secretariat", label: "Secretariat" }, { id: "sec-roles", label: "Help wanted" }, { id: "sec-cover", label: "Cover photo" },
+  { id: "sec-secretariat", label: "Secretariat" }, { id: "sec-roles", label: "Help wanted" }, { id: "sec-photos", label: "Photos" },
 ];
 
-export default function ListForm() {
+// The form a conference is listed with. On its own it is the page for a new listing; given a listing, it is that
+// listing's Edit tab, filled in with what it says now, and the workspace around it supplies the band and the tabs.
+export default function ListForm({ listing }: { listing?: ListingCtx }) {
   const { ready, session } = useAuth();
   const router = useRouter();
   const [sent, setSent] = useState(false);
@@ -130,9 +129,8 @@ export default function ListForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [firstDay, setFirstDay] = useState("");
   const [lastDay, setLastDay] = useState("");
-  // ?edit=<id> opens one of your own listings for editing instead of a blank form.
   const [editing, setEditing] = useState<Editing | null | "missing" | "viewonly">(null);
-  const [editId, setEditId] = useState<string | null>(null);
+  const editId = listing?.id ?? null;
   const editRow = editing && typeof editing === "object" ? editing : null;
   const coverPhoto = usePhoto(editRow?.cover_path, (m) => setErrors(({ cover: _, ...rest }) => (m ? { ...rest, cover: m } : rest)));
   const thumbPhoto = usePhoto(editRow?.thumb_path, (m) => setErrors(({ thumb: _, ...rest }) => (m ? { ...rest, thumb: m } : rest)));
@@ -142,16 +140,6 @@ export default function ListForm() {
   const [keyDates, setKeyDates] = useState<KeyDateRow[]>(() => keyDateRows());
   // Guides whose committee has since been removed or renamed: kept as they were.
   const [stray, setStray] = useState<Conference["guides"]>([]);
-  const [team, setTeam] = useState<Member[]>([]);
-  const [editTab, setEditTab] = useState<EditTab>("info");
-  // Who can edit: the database lists the team only to the people on it (and admins), so an empty team means no access.
-  const loadTeam = useCallback(async () => {
-    if (!editId || !supabase) return [];
-    forgetListing(editId); // the team changed, so kept copies of this listing are out of date
-    const { data } = await supabase.rpc("organisers_of", { conf: editId });
-    setTeam((data as Member[] | null) ?? []);
-    return (data as Member[] | null) ?? [];
-  }, [editId]);
   // Keyed on who is signed in, not on the session object, so a silent token refresh never reloads the form over unsaved edits.
   const userId = session?.user.id;
   // Fills the form from a listing's row and team.
@@ -160,7 +148,6 @@ export default function ListForm() {
     const me = members.find((m) => m.user_id === userId);
     const viewOnly = Boolean(me && !me.is_owner && me.role === "viewer");
     const row = members.length && !viewOnly ? (data as Editing | null) : null;
-    setTeam(members);
     setEditing(viewOnly ? "viewonly" : row ?? "missing");
     setFirstDay((row?.start_date as string | undefined) ?? "");
     setLastDay((row?.end_date as string | undefined) ?? "");
@@ -178,11 +165,9 @@ export default function ListForm() {
   // started typing. An older one is shown at once too, then replaced by a fresh load that starts as the page opens.
   const [usedKept, setUsedKept] = useState(false);
   useLayoutEffect(() => {
-    const id = new URLSearchParams(location.search).get("edit");
-    setEditId(id);
-    const kept = id && userId ? keptEditing(id) : undefined;
-    if (kept) { apply(kept); setUsedKept(!staleEditing(id!)); }
-  }, [apply, userId]);
+    const kept = editId && userId ? keptEditing(editId) : undefined;
+    if (kept) { apply(kept); setUsedKept(!staleEditing(editId!)); }
+  }, [apply, userId, editId]);
   useEffect(() => {
     if (!editId || !userId || !supabase || usedKept) return;
     loadEditing(editId).then((r) => { if (r) apply(r); });
@@ -280,11 +265,15 @@ export default function ListForm() {
         }).select("id");
     setBusy(false);
     if (!error && !saved?.length) return setErrors({ form: "You can't edit this listing any more. Ask the person who listed it." });
-    // New links or guides on a live listing queue emails to its followers; this sends them.
-    if (!error && edit) { forgetListing(edit.id); supabase.functions.invoke("notify").catch(() => {}); }
-    // A live listing's page shows the edit straight away.
-    if (!error && edit?.status === "published") refreshSite().then(() => router.refresh());
     if (error) return setErrors({ form: error.message.startsWith("Too many listings") ? "You've sent 5 listings today. Try again tomorrow." : "Couldn't send it. Check your connection and try again." });
+    if (edit) {
+      forgetListing(edit.id);
+      // New links or guides on a live listing queue emails to its followers; this sends them.
+      supabase.functions.invoke("notify").catch(() => {});
+      // In its workspace the form stays as it is: the listing is read again and a live one's page shows the edit straight away.
+      if (listing) { listing.say(edit.status === "published" ? "Saved. It shows on the live page now." : "Saved. It goes with the review."); listing.changed(); return; }
+      if (edit.status === "published") refreshSite().then(() => router.refresh());
+    }
     setSent(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -299,83 +288,15 @@ export default function ListForm() {
     return { url: supabase!.storage.from("guides").getPublicUrl(path).data.publicUrl };
   };
 
-  // The headline band above every state of this page, with the state's content centred underneath.
-  const page = (band: BandProps, body: React.ReactNode, after?: React.ReactNode) => (
-    <>
-      <PageBand {...band} />
-      <div className={auth.body}>{body}{after}</div>
-    </>
-  );
-  const listBand: BandProps = editId
-    ? {
-        title: "Edit your", accent: "listing", aside: edit ? <BandNote>{edit.status === "published" ? "Changes show on the live page straight away." : "It's still in review. Your changes go with it."}</BandNote> : undefined,
-        children: edit ? <ListingNav id={edit.id} slug={asText(edit, "slug")} current="edit" live={edit.status === "published"} canEdit /> : undefined,
-      }
-    : { title: "List a", accent: "conference" };
-
-  // The whole loading state waits a beat before showing, so a listing that arrives quickly replaces it unseen.
-  if (!ready || (editId && session && editing === null)) return <div className="skelWrap">{page(listBand, <FormSkeleton fields={6} width={600} grid />)}</div>;
-  if (editId && editing === "missing") {
-    return page({
-      title: "Can\u2019t edit that", accent: "listing", lead: "Only the people who run a listing can edit it, while it\u2019s in review or live. Ask its organiser to invite you.",
-      aside: <div className="btnStack one"><Link href="/listings" className="button lg">Your listings</Link></div>,
-    }, null);
-  }
-
-  if (editId && editing === "viewonly") {
-    return page({
-      title: "View", accent: "only", lead: "The person who listed this conference set you to view only. You can see its activity, but not edit it.",
-      aside: <div className="btnStack"><Link href={`/activity?id=${editId}`} className="button lg">See activity</Link><Link href="/listings" className="button secondary lg">Your listings</Link></div>,
-    }, null);
-  }
-
-  if (!session) {
-    return page({
-      title: "List a", accent: "conference", lead: "Log in first. Your listing stays tied to your account, so you can track it.",
-      aside: (
-        <div className="btnStack">
-          <Link href="/login" className="button lg">Log in</Link>
-          <Link href="/signup" className="button secondary lg">Create an account</Link>
-        </div>
-      ),
-    }, null);
-  }
-
-  if (sent) {
-    return page({
-      title: edit ? "Changes" : "Sent for", accent: edit ? "saved" : "review",
-      media: <svg width="56" height="56" viewBox="0 0 40 40" aria-hidden="true" className={s.sentIcon}><circle cx="20" cy="20" r="19" fill="var(--accent-soft)" /><path d="M13 20.5l5 5 9-10" fill="none" stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" pathLength={1} /></svg>,
-    },
-      <div key="sent" role="status" className={`t-reveal ${auth.sent}`}>
-        <ol className={`t-stagger ${s.next}`}>
-          {(edit ? (edit.status === "published"
-            ? ["They show on its page now.", "People following it get an email about new application links or guides.", "Each change is recorded, so the Collex team can see what changed."]
-            : ["It's still in review.", "Once approved, it gets its own page and joins the calendar."])
-          : ["The Collex team reviews it.", "Once approved, it gets its own page and joins the calendar.", "Its status shows on your account page the whole time."]).map((t, i) => (
-            <li key={t} style={{ "--i": i } as React.CSSProperties}>{t}</li>
-          ))}
-        </ol>
-        <div className="btnStack one">
-          <Link href="/listings" className="button lg">{edit ? "Your listings" : "See its status"}</Link>
-          {edit ? <button className="button secondary lg" onClick={() => setSent(false)}>Keep editing</button>
-            : <button className="button secondary lg" onClick={() => { setSent(false); setCommittees([]); setStray([]); setSecretariat(secretariatRows()); setRoles([]); setKeyDates(keyDateRows()); }}>List another</button>}
-        </div>
-      </div>);
-  }
-
-  const formEl = (
-    <div className={s.formWrap}>
-      <SectionNav sections={SECTIONS} />
-      <form key={edit?.id ?? "form"} className={`t-reveal ${s.listForm}`} onSubmit={submit} noValidate>
-        {FIELDS.map((f) => {
+  const field = (f: F) => {
           const id = `f-${f.name}`;
           const err = errors[f.name];
           const hintId = err ? `${id}-err` : f.hint ? `${id}-hint` : undefined;
           const clear = () => err && setErrors(({ [f.name]: _, ...rest }) => rest);
           return (
             <Fragment key={f.name}>
-            <div id={f.name === "name" ? "sec-details" : f.name === "overview" ? "sec-overview" : undefined} className={`field ${f.wide ? s.wide : ""} ${err ? s.invalid : ""}`}>
-              <label htmlFor={id}>{f.label}{f.required ? <span className={s.req} aria-hidden="true"> *</span> : <span className="muted"> (optional)</span>}</label>
+            <div className={`field ${f.wide ? s.wide : ""} ${err ? s.invalid : ""}`}>
+              <label htmlFor={id} className={f.name === "overview" ? "sr-only" : undefined}>{f.label}{f.required ? <span className={s.req} aria-hidden="true"> *</span> : <span className="muted"> (optional)</span>}</label>
               {f.type === "select" ? (
                 <Select id={id} name={f.name} className="control" defaultValue={edit?.level ?? ""} onChange={clear}>
                   <option value="">Not sure yet</option>
@@ -405,7 +326,7 @@ export default function ListForm() {
                   type={f.type}
                   className="control"
                   maxLength={f.type === "datetime-local" ? undefined : f.type === "url" ? 500 : f.type === "email" ? 254 : f.name === "fee" ? 120 : 200}
-                  defaultValue={edit ? (OPENS[f.name] ? isoToSydney(asText(edit, OPENS[f.name])) : asText(edit, f.name)) : f.name === "contact" ? session.user.email : undefined}
+                  defaultValue={edit ? (OPENS[f.name] ? isoToSydney(asText(edit, OPENS[f.name])) : asText(edit, f.name)) : f.name === "contact" ? session?.user.email : undefined}
                   aria-invalid={Boolean(err)}
                   aria-describedby={hintId}
                   min={f.name === "end_date" ? firstDay || undefined : undefined}
@@ -420,29 +341,49 @@ export default function ListForm() {
             {f.name === "end_date" && <ClashNote clashes={clashes} />}
             </Fragment>
           );
-        })}
-        <fieldset id="sec-keydates" className={`field ${s.wide}`}>
-          <legend>Key dates <span className="muted">(optional)</span></legend>
+  };
+
+  const form = (
+    <form key={edit?.id ?? "form"} className={s.listForm} onSubmit={submit} noValidate>
+      <Section id="sec-details" title="Details">
+        <div className={s.formGrid}>{FIELDS.filter((f) => f.name !== "overview").map(field)}</div>
+      </Section>
+      <Section id="sec-overview" title="Overview">
+        {FIELDS.filter((f) => f.name === "overview").map(field)}
+      </Section>
+      <Section id="sec-keydates" title="Key dates">
+        <fieldset className="field">
+          <legend className="sr-only">Key dates</legend>
           <KeyDatesEditor rows={keyDates} setRows={setKeyDates} />
         </fieldset>
-        <fieldset id="sec-committees" className={`field ${s.wide}`}>
-          <legend>Committees <span className="muted">(optional)</span></legend>
+      </Section>
+      <Section id="sec-committees" title="Committees">
+        <fieldset className="field">
+          <legend className="sr-only">Committees</legend>
           {errors.guides && <small key="err" className={`t-reveal ${s.error}`}>{errors.guides}</small>}
           <CommitteesEditor rows={committees} setRows={(a) => { setCommittees(a); if (errors.guides) setErrors(({ guides: _, ...rest }) => rest); }} upload={uploadGuide} />
         </fieldset>
-        <fieldset id="sec-secretariat" className={`field ${s.wide}`}>
-          <legend>Secretariat <span className="muted">(optional)</span></legend>
+      </Section>
+      <Section id="sec-secretariat" title="Secretariat">
+        <fieldset className="field">
+          <legend className="sr-only">Secretariat</legend>
           <SecretariatEditor rows={secretariat} setRows={setSecretariat} upload={(file) => uploadPhoto(file, session!.user.id)} />
         </fieldset>
-        <fieldset id="sec-roles" className={`field ${s.wide}`}>
-          <legend>Help wanted <span className="muted">(optional)</span></legend>
+      </Section>
+      <Section id="sec-roles" title="Help wanted">
+        <fieldset className="field">
+          <legend className="sr-only">Help wanted</legend>
           {errors.roles && <small key="err" className={`t-reveal ${s.error}`}>{errors.roles}</small>}
           <RolesEditor rows={roles} setRows={(a) => { setRoles(a); if (errors.roles) setErrors(({ roles: _, ...rest }) => rest); }} />
         </fieldset>
+      </Section>
+      <Section id="sec-photos" title="Photos">
         <PhotoField id="cover" label="Cover photo" frame="On its page" ratio={3} ph={coverPhoto} error={errors.cover} />
         <PhotoField id="thumb" label="Photo in the lists" frame="In the lists" ratio={1} ph={thumbPhoto} error={errors.thumb}
           hint={coverPhoto.shown ? "Leave empty to use the cover photo." : undefined} />
-        <div className={`field ${s.wide}`}>
+      </Section>
+      <div className={`panel ${card.card}`}>
+        <div className="field">
           <label className={`check ${errors.publish ? "invalid" : ""}`} style={{ marginBottom: 8 }}>
             <input type="checkbox" name="publish" aria-invalid={Boolean(errors.publish)} aria-describedby={errors.publish ? "publish-err" : undefined} onChange={() => errors.publish && setErrors(({ publish: _, ...rest }) => rest)} />
             <span>I help run this conference or have its organisers&rsquo; permission, and I agree these details, including the contact email, will be public once approved. See the <Link href="/terms" target="_blank">Terms of use</Link>.</span>
@@ -456,18 +397,61 @@ export default function ListForm() {
             <span className={s.req} aria-hidden="true">*</span> is required{!edit && <> <span aria-hidden="true">&middot;</span> The Collex team will review it before it goes live</>}
           </small>
         </div>
-      </form>
-    </div>
-  );
-  if (!edit) return page(listBand, formEl);
-  return page(listBand,
-    <div className={s.editShell}>
-      <PanelTabs tabs={EDIT_TABS} tab={editTab} setTab={setEditTab} label="Edit your listing" idPrefix="edit" />
-      <div id="edit-panel-info" role="tabpanel" aria-labelledby="edit-tab-info" hidden={editTab !== "info"}>{formEl}</div>
-      <div id="edit-panel-organisers" role="tabpanel" aria-labelledby="edit-tab-organisers" hidden={editTab !== "organisers"}>
-        <Team conf={edit.id} name={edit.name ?? "this listing"} me={session.user.id} team={team} reload={loadTeam} />
       </div>
-    </div>);
+    </form>
+  );
+
+  // In a listing's workspace: only the form, which the workspace frames.
+  if (listing) {
+    if (editing === null) return <div className="skelWrap"><FormSkeleton fields={6} width={600} grid /></div>;
+    if (!edit) return <div className={board.empty}><Placard /><p className={board.emptyTitle}>This listing can&rsquo;t be edited</p><p className="muted">Only the people who run it can change it, while it&rsquo;s in review or live.</p></div>;
+    return form;
+  }
+
+  // On its own, for a new listing: the headline band above every state of the page.
+  const band: BandProps = { title: "List a", accent: "conference" };
+  const page = (top: BandProps, body: React.ReactNode) => (
+    <>
+      <PageBand {...top} />
+      <div className={auth.body}>{body}</div>
+    </>
+  );
+  // The whole loading state waits a beat before showing, so a session that arrives quickly replaces it unseen.
+  if (!ready) return <div className="skelWrap">{page(band, <FormSkeleton fields={6} width={600} grid />)}</div>;
+  if (!session) {
+    return page({
+      ...band, lead: "Log in first. Your listing stays tied to your account, so you can track it.",
+      aside: (
+        <div className="btnStack">
+          <Link href="/login" className="button lg">Log in</Link>
+          <Link href="/signup" className="button secondary lg">Create an account</Link>
+        </div>
+      ),
+    }, null);
+  }
+  if (sent) {
+    return page({
+      title: "Sent for", accent: "review",
+      media: <svg width="56" height="56" viewBox="0 0 40 40" aria-hidden="true" className={s.sentIcon}><circle cx="20" cy="20" r="19" fill="var(--accent-soft)" /><path d="M13 20.5l5 5 9-10" fill="none" stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" pathLength={1} /></svg>,
+    },
+      <div key="sent" role="status" className={`t-reveal ${auth.sent}`}>
+        <ol className={`t-stagger ${s.next}`}>
+          {["The Collex team reviews it.", "Once approved, it gets its own page and joins the calendar.", "Its status shows on your listings page the whole time."].map((line, i) => (
+            <li key={line} style={{ "--i": i } as React.CSSProperties}>{line}</li>
+          ))}
+        </ol>
+        <div className="btnStack one">
+          <Link href="/listings" className="button lg">See its status</Link>
+          <button className="button secondary lg" onClick={() => { setSent(false); setCommittees([]); setStray([]); setSecretariat(secretariatRows()); setRoles([]); setKeyDates(keyDateRows()); }}>List another</button>
+        </div>
+      </div>);
+  }
+  return (
+    <>
+      <PageBand {...band} />
+      <Work sections={FORM_SECTIONS}>{form}</Work>
+    </>
+  );
 }
 
 /** Live listings running on any day from first to last, except the one being edited. */

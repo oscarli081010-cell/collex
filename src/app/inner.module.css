@@ -246,8 +246,9 @@
 .coverPick img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .coverEmpty { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; }
 :global(.field):has(input[type="file"]:focus-visible) .coverPick { outline: 2px solid var(--accent); outline-offset: 2px; }
-.formWrap { position: relative; width: 100%; max-width: 600px; }
-.listForm { width: 100%; max-width: 600px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px 16px; align-content: start; }
+/* The listing form: a card for each part, the fields inside two to a row. */
+.listForm { width: 100%; display: flex; flex-direction: column; gap: 20px; }
+.formGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 16px; align-content: start; }
 .next { display: flex; flex-direction: column; gap: 10px; counter-reset: n; margin: 4px 0 8px; text-align: left; }
 .next li { counter-increment: n; display: flex; gap: 12px; align-items: baseline; color: var(--muted); }
 .next li::before {
@@ -276,7 +277,7 @@
   .weekdays, .days { gap: 3px; }
   .weekdays span { padding: 0 4px; font-size: 11px; }
   .event { font-size: 0; padding: 0; height: 6px; }
-  .people, .applyBand, .listForm { grid-template-columns: 1fr; }
+  .people, .applyBand, .formGrid { grid-template-columns: 1fr; }
   .applyOption { padding: 24px; }
   .table th, .table td { padding-inline: 10px; }
 }
@@ -360,14 +361,9 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 .editRowInline .editFields:has(input[type="date"]) { grid-template-columns: minmax(0, 1fr) minmax(165px, 0.8fr); }
 
 /* Editing a listing: Information and Organisers tabs; the organisers' rows look like the form's other rows. */
-.teamWrap { width: 100%; display: flex; flex-direction: column; gap: 24px; }
-.teamWrap fieldset { gap: 12px; }
-.teamWrap fieldset legend { margin-bottom: 8px; }
 .teamRow { align-items: center; }
 .teamActions { display: flex; align-items: center; gap: 8px; }
 .teamInvite { display: flex; flex-direction: column; gap: 20px; }
-.editShell { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 28px; }
-.editShell [role="tabpanel"][hidden] { display: none; }
 .roleSelect { width: auto; flex: none; height: 40px; padding-block: 0; }
 /* The global .control is full width, which let this select run past the row and push the remove button out of it. */
 .teamActions .roleSelect { width: 150px; }

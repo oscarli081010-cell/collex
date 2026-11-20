@@ -11,6 +11,7 @@
   min-height: calc(2 * clamp(28px, 4vw, 48px) + 0.95 * clamp(52px, 7.4vw, 104px) + clamp(28px, 3.4vw, 40px) + 48px + 2px);
   box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.04), 0 18px 48px -24px rgba(var(--shadow-rgb), 0.16);
 }
+.tight { margin-bottom: 14px; }
 /* A soft wash of the accent in one corner so the panel isn't a flat white box. */
 .band::before {
   content: ""; position: absolute; z-index: -1; inset: 0; border-radius: inherit; pointer-events: none;

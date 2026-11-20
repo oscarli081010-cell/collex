@@ -1,0 +1,38 @@
+/* A listing's workspace: the tabs and the two ways out under the headline band, then the list of sections beside the
+   sections themselves. Everything lines up with the band's edges, like the rest of the site. */
+
+/* The tabs, with the buttons beside them at the same height. */
+/* Above the band (3), so a hint that opens upwards from a greyed-out tab or button isn't covered by it. */
+.nav { position: relative; z-index: 4; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; margin-bottom: clamp(28px, 3.4vw, 40px); }
+.tabs { position: relative; display: grid; padding: 4px; border-radius: 10px; background: var(--surface); }
+.tab {
+  position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 38px; padding: 0 12px; border-radius: 7px;
+  font-size: 14px; color: var(--muted); white-space: nowrap; transition: color var(--duration-fast) var(--ease-smooth-out);
+}
+a.tab:hover { color: var(--ink); }
+.tab[aria-current="page"] { color: var(--ink); font-weight: 500; }
+.tab[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tabPill { top: 4px; bottom: 4px; border-radius: 7px; background: var(--panel); box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.1); }
+.actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(168px, 1fr); gap: 10px; }
+.actions :global(.button) { width: 100%; height: 46px; border-radius: 10px; gap: 8px; }
+.actions :global(.tip) { display: flex; }
+@media (pointer: coarse) { .tab { height: 44px; } .actions :global(.button) { height: 52px; } }
+@media (max-width: 1040px) {
+  .nav { grid-template-columns: minmax(0, 1fr); }
+  .actions { grid-auto-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .tab { gap: 0; padding: 0 4px; font-size: 13px; }
+  .tab > svg { display: none; }
+}
+
+/* The sections: their list on the left on a wide screen, a row of chips above them on a narrow one. */
+.work { display: grid; grid-template-columns: minmax(0, 1fr); }
+.main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+@media (min-width: 1040px) {
+  .work[data-nav] { grid-template-columns: 188px minmax(0, 1fr); column-gap: 40px; align-items: start; }
+}
+
+/* A state with nothing to work on yet (a listing that can't be opened, a list still loading). */
+.gate { display: flex; flex-direction: column; align-items: center; }

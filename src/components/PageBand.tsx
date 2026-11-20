@@ -8,14 +8,16 @@ export type BandProps = {
   figures?: Figure[]; aside?: React.ReactNode; children?: React.ReactNode;
   /** Centre the title against a taller right-hand side (figures with a button under them), instead of lining their bottoms up. */
   centre?: boolean;
+  /** Something of the page's own sits right under the band (a listing's tabs), so the gap below it is small. */
+  tight?: boolean;
 };
 
 // The headline panel at the top of most pages: a big title, an optional line under it, live figures
 // or an action on the right, and whatever control the page needs underneath (season strip, search).
 // Every band is the calendar's size and type at least: the same title size, and never shorter than its panel.
-export default function PageBand({ title, accent, lead, media, figures = [], aside, children, centre }: BandProps) {
+export default function PageBand({ title, accent, lead, media, figures = [], aside, children, centre, tight }: BandProps) {
   return (
-    <header className={`t-reveal ${s.band}`}>
+    <header className={`t-reveal ${s.band} ${tight ? s.tight : ""}`}>
       <div className={`${s.top} ${centre ? s.topCentre : ""}`}>
         <div className={s.head}>
           {media}

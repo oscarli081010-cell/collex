@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useAuth } from "./AuthProvider";
 import PageBand from "./PageBand";
-import { ListingsPanel, useMyListings } from "./AccountSections";
+import { ListingsPanel } from "./listing/Listings";
+import { useMyListings } from "./listing/useMyListings";
 import { FormSkeleton } from "./Skeleton";
 import s from "@/app/auth.module.css";
 
@@ -37,9 +38,7 @@ export default function ListingsView() {
           { label: "In review", value: num(review) },
         ]}
         aside={<div className="btnStack one"><Link href="/list" className="button secondary lg">List a conference</Link></div>} />
-      <div className={s.body}>
-        <div className={s.accountWide}><ListingsPanel rows={rows} /></div>
-      </div>
+      <ListingsPanel rows={rows} />
     </>
   );
 }

@@ -2,21 +2,18 @@
 
 import Link from "next/link";
 import { MyApplications } from "./HubExtras";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { formatRange, isPast, monogram, todayInSydney, type Conference } from "@/lib/conferences";
-import { fromRow } from "@/lib/data";
+import { useMyListings } from "./listing/useMyListings";
+import { useCallback, useEffect, useState } from "react";
+import { formatRange, isPast, todayInSydney, type Conference } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
 import { useConferences } from "./ConferencesContext";
 import { Thumb } from "./ConferenceRow";
 import { ICONS } from "./IconButton";
-import SearchBox from "./SearchBox";
 import { RowsSkeleton } from "./Skeleton";
 import { useToast } from "./useToast";
 import s from "@/app/auth.module.css";
 
-const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Not approved", unpublished: "Taken down" };
 
-export type Listing = { c: Conference; status: string; note: string; mine: boolean; canEdit: boolean };
 type Invite = { conference_id: string; conference: string; invited_by: string; role: "editor" | "viewer" };
 
 // The account page's Conferences tab: invites to help run a listing, conferences you saved, and the listings you run.
@@ -176,68 +173,6 @@ function Saved() {
   );
 }
 
-// A listing's photo, or its initials when it has none. No page transition here: the same conference can also be in Saved.
-function ListingThumb({ c }: { c: Conference }) {
-  return (
-    <span className={s.listingThumb} aria-hidden="true">
-      {/* eslint-disable-next-line @next/next/no-img-element -- organisers' photos come straight from storage */}
-      {c.cover ? <img src={c.cover} alt="" loading="lazy" decoding="async" style={c.coverPos ? { objectPosition: c.coverPos } : undefined} /> : <span className="serif">{monogram(c)}</span>}
-    </span>
-  );
-}
-
-// One listing you run: where it stands, its dates, and the ways to open, edit or see its activity. Interest is on the Activity page.
-export function ListingCard({ c, status, note, coOrganiser, canEdit = true, today }: { c: Conference; status: string; note: string; coOrganiser: boolean; canEdit?: boolean; today: string }) {
-  const live = status === "published";
-  const editable = (live || status === "pending") && canEdit;
-  return (
-    <li className={s.listing}>
-      <div className={s.listingTop}>
-        <ListingThumb c={c} />
-        <div className={s.listingMain}>
-          {live ? <Link href={`/conferences/${c.slug}`} className={s.listingName}>{c.name}</Link> : <span className={s.listingName}>{c.name}</span>}
-          <span className={s.listingMeta}>
-            <span className={s.status} data-status={status}>{STATUS[status] ?? status}</span>
-            {coOrganiser && <span className={s.tag}>Co-organiser</span>}
-            {coOrganiser && !canEdit && <span className={s.tag}>View only</span>}
-            {live && isPast(c, today) && <span className={s.tag}>Finished</span>}
-            <span>{c.startDate ? formatRange(c) : "Dates not set"}</span>
-          </span>
-        </div>
-      </div>
-      <div className={s.listingButtons}>
-        <Link href={`/activity?id=${c.id}`} className="button secondary">{ICONS.chart}Activity</Link>
-        {editable && <Link href={`/manage?id=${c.id}`} className="button secondary">{ICONS.manage}Manage</Link>}
-        {live && <Link href={`/conferences/${c.slug}`} className="button secondary">{ICONS.view}View page</Link>}
-        {editable && <Link href={`/list?edit=${c.id}`} className="button secondary">{ICONS.edit}Edit listing</Link>}
-      </div>
-      {status === "pending" && <p className={s.listingNote}>The Collex team is reviewing it. Once approved, it gets its own page and joins the calendar.</p>}
-      {(status === "rejected" || status === "unpublished") && note && <p className={s.listingNote} data-tone="danger">{note}</p>}
-    </li>
-  );
-}
-
-// The listings you sent or help run, with their review status. null while they load.
-export function useMyListings(userId: string, version = 0) {
-  const [rows, setRows] = useState<Listing[] | null>(null);
-  useEffect(() => {
-    if (!supabase) return;
-    const db = supabase;
-    (async () => {
-      const { data: team } = await db.from("organisers").select("conference_id, role").eq("user_id", userId).not("accepted_at", "is", null);
-      const ids = (team ?? []).map((t) => t.conference_id);
-      const roleOf = new Map((team ?? []).map((t) => [t.conference_id as string, t.role as string]));
-      const base = db.from("conferences").select("*");
-      const { data } = await (ids.length ? base.or(`submitted_by.eq.${userId},id.in.(${ids.join(",")})`) : base.eq("submitted_by", userId))
-        .order("created_at", { ascending: false });
-      const list = ((data ?? []) as (Parameters<typeof fromRow>[0] & { status: string; review_note: string; submitted_by: string | null })[])
-        .map((r) => ({ c: fromRow(r), status: r.status, note: r.review_note, mine: r.submitted_by === userId, canEdit: r.submitted_by === userId || roleOf.get(r.id) === "editor" }));
-      setRows(list);
-    })();
-  }, [userId, version]);
-  return rows;
-}
-
 // The Conferences tab's way into the Your listings page.
 function ListingsLink({ userId, version, onCount }: { userId: string; version: number; onCount: (n: number) => void }) {
   const rows = useMyListings(userId, version);
@@ -254,52 +189,5 @@ function ListingsLink({ userId, version, onCount }: { userId: string; version: n
       </div>
       <Link href="/listings" className="button block">{ICONS.view}See my listings</Link>
     </section>
-  );
-}
-
-// The Your listings page: each listing you run, then a tile to add another.
-export function ListingsPanel({ rows }: { rows: Listing[] | null }) {
-  const today = todayInSydney();
-  const [find, setFind] = useState("");
-  const q = find.trim().toLowerCase();
-  const shown = useMemo(
-    () => (rows ?? []).filter((r) => !q || [r.c.name, r.c.host, r.c.venue, STATUS[r.status] ?? r.status].join(" ").toLowerCase().includes(q)),
-    [rows, q],
-  );
-  return (
-    <section className={`panel ${s.card}`} style={{ "--i": 0 } as React.CSSProperties} aria-label="Your listings">
-      {rows === null ? <RowsSkeleton rows={2} height={84} /> : (
-        <>
-          {rows.length > 1 && (
-            <div className={s.listingSearch} role="search">
-              <SearchBox label="Search your listings" placeholder="Search your conferences" value={find} onChange={setFind} />
-              <span className="t-swap muted" key={q} aria-live="polite">{q ? `${shown.length} of ${rows.length}` : ""}</span>
-            </div>
-          )}
-          {rows.length > 0 && shown.length === 0 && <p className={s.listingNote}>No conferences match. Try a different word, or clear the search.</p>}
-          {shown.length > 0 && (
-            <ul className={s.listingList}>
-              {shown.map((r) => <ListingCard key={r.c.id} c={r.c} status={r.status} note={r.note} coOrganiser={!r.mine} canEdit={r.canEdit} today={today} />)}
-            </ul>
-          )}
-          <AddListing first={rows.length === 0} />
-        </>
-      )}
-    </section>
-  );
-}
-
-// "List a conference" as a tile of its own at the end of the list, not a stray button.
-export function AddListing({ first }: { first: boolean }) {
-  return (
-    <Link href="/list" className={s.addTile}>
-      <span className={s.addIcon} aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M9 3.5v11M3.5 9h11" /></svg>
-      </span>
-      <span className={s.addText}>
-        <strong>List a conference</strong>
-        <small>{first ? "Nothing listed yet. The Collex team reviews each listing before it goes live." : "The Collex team reviews it before it goes live."}</small>
-      </span>
-    </Link>
   );
 }

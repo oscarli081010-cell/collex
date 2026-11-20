@@ -55,7 +55,7 @@ function RollBoard({ c, tag }: { c: ch.Chamber; tag: (id: string) => React.React
   return (
     <>
       <div className={s.dBoard}>
-        {c.delegates.slice(at * PER, (at + 1) * PER).map((d) => <div key={d.id} className={s.dSeat} data-a={c.roll[d.id]}><i /><span className={s.dSeatName}>{d.name}</span>{tag(d.id) ?? (c.roll[d.id] && <em>{ch.ATTEND_LABEL[c.roll[d.id]]}</em>)}</div>)}
+        {c.delegates.slice(at * PER, (at + 1) * PER).map((d) => <div key={d.id} className={s.dSeat} data-a={c.roll[d.id]}><i /><span className={s.dSeatName}>{d.name}</span>{tag(d.id) ?? (c.roll[d.id] && <em title={ch.ATTEND_LABEL[c.roll[d.id]]}>{c.roll[d.id] === "voting" ? "P & V" : ch.ATTEND_LABEL[c.roll[d.id]]}</em>)}</div>)}
       </div>
       {pages > 1 && <p className={s.dPages} aria-live="polite">{at + 1} / {pages}</p>}
     </>
