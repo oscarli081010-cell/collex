@@ -2111,11 +2111,10 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber, devices: boolean
             </Select>
           </div>
           <div className="field">
-            <label className="check">
-              <input type="checkbox" checked={devices} onChange={(e) => setDevices(e.target.checked)} />
-              <span>Delegates join on their own devices</span>
-            </label>
-            <small>Leave this off for a device-free conference: everything runs from your console and the display. With it on, delegates get a code to follow the debate, ask for the floor, vote and pass notes from a phone or laptop. You can change it later in Share.</small>
+            <span id="sc-dev">Delegates Follow</span>
+            <Seg label="How delegates follow the committee" value={devices ? "on" : "off"} className={s.sideSeg} onPick={(v) => setDevices(v === "on")}
+              items={[{ id: "off", label: "On the Display" }, { id: "on", label: "On Their Own Devices" }]} />
+            <small aria-live="polite">{devices ? "Delegates get a code to follow, ask for the floor, vote and pass notes." : "No phones or laptops needed."}</small>
           </div>
           <button type="submit" className="button lg block" disabled={!ok}>Open Committee</button>
         </form>
