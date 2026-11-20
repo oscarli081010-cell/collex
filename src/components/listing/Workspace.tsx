@@ -35,8 +35,8 @@ export default function Workspace({ tab, id }: { tab: TabDef; id: string | null 
   }
   if (!id || !data || data === "missing") {
     return gate({
-      title: "Can’t open", accent: "that", lead: "Only the people who run a listing can open it. Pick one from your listings.",
-      aside: <div className="btnStack one"><Link href="/listings" className="button lg">Your listings</Link></div>,
+      title: "Can’t open", accent: "that", lead: "Only the people who run a listing can open it. Pick one from your conferences.",
+      aside: <div className="btnStack one"><Link href="/listings" className="button lg">Your conferences</Link></div>,
     });
   }
   return <Open key={id} tab={tab} id={id} userId={userId!} data={data} reload={reload} />;

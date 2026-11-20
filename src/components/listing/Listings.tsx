@@ -58,7 +58,7 @@ function ListingCard({ c, status, note, coOrganiser, canEdit, today }: { c: Conf
   );
 }
 
-// The Your listings page: each listing you run, then a tile to add another.
+// The Your conferences page: each listing you run, then a tile to add another.
 export function ListingsPanel({ rows }: { rows: Listing[] | null }) {
   const today = todayInSydney();
   const [find, setFind] = useState("");
@@ -69,10 +69,10 @@ export function ListingsPanel({ rows }: { rows: Listing[] | null }) {
   );
   if (rows === null) return <RowsSkeleton rows={2} height={148} />;
   return (
-    <section className={`t-stagger ${s.listingsWide}`} aria-label="Your listings">
+    <section className={`t-stagger ${s.listingsWide}`} aria-label="Your conferences">
       {rows.length > 1 && (
         <div className={s.listingSearch} role="search">
-          <SearchBox label="Search your listings" placeholder="Search your conferences" value={find} onChange={setFind} />
+          <SearchBox label="Search your conferences" placeholder="Search your conferences" value={find} onChange={setFind} />
           <span className="t-swap muted" key={q} aria-live="polite">{q ? `${shown.length} of ${rows.length}` : ""}</span>
         </div>
       )}

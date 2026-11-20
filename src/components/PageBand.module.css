@@ -45,6 +45,9 @@
   font-variant-numeric: lining-nums tabular-nums;
 }
 .figures small { display: block; margin-top: 6px; font-family: var(--sans); font-size: 13px; color: var(--muted); }
+/* A figure that is a name, not a number: its label sits above it in bold, as a heading. */
+.figures > div[data-lead] { flex-direction: column; }
+.figures > div[data-lead] dt { font-size: 13px; font-weight: 600; color: var(--ink); }
 
 .foot { margin-top: clamp(28px, 3.4vw, 40px); }
 
@@ -60,6 +63,9 @@
   .figures { width: 100%; justify-content: space-between; gap: 12px; }
   .figures > div + div { padding-left: 12px; }
   .figures dd { font-size: 26px; white-space: normal; }
+  /* The numbers keep their own width, so their labels never run into each other; the name beside them takes what is left. */
+  .figures > div:not([data-lead]) { flex: none; }
+  .figures > div[data-lead] { flex: 1 1 0; }
 }
 /* Touch screens: the calendar's month strip is a 54px target. */
 @media (max-width: 720px) and (pointer: coarse) {

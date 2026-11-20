@@ -254,7 +254,7 @@ export function LoginForm() {
 
   return (
     <Banded band={mode === "login"
-      ? { title: "Log", accent: "in", lead: "Follow conferences, list your own and keep track of your listings." }
+      ? { title: "Log", accent: "in", lead: "Follow conferences, list your own and keep track of your conferences." }
       : { title: "Reset your", accent: "password", lead: "We’ll email you a link to set a new one." }}>
     <form key={mode} className={`t-reveal ${s.form}`} onSubmit={submit} noValidate>
       <NotReady />
@@ -427,7 +427,7 @@ export function AccountView() {
         </ul>
       ),
       figures: [
-        { label: "Listings", value: counts.listings === null ? "–" : String(counts.listings) },
+        { label: "Running", value: counts.listings === null ? "–" : String(counts.listings) },
         { label: "Following", value: counts.following === null ? "–" : String(counts.following) },
       ],
       aside: <button className={`button secondary ${s.logout}`} onClick={signOut}>{ICONS.leave}Log out</button>,

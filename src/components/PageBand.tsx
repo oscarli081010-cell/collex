@@ -1,7 +1,7 @@
 import { formatDate, todayInSydney, type Conference } from "@/lib/conferences";
 import s from "./PageBand.module.css";
 
-export type Figure = { label: string; value: string; note?: string };
+export type Figure = { label: string; value: string; note?: string; /** The label goes above the value, in bold (a heading for it, not a caption under a number). */ lead?: boolean };
 
 export type BandProps = {
   title: string; accent?: React.ReactNode; lead?: React.ReactNode; media?: React.ReactNode;
@@ -31,7 +31,7 @@ export default function PageBand({ title, accent, lead, media, figures = [], asi
             {figures.length > 0 && (
               <dl className={s.figures}>
                 {figures.map((f) => (
-                  <div key={f.label}>
+                  <div key={f.label} data-lead={f.lead || undefined}>
                     <dt>{f.label}</dt>
                     <dd>{f.value}{f.note && <small>{f.note}</small>}</dd>
                   </div>
@@ -57,5 +57,5 @@ export function BandNote({ children }: { children: React.ReactNode }) {
 export function nextUp(list: Conference[]): Figure {
   const today = todayInSydney();
   const next = list.filter((c) => c.startDate && c.startDate >= today).sort((a, b) => a.startDate!.localeCompare(b.startDate!))[0];
-  return next ? { label: "Next up", value: next.shortName, note: formatDate(next.startDate!) } : { label: "Next up", value: "TBA" };
+  return next ? { label: "Next Up:", value: next.shortName, note: formatDate(next.startDate!), lead: true } : { label: "Next Up:", value: "TBA", lead: true };
 }

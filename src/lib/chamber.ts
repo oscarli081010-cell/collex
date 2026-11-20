@@ -19,10 +19,15 @@ export type Delegate = { id: string; name: string };
 /** `stance`: the state said it speaks For or Against (the Trinity general list and moderated caucus), so the side is shown. */
 export type Slot = { id: string; side: Side; stance?: boolean };
 export type Role = "proposer" | "seconder" | "opposer" | "speaker" | "amender" | "closer" | "statement";
-/** speech, then the speaker either takes a Point of Information (ask, then answer) or yields to the chair. */
+/** speech, then the speaker says how they yield (after): to the chair, which ends their turn, or to Points of Information,
+    which are then taken one at a time (ask, then answer, then after again) until the chair ends them. */
 export type Phase = "speech" | "after" | "ask" | "answer";
-/** `left` is the time the speaker had unused when the speech ended, in seconds: what a yield to another country passes on. */
-export type Speech = { who: string; side: Side; role: Role; phase: Phase; asker: string | null; pois: number; left?: number; stance?: boolean };
+/** `left` is the time the speaker had unused when the speech ended, in seconds: what a yield to another country passes on.
+    `points` is set once the speaker has yielded to Points of Information. */
+export type Speech = { who: string; side: Side; role: Role; phase: Phase; asker: string | null; pois: number; left?: number; stance?: boolean; points?: boolean };
+/** The speaker has yielded to Points of Information, and they are being taken. Before that, the speech is over and the
+    chair is asking how they yield. */
+export const takingPoints = (sp: Speech) => sp.phase === "ask" || sp.phase === "answer" || (sp.phase === "after" && (!!sp.points || sp.pois > 0));
 /** The speeches on the amendment in hand. */
 export type Debate = { list: Slot[]; run: Slot[] };
 /** `backers` are the amendment's signatories. `at` is when it was handed in. */
@@ -475,11 +480,17 @@ export function endSpeech(c: Chamber, at: number, who: string): Chamber {
   if (sp.role === "closer") return finish(logged); // no Points of Information in the closing
   return { ...logged, speech: { ...sp, phase: "after", left: Math.floor((logged.timer?.left ?? 0) / 1000) } };
 }
+// The speaker yields to Points of Information: from here they are taken one at a time until the chair ends them.
+export function yieldToPoints(c: Chamber, who: string): Chamber {
+  const sp = c.speech;
+  if (!sp || sp.who !== who || sp.phase !== "after" || takingPoints(sp)) return c;
+  return note({ ...c, speech: { ...sp, points: true } }, `${nameOf(c, who)} yields to Points of Information`);
+}
 // A Point of Information: the chair picks a state, which has 30 seconds to ask; then the speaker has 30 to reply.
 export function askPoi(c: Chamber, asker: string, who: string, n: number): Chamber {
   const sp = c.speech;
   if (!sp || sp.who !== who || sp.phase !== "after" || sp.pois !== n || !has(c, asker) || asker === who) return c;
-  return note({ ...c, speech: { ...sp, phase: "ask", asker }, timer: timerFor(`${nameOf(c, asker)} asks`, timeOf(c, "poi")) }, `${nameOf(c, asker)} asks ${nameOf(c, who)} a Point of Information`);
+  return note({ ...c, speech: { ...sp, phase: "ask", asker, points: true }, timer: timerFor(`${nameOf(c, asker)} asks`, timeOf(c, "poi")) }, `${nameOf(c, asker)} asks ${nameOf(c, who)} a Point of Information`);
 }
 export function answerPoi(c: Chamber, who: string, asker: string, n: number, at: number): Chamber {
   const sp = c.speech;
@@ -500,6 +511,7 @@ export function yieldToChair(c: Chamber, who: string, n: number): Chamber {
 export function backPhase(c: Chamber, who: string, n: number): Chamber {
   const sp = c.speech;
   if (!sp || sp.who !== who || sp.pois !== n) return c;
+  if (sp.phase === "after" && n === 0 && sp.points) return { ...c, speech: { ...sp, points: false } }; // back to choosing how to yield
   if (sp.phase === "after" && n === 0 && c.timer) return { ...c, speech: { ...sp, phase: "speech" } };
   if (sp.phase === "ask") return { ...c, speech: { ...sp, phase: "after", asker: null }, timer: null };
   if (sp.phase === "answer") return { ...c, speech: { ...sp, phase: "ask" }, timer: timerFor(`${nameOf(c, sp.asker)} asks`, timeOf(c, "poi")) };
@@ -878,20 +890,27 @@ export function summary(c: Chamber, wk?: 1 | 2) {
   });
 }
 
-/* What is open right now, for the display: the negotiation chamber (shut for the whole opening and every caucus; open between amendments and while one
-   is debated, but not while it is read or voted on, and shut again from the closing speeches on), notes with amendments
-   (from the first caucus of the debate until the closing), and the speakers' list (once the council has voted to debate an amendment). */
-export function rooms(c: Chamber): { negotiation: boolean; amendments: boolean; speakers: boolean; labels?: string[] } {
+/* What is open right now, for the display. In an Evatt council the negotiation chamber and note-passing open as the
+   Seconder starts to speak. The negotiation chamber is then open through the rest of the opening, between amendments
+   and while one is debated; it is shut during a caucus (the council is on its feet), while an amendment is read or
+   voted on, and from the closing speeches on. Notes can be passed from the Seconder's speech until the closing.
+   Amendments are taken from the first caucus of the debate until the closing, and the speakers' list opens once the
+   council has voted to debate an amendment. */
+export function rooms(c: Chamber): { negotiation: boolean; notes: boolean; amendments: boolean; speakers: boolean; labels?: string[] } {
   if (c.tr) {
     // The pill says what delegates can do now, and it is exactly what the console has open: the speakers' list, amendments and motions. A caucus is not named.
     const list = listOpen(c);
     const labels = [list && "Speakers\u2019 List Open", amendmentsOpen(c) && "Amendments Open", motionsOpen(c) && "Motions Open"].filter((x): x is string => !!x);
-    return { negotiation: false, amendments: amendmentsOpen(c), speakers: list, labels };
+    return { negotiation: false, notes: false, amendments: amendmentsOpen(c), speakers: list, labels };
   }
   const speakers = listOpen(c);
+  // From the moment the Seconder is called until the debate begins.
+  const opening = (c.step === "seconder" && c.speech?.role === "seconder") || c.step === "opposer";
+  const debate = c.step === "caucus" || c.step === "floor" || c.step === "amend";
   return {
-    negotiation: c.step === "floor" || (c.step === "amend" && c.amend?.stage === "debate"),
-    amendments: c.step === "caucus" || c.step === "floor" || c.step === "amend",
+    negotiation: opening || c.step === "floor" || (c.step === "amend" && c.amend?.stage === "debate"),
+    notes: opening || debate,
+    amendments: debate,
     speakers,
   };
 }

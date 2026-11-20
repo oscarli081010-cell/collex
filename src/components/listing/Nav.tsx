@@ -10,7 +10,7 @@ import s from "./Workspace.module.css";
 
 const back = <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 3.5L2.5 8 7 12.5M2.5 8h11" /></svg>;
 
-// Under a listing's headline band: its tabs on one sliding control, then the two ways out, back to Your listings and
+// Under a listing's headline band: its tabs on one sliding control, then the two ways out, back to Your conferences and
 // to the listing's public page. A tab or button that can't be used is still there, greyed out, and says why on hover.
 export default function ListingNav({ id, slug, current, live, whyNot }: { id: string; slug: string; current: TabId; live: boolean; /** Empty when this person can change the listing. */ whyNot: string }) {
   const box = useRef<HTMLElement>(null);
@@ -37,7 +37,7 @@ export default function ListingNav({ id, slug, current, live, whyNot }: { id: st
         ))}
       </nav>
       <div className={s.actions}>
-        <Link href="/listings" className="button secondary">{back}Your listings</Link>
+        <Link href="/listings" className="button secondary">{back}Your conferences</Link>
         {live
           ? <Link href={`/conferences/${slug}`} className="button secondary">{ICONS.view}View listing</Link>
           : <span className="tip" data-tip="It gets its own page once it is live"><button type="button" className="button secondary" disabled>{ICONS.view}View listing</button></span>}

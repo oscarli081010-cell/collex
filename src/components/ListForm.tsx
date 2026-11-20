@@ -436,7 +436,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     },
       <div key="sent" role="status" className={`t-reveal ${auth.sent}`}>
         <ol className={`t-stagger ${s.next}`}>
-          {["The Collex team reviews it.", "Once approved, it gets its own page and joins the calendar.", "Its status shows on your listings page the whole time."].map((line, i) => (
+          {["The Collex team reviews it.", "Once approved, it gets its own page and joins the calendar.", "Its status shows on Your conferences the whole time."].map((line, i) => (
             <li key={line} style={{ "--i": i } as React.CSSProperties}>{line}</li>
           ))}
         </ol>

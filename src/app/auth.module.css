@@ -101,7 +101,7 @@ a.listingName:hover { color: var(--accent); }
 .invite :global(.button.secondary:hover) { background: var(--surface-2); }
 @media (pointer: coarse) { .inviteActions .button { height: 48px; } }
 
-/* Your listings: a card for each listing, then a dashed tile to add another. */
+/* Your conferences: a card for each listing, then a dashed tile to add another. */
 .listingSearch { display: flex; align-items: center; gap: 12px; }
 .listingSearch > label { flex: 1; }
 .listingSearch > span { font-size: 13.5px; min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; }

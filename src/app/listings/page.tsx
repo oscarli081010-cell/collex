@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import ListingsView from "@/components/ListingsView";
 import s from "../auth.module.css";
 
-export const metadata: Metadata = { title: "Your listings · Collex", robots: { index: false } };
+export const metadata: Metadata = { title: "Your conferences · Collex", robots: { index: false } };
 
 export default function Page() {
   return (

@@ -102,11 +102,17 @@ export default function ChamberDisplay() {
   if (!mounted) return null; // the saved committee is only known in the browser
 
   const open = c ? ch.rooms(c) : null;
-  const openNow = open ? (open.labels ?? [open.negotiation && "Negotiation Chamber Open", open.amendments && "Amendments Open", open.speakers && "Speakers\u2019 List Open"]).filter(Boolean).join(" \u00B7 ") : "";
+  const openNow = open ? (open.labels ?? [
+    open.negotiation && open.notes ? "Negotiation Chamber and Notes Open" : open.negotiation ? "Negotiation Chamber Open" : open.notes && "Notes Open",
+    open.amendments && "Amendments Open", open.speakers && "Speakers\u2019 List Open",
+  ]).filter(Boolean).join(" \u00B7 ") : "";
   const tools = (
     <div className={s.dTools}>
-      <button type="button" className={s.dBtn} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}{full ? "Exit full screen" : "Full screen"}</button>
-      <Link href={cloudId ? `/chambers?c=${cloudId}` : "/chambers"} className={s.dBtn}><Back />Console</Link>
+      <div className={s.dToolRow}>
+        <button type="button" className={s.dBtn} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}{full ? "Exit full screen" : "Full screen"}</button>
+        <Link href={cloudId ? `/chambers?c=${cloudId}` : "/chambers"} className={s.dBtn}><Back />Console</Link>
+      </div>
+      <span className={`${s.dBtn} ${s.dBrand}`}>Powered by <Mark size={17} /><Wordmark height={13} /></span>
     </div>
   );
 
@@ -154,13 +160,17 @@ export default function ChamberDisplay() {
   } else if (c.speech) {
     const sp = c.speech;
     const kLine = c.tr && k?.kind === "mod" && c.step === "caucus" ? `${k.topic} \u00B7 ${ch.clock(kLeft)} left` : c.tr && c.step === "amend" && k?.clock ? `Caucus ${ch.clock(kLeft)} left` : null;
+    const points = ch.takingPoints(sp);
+    const taken = sp.pois > 0 ? `${sp.pois} ${sp.pois === 1 ? "Point" : "Points"} of Information taken` : null;
     mid = sp.phase === "ask" ? (
       <Screen pill={["Point of Information", `for ${name(sp.who)}`]} heading={name(sp.asker)}>{timerView()}</Screen>
     ) : sp.phase === "answer" ? (
       <Screen pill={["Reply", `to ${name(sp.asker)}`]} heading={name(sp.who)}>{timerView()}</Screen>
+    ) : sp.phase === "after" && points ? (
+      <Screen pill={["Points of Information"]} heading={name(sp.who)} lines={[taken ?? "Raise your placard to ask"]} />
     ) : (
       <Screen pill={[ch.roleName(c, sp.role), sideOf(sp) && SIDE[sp.side]]} side={sideOf(sp)} heading={name(sp.who)}
-        lines={[sp.phase === "after" ? `Points of Information${sp.pois > 0 ? ` · ${sp.pois} taken` : ""}` : c.step === "amend" && amendment ? amendment.text : null, kLine]}>
+        lines={[sp.phase === "after" ? "How do you yield?" : c.step === "amend" && amendment ? amendment.text : null, kLine]}>
         {sp.phase === "speech" && timerView()}
       </Screen>
     );
@@ -293,7 +303,6 @@ export default function ChamberDisplay() {
             <p className={`serif ${s.dName}`}>{c?.name ?? "Chambers"}</p>
             {c?.topic && <p className={s.dTopic}>{c.topic}</p>}
           </div>
-          <span className={`${s.dBtn} ${s.dBrand}`}>Powered by <Mark size={17} /><Wordmark height={13} /></span>
         </div>
         {openNow ? <span className={`${s.dBtn} ${s.dStatus}`} role="status">{openNow}</span> : <span className={s.dGap} />}
         {tools}

@@ -25,11 +25,11 @@ export const GUIDES: Guide[] = [
         "*The big button always does the next thing.* The space bar starts and pauses the timer, and N calls the next speaker.",
         "Add states to the speakers’ list as they raise their placards. Use the arrows to reorder it.",
         "Take votes by placard with the counters, or switch a vote to By Roll Call to record each state’s answer in the minutes.",
-        "Made a mistake? *Back undoes* your last few actions, including a vote recorded too soon.",
+        "Made a mistake? *The back arrow undoes* your last few actions, including a vote recorded too soon.",
       ] },
       { id: "marks", title: "Marks", text: [
         "Analytics counts every speech, point and amendment for you. In Scores, mark each state *out of 10* for speaking, diplomacy, knowledge and procedure, and keep a private note. Only the chairs on the committee see the marks.",
-        "Link the committee to its conference in Settings and the secretariat can follow it live from their Manage page.",
+        "Link the committee to its conference in the Share tab and the secretariat can follow it live from their Manage page.",
       ] },
       { id: "devices", title: "If delegates have devices", text: [
         "Turn on Delegates’ Devices in the Share tab and put the delegates’ code on the display. Each delegate picks their state, then can ask for the floor, raise a point, propose a motion, hand in or sign an amendment, vote, and pass notes.",
@@ -45,7 +45,8 @@ export const GUIDES: Guide[] = [
       { id: "opening", title: "Opening", steps: [
         "The President welcomes the council and takes the roll call.",
         "The President names the Proposer and the Seconder of the resolution, and an Opposer if a state wishes to oppose.",
-        "The Proposer, then the Seconder, then the Opposer each speak. After a speech the speaker may take Points of Information (a short question, then a short reply) or yield to the chair.",
+        "The Proposer, then the Seconder, then the Opposer each speak. After a speech the President asks how the speaker yields: to Points of Information (a short question, then a short reply, one at a time) or to the chair.",
+        "The negotiation chamber and note-passing *open as the Seconder starts to speak*.",
       ] },
       { id: "debate", title: "Debate", steps: [
         "The council moves into a caucus, where states negotiate and write amendments.",

@@ -33,6 +33,7 @@ const MONITOR = svg(<><rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.6" /
 const SLIDERS = svg(<><path d="M2.5 4.5h6.5M12 4.5h1.5M2.5 11.5h1.5M7 11.5h6.5" /><circle cx="10.5" cy="4.5" r="1.6" /><circle cx="5.5" cy="11.5" r="1.6" /></>);
 const COPY = svg(<><rect x="5.5" y="5.5" width="8" height="8" rx="1.6" /><path d="M10.5 3.5V3a1 1 0 00-1-1H3.5a1 1 0 00-1 1v6a1 1 0 001 1H4" /></>);
 const BACK = svg(<path d="M6.5 3L2.5 7l4 4M2.5 7H10a3.5 3.5 0 010 7H7" />);
+const LEFT = svg(<path d="M7 3.5L2.5 8 7 12.5M2.5 8h11" />);
 const STACK = svg(<><rect x="2.5" y="6" width="11" height="7.5" rx="1.6" /><path d="M4 3.8h8M5.5 1.8h5" /></>);
 const SWAP = svg(<path d="M3 5.5h9.5M10 3l2.5 2.5L10 8M13 10.5H3.5M6 8l-2.5 2.5L6 13" />);
 
@@ -113,8 +114,11 @@ function Duration({ id, label, value, onChange, min, max, optional }: {
 }
 
 export default function Chambers() {
-  const q = useSearchParams().get("c");
+  const params = useSearchParams();
+  const q = params.get("c");
   const cloudId = isId(q) ? q : null;
+  // The Chambers home, asked for by name (Back to Chambers), even while a committee is kept in this browser.
+  const home = !cloudId && params.get("tab") !== null;
   const { ready: authReady, session } = useAuth();
   const router = useRouter();
   const { c, status, owner, manage, act, setLocal } = useChamber(cloudId, { signedIn: !!session, authReady });
@@ -151,11 +155,13 @@ export default function Chambers() {
   const sp = c?.speech;
   useEffect(() => {
     if (!c) return;
-    setLive(sp ? `${ch.ROLE_LABEL[sp.role]} ${ch.nameOf(c, sp.who)}: ${sp.phase === "speech" ? "speech" : sp.phase === "after" ? "Points of Information or yield" : sp.phase === "ask" ? `Point of Information from ${ch.nameOf(c, sp.asker)}` : "reply"}` : ch.substep(c));
+    setLive(sp ? `${ch.ROLE_LABEL[sp.role]} ${ch.nameOf(c, sp.who)}: ${sp.phase === "speech" ? "speech" : sp.phase === "after" ? (ch.takingPoints(sp) ? "Points of Information" : "choosing how to yield") : sp.phase === "ask" ? `Point of Information from ${ch.nameOf(c, sp.asker)}` : "reply"}` : ch.substep(c));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp?.who, sp?.phase, sp?.asker, c?.step, c?.amend?.stage]);
 
-  const toggle = () => act((x) => (ch.running(x.timer) ? ch.pauseTimer(x, ch.now()) : ch.startTimer(x, ch.now())), false);
+  // Between a speech and a Point of Information there is no clock to run: the speech is over, and its time is only kept
+  // in case the chair goes back to it.
+  const toggle = () => { if (c?.speech?.phase !== "after") act((x) => (ch.running(x.timer) ? ch.pauseTimer(x, ch.now()) : ch.startTimer(x, ch.now())), false); };
   // Space starts or pauses the timer. N calls the next speaker, and only when no one is speaking, so a stray key can't end a speech.
   const callNext = () => {
     if (c?.tr && !c.speech && ch.listOpen(c)) {
@@ -198,8 +204,8 @@ export default function Chambers() {
     );
   }
   if (status === "loading" || (cloudId && !c)) return <main id="top" className="container" />;
-  if (!c) return <>
-    <Setup signedIn={!!session} onCreate={async (x, devices) => {
+  if (!c || home) return <>
+    <Setup signedIn={!!session} local={c} onCreate={async (x, devices) => {
       // With delegates' devices the committee has to live on Collex from the start, so it is shared straight away.
       if (devices && supabase) {
         const { data, error } = await supabase.rpc("create_chamber", { initial: x });
@@ -209,6 +215,7 @@ export default function Chambers() {
         return;
       }
       setLocal(x); say("Committee opened");
+      if (home) router.replace("/chambers");
     }} />
     {node}
   </>;
@@ -245,7 +252,7 @@ export default function Chambers() {
         </dl>
         </div>
         <div className={s.topActions}>
-          <button type="button" className={`button secondary ${s.topBtn}`} disabled={!ch.canGoBack(c)} onClick={() => act((x) => ch.goBack(x, ch.now()), false)}>{BACK}Back</button>
+          <Link className={`button secondary ${s.topBtn}`} href="/chambers?tab=yours">{LEFT}<span><span className={s.topLong}>Back to </span>Committees</span></Link>
           <a className={`button secondary ${s.topBtn}`} href={display} target="_blank" rel="noopener">{MONITOR}Open display</a>
           <ConfirmIconButton label={cloudId && !owner ? "Leave this committee" : cloudId ? "Delete this committee" : "Close this committee"}
             confirm="Click again to confirm" icon={cloudId && !owner ? ICONS.leave : ICONS.trash} onConfirm={() => void remove()} />
@@ -277,6 +284,7 @@ export default function Chambers() {
         <div id="chv-panel-share" role="tabpanel" aria-labelledby="chv-tab-share" className={s.manage}>
           <Share c={c} cloudId={cloudId} manage={manage} signedIn={!!session} meId={session?.user.id} say={say} setLocal={setLocal} />
           {cloudId && <DevicesCard c={c} cid={cloudId} room={rm.data} manage={manage} say={say} refresh={rm.refresh} />}
+          {cloudId && <ConferenceLink cid={cloudId} name={c.name} manage={manage} say={say} />}
         </div>
       ) : view === "room" && cloudId && rm.data ? (
         <div id="chv-panel-room" role="tabpanel" aria-labelledby="chv-tab-room" className={s.manage}>
@@ -289,7 +297,6 @@ export default function Chambers() {
       ) : (
         <div id="chv-panel-settings" role="tabpanel" aria-labelledby="chv-tab-settings" className={s.manage}>
           {t && !c.style && <Resolutions c={c} act={act} />}
-          {cloudId && <ConferenceLink cid={cloudId} name={c.name} manage={manage} say={say} />}
           <Times c={c} act={act} />
           <Sound />
           <Background c={c} act={act} say={say} userId={session?.user.id} />
@@ -330,6 +337,17 @@ function Resolutions({ c, act }: { c: Chamber; act: Act }) {
   );
 }
 
+/* One step back: the last thing the chair did is undone. It lives in the panel it acts on, as an arrow. */
+function Undo({ c, act }: { c: Chamber; act: Act }) {
+  const can = ch.canGoBack(c);
+  const label = can ? "Back one step" : "Nothing to go back to yet";
+  return (
+    <span className={`tip ${s.undo}`} data-tip={label} data-tip-align="start">
+      <button type="button" className="button secondary iconbtn" aria-label={label} disabled={!can} onClick={() => act((x) => ch.goBack(x, ch.now()), false)}>{BACK}</button>
+    </span>
+  );
+}
+
 /* The three parts of the debate, and the step inside the one we're in. */
 function Rail({ c }: { c: Chamber }) {
   const idx = ch.stageIndex(c);
@@ -353,6 +371,7 @@ function Welcome({ c, act }: { c: Chamber; act: Act }) {
   const [text, setText] = useState("");
   return (
     <section className={`panel ${s.welcome}`} aria-label="Welcome">
+      <Undo c={c} act={act} />
       <h2 className={`serif ${s.welcomeTitle}`}>Welcome to {c.name}</h2>
       {c.topic ? (
         <div className={s.resBox}>
@@ -380,7 +399,7 @@ function RollCallOpen({ c, act }: { c: Chamber; act: Act }) {
   return (
     <section className={`panel ${s.opening}`} aria-labelledby="rc-h">
       <div className={s.head}>
-        <h2 id="rc-h" className={`serif ${s.who}`}>Roll Call</h2>
+        <h2 id="rc-h" className={`serif ${s.who} ${s.headTitle}`}><Undo c={c} act={act} />Roll Call</h2>
       </div>
       <Stats label="Roll Call So Far" bar items={[
         { label: "Present & Voting", value: n.voting, tone: "ok" },
@@ -416,7 +435,7 @@ function Pick({ c, act }: { c: Chamber; act: Act }) {
   return (
     <form className={`panel ${s.opening}`} onSubmit={(e) => { e.preventDefault(); if (ok) act(ch.startSpeeches); }}>
       <div className={s.head}>
-        <h2 className={`serif ${s.who}`}>Choose the Speakers</h2>
+        <h2 className={`serif ${s.who} ${s.headTitle}`}><Undo c={c} act={act} />Choose the Speakers</h2>
       </div>
       <div className={s.three}>
         {PICK.map(([role, label]) => {
@@ -486,13 +505,16 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
     ? <button type="button" className={cls} onClick={() => act(ch.resetTimer, false)}>Reset Time</button>
     : <button type="button" className={cls} onClick={toggle} disabled={state === "none"}>{state === "running" ? "Pause" : "Start"} timer</button>;
   const sm = "button secondary sm";
+  // After a speech the chair asks how the speaker yields. Once they yield to Points of Information, those are taken one at a time.
+  const points = !!sp && ch.takingPoints(sp);
+  const between = sp?.phase === "after"; // no clock is shown: the speech's own has stopped, and a point's has not started
 
   // What the floor is showing: a name or title, and a line under it.
   let title: React.ReactNode = "";
   let sub: React.ReactNode = "";
   if (sp) {
     if (sp.phase === "ask") { title = name(sp.asker); sub = `Point of Information for ${name(sp.who)}`; }
-    else { title = name(sp.who); sub = sp.phase === "speech" ? "Speaking" : sp.phase === "after" ? "" : "Replying to the Point of Information"; }
+    else { title = name(sp.who); sub = sp.phase === "speech" ? "Speaking" : sp.phase === "answer" ? `Replying to ${name(sp.asker)}` : points ? "" : `How does ${name(sp.who)} yield?`; }
   }
   else if (poll?.kind === "motion") { title = "Motion"; sub = poll.title; }
   else if (t && c.step === "statements") { title = stNext ? name(stNext) : "Opening statements"; sub = stNext ? `Next opening statement, up to ${ch.timeOf(c, "statement")} seconds` : "Every state has given its statement"; }
@@ -532,16 +554,9 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
           <button type="button" className="button secondary" onClick={() => act((x) => ch.endSpeech(x, ch.now(), sp.who))}>End Speech</button>
         </>
       );
-      if (sp.phase === "after") return (
+      if (sp.phase === "after" && !points) return (
         <>
-          <div className="field">
-            <label htmlFor="fl-ask">Who Asks the Point of Information?</label>
-            <Select id="fl-ask" className="control" value={askerId} onChange={(e) => setAsker(e.target.value)}>
-              <option value="">Choose a state</option>
-              {askers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </Select>
-          </div>
-          <button type="button" className="button" disabled={!askerId} onClick={() => act((x) => ch.askPoi(x, askerId, sp.who, sp.pois))}>Take a Point of Information</button>
+          <button type="button" className="button" onClick={() => act((x) => ch.yieldToPoints(x, sp.who))}>Yield to Points of Information</button>
           <button type="button" className="button secondary" onClick={() => act((x) => ch.yieldToChair(x, sp.who, sp.pois))}>Yield to the Chair</button>
           {t && (sp.role === "speaker" || sp.role === "amender") && (
             <div className={s.anyBox}>
@@ -555,14 +570,28 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
               </div>
             </div>
           )}
-          {sp.pois === 0 && c.timer && <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who, sp.pois))}>Back to the Speech</button>}
+          {c.timer && <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who, sp.pois))}>Back to the Speech</button>}
+        </>
+      );
+      if (sp.phase === "after") return (
+        <>
+          <div className="field">
+            <label htmlFor="fl-ask">Who Asks?</label>
+            <Select id="fl-ask" className="control" value={askerId} onChange={(e) => setAsker(e.target.value)}>
+              <option value="">Choose a state</option>
+              {askers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </Select>
+          </div>
+          <button type="button" className="button" disabled={!askerId} onClick={() => { act((x) => ch.askPoi(x, askerId, sp.who, sp.pois)); setAsker(""); }}>Take the Point</button>
+          <button type="button" className="button secondary" onClick={() => act((x) => ch.yieldToChair(x, sp.who, sp.pois))}>No More Points</button>
+          {sp.pois === 0 && <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who, sp.pois))}>Back</button>}
         </>
       );
       if (sp.phase === "ask") return (
         <>
           {timerBtn("button")}
-          <button type="button" className="button secondary" onClick={() => act((x) => ch.answerPoi(x, sp.who, sp.asker ?? "", sp.pois, ch.now()))}>Now {name(sp.who)} replies</button>
-          <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who, sp.pois))}>Cancel the Question</button>
+          <button type="button" className="button secondary" onClick={() => act((x) => ch.answerPoi(x, sp.who, sp.asker ?? "", sp.pois, ch.now()))}>{name(sp.who)} Replies</button>
+          <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who, sp.pois))}>Cancel</button>
         </>
       );
       return (
@@ -776,15 +805,19 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
   return (
     <section className={`panel ${s.floor}`} aria-label="The floor" data-up={state === "up" || undefined}>
       <div className={s.floorMain}>
-        {(sp || chipSide) && (
-          <div className={s.chips}>
-            {sp && <span className={s.chip} data-tone="accent">{ch.roleName(c, sp.role)}</span>}
-            {chipSide && <span className={s.chip} data-side={chipSide}>{SIDE[chipSide]}</span>}
-            {sp && sp.phase !== "speech" && <span className={s.chip}>Point of Information{sp.pois ? ` · ${sp.pois} taken` : ""}</span>}
+        <div className={s.chips}>
+          <Undo c={c} act={act} />
+          {sp && <span className={s.chip} data-tone="accent">{ch.roleName(c, sp.role)}</span>}
+          {chipSide && <span className={s.chip} data-side={chipSide}>{SIDE[chipSide]}</span>}
+        </div>
+        <h2 className={`serif ${s.who}`}>{typeof title === "string" && c.delegates.some((d) => d.name === title) ? <><Flag name={title} em />{title}</> : typeof title === "string" && title.split(" ").length >= 4 && title.length >= 22 ? <><span className={s.whoLead}>{title.split(" ").slice(0, Math.floor(title.split(" ").length / 2)).join(" ")}</span>{title.split(" ").slice(Math.floor(title.split(" ").length / 2)).join(" ")}</> : title}</h2>
+        {sub && <p className={s.sub}>{sub}</p>}
+        {sp && points && between && (
+          <div className={s.tally} aria-label={`${sp.pois} ${sp.pois === 1 ? "Point" : "Points"} of Information taken`}>
+            <b className="num">{sp.pois}</b>
+            <span>{sp.pois === 1 ? "Point" : "Points"} of Information taken</span>
           </div>
         )}
-        <h2 className={`serif ${s.who}`}>{typeof title === "string" && title.split(" ").length >= 4 && title.length >= 22 ? <><span className={s.whoLead}>{title.split(" ").slice(0, Math.floor(title.split(" ").length / 2)).join(" ")}</span>{title.split(" ").slice(Math.floor(title.split(" ").length / 2)).join(" ")}</> : title}</h2>
-        {sub && <p className={s.sub}>{sub}</p>}
         {t && c.step === "general" && !sp && (() => {
           const all = ch.drafts(c);
           const done = all.filter((d) => d.result).length;
@@ -792,7 +825,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
         })()}
         {amendment && c.step === "amend" && <p className={s.sub}>{amendment.text}</p>}
         {c.result && !c.poll && <p className={s.result} data-pass={c.result.passed}><strong>{c.result.passed ? "Passed" : "Failed"}:</strong> {c.result.yes} For, {c.result.no} Against, {c.result.abstain} Abstaining</p>}
-        {c.timer && c.step !== "closed" && c.step !== "ended" && <div className={s.time} data-state={state} role="timer">{ch.clock(left)}</div>}
+        {c.timer && !between && c.step !== "closed" && c.step !== "ended" && <div className={s.time} data-state={state} role="timer">{ch.clock(left)}</div>}
         {k?.clock && (
           <div className={s.caucClock} data-state={kUp ? "up" : kRun ? "running" : "paused"}>
             <span>Whole caucus</span>
@@ -801,8 +834,8 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
         )}
       </div>
       <div className={s.actions}>{actions}</div>
-      {c.timer && c.step !== "closed" && c.step !== "ended" && <div className={s.track} aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>}
-      {c.timer && (
+      {c.timer && !between && c.step !== "closed" && c.step !== "ended" && <div className={s.track} aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>}
+      {c.timer && !between && (
         <div className={s.floorFoot}>
           <div className={s.nudges}>
             {!sp && c.step !== "caucus" && timerBtn("button secondary")}
@@ -940,7 +973,7 @@ function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
               <ol className={s.queue}>
                 {(plain ? c.debate.list : col(k)).map((x) => (
                   <li key={x.id} data-next={next?.id === x.id}>
-                    <span className={s.qname}>{ch.nameOf(c, x.id)}</span>
+                    <span className={s.qname}><Flag name={ch.nameOf(c, x.id)} />{ch.nameOf(c, x.id)}</span>
                     {plain && x.stance && <span className={s.chip} data-side={x.side}>{SIDE[x.side]}</span>}
                     <span className={s.rowBtns}>
                       <IconButton label={`Move ${ch.nameOf(c, x.id)} up`} icon={ICONS.up} onClick={() => act((y) => ch.shiftList(y, x.id, -1))} />
@@ -1132,7 +1165,7 @@ function AmendmentQueue({ c, act }: { c: Chamber; act: Act }) {
           {live && (
             <li data-next="true" className={`${s.card} ${s.amend}`}>
               <span className={s.cardTop}>
-                <span className={s.cardTitle}>{name(live.by)}{live.how && ` \u00B7 ${HOW[live.how]}`}{live.clause && ` \u00B7 ${live.clause}`}</span>
+                <span className={s.cardTitle}><Flag name={name(live.by)} />{name(live.by)}{live.how && ` \u00B7 ${HOW[live.how]}`}{live.clause && ` \u00B7 ${live.clause}`}</span>
                 <span className={s.nextTag}>Being Considered</span>
               </span>
               <span className={s.amText}>{live.text}</span>
@@ -1142,7 +1175,7 @@ function AmendmentQueue({ c, act }: { c: Chamber; act: Act }) {
           {waiting.map((a, i) => (
             <li key={a.id} className={`${s.card} ${s.amend}`} data-next={!live && i === 0}>
               <span className={s.cardTop}>
-                <span className={s.cardTitle}>{name(a.by)}{a.how && ` \u00B7 ${HOW[a.how]}`}{a.clause && ` \u00B7 ${a.clause}`}</span>
+                <span className={s.cardTitle}><Flag name={name(a.by)} />{name(a.by)}{a.how && ` \u00B7 ${HOW[a.how]}`}{a.clause && ` \u00B7 ${a.clause}`}</span>
                 <CardSide next={!live && i === 0} first={i === 0} last={i === waiting.length - 1} label="amendment" move={(d) => act((x) => ch.moveAmendment(x, a.id, d))} />
               </span>
               <span className={s.amText}>{a.text}</span>
@@ -1214,7 +1247,7 @@ function TrinityPick({ c, act }: { c: Chamber; act: Act }) {
   return (
     <form className={`panel ${s.opening}`} onSubmit={(e) => { e.preventDefault(); act(ch.startSpeeches); }}>
       <div className={s.head}>
-        <h2 className={`serif ${s.who}`}>Introduce the {ch.resNoun(c).replace("resolution", "Resolution")}</h2>
+        <h2 className={`serif ${s.who} ${s.headTitle}`}><Undo c={c} act={act} />Introduce the {ch.resNoun(c).replace("resolution", "Resolution")}</h2>
       </div>
       {d && (
         <div className={s.resBox}>
@@ -1242,8 +1275,8 @@ function TrinityPick({ c, act }: { c: Chamber; act: Act }) {
           </>
         ) : (
           <>
-            <div className="field"><span>Proposer</span><p className={s.fixedVal}>{name(c.roles.proposer)}</p></div>
-            <div className="field"><span>{ch.roleName(c, "seconder")}</span><p className={s.fixedVal}>{name(c.roles.seconder)}</p></div>
+            <div className="field"><span>Proposer</span><p className={s.fixedVal}><Flag name={name(c.roles.proposer)} />{name(c.roles.proposer)}</p></div>
+            <div className="field"><span>{ch.roleName(c, "seconder")}</span><p className={s.fixedVal}><Flag name={name(c.roles.seconder)} />{name(c.roles.seconder)}</p></div>
           </>
         )}
         <div className="field">
@@ -1569,7 +1602,7 @@ function Analytics({ c, say, act }: { c: Chamber; say: (t: string) => void; act:
               {feed.slice(ap * PER_PAGE, (ap + 1) * PER_PAGE).map((x, i) => (
                 <li key={`${x.at}-${i}`} className={s.statRow}>
                   <span className={s.statMain}>
-                    <strong>{name(x.who)}</strong>
+                    <strong><Flag name={name(x.who)} size={18} />{name(x.who)}</strong>
                     <small>{ch.statLabel(c, x.kind)}{x.with ? (x.kind === "signatory" ? ` on ${name(x.with)}'s` : ` to ${name(x.with)}`) : ""} · {when(x.at)}</small>
                   </span>
                   <span className={`${s.statTime} num`}>{x.kind === "amendment" || x.kind === "signatory" ? "" : ch.clock(x.secs * 1000)}</span>
@@ -1933,7 +1966,7 @@ type Mine = {
 
 /* Every committee you can open: the ones you started, and the ones shared with you. */
 type SeatRow = { id: string; name: string; topic: string; delegate: string; updated_at: string };
-function Yours({ signedIn, mine, seats }: { signedIn: boolean; mine: Mine[] | null; seats: SeatRow[] | null }) {
+function Yours({ signedIn, mine, seats, local }: { signedIn: boolean; mine: Mine[] | null; seats: SeatRow[] | null; local: Chamber | null }) {
   const router = useRouter();
   const started = (mine ?? []).filter((m) => m.is_owner);
   const shared = (mine ?? []).filter((m) => !m.is_owner);
@@ -1957,7 +1990,7 @@ function Yours({ signedIn, mine, seats }: { signedIn: boolean; mine: Mine[] | nu
   };
   const group = (id: string, title: string, list: Mine[], emptyTitle: string, emptyText: string) => (
     <section className={`panel ${s.setupCard}`} aria-labelledby={id}>
-      <h2 id={id} className={s.h2}>{title}{list.length > 0 && <span className={s.count}>{list.length}</span>}</h2>
+      <h2 id={id} className={s.groupLabel}>{title}{list.length > 0 && <span className={s.count}>{list.length}</span>}</h2>
       {list.length ? <ul className={s.mine}>{list.map(card)}</ul> : (
         <div className={`${board.empty} ${s.emptyCard}`}>
           <Gavel />
@@ -1969,6 +2002,20 @@ function Yours({ signedIn, mine, seats }: { signedIn: boolean; mine: Mine[] | nu
   );
   return (
     <div id="cs-panel-yours" role="tabpanel" aria-labelledby="cs-tab-yours" className={s.setupStack}>
+      {local && (
+        <section className={`panel ${s.setupCard}`} aria-labelledby="cs-local">
+          <h2 id="cs-local" className={s.groupLabel}>Open in This Browser</h2>
+          <ul className={s.mine}>
+            <li>
+              <button type="button" className={s.yourCard} onClick={() => router.push("/chambers")}>
+                <span className={s.yourTop}><span className={s.yourName}>{local.name}</span><span className="badge">This browser</span></span>
+                {local.topic ? <span className={s.yourTopic}>{local.topic}</span> : null}
+                <span className={s.yourFacts}>{[ch.procedureName(local), ch.substep(local), `${local.delegates.length} ${local.delegates.length === 1 ? "state" : "states"}`].map((f) => <span key={f}>{f}</span>)}</span>
+              </button>
+            </li>
+          </ul>
+        </section>
+      )}
       {!signedIn ? (
         <section className={`panel ${s.setupCard}`}>
           <div className={`${board.empty} ${s.emptyCard}`}>
@@ -1985,7 +2032,7 @@ function Yours({ signedIn, mine, seats }: { signedIn: boolean; mine: Mine[] | nu
         {group("cs-shared", "Shared with You", shared, "Nothing shared yet", "When a chair adds you or you join with a code, the committee appears here.")}
         {seats && seats.length > 0 && (
           <section className={`panel ${s.setupCard}`} aria-labelledby="cs-seats">
-            <h2 id="cs-seats" className={s.h2}>Joined as a Delegate<span className={s.count}>{seats.length}</span></h2>
+            <h2 id="cs-seats" className={s.groupLabel}>Joined as a Delegate<span className={s.count}>{seats.length}</span></h2>
             <ul className={s.mine}>
               {seats.map((m) => (
                 <li key={m.id}>
@@ -2006,7 +2053,7 @@ function Yours({ signedIn, mine, seats }: { signedIn: boolean; mine: Mine[] | nu
 type Proc = "evatt" | "trinity" | "standard" | "custom";
 const PROC_LABEL: Record<Proc, string> = { evatt: "Evatt", trinity: "Trinity Grammar MUN", standard: "Standard", custom: "Custom" };
 
-function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber, devices: boolean) => void; signedIn: boolean }) {
+function Setup({ onCreate, signedIn, local }: { onCreate: (c: Chamber, devices: boolean) => void; signedIn: boolean; /** The committee kept in this browser, when the home is opened beside it. */ local: Chamber | null }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [resolution, setResolution] = useState("");
@@ -2039,7 +2086,7 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber, devices: boolean
       <div className={s.setupStack}>
         <PanelTabs idPrefix="cs" label="Chambers" tab={tab} setTab={setTab}
           tabs={[{ id: "start", label: "Start a Committee", icon: ICONS.manage }, { id: "join", label: "Join a Committee", icon: ICONS.share }, { id: "yours", label: "Your Committees", icon: STACK }]} />
-        {tab === "join" ? <Join signedIn={signedIn} initial={joinQ ?? ""} /> : tab === "yours" ? <Yours signedIn={signedIn} mine={mine} seats={seats} /> : !signedIn ? (
+        {tab === "join" ? <Join signedIn={signedIn} initial={joinQ ?? ""} /> : tab === "yours" ? <Yours signedIn={signedIn} mine={mine} seats={seats} local={local} /> : !signedIn ? (
           <section className={`panel ${s.setupCard}`}>
             <div className={`${board.empty} ${s.emptyCard}`}>
               <Gavel />
@@ -2116,7 +2163,9 @@ function Setup({ onCreate, signedIn }: { onCreate: (c: Chamber, devices: boolean
               items={[{ id: "off", label: "On the Display" }, { id: "on", label: "On Their Own Devices" }]} />
             <small aria-live="polite">{devices ? "Delegates get a code to follow, ask for the floor, vote and pass notes." : "No phones or laptops needed."}</small>
           </div>
-          <button type="submit" className="button lg block" disabled={!ok}>Open Committee</button>
+          {local && !devices
+            ? <span className="tip" data-tip={`Only one committee is kept in this browser. Close ${local.name} first, or let delegates join on their devices.`} data-tip-align="start" style={{ display: "flex" }}><button type="submit" className="button lg block" disabled>Open Committee</button></span>
+            : <button type="submit" className="button lg block" disabled={!ok}>Open Committee</button>}
         </form>
         </>}
       </div>

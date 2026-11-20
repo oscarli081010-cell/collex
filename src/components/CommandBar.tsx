@@ -11,7 +11,7 @@ type Item = { group: string; label: string; sub?: string; href: string };
 
 const PAGES: Item[] = [
   ["Home", "/"], ["Calendar", "/calendar"], ["Conferences", "/conferences"], ["Open roles", "/roles"], ["Guides", "/guides"], ["List a conference", "/list"],
-  ["Your account", "/account"], ["Your listings", "/listings"], ["About", "/about"], ["Privacy policy", "/privacy"], ["Terms of use", "/terms"], ["Cookies policy", "/cookies"],
+  ["Your account", "/account"], ["Your conferences", "/listings"], ["About", "/about"], ["Privacy policy", "/privacy"], ["Terms of use", "/terms"], ["Cookies policy", "/cookies"],
 ].map(([label, href]) => ({ group: "Pages", label, href }));
 
 const norm = (t: string) => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");

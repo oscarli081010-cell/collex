@@ -165,7 +165,7 @@ function Now({ c, now, me }: { c: Chamber; now: number; me: string }) {
   const state = !c.timer ? "none" : left === 0 ? "up" : c.timer.endsAt !== null ? "running" : "paused";
   const who = sp ? (sp.phase === "ask" ? sp.asker : sp.who) : null;
   const title = who ? ch.nameOf(c, who) : c.poll ? "Vote" : k?.kind === "mod" ? k.topic : c.step === "caucus" ? "Caucus" : ch.substep(c);
-  const sub = sp ? (sp.phase === "ask" ? `Point of Information for ${ch.nameOf(c, sp.who)}` : sp.phase === "answer" ? "Replying to the Point of Information" : ch.roleName(c, sp.role)) : c.poll ? c.poll.title : "";
+  const sub = sp ? (sp.phase === "ask" ? `Point of Information for ${ch.nameOf(c, sp.who)}` : sp.phase === "answer" ? `Replying to ${ch.nameOf(c, sp.asker)}` : sp.phase === "after" ? (ch.takingPoints(sp) ? "Points of Information" : "Choosing how to yield") : ch.roleName(c, sp.role)) : c.poll ? c.poll.title : "";
   const list = c.debate.list;
   return (
     <section className={`panel ${r.now}`} aria-label="Now">

@@ -215,7 +215,7 @@ export function DelegateRecord({ id }: { id: string }) {
 type Conf = { id: string; name: string; slug: string; committees: string[] };
 type Link_ = { conference_id: string | null; committee: string; name: string | null; slug: string | null };
 
-/* Chambers, Settings: link the committee to the conference it belongs to, so the secretariat sees it live. */
+/* Chambers, Share: link the committee to the conference it belongs to, so the secretariat sees it live. */
 export function ConferenceLink({ cid, name, manage, say }: { cid: string; name: string; manage: boolean; say: Say }) {
   const [confs, setConfs] = useState<Conf[]>([]);
   const [link, setLink] = useState<Link_ | null>(null);
@@ -246,14 +246,16 @@ export function ConferenceLink({ cid, name, manage, say }: { cid: string; name: 
       {manage && (confs.length === 0 && !linked ? <p className={h.note}>You can link to a conference you help run. Ask its organisers to add you to the listing.</p> : (
         <>
           <div className="field">
-            <label htmlFor="cl-conf">Conference</label>
+            <label htmlFor="cl-conf" className="sr-only">Conference</label>
             <Select id="cl-conf" className="control" value={conf} onChange={(e) => setConf(e.target.value)}>
               <option value="">Not linked</option>
               {confs.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
               {linked && !confs.some((x) => x.id === link!.conference_id) && <option value={link!.conference_id!}>{link!.name}</option>}
             </Select>
           </div>
-          <button type="button" className="button block" disabled={busy || same} onClick={() => void save(conf || null)}>{conf ? "Save the Link" : "Remove the Link"}</button>
+          {same
+            ? <span className="tip" data-tip={linked ? "Already linked to this conference" : "Choose a conference first"} data-tip-align="start" style={{ display: "flex" }}><button type="button" className="button block" disabled>Save the Link</button></span>
+            : <button type="button" className="button block" disabled={busy} onClick={() => void save(conf || null)}>{conf ? "Save the Link" : "Remove the Link"}</button>}
         </>
       ))}
     </section>
