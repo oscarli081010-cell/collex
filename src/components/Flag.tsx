@@ -5,5 +5,5 @@ export default function Flag({ name, size = 20, em }: { name: string; size?: num
   const code = flagCode(name);
   if (!code) return null;
   // eslint-disable-next-line @next/next/no-img-element -- a tiny local SVG; the image optimiser adds nothing
-  return <img className="flag" src={`/flags/${code}.svg`} alt="" width={size} height={Math.round(size * 0.75)} loading="lazy" decoding="async" style={em ? { height: "0.62em", width: "auto", borderRadius: "0.06em", marginRight: "0.28em", verticalAlign: "-0.02em" } : undefined} />;
+  return <img className="flag" src={`/flags/${code}.svg`} alt="" width={size} height={Math.round(size * 0.75)} loading="lazy" decoding="async" style={em ? { height: "0.62em", width: "auto", borderRadius: "0.06em", marginRight: "0.28em", verticalAlign: "0.06em" } : undefined} />;
 }
