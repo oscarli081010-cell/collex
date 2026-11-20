@@ -17,7 +17,7 @@ const OTHER = "__other";
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 // Placards and country lists, one committee at a time. The list of countries is filled from the allocations, from the
-// committee as its chair set it up in Chambers, or from a ready-made group, and can be changed by hand before printing.
+// committee as its chair set it up on Collex, or from a ready-made group, and can be changed by hand before printing.
 export default function Printables({ ctx }: { ctx: ListingCtx }) {
   const { c, id, say } = ctx;
   const [allocations, setAllocations] = useState<Allocation[]>([]);
@@ -44,7 +44,7 @@ export default function Printables({ ctx }: { ctx: ListingCtx }) {
     return () => { on = false; };
   }, [id]);
 
-  // Every committee the conference is known to have: on its listing, in the allocations, or linked from Chambers.
+  // Every committee the conference is known to have: on its listing, in the allocations, or linked from its chairs' committee.
   const committees = useMemo(() => {
     const out: string[] = [];
     for (const n of [...c.committees.map((k) => k.name), ...allocations.map((a) => a.committee), ...rooms.map((r) => r.committee)]) {
@@ -60,7 +60,7 @@ export default function Printables({ ctx }: { ctx: ListingCtx }) {
     const room = rooms.find((r) => same(r.committee, committee))?.states ?? [];
     return [
       ...(allocated.length ? [{ id: "allocations", label: `The allocations (${namesFrom(allocated.join("\n")).length})`, names: allocated }] : []),
-      ...(room.length ? [{ id: "chambers", label: `The committee in Chambers (${room.length})`, names: room }] : []),
+      ...(room.length ? [{ id: "chambers", label: `The committee on Collex (${room.length})`, names: room }] : []),
       ...GROUPS.map((g) => ({ id: g.name, label: `${g.name} (${g.states.length})`, names: g.states })),
     ];
   }, [allocations, rooms, committee]);

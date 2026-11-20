@@ -43,7 +43,7 @@ export default function Committees({ ctx }: { ctx: ListingCtx }) {
   return (
     <Section id="sec-committees" title="Committees Live" count={rooms?.length}>
       {rooms === null ? <p className={m.note}>Loading…</p> : rooms.length === 0 ? (
-        <div className={`${bd.empty} ${m.empty}`}><Gavel /><p className={bd.emptyTitle}>No committees linked yet</p><p className="muted">Chairs link theirs in <Link className="link" href="/chambers">Chambers</Link>, under Share.</p></div>
+        <div className={`${bd.empty} ${m.empty}`}><Gavel /><p className={bd.emptyTitle}>No committees linked yet</p><p className="muted">Chairs link theirs in <Link className="link" href="/chambers">Committees</Link>, under Share.</p></div>
       ) : (
         <>
           <div className={h.wall}>

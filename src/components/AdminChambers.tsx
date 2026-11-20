@@ -43,7 +43,7 @@ export default function AdminChambers({ chambers, error, say, reload, query }: {
   if (error) {
     return (
       <div className={s.empty}>
-        <p>The Chambers Tools Aren&apos;t Set Up Yet</p>
+        <p>The Committee Tools Aren&apos;t Set Up Yet</p>
         <span>Apply database migration 0021 (supabase/migrations/0021_admin_chambers_audit.sql), then reload this page.</span>
       </div>
     );
@@ -53,7 +53,7 @@ export default function AdminChambers({ chambers, error, say, reload, query }: {
   if (chambers.length === 0) {
     return (
       <div className={s.empty}>
-        <p>No Shared Chambers</p>
+        <p>No Shared Committees</p>
         <span>Committees show here once a chair shares them. A committee only saved in someone&apos;s browser can&apos;t be seen.</span>
       </div>
     );
@@ -116,7 +116,7 @@ export default function AdminChambers({ chambers, error, say, reload, query }: {
   return (
     <div className={s.tableWrap}>
       <table className={s.table}>
-        <thead><tr><th>Chamber</th><th>Run By</th><th>Where It Is</th><th>Updated</th><th className={s.right}>Actions</th></tr></thead>
+        <thead><tr><th>Committee</th><th>Run By</th><th>Where It Is</th><th>Updated</th><th className={s.right}>Actions</th></tr></thead>
         <tbody>
           {shown.map((x) => {
             const w = where(x);

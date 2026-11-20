@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import ChamberRoom from "@/components/ChamberRoom";
 
 export const metadata: Metadata = {
-  title: "Your Seat · Chambers · Collex",
+  title: "Your Seat · Committees · Collex",
   robots: { index: false },
 };
 

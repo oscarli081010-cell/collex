@@ -4,7 +4,7 @@ import Chambers from "@/components/Chambers";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/chambers" },
-  title: "Chambers · Collex",
+  title: "Committees · Collex",
   description: "Run a Model UN committee's floor: roll call, speakers list, timer and votes, with a display for the projector.",
 };
 

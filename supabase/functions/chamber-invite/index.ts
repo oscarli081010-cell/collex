@@ -15,7 +15,7 @@ function html(committee: string, inviter: string, link: string) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border:1px solid #e6e2d9;border-radius:16px;">
 <tr><td style="padding:36px 40px 0;"><img src="https://collex.au/brand/wordmark.png" width="112" height="42" alt="Collex" style="display:block;border:0;"></td></tr>
 <tr><td style="padding:28px 40px 0;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.2;color:#15161a;">${esc(committee)}</td></tr>
-<tr><td style="padding:12px 40px 0;font-family:${font};font-size:15px;line-height:1.6;color:#6b6e76;">${esc(inviter)} added you to this committee in Chambers. You can run the console and open the display from your own device.</td></tr>
+<tr><td style="padding:12px 40px 0;font-family:${font};font-size:15px;line-height:1.6;color:#6b6e76;">${esc(inviter)} added you to this committee on Collex. You can run the console and open the display from your own device.</td></tr>
 <tr><td style="padding:24px 40px 0;"><a href="${link}" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#213a73;color:#ffffff;text-decoration:none;font-family:${font};font-size:15px;font-weight:600;">Open the committee</a></td></tr>
 <tr><td style="padding:32px 40px 36px;font-family:${font};font-size:12.5px;line-height:1.6;color:#6f7279;">You're getting this because someone added your Collex account to a committee. Log in with this email to open it.</td></tr>
 </table>
@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
         to: [row.email],
         subject: `${job.inviter} added you to ${row.name}`,
         html: html(row.name, job.inviter, link),
-        text: `${row.name}\n\n${job.inviter} added you to this committee in Chambers on Collex.\nOpen it: ${link}\n\nCollex · Sydney NSW, Australia`,
+        text: `${row.name}\n\n${job.inviter} added you to this committee on Collex.\nOpen it: ${link}\n\nCollex · Sydney NSW, Australia`,
       }),
     });
     if (res.ok) sent++;

@@ -300,7 +300,7 @@ export default function ChamberDisplay() {
       <div className={s.dTop}>
         <div className={s.dId}>
           <div className={`${s.dBtn} ${s.dBig}`}>
-            <p className={`serif ${s.dName}`}>{c?.name ?? "Chambers"}</p>
+            <p className={`serif ${s.dName}`}>{c?.name ?? "Committees"}</p>
             {c?.topic && <p className={s.dTopic}>{c.topic}</p>}
           </div>
         </div>

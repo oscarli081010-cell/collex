@@ -117,7 +117,7 @@ export default function Chambers() {
   const params = useSearchParams();
   const q = params.get("c");
   const cloudId = isId(q) ? q : null;
-  // The Chambers home, asked for by name (Back to Chambers), even while a committee is kept in this browser.
+  // The Committees home, asked for by name (Back to Committees), even while a committee is kept in this browser.
   const home = !cloudId && params.get("tab") !== null;
   const { ready: authReady, session } = useAuth();
   const router = useRouter();
@@ -1880,7 +1880,7 @@ function Share({ c, cloudId, manage, signedIn, meId, say, setLocal }: {
             {code ? (
               <>
                 <CodeBoxes code={code} label="Join code" />
-                <p className="muted">Other chairs go to Chambers, choose Join, and type this code. They need to be logged in.</p>
+                <p className="muted">Other chairs go to Committees, choose Join, and type this code. They need to be logged in.</p>
                 <div className={s.codeActions}>
                   <button type="button" className="button secondary" onClick={() => copy(code, "Code copied")}>{COPY}Copy Code</button>
                   <button type="button" className="button secondary" onClick={() => copy(`${location.origin}/chambers?join=${code}`, "Link copied")}>{COPY}Copy Link</button>
@@ -2082,9 +2082,9 @@ function Setup({ onCreate, signedIn, local }: { onCreate: (c: Chamber, devices: 
 
   return (
     <main id="top" className={`container ${s.setup}`}>
-      <PageBand title="Chambers" />
+      <PageBand title="Committees" />
       <div className={s.setupStack}>
-        <PanelTabs idPrefix="cs" label="Chambers" tab={tab} setTab={setTab}
+        <PanelTabs idPrefix="cs" label="Committees" tab={tab} setTab={setTab}
           tabs={[{ id: "start", label: "Start a Committee", icon: ICONS.manage }, { id: "join", label: "Join a Committee", icon: ICONS.share }, { id: "yours", label: "Your Committees", icon: STACK }]} />
         {tab === "join" ? <Join signedIn={signedIn} initial={joinQ ?? ""} /> : tab === "yours" ? <Yours signedIn={signedIn} mine={mine} seats={seats} local={local} /> : !signedIn ? (
           <section className={`panel ${s.setupCard}`}>

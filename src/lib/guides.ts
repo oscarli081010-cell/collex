@@ -1,18 +1,18 @@
 // Text wrapped in *asterisks* shows in the accent italic, for the words a reader should not miss.
 // The guides: short, practical pages for chairs, delegates and organisers. Each is plain data (a heading and paragraphs
 // or steps per section), so the pages that show them stay one template. The two procedure guides describe the rules
-// as Chambers runs them; a conference's own handbook always wins where it differs, and each guide says so.
+// as Collex runs them; a conference's own handbook always wins where it differs, and each guide says so.
 
 export type GuideSection = { id: string; title: string; text?: string[]; steps?: string[] };
 export type Guide = { slug: string; title: string; accent: string; lead: string; for: "Chairs" | "Delegates" | "Organisers"; minutes: number; sections: GuideSection[] };
 
 export const GUIDES: Guide[] = [
   {
-    slug: "chairing-with-chambers", title: "Chair a committee with", accent: "Chambers", for: "Chairs", minutes: 6,
+    slug: "chairing-with-chambers", title: "Chair a committee on", accent: "Collex", for: "Chairs", minutes: 6,
     lead: "From opening the committee to the final vote, on one laptop and a projector.",
     sections: [
       { id: "before", title: "Before the session", steps: [
-        "Log in, open Chambers and choose Start a Committee. Pick the procedure your conference uses: Evatt, Trinity Grammar MUN, Standard, or Custom.",
+        "Log in, open Committees and choose Start a Committee. Pick the procedure your conference uses: Evatt, Trinity Grammar MUN, Standard, or Custom.",
         "Type the committee’s name and its topic or resolution, set the speaking time, and add the member states. Paste a list, or add a whole group such as the Security Council in one go.",
         "Leave “Delegates join on their own devices” *off* for a device-free conference. Turn it on only if delegates will have phones or laptops in the room.",
         "Press Open Display and drag that tab to the projector. It follows the console by itself.",
@@ -39,9 +39,9 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: "evatt-procedure", title: "Evatt procedure,", accent: "step by step", for: "Chairs", minutes: 5,
-    lead: "The Security Council format used by UN Youth Australia’s Evatt competition, as Chambers runs it.",
+    lead: "The Security Council format used by UN Youth Australia’s Evatt competition, as Collex runs it.",
     sections: [
-      { id: "note", title: "First, a caution", text: ["This is how Chambers steps through an Evatt round. Your competition’s own rules and *the President’s ruling come first* wherever they differ."] },
+      { id: "note", title: "First, a caution", text: ["This is how Collex steps through an Evatt round. Your competition’s own rules and *the President’s ruling come first* wherever they differ."] },
       { id: "opening", title: "Opening", steps: [
         "The President welcomes the council and takes the roll call.",
         "The President names the Proposer and the Seconder of the resolution, and an Opposer if a state wishes to oppose.",
@@ -57,15 +57,15 @@ export const GUIDES: Guide[] = [
       { id: "closing", title: "Closing and the vote", steps: [
         "When debate is closed, the Proposer, Seconder and Opposer may each give a closing speech. There are no Points of Information in the closing.",
         "The council votes on the resolution by roll call: For, Against or Abstain. A state that answered Present & Voting *must vote For or Against*.",
-        "In Chambers the resolution is approved with the votes of *three-fifths of all member states*. An abstention counts for neither side, but the number needed stays the same.",
+        "On Collex the resolution is approved with the votes of *three-fifths of all member states*. An abstention counts for neither side, but the number needed stays the same.",
       ] },
     ],
   },
   {
     slug: "trinity-procedure", title: "Trinity Grammar MUN", accent: "procedure", for: "Chairs", minutes: 5,
-    lead: "Opening statements, a seen and an unseen resolution, motions and amendments, as Chambers runs them.",
+    lead: "Opening statements, a seen and an unseen resolution, motions and amendments, as Collex runs them.",
     sections: [
-      { id: "note", title: "First, a caution", text: ["This follows the rules Chambers was built to for Trinity Grammar MUN. *The conference’s handbook for the year comes first* wherever it differs."] },
+      { id: "note", title: "First, a caution", text: ["This follows the rules Collex was built to for Trinity Grammar MUN. *The conference’s handbook for the year comes first* wherever it differs."] },
       { id: "opening", title: "Opening", steps: [
         "Roll call, then opening statements: every state present speaks in alphabetical order, up to 90 seconds each.",
         "The committee has two resolutions: one seen in advance, one unseen. The chair introduces one at a time.",
@@ -152,7 +152,7 @@ export const GUIDES: Guide[] = [
       { id: "late", title: "The last month", steps: [
         "Accept delegates and allocate committees and countries from the Manage page, then email everyone their allocation in one go.",
         "*Send one email with everything for the day:* arrival time, room, dress and what to bring.",
-        "Have each chair set up their committee in Chambers and link it to the conference, so you can follow every room from the Manage page.",
+        "Have each chair set up their committee under Committees and link it to the conference, so you can follow every room from the Manage page.",
         "Print placards and a paper copy of every country list, *in case the projector fails*.",
       ] },
       { id: "day", title: "On the day and after", steps: [

@@ -215,7 +215,7 @@ export function DelegateRecord({ id }: { id: string }) {
 type Conf = { id: string; name: string; slug: string; committees: string[] };
 type Link_ = { conference_id: string | null; committee: string; name: string | null; slug: string | null };
 
-/* Chambers, Share: link the committee to the conference it belongs to, so the secretariat sees it live. */
+/* Committees, Share: link the committee to the conference it belongs to, so the secretariat sees it live. */
 export function ConferenceLink({ cid, name, manage, say }: { cid: string; name: string; manage: boolean; say: Say }) {
   const [confs, setConfs] = useState<Conf[]>([]);
   const [link, setLink] = useState<Link_ | null>(null);

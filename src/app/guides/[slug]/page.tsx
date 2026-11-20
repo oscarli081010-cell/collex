@@ -28,7 +28,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
           <ul>
             {g.sections.map((x, i) => <li key={x.id}><a href={`#${x.id}`} aria-current={i === 0 ? "page" : undefined}>{x.title}</a></li>)}
             <li><Link href="/guides">All guides</Link></li>
-            {g.for === "Chairs" && <li><Link href="/chambers">Open Chambers</Link></li>}
+            {g.for === "Chairs" && <li><Link href="/chambers">Open Committees</Link></li>}
           </ul>
         </nav>
         <article className={`${s.body} ${gs.guide}`}>

@@ -39,10 +39,10 @@ const LOG_PER_PAGE = 10;
 // The dot's colour for what happened, as on a listing's own audit log.
 const LOG_TONE: Record<string, string> = { approved: "ok", rejected: "bad", unpublished: "warn", reopened: "warn", submitted: "accent", "removed organiser": "bad", "left organisers": "warn", deleted: "bad", "created an account": "ok", "started a chamber": "accent", "shared a chamber": "accent" };
 // What the log says for each action: a person listing a conference reads as "listed".
-const LOG_WORDS: Record<string, string> = { submitted: "listed" };
+const LOG_WORDS: Record<string, string> = { submitted: "listed", "started a chamber": "started a committee", "shared a chamber": "shared a committee" };
 
 const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-const TABS = ["Review", "Conferences", "Reports", "Chambers", "Users", "Audit Log"] as const;
+const TABS = ["Review", "Conferences", "Reports", "Committees", "Users", "Audit Log"] as const;
 const REASON: Record<string, string> = { details: "Wrong or out of date", link: "Broken link", inappropriate: "Shouldn\u2019t be here", other: "Something else" };
 type Tab = (typeof TABS)[number];
 const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Rejected", unpublished: "Taken down" };
@@ -62,7 +62,7 @@ export default function Admin() {
   const [chambersError, setChambersError] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   // One search per tab, so switching tabs keeps what you typed in each.
-  const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Reports: "", Chambers: "", Users: "", "Audit Log": "" });
+  const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Reports: "", Committees: "", Users: "", "Audit Log": "" });
   // A new search starts on the first page of the audit log.
   useEffect(() => { setLogPage(0); }, [find["Audit Log"]]);
   const [statusFilter, setStatusFilter] = useState("any");
@@ -192,7 +192,7 @@ export default function Admin() {
   const others = rows?.filter((r) => r.status !== "pending") ?? [];
   // Tab counts are always the totals; the search only narrows what the open tab shows.
   const openReports = (reports ?? []).filter((r) => r.status === "open");
-  const counts: Record<Tab, number | null> = { Review: pending.length, Conferences: others.length, Reports: openReports.length, Chambers: chambers?.length ?? null, Users: users?.length ?? null, "Audit Log": null };
+  const counts: Record<Tab, number | null> = { Review: pending.length, Conferences: others.length, Reports: openReports.length, Committees: chambers?.length ?? null, Users: users?.length ?? null, "Audit Log": null };
   const q = find[tab].trim().toLowerCase();
   const has = (...parts: (string | null | undefined)[]) => !q || parts.join(" ").toLowerCase().includes(q);
   const shownConfs = others.filter((r) => has(r.name, r.host, r.venue, STATUS[r.status]) && (statusFilter === "any" || r.status === statusFilter));
@@ -205,7 +205,7 @@ export default function Admin() {
   const searching = Boolean(q) || (tab === "Conferences" && statusFilter !== "any") || (tab === "Reports" && reportFilter !== "open");
   const clearSearch = () => { setFind((f) => ({ ...f, [tab]: "" })); if (tab === "Conferences") setStatusFilter("any"); if (tab === "Reports") setReportFilter("open"); };
   const noMatches = <Empty title="No matches" body="Try a different word, or clear the search."><button className="button secondary" onClick={clearSearch}>Clear search</button></Empty>;
-  const searchFor: Partial<Record<Tab, string>> = { Conferences: "Search by name, host, venue or status", Reports: "Search by listing, reason or message", Chambers: "Search by name, owner or where it is", Users: "Search by name, email or school", "Audit Log": "Search by who, action or what" };
+  const searchFor: Partial<Record<Tab, string>> = { Conferences: "Search by name, host, venue or status", Reports: "Search by listing, reason or message", Committees: "Search by name, owner or where it is", Users: "Search by name, email or school", "Audit Log": "Search by who, action or what" };
 
   return (
     <div className={s.wrap}>
@@ -227,7 +227,7 @@ export default function Admin() {
 
       {rows === null ? <RowsSkeleton rows={4} height={72} /> : (
         <div key={tab} className="t-reveal">
-          {searchFor[tab] && (tab !== "Conferences" || others.length > 0) && (tab !== "Reports" || (reports ?? []).length > 0) && (tab !== "Audit Log" || log!.length > 0) && (tab !== "Chambers" || (chambers ?? []).length > 0) && (
+          {searchFor[tab] && (tab !== "Conferences" || others.length > 0) && (tab !== "Reports" || (reports ?? []).length > 0) && (tab !== "Audit Log" || log!.length > 0) && (tab !== "Committees" || (chambers ?? []).length > 0) && (
             <div className={s.searchBar} role="search">
               <SearchBox label={`Search ${tab.toLowerCase()}`} placeholder={searchFor[tab]!} value={find[tab]} onChange={(v) => setFind((f) => ({ ...f, [tab]: v }))} />
               {tab === "Conferences" && (
@@ -244,7 +244,7 @@ export default function Admin() {
                 </Select>
               )}
               <span key={`${tab}${q}${statusFilter}${reportFilter}`} className={`t-swap muted ${s.searchCount}`} aria-live="polite">
-                {searching ? `${tab === "Conferences" ? shownConfs.length : tab === "Reports" ? shownReports.length : tab === "Chambers" ? (chambers ?? []).filter((x) => `${x.name} ${x.owner_email} ${x.owner_name}`.toLowerCase().includes(q)).length : tab === "Users" ? shownUsers.length : shownLog.length} shown` : ""}
+                {searching ? `${tab === "Conferences" ? shownConfs.length : tab === "Reports" ? shownReports.length : tab === "Committees" ? (chambers ?? []).filter((x) => `${x.name} ${x.owner_email} ${x.owner_name}`.toLowerCase().includes(q)).length : tab === "Users" ? shownUsers.length : shownLog.length} shown` : ""}
               </span>
             </div>
           )}
@@ -331,7 +331,7 @@ export default function Admin() {
             </div>
           ))}
 
-          {tab === "Chambers" && <AdminChambers chambers={chambers ?? []} error={chambersError} say={say} reload={load} query={find.Chambers} />}
+          {tab === "Committees" && <AdminChambers chambers={chambers ?? []} error={chambersError} say={say} reload={load} query={find.Committees} />}
 
           {tab === "Users" && (shownUsers.length === 0 ? noMatches : (
             <div className={s.tableWrap}>

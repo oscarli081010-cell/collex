@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
 
-// Lets Collex be installed to a phone's home screen or a laptop's dock, opening straight into Chambers.
+// Lets Collex be installed to a phone's home screen or a laptop's dock, opening straight into Committees.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Collex",
     short_name: "Collex",
-    description: "The Sydney MUN calendar, and Chambers for running a committee.",
+    description: "The Sydney MUN calendar, and the tools to run a committee.",
     start_url: "/chambers",
     scope: "/",
     display: "standalone",
