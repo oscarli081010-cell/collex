@@ -418,7 +418,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 /* The display's top-left: the committee in a big pill and "Powered by" in a small one, in the same style as the buttons opposite. */
 .dId { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
 /* The same corner as the small pill (half its 44px height) and the same inset, so the two texts start on one line. */
-.dBig { height: auto; flex-direction: column; align-items: flex-start; gap: 0; padding: 12px 18px 14px; border-radius: 22px; cursor: default; white-space: normal; max-width: min(100%, 520px); }
+.dBig { height: auto; flex-direction: column; align-items: flex-start; gap: 0; padding: 14px 30px 16px; border-radius: 36px; cursor: default; white-space: normal; max-width: min(100%, 520px); }
 .dBig .dName { color: var(--ink); }
 .dBig .dTopic { margin-top: 6px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, var(--ink) 16%, transparent); align-self: stretch; }
 .dBrand { gap: 7px; font-size: 13px; color: var(--faint); cursor: default; }
@@ -607,17 +607,16 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .codeNote { text-align: center; }
 .req { color: var(--danger); font-weight: 600; }
 
-/* The back arrow in a panel: a small round button before the panel's chips or title. */
-.undo { flex: none; }
-.undo :global(.iconbtn) { width: 34px; height: 34px; }
-.undo :global(.iconbtn) svg { width: 15px; height: 15px; }
-@media (pointer: coarse) { .undo :global(.iconbtn) { width: 44px; height: 44px; } }
-.headTitle { display: flex; align-items: center; gap: 12px; }
-.welcome > .undo { align-self: flex-start; }
-/* How many Points of Information a speaker has taken: a figure with its label, like the figures elsewhere. */
-.tally { display: flex; align-items: baseline; gap: 10px; margin-top: 6px; }
-.tally b { font-family: var(--serif); font-weight: 400; font-size: clamp(40px, 5vw, 64px); line-height: 0.9; font-variant-numeric: lining-nums tabular-nums; }
-.tally span { font-size: 14.5px; color: var(--muted); }
+/* The back arrow: tucked into the bottom corner of its panel, out of the way of everything in it. */
+.floor, .opening, .welcome { position: relative; }
+.undo { position: absolute; left: 5px; bottom: 5px; z-index: 1; }
+.undo :global(.iconbtn) { position: relative; width: 22px; height: 22px; border-color: transparent; background: transparent; color: var(--muted); }
+.undo :global(.iconbtn):hover:not(:disabled) { background: var(--surface); color: var(--ink); }
+.undo :global(.iconbtn)::after { content: ""; position: absolute; inset: -8px; }
+.undo :global(.iconbtn) svg { width: 13px; height: 13px; }
+/* Whoever has the floor, large. */
+.whoBig { font-size: clamp(40px, 4.8vw, 64px); line-height: 1.02; }
+.subNum { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* The groups under Your Committees are named in the same size as the labels on the Start form beside them. */
 .groupLabel { font-size: 13px; font-weight: 500; }

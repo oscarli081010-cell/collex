@@ -399,7 +399,8 @@ function RollCallOpen({ c, act }: { c: Chamber; act: Act }) {
   return (
     <section className={`panel ${s.opening}`} aria-labelledby="rc-h">
       <div className={s.head}>
-        <h2 id="rc-h" className={`serif ${s.who} ${s.headTitle}`}><Undo c={c} act={act} />Roll Call</h2>
+        <h2 id="rc-h" className={`serif ${s.who}`}>Roll Call</h2>
+        <Undo c={c} act={act} />
       </div>
       <Stats label="Roll Call So Far" bar items={[
         { label: "Present & Voting", value: n.voting, tone: "ok" },
@@ -435,7 +436,8 @@ function Pick({ c, act }: { c: Chamber; act: Act }) {
   return (
     <form className={`panel ${s.opening}`} onSubmit={(e) => { e.preventDefault(); if (ok) act(ch.startSpeeches); }}>
       <div className={s.head}>
-        <h2 className={`serif ${s.who} ${s.headTitle}`}><Undo c={c} act={act} />Choose the Speakers</h2>
+        <h2 className={`serif ${s.who}`}>Choose the Speakers</h2>
+        <Undo c={c} act={act} />
       </div>
       <div className={s.three}>
         {PICK.map(([role, label]) => {
@@ -503,7 +505,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
 
   const timerBtn = (cls = "button") => state === "up"
     ? <button type="button" className={cls} onClick={() => act(ch.resetTimer, false)}>Reset Time</button>
-    : <button type="button" className={cls} onClick={toggle} disabled={state === "none"}>{state === "running" ? "Pause" : "Start"} timer</button>;
+    : <button type="button" className={cls} onClick={toggle} disabled={state === "none"}>{state === "running" ? "Pause" : "Start"} Timer</button>;
   const sm = "button secondary sm";
   // After a speech the chair asks how the speaker yields. Once they yield to Points of Information, those are taken one at a time.
   const points = !!sp && ch.takingPoints(sp);
@@ -582,8 +584,8 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
               {askers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </Select>
           </div>
-          <button type="button" className="button" disabled={!askerId} onClick={() => { act((x) => ch.askPoi(x, askerId, sp.who, sp.pois)); setAsker(""); }}>Take the Point</button>
-          <button type="button" className="button secondary" onClick={() => act((x) => ch.yieldToChair(x, sp.who, sp.pois))}>No More Points</button>
+          <button type="button" className="button" disabled={!askerId} onClick={() => { act((x) => ch.askPoi(x, askerId, sp.who, sp.pois)); setAsker(""); }}>Take the POI</button>
+          <button type="button" className="button secondary" onClick={() => act((x) => ch.yieldToChair(x, sp.who, sp.pois))}>Yield to the Chair</button>
           {sp.pois === 0 && <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who, sp.pois))}>Back</button>}
         </>
       );
@@ -634,9 +636,9 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
           </>
         );
       }
-      case "proposer": return (<><button type="button" className="button" onClick={() => act(ch.callProposer)}>Call {name(c.roles.proposer)} to propose</button></>);
-      case "seconder": return (<><button type="button" className="button" onClick={() => act(ch.callSeconder)}>Call {name(c.roles.seconder)} {t ? `as ${ch.roleName(c, "seconder").toLowerCase()}` : "to second"}</button></>);
-      case "opposer": return (<><button type="button" className="button" onClick={() => act(ch.callOpposer)}>Call {name(c.roles.opposer)} to oppose</button></>);
+      case "proposer": return (<><button type="button" className="button" onClick={() => act(ch.callProposer)}>Call {name(c.roles.proposer)} to Propose</button></>);
+      case "seconder": return (<><button type="button" className="button" onClick={() => act(ch.callSeconder)}>Call {name(c.roles.seconder)} {t ? `as ${ch.roleName(c, "seconder")}` : "to Second"}</button></>);
+      case "opposer": return (<><button type="button" className="button" onClick={() => act(ch.callOpposer)}>Call {name(c.roles.opposer)} to Oppose</button></>);
       case "caucus":
         if (t && k?.kind === "mod") {
           const firstUp = ch.nextCandidate(c);
@@ -690,7 +692,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
               const done = c.closers.includes(r.id);
               return (
                 <button key={r.role} type="button" className={r === nextRole ? "button" : "button secondary"} disabled={done} onClick={() => act((x) => ch.callCloser(x, r.id))}>
-                  {done ? `${ch.roleName(c, r.role)} ${name(r.id)} has spoken` : `Call the ${ch.roleName(c, r.role)}: ${name(r.id)}`}
+                  {done ? `${ch.roleName(c, r.role)} ${name(r.id)} Has Spoken` : `Call the ${ch.roleName(c, r.role)}: ${name(r.id)}`}
                 </button>
               );
             })}
@@ -701,13 +703,13 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
       }
       case "vote": return (
         <>
-          <button type="button" className="button" disabled={ch.count(c).left > 0} onClick={() => act(ch.finishVote)}>Record the result</button>
+          <button type="button" className="button" disabled={ch.count(c).left > 0} onClick={() => act(ch.finishVote)}>Record the Result</button>
           <p className={s.hint}>{ch.count(c).left ? `${ch.count(c).left} state${ch.count(c).left === 1 ? "" : "s"} still to vote.` : "Everyone has voted."}</p>
         </>
       );
       case "closed": return t ? (
         <>
-          <button type="button" className="button" onClick={() => act(ch.backToGeneral)}>Back to the resolutions</button>
+          <button type="button" className="button" onClick={() => act(ch.backToGeneral)}>Back to the Resolutions</button>
           <button type="button" className="button secondary" onClick={() => act(ch.reopenVote)}>Reopen the Vote</button>
           <button type="button" className="button secondary" onClick={() => act(ch.endCommittee)}>End the Committee</button>
         </>
@@ -751,7 +753,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
         <>
           {perField}
           {first
-            ? <button type="button" className="button" onClick={() => act((x) => ch.callAmender(x))}>Call {name(amendment?.by ?? null)} to speak</button>
+            ? <button type="button" className="button" onClick={() => act((x) => ch.callAmender(x))}>Call {name(amendment?.by ?? null)} to Speak</button>
             : follow
               ? <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, follow.id, follow.side))}>Call {name(follow.id)}</button>
               : <p className={s.hint}>Add states to the speakers&apos; list as they raise their hands.</p>}
@@ -763,7 +765,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
     if (debateOpen) {
       const first = !c.debate.run.length;
       const primary = first
-        ? <button type="button" className="button" onClick={() => act((x) => ch.callAmender(x, secs))}>Call {name(amendment?.by ?? null)} to speak</button>
+        ? <button type="button" className="button" onClick={() => act((x) => ch.callAmender(x, secs))}>Call {name(amendment?.by ?? null)} to Speak</button>
         : next
           ? <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, next.id, next.side, secs))}>Call {name(next.id)}</button>
           : spokeFromList
@@ -804,19 +806,18 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
 
   return (
     <section className={`panel ${s.floor}`} aria-label="The floor" data-up={state === "up" || undefined}>
+      <Undo c={c} act={act} />
       <div className={s.floorMain}>
-        <div className={s.chips}>
-          <Undo c={c} act={act} />
-          {sp && <span className={s.chip} data-tone="accent">{ch.roleName(c, sp.role)}</span>}
-          {chipSide && <span className={s.chip} data-side={chipSide}>{SIDE[chipSide]}</span>}
-        </div>
-        <h2 className={`serif ${s.who}`}>{typeof title === "string" && c.delegates.some((d) => d.name === title) ? <><Flag name={title} em />{title}</> : typeof title === "string" && title.split(" ").length >= 4 && title.length >= 22 ? <><span className={s.whoLead}>{title.split(" ").slice(0, Math.floor(title.split(" ").length / 2)).join(" ")}</span>{title.split(" ").slice(Math.floor(title.split(" ").length / 2)).join(" ")}</> : title}</h2>
+        {(sp || chipSide) && (
+          <div className={s.chips}>
+            {sp && <span className={s.chip} data-tone="accent">{ch.roleName(c, sp.role)}</span>}
+            {chipSide && <span className={s.chip} data-side={chipSide}>{SIDE[chipSide]}</span>}
+          </div>
+        )}
+        <h2 className={`serif ${s.who} ${s.whoBig}`}>{typeof title === "string" && c.delegates.some((d) => d.name === title) ? <><Flag name={title} em />{title}</> : typeof title === "string" && title.split(" ").length >= 4 && title.length >= 22 ? <><span className={s.whoLead}>{title.split(" ").slice(0, Math.floor(title.split(" ").length / 2)).join(" ")}</span>{title.split(" ").slice(Math.floor(title.split(" ").length / 2)).join(" ")}</> : title}</h2>
         {sub && <p className={s.sub}>{sub}</p>}
         {sp && points && between && (
-          <div className={s.tally} aria-label={`${sp.pois} ${sp.pois === 1 ? "Point" : "Points"} of Information taken`}>
-            <b className="num">{sp.pois}</b>
-            <span>{sp.pois === 1 ? "Point" : "Points"} of Information taken</span>
-          </div>
+          <p className={s.sub}><strong className={s.subNum}>{sp.pois}</strong> {sp.pois === 1 ? "Point" : "Points"} of Information taken</p>
         )}
         {t && c.step === "general" && !sp && (() => {
           const all = ch.drafts(c);
@@ -1247,7 +1248,8 @@ function TrinityPick({ c, act }: { c: Chamber; act: Act }) {
   return (
     <form className={`panel ${s.opening}`} onSubmit={(e) => { e.preventDefault(); act(ch.startSpeeches); }}>
       <div className={s.head}>
-        <h2 className={`serif ${s.who} ${s.headTitle}`}><Undo c={c} act={act} />Introduce the {ch.resNoun(c).replace("resolution", "Resolution")}</h2>
+        <h2 className={`serif ${s.who}`}>Introduce the {ch.resNoun(c).replace("resolution", "Resolution")}</h2>
+        <Undo c={c} act={act} />
       </div>
       {d && (
         <div className={s.resBox}>
@@ -1288,7 +1290,7 @@ function TrinityPick({ c, act }: { c: Chamber; act: Act }) {
         </div>
       </div>
       <button type="submit" className="button lg block" disabled={!ch.has(c, c.roles.proposer) || !ch.has(c, c.roles.seconder)}>Start the Speeches</button>
-      <button type="button" className="button secondary block" onClick={() => act(ch.cancelIntroduction)}>Back to the resolutions</button>
+      <button type="button" className="button secondary block" onClick={() => act(ch.cancelIntroduction)}>Back to the Resolutions</button>
     </form>
   );
 }
