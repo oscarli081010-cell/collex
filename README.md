@@ -26,11 +26,6 @@ for delegates, chairs, teachers and organisers.
 - **Guides** for chairs, delegates and organisers, and an installable app that opens Committees offline.
 - **Admin review** of listings, with a "Verified" status for confirmed conferences.
 
-## Usage
-
-Collex launched on 2 November 2026. As of 17 November 2026 it has 18 accounts (17 email-confirmed),
-and 10 of them signed in during the past week.
-
 ## Stack
 
 Next.js (App Router) and TypeScript, Supabase (Postgres, auth, edge functions), Lenis for smooth
@@ -58,7 +53,50 @@ npm run dev
 ```
 
 Open <http://localhost:3000>. The database schema is in [`supabase/migrations`](supabase/migrations),
-applied in numeric order to a Supabase project.
+applied in numeric order to a Supabase project. Without the two Supabase variables the site still opens, with
+empty lists and log in switched off.
+
+## Environment variables
+
+| Variable | Where | What |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | `.env.local`, Vercel, GitHub (for CI builds) | Your Supabase project's address. Public. |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | same | The project's publishable key. Public. |
+| `RESEND_API_KEY` | Supabase edge function secrets | Lets the edge functions send email. |
+| `SUPABASE_DB_URL` | GitHub secret | Connection string for the nightly backup ([docs/backups.md](docs/backups.md)). |
+| `BACKUP_PASSPHRASE` | GitHub secret | Encrypts that backup. |
+| `E2E_BASE_URL` | shell | The address the browser tests open (default `http://localhost:3100`). |
+
+See [`.env.example`](.env.example) for the full list with notes.
+
+## Checks
+
+```bash
+npm run typecheck   # TypeScript
+npm run lint        # ESLint (Next's rules); some rules report warnings, only errors fail
+npm test            # plain tsx scripts over the pure logic: committee procedures, .ics files, allocation, data parsing, dates, printables
+npm run build       # production build (runs the tests first)
+```
+
+The same four run on every push in GitHub Actions. The build step needs the two public Supabase variables set as
+repository variables and is skipped with a notice until they are.
+
+### Browser smoke tests
+
+`e2e/` has Playwright tests for the public pages. They are not part of `npm test` or CI.
+
+```bash
+npx playwright install chromium   # once
+npm run build && npx next start -p 3100
+npm run test:e2e                  # or: E2E_BASE_URL=https://collex.au npm run test:e2e
+```
+
+## Deploy
+
+The site runs on Vercel. [CONTRIBUTING.md](CONTRIBUTING.md) has the release checklist; in short, check, apply any new
+migration, deploy changed edge functions, then `npx vercel --prod`. Operations notes are in [docs/](docs):
+[architecture](docs/architecture.md), [conference-day runbook](docs/runbook.md), [backups](docs/backups.md).
+GitHub Actions also pings the live site every 30 minutes and backs up the database nightly.
 
 ## Contributing
 

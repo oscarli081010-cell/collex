@@ -75,7 +75,7 @@ export default function SchoolPicker({ name = "school", defaultValue = "" }: { n
         className={`control ${s.input}`}
         value={value}
         placeholder="Start typing your school"
-        autoComplete="off"
+        autoComplete="organization"
         role="combobox"
         aria-expanded={open}
         aria-controls={id}

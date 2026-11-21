@@ -15,7 +15,26 @@ const addDoc = (x: ch.Chamber, docId: string, d: { title: string; proposer: stri
 const present = (c: ch.Chamber) => ch.markAllRoll(ch.startRoll(c), "voting");
 
 /* ---------- setup ---------- */
-assert.deepEqual(ch.parseNames("United States of America, Russian Federation, Democratic Republic of the Congo"), ["USA", "Russia", "DRC"]);
+// Names are kept in full; the short form is only for tight spaces, and never bare initials when a known one exists.
+assert.deepEqual(ch.parseNames("United States of America, Russian Federation, Democratic Republic of the Congo"), ["United States of America", "Russian Federation", "Democratic Republic of the Congo"]);
+assert.deepEqual(ch.parseNames("Bosnia and Herzegovina\nIran (Islamic Republic of)"), ["Bosnia and Herzegovina", "Iran (Islamic Republic of)"]);
+assert.deepEqual(ch.parseNames("Bosnia and Herzegovina, Bosnia  and herzegovina, Burkina Helvetia"), ["Bosnia and Herzegovina", "Burkina Helvetia"], "repeats are found by the full name, and two names with the same initials both stay");
+assert.equal(ch.shortName("United States of America"), "USA");
+assert.equal(ch.shortName("Bosnia and Herzegovina"), "Bosnia and Herzegovina", "no known short form: the name as it is, for the page to cut off");
+assert.equal(ch.parseNames("🇦🇺 Australia")[0], "🇦🇺 Australia", "an emoji at the start is kept whole");
+assert.equal(Array.from(ch.cleanName("🇦🇺".repeat(40))).length, 60, "names are cut by character, so an emoji is never split");
+{
+  // A committee saved with the old short names keeps them, and can be renamed without losing anything.
+  let r = ch.create("C", "R", 60, ["BH", "Chad"], ["b", "c"]);
+  r = ch.markRoll(ch.startRoll(r), "b", "voting");
+  r = ch.setScore(r, "b", { speaking: 7 });
+  r = ch.renameDelegate(r, "b", "Bosnia and Herzegovina");
+  assert.equal(ch.nameOf(r, "b"), "Bosnia and Herzegovina");
+  assert.equal(r.roll.b, "voting"); assert.equal(ch.scoreOf(r, "b").speaking, 7);
+  assert.equal(ch.renameDelegate(r, "c", "bosnia and herzegovina"), r, "two states can't share a name");
+  assert.ok(ch.renameError(r, "c", "Bosnia and Herzegovina"));
+  assert.equal(ch.addDelegate(r, "x", "Bosnia and Herzegovina "), r, "adding a repeat does nothing");
+}
 let c = ch.createTrinity("UNSC", "Removal of Nuclear Weapons", 90, names, ids);
 assert.equal(c.rules, "trinity"); assert.equal(c.tr!.week, 1);
 c = ch.startRoll(c);
@@ -388,6 +407,141 @@ assert.equal(ch.logPoint(g, "order").tr!.points.length, 1);
   assert.equal(ch.TR.statement, 90, "opening statements: 90 seconds"); assert.equal(ch.TR.speech, 90, "proposer and co-proposer: 90 seconds");
   assert.equal(ch.TR.introOppose, 90, "the first opposing speech: 90 seconds"); assert.equal(ch.TR.oppose, 120, "the closing speeches: 2 minutes");
   assert.equal(ch.TR.final, 240, "the final unmoderated caucus: 4 minutes"); assert.equal(ch.TR.intro, 300, "the first unmoderated caucus: 5 minutes");
+}
+
+/* ---------- the fixes from the committee review ---------- */
+{
+  const T0 = 5_000_000;
+  // A fresh committee on the debate of a resolution, with no opposer: straight from the co-sponsor to the opening caucus.
+  const toFloor = () => {
+    let x = begin(present(ch.createTrinity("F", "T", 90, names, ids)));
+    x = addDoc(x, "r1", { title: "Res 1", proposer: id("Australia"), seconder: id("Denmark") });
+    x = ch.startSpeeches(ch.introduceDraft(x, "r1"));
+    x = ch.yieldToChair(ch.endSpeech(ch.callProposer(x), T0, id("Australia")), id("Australia"), 0);
+    x = ch.yieldToChair(ch.endSpeech(ch.callSeconder(x), T0, id("Denmark")), id("Denmark"), 0);
+    assert.equal(x.step, "caucus"); assert.equal(x.tr!.cauc!.intro, true);
+    return x;
+  };
+  const opening = toFloor();
+  let f = ch.endCaucus(opening);
+  assert.equal(f.step, "floor");
+
+  // 3. A caucus called while an amendment is open keeps the resolution's speakers' list.
+  f = ch.addToList(ch.addToList(f, id("Brazil"), "for"), id("China"), "against");
+  f = ch.submitAmendment(f, "am1", id("Egypt"), "1", "Add a clause", [], id("France"));
+  f = ch.entertain(f, "am1");
+  f = ch.callCaucus(f, 120); assert.equal(f.step, "caucus");
+  f = ch.endCaucus(f); assert.equal(f.step, "amend");
+  f = ch.decideAmendment(ch.tally(ch.amendVote(f, "am1"), "yes", 1), null, "am1");
+  assert.equal(f.step, "floor");
+  assert.deepEqual(f.debate.list.map((x) => x.id), [id("Brazil"), id("China")], "the resolution's list is still there after a caucus in an amendment");
+  // A moderated caucus still sets the list aside and gives it back.
+  let mc = ch.callMod(f, "Drones", 300, 60); assert.equal(mc.debate.list.length, 0);
+  mc = ch.endCaucus(mc); assert.deepEqual(mc.debate.list.map((x) => x.id), [id("Brazil"), id("China")]);
+
+  // 4. A right of reply keeps whatever clock is running, paused, and gives it back: the opening, an unmoderated and the final caucus.
+  const replyKeeps = (x: ch.Chamber, what: string) => {
+    x = ch.startTimer(x, T0);
+    const r = ch.startReply(x, id("Brazil"), id("China"), T0 + 30_000);
+    assert.equal(r.timer!.label, "Right of reply", what);
+    const back = ch.finishReply(r, "apologised");
+    assert.equal(back.timer!.endsAt, null, `${what}: paused`);
+    assert.equal(back.timer!.left, x.timer!.total - 30_000, `${what}: the time left is kept`);
+    assert.equal(back.step, x.step);
+  };
+  replyKeeps(opening, "opening caucus");
+  replyKeeps(ch.callCaucus(f, 300), "unmoderated caucus");
+  let fin = ch.closeDebate(f); fin = ch.callCaucus(fin, ch.TR.final); assert.equal(fin.tr!.cauc!.kind, "final");
+  replyKeeps(fin, "final caucus");
+  // A speech in a moderated caucus: its own clock and the caucus's stop together, and neither runs during the reply.
+  let sp = ch.callSpeaker(ch.addToList(ch.callMod(f, "Drones", 300, 60), id("India"), "for"), id("India"), "for");
+  sp = ch.startTimer(sp, T0);
+  const rp = ch.startTimer(ch.startReply(sp, id("Japan"), null, T0 + 10_000), T0 + 10_000);
+  assert.equal(rp.tr!.cauc!.clock!.endsAt, null, "the caucus clock waits during the reply");
+
+  // 5. The roll can change after roll call, except during a vote; an absent state can't be listed or vote.
+  let r5 = ch.markRoll(f, id("Kenya"), "absent");
+  assert.equal(r5.roll[id("Kenya")], "absent"); assert.match(r5.log.at(-1)!.text, /Kenya marked absent/);
+  assert.equal(ch.canAdd(r5, id("Kenya"), "for"), false, "an absent state can't go on the list");
+  assert.equal(ch.addToList(r5, id("Brazil"), "for"), r5, "already listed");
+  assert.equal(ch.markRoll(ch.addToList(f, id("Kenya"), "for"), id("Kenya"), "absent").debate.list.some((x) => x.id === id("Kenya")), false, "marked absent: off the list");
+  assert.equal(ch.present(r5), names.length - 1);
+  const unmarked = ch.create("U", "R", 60, ["A", "B", "C"], ["a", "b", "c"]);
+  assert.equal(ch.present(unmarked), 3, "a state not marked counts as present, as it does for the vote");
+  const voting = ch.startVote(ch.closeDebate(r5));
+  assert.equal(voting.step, "vote");
+  assert.equal(ch.markRoll(voting, id("Kenya"), "voting"), voting, "not while a vote is taken");
+  assert.equal(ch.cast(voting, id("Kenya"), "for"), voting, "an absent state has no ballot");
+  const polled = ch.pollByRoll(ch.amendAsk(ch.entertain(ch.submitAmendment(r5, "am2", id("Egypt"), "2", "x", [], id("France")), "am2"), "am2"), true);
+  assert.equal(ch.markRoll(polled, id("Kenya"), "present"), polled, "not while a placard vote is open");
+  assert.equal(ch.pollCast(polled, id("Kenya"), "for").poll!.yes, 0, "an absent state's ballot isn't counted");
+  // Retake the Roll at the start of a new session: back to the general debate after, and the last roll is kept.
+  let g = ch.backToGeneral(ch.finishVote(voting.delegates.filter((d) => ch.isHere(voting, d.id)).map((d) => d.id).reduce((x, d) => ch.cast(x, d, "for"), voting)));
+  assert.equal(g.step, "general");
+  assert.equal(ch.canRetakeRoll(g), true);
+  g = ch.retakeRoll(g, 42);
+  assert.equal(g.step, "roll"); assert.deepEqual(g.roll, {}); assert.equal(g.tr!.rolls["42"][id("Kenya")], "absent");
+  g = ch.beginDebate(ch.markAllRoll(g, "present"));
+  assert.equal(g.step, "general", "a roll taken again goes back to the general debate, not the statements");
+  assert.equal(g.tr!.retake, false);
+
+  // 9 (engine side). The Trinity proposer is called as proposer, not as a speaker from the list.
+  let p9 = begin(present(ch.createTrinity("F", "T", 90, names, ids)));
+  p9 = ch.startSpeeches(ch.introduceDraft(addDoc(p9, "r9", { title: "R", proposer: id("Australia"), seconder: id("Denmark") }), "r9"));
+  p9 = ch.addToList(p9, id("Brazil"), "for");
+  assert.equal(ch.callNextSpeaker(p9).speech?.who, id("Australia"));
+  assert.equal(ch.callNextSpeaker(p9).speech?.role, "proposer");
+
+  // 2. Back only takes back a step this chair made; an older step with no tag can be taken back by anyone.
+  let b = ch.remember(f, ch.addToList(f, id("Germany"), "for"), "chairA");
+  b = ch.remember(b, ch.callSpeaker(b, id("Brazil"), "for"), "chairB");
+  assert.equal(ch.backIsOthers(b, "chairA"), true);
+  assert.equal(ch.goBack(b, T0, "chairA"), b, "chair A can't undo chair B's call");
+  assert.match(ch.backWhat(b) ?? "", /Brazil speaks/, "Back says what it will undo");
+  const byB = ch.goBack(b, T0, "chairB");
+  assert.equal(byB.speech, null, "chair B can");
+  assert.equal(byB.hist!.at(-1)!.by, "chairA");
+  assert.equal(byB.by, undefined, "the tag stays on the step, never on the committee");
+  const untagged = { ...b, hist: b.hist!.map(({ by: _b, ...h }) => h as ch.Chamber) };
+  assert.notEqual(ch.goBack(untagged, T0, "chairA"), untagged, "an old step with no tag goes back for anyone");
+}
+
+/* ---------- saved state: the new fields survive a save, and Back keeps the chair's own settings ---------- */
+{
+  let x = begin(present(ch.createTrinity("F", "T", 90, names, ids)));
+  x = ch.setShowJoin(x, true);
+  assert.equal(x.showJoin, true); assert.equal(ch.setShowJoin(x, true), x, "no change, the same committee");
+  x = ch.remember(x, ch.addToList(x, id("Brazil"), "for"), "chairA");
+  x = { ...ch.pauseTimer(ch.startTimer({ ...x, timer: ch.timerFor("T", 5) }, 0), 7000), tr: { ...x.tr!, retake: true } };
+  assert.equal(x.timer!.over, 2000);
+  assert.deepEqual(ch.normalise(JSON.parse(JSON.stringify(x))), x, "showJoin, overtime, retake and the tagged step survive a save");
+  // Back keeps the scores, the join code setting and the photo as they are now.
+  const now = ch.setScore({ ...x, background: null }, id("China"), { speaking: 5 });
+  const b = ch.goBack(now, 0, "chairA");
+  assert.equal(b.showJoin, true); assert.equal(ch.scoreOf(b, id("China")).speaking, 5);
+  // How many times each state has spoken, for the list of states to add.
+  const sp = ch.record(ch.record(ch.record(x, id("Brazil"), "speaker", 30, 1), id("Brazil"), "closing", 30, 2), id("Brazil"), "poi", 10, 3);
+  assert.deepEqual(ch.spokeCount(sp), { [id("Brazil")]: 2 }, "speeches only, not Points of Information");
+}
+
+/* ---------- a speaker past 0:00 in a moderated caucus: the caucus's own clock stops at the speaker's 0:00 ---------- */
+{
+  const nm = ["Australia", "Brazil", "China", "France", "UK"];
+  let m = ch.endStatements(ch.beginDebate(ch.markAllRoll(ch.startRoll(ch.createTrinity("T", "R", 90, nm, nm.map((_, i) => `m${i}`))), "voting")));
+  m = ch.callSpeaker(ch.addToList(ch.callMod(m, "Drones", 600, 60), "m1", "for"), "m1", "for");
+  m = ch.startTimer(m, 0);
+  assert.ok(ch.running(m.tr!.cauc!.clock), "the caucus runs with its speaker");
+  assert.equal(ch.overrun(m, 30_000), m, "nothing to do while the speaker has time");
+  m = ch.overrun(m, 65_000);
+  assert.equal(ch.running(m.tr!.cauc!.clock), false, "the caucus stops at the speaker's 0:00");
+  assert.equal(ch.remaining(m.tr!.cauc!.clock!, 0), 540_000, "and only the speaker's 60 seconds came off it");
+  assert.ok(ch.running(m.timer), "the speaker's own clock carries on into overtime");
+  m = ch.pauseTimer(m, 70_000);
+  assert.equal(ch.timerText(m.timer!, 0), "+0:10");
+  m = ch.startTimer(m, 100_000);
+  assert.equal(ch.running(m.tr!.cauc!.clock), false, "restarting a speaker in overtime doesn't restart the caucus");
+  m = ch.pauseTimer(m, 105_000);
+  assert.equal(ch.remaining(m.tr!.cauc!.clock!, 0), 540_000, "and pausing again gives the caucus no time back");
 }
 
 console.log("ALL TRINITY CHECKS PASSED");

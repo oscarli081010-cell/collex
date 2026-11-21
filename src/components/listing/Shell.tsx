@@ -9,7 +9,7 @@ import s from "./Workspace.module.css";
 export default function Shell({ band, nav, sections, children }: {
   band: BandProps;
   /** Left out while there is no listing to move around in (loading, or one that can't be opened). */
-  nav?: { id: string; slug: string; current: TabId; live: boolean; whyNot: string };
+  nav?: { id: string; slug: string; current: TabId; live: boolean; whyNot: string; editOpen?: boolean };
   sections: Jump[]; children: React.ReactNode;
 }) {
   return (

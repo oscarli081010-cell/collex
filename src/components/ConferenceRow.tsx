@@ -45,8 +45,8 @@ export default function ConferenceRow({ c, past = false }: { c: ConferenceSummar
       <span className={s.rowActions}>
         {!past && (
           <span className={s.rowBtns}>
-            <RowAction url={c.delegationUrl} onCollex={c.collexRegistration && !c.delegationUrl ? "timed" : null} label="Register" what="Registration" not="isn't" primary page={page} opensAt={c.delegationOpensAt} />
-            <RowAction url={c.chairUrl} onCollex={c.collexApplications && c.id ? "always" : null} label="Apply to chair" what="Chair applications" not="aren't" primary={false} page={page} opensAt={c.chairOpensAt} />
+            <RowAction url={c.delegationUrl} onCollex={c.collexRegistration && !c.delegationUrl ? "timed" : null} label="Register" name={`Register for ${c.name}`} what="Registration" not="isn't" primary page={page} opensAt={c.delegationOpensAt} />
+            <RowAction url={c.chairUrl} onCollex={c.collexApplications && c.id ? "always" : null} label="Apply to Chair" name={`Apply to Chair for ${c.name}`} what="Chair applications" not="aren't" primary={false} page={page} opensAt={c.chairOpensAt} />
           </span>
         )}
         <Link href={page} className={s.go} aria-label={`Open ${c.name}`}>→</Link>

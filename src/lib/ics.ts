@@ -7,15 +7,22 @@ const ymd = (iso: string, addDays = 0) => {
   d.setUTCDate(d.getUTCDate() + addDays);
   return d.toISOString().slice(0, 10).replaceAll("-", "");
 };
+// The last day of a conference; a missing end date, or one before the start, means a one-day event.
+const lastDay = (c: Conference) => (c.endDate && c.endDate > c.startDate! ? c.endDate : c.startDate!);
 // Text values escape backslashes, commas, semicolons and newlines (RFC 5545 §3.3.11).
-const text = (s: string) => s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+// Any line break (CRLF, a lone CR, LF) becomes \n, and other control characters are dropped, so a name can never start a new property line.
+const text = (s: string) =>
+  s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r\n?|\n/g, "\\n").replace(/[\u0000-\u0008\u000b-\u001f\u007f\u2028\u2029]/g, "");
 // Lines longer than 75 bytes fold onto the next line, which starts with a space.
+const enc = new TextEncoder();
 function fold(line: string) {
   const out: string[] = [];
   let cur = "";
+  let bytes = 0;
   for (const ch of line) {
-    if (new TextEncoder().encode(cur + ch).length > (out.length ? 74 : 75)) { out.push(cur); cur = ""; }
-    cur += ch;
+    const n = enc.encode(ch).length;
+    if (bytes + n > (out.length ? 74 : 75)) { out.push(cur); cur = ""; bytes = 0; }
+    cur += ch; bytes += n;
   }
   return [...out, cur].join("\r\n ");
 }
@@ -28,7 +35,7 @@ function event(c: Conference, stamp: string) {
     `UID:${c.slug}@collex.au`,
     `DTSTAMP:${stamp}`,
     `DTSTART;VALUE=DATE:${ymd(c.startDate!)}`,
-    `DTEND;VALUE=DATE:${ymd(c.endDate ?? c.startDate!, 1)}`,
+    `DTEND;VALUE=DATE:${ymd(lastDay(c), 1)}`,
     `SUMMARY:${text(c.name)}`,
     `LOCATION:${text(where)}`,
     `DESCRIPTION:${text(`Hosted by ${c.host}. Details: ${url}`)}`,
@@ -55,7 +62,7 @@ export function googleCalendarUrl(c: Conference) {
   const p = new URLSearchParams({
     action: "TEMPLATE",
     text: c.name,
-    dates: `${ymd(c.startDate!)}/${ymd(c.endDate ?? c.startDate!, 1)}`,
+    dates: `${ymd(c.startDate!)}/${ymd(lastDay(c), 1)}`,
     ctz: "Australia/Sydney",
     details: `Hosted by ${c.host}. Details: ${url}`,
   });

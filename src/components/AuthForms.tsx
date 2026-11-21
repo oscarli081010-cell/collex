@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { cloneElement, isValidElement, useCallback, useEffect, useId, useRef, useState } from "react";
 import { googleEnabled } from "@/lib/authProviders";
 import { uploadPhoto } from "@/lib/photo";
 import { supabase } from "@/lib/supabase";
@@ -18,6 +18,7 @@ import { META_ICONS } from "./MetaIcons";
 import PanelTabs from "./PanelTabs";
 import { usePill } from "./usePill";
 import { useToast } from "./useToast";
+import { AccountSettings } from "./AccountSections";
 import s from "@/app/auth.module.css";
 
 const friendly = (msg: string) =>
@@ -60,22 +61,44 @@ function NotReady() {
   return supabase ? null : <p className={s.notice}>Accounts are being switched on. Sign-up opens shortly.</p>;
 }
 
+// After a failed submit, focus goes to the first field that is marked invalid, so a keyboard or screen reader user lands on the problem.
+// (Waits a frame so the error has been drawn first.)
+const focusFirstInvalid = (form: HTMLFormElement | null) =>
+  requestAnimationFrame(() => form?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
+
+const SENDER = "hello@collex.au"; // where the sign-up and password emails come from (supabase/functions/mailer)
+
+// A labelled field. A plain input (or the Password box) gets its label by id, and its error and hint are tied to it with
+// aria-describedby and aria-invalid; the error sits outside the label so the field's name stays just its label.
 function Field({ label, children, error, hint }: { label: string; children: React.ReactNode; error?: string; hint?: string }) {
+  const id = useId();
+  const note = error ? `${id}-err` : hint ? `${id}-hint` : undefined;
+  const tie = isValidElement<Record<string, unknown>>(children) && (children.type === "input" || children.type === Password);
+  if (!tie) {
+    // Something with its own inner control (the school picker): the label wraps it, as before.
+    return (
+      <label className={`field ${error ? s.invalid : ""}`}>
+        <span>{label}</span>
+        {children}
+        {error ? <small key="e" role="alert" className={`t-reveal ${s.error}`}>{error}</small> : hint && <small>{hint}</small>}
+      </label>
+    );
+  }
   return (
-    <label className={`field ${error ? s.invalid : ""}`}>
-      <span>{label}</span>
-      {children}
-      {error ? <small key="e" className={`t-reveal ${s.error}`}>{error}</small> : hint && <small>{hint}</small>}
-    </label>
+    <div className={`field ${error ? s.invalid : ""}`}>
+      <label htmlFor={id}>{label}</label>
+      {cloneElement(children as React.ReactElement<Record<string, unknown>>, { id, "aria-invalid": error ? true : undefined, "aria-describedby": note })}
+      {error ? <small key="e" id={`${id}-err`} className={`t-reveal ${s.error}`}>{error}</small> : hint && <small id={`${id}-hint`}>{hint}</small>}
+    </div>
   );
 }
 
 // aria-label keeps the Show button's text out of the field's name, since the surrounding <label> also wraps the button.
-function Password({ name, autoComplete, onChange, label = "Password" }: { name: string; autoComplete: string; onChange?: () => void; label?: string }) {
+function Password({ name, autoComplete, onChange, label = "Password", ...aria }: { name: string; autoComplete: string; onChange?: () => void; label?: string; id?: string; "aria-invalid"?: boolean; "aria-describedby"?: string }) {
   const [show, setShow] = useState(false);
   return (
     <span className={s.pw}>
-      <input name={name} type={show ? "text" : "password"} className="control" aria-label={label} autoComplete={autoComplete} minLength={8} onChange={onChange} />
+      <input {...aria} name={name} type={show ? "text" : "password"} className="control" aria-label={label} autoComplete={autoComplete} minLength={8} onChange={onChange} />
       <button type="button" className={s.pwToggle} onClick={() => setShow(!show)} aria-label={show ? "Hide password" : "Show password"}>
         <span key={String(show)} className="t-swap">{show ? "Hide" : "Show"}</span>
       </button>
@@ -153,6 +176,7 @@ function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"
           <small key={String(checking)} className="t-swap muted">{checking ? "Checking…" : "The code works for an hour."}</small>
         </div>
       )}
+      <p className={s.spam}>Not there? Check your spam folder. It comes from {SENDER}.</p>
       <div className="btnStack one">
         <button className="button secondary lg" onClick={resend}>Send It Again</button>
         <button className="button secondary lg" onClick={onBack}>Use a Different Email</button>
@@ -166,26 +190,30 @@ function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"
 // "Continue with Google", shown only once Supabase confirms Google sign-in is on. Until then (and whenever it is off)
 // it renders nothing at all, so the form does not move. Google sends people back to the same page they would reach
 // after a password login. The sign-up form passes its agreement line as the note under the button.
+let googleKnown: boolean | null = null; // once the answer is in, the next page knows it from the start
 function GoogleSignIn({ onError, children }: { onError: (message: string) => void; children?: React.ReactNode }) {
-  const [on, setOn] = useState(false);
+  const [on, setOn] = useState<boolean | null>(googleKnown);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     let alive = true;
-    googleEnabled().then((v) => { if (alive) setOn(v); });
+    googleEnabled().then((v) => { googleKnown = v; if (alive) setOn(v); });
     // Coming back with the browser's Back button restores this page as it was, button disabled; undo that.
     const restored = (e: PageTransitionEvent) => { if (e.persisted) setBusy(false); };
     window.addEventListener("pageshow", restored);
     return () => { alive = false; window.removeEventListener("pageshow", restored); };
   }, []);
-  if (!on || !supabase) return null;
+  if (on === false || !supabase) return null;
 
   const go = async () => {
     setBusy(true);
     const { error } = await supabase!.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${origin()}${nextPage()}` } });
     if (error) { setBusy(false); onError(friendly(error.message)); }
   };
+  // Until Supabase has answered, the block is there but unseen (same markup, so the same height), and the form below
+  // doesn't move when the button appears. If Google turns out to be off it goes away.
+  const pending = on === null;
   return (
-    <div className={s.oauth}>
+    <div className={s.oauth} style={pending ? { visibility: "hidden" } : undefined} aria-hidden={pending || undefined} inert={pending}>
       <button type="button" className="button secondary lg" onClick={go} disabled={busy}>
         <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
           <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 01-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z" />
@@ -210,7 +238,8 @@ export function SignupForm() {
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!supabase) return;
-    const f = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const f = new FormData(form);
     const v = (k: string) => String(f.get(k) ?? "").trim();
     const found: Record<string, string> = {};
     if (!v("name")) found.name = "Add your name.";
@@ -218,7 +247,7 @@ export function SignupForm() {
     if (String(f.get("password") ?? "").length < 8) found.password = "Use at least 8 characters.";
     if (!f.get("agree")) found.agree = "Tick the box to agree before creating an account.";
     setErrors(found);
-    if (Object.keys(found).length) return;
+    if (Object.keys(found).length) return focusFirstInvalid(form);
 
     setBusy(true);
     const { data, error } = await supabase.auth.signUp({
@@ -229,7 +258,7 @@ export function SignupForm() {
     setBusy(false);
     if (error) return setErrors({ form: friendly(error.message) });
     // Supabase hides whether an email is taken: an existing account comes back with no identities.
-    if (data.user && data.user.identities?.length === 0) return setErrors({ email: "That email already has an account. Log in instead." });
+    if (data.user && data.user.identities?.length === 0) { setErrors({ email: "That email already has an account. Log in instead." }); return focusFirstInvalid(form); }
     setSent(v("email"));
   }
 
@@ -253,7 +282,7 @@ export function SignupForm() {
         </label>
         {errors.agree && <small key="e" id="agree-err" className={`t-reveal ${s.error}`} style={{ display: "block", marginTop: 6, fontSize: 12.5 }}>{errors.agree}</small>}
       </div>
-      {errors.form && <p key={errors.form} className={`t-reveal ${s.formError}`}>{errors.form}</p>}
+      {errors.form && <p key={errors.form} role="alert" className={`t-reveal ${s.formError}`}>{errors.form}</p>}
       <button className={`button lg ${s.submit}`} disabled={busy || !supabase}>
         <span key={String(busy)} className="t-swap">{busy ? "Creating Account…" : "Create Account"}</span>
       </button>
@@ -267,6 +296,7 @@ export function LoginForm() {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "reset">("login");
   const [error, setError] = useState("");
+  const [emailErr, setEmailErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState<string | null>(null);
   const [unconfirmed, setUnconfirmed] = useState("");
@@ -274,11 +304,13 @@ export function LoginForm() {
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!supabase) return;
-    const f = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const f = new FormData(form);
     const email = String(f.get("email") ?? "").trim();
-    if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Add a valid email.");
+    if (!/^\S+@\S+\.\S+$/.test(email)) { setEmailErr("Add a valid email."); return focusFirstInvalid(form); }
     setBusy(true);
     setError("");
+    setEmailErr("");
     if (mode === "reset") {
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin()}/account` });
       setBusy(false);
@@ -308,12 +340,12 @@ export function LoginForm() {
           <p className={s.oauthNote}>By continuing you agree to the <Link href="/terms" target="_blank" rel="noopener" aria-label="Terms of use (opens in a new tab)">Terms of use</Link> and <Link href="/privacy" target="_blank" rel="noopener" aria-label="Privacy policy (opens in a new tab)">Privacy policy</Link>. If you&rsquo;re under 18, a parent or guardian has said yes.</p>
         </GoogleSignIn>
       )}
-      <Field label="Email"><input name="email" type="email" className="control" autoComplete="email" onChange={() => setError("")} /></Field>
+      <Field label="Email" error={emailErr}><input name="email" type="email" className="control" autoComplete="email" onChange={() => { setError(""); setEmailErr(""); }} /></Field>
       {mode === "login" && (
         <Field label="Password"><Password name="password" autoComplete="current-password" onChange={() => setError("")} /></Field>
       )}
       {error && (
-        <p key={error} className={`t-reveal ${s.formError}`}>
+        <p key={error} role="alert" className={`t-reveal ${s.formError}`}>
           {error}{" "}
           {unconfirmed && <button type="button" className={s.textBtn} onClick={() => setSent(unconfirmed)}>Resend Link</button>}
         </p>
@@ -326,12 +358,12 @@ export function LoginForm() {
       <p className={s.switch}>
         {mode === "login" ? (
           <>
-            <button type="button" className={s.textBtn} onClick={() => { setMode("reset"); setError(""); }}>Forgot password?</button>
+            <button type="button" className={s.textBtn} onClick={() => { setMode("reset"); setError(""); setEmailErr(""); }}>Forgot password?</button>
             <span className={s.dot} aria-hidden="true">·</span>
             <NextLink path="/signup" className="link">Create an account</NextLink>
           </>
         ) : (
-          <button type="button" className={s.textBtn} onClick={() => { setMode("login"); setError(""); }}>← Back to log in</button>
+          <button type="button" className={s.textBtn} onClick={() => { setMode("login"); setError(""); setEmailErr(""); }}>← Back to log in</button>
         )}
       </p>
     </form>
@@ -433,8 +465,9 @@ export function AccountView() {
 
   async function saveProfile(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    if (!String(f.get("name") ?? "").trim()) return setFieldErr({ name: "Add your name." });
+    const form = e.currentTarget;
+    const f = new FormData(form);
+    if (!String(f.get("name") ?? "").trim()) { setFieldErr({ name: "Add your name." }); return focusFirstInvalid(form); }
     setFieldErr({});
     setBusy("profile");
     const { error } = await supabase!.from("profiles")
@@ -450,7 +483,7 @@ export function AccountView() {
     e.preventDefault();
     const form = e.currentTarget;
     const pw = String(new FormData(form).get("password") ?? "");
-    if (pw.length < 8) return setFieldErr({ password: "Use at least 8 characters." });
+    if (pw.length < 8) { setFieldErr({ password: "Use at least 8 characters." }); return focusFirstInvalid(form); }
     setFieldErr({});
     setBusy("password");
     const { error } = await supabase!.auth.updateUser({ password: pw });
@@ -462,6 +495,7 @@ export function AccountView() {
 
   async function signOut() {
     await supabase!.auth.signOut();
+    delete document.documentElement.dataset.auth;
     // Committees kept in this browser for working without a connection go when the person logs out.
     try { for (const k of Object.keys(localStorage)) if (k.startsWith("collex:chamber:") || k === "collex:chambers:kept") localStorage.removeItem(k); } catch { /* storage blocked */ }
     router.push("/");
@@ -486,7 +520,7 @@ export function AccountView() {
         { label: "Running", value: counts.listings === null ? "–" : String(counts.listings) },
         { label: "Following", value: counts.following === null ? "–" : String(counts.following) },
       ],
-      aside: <button className={`button secondary ${s.logout}`} onClick={signOut}>{ICONS.leave}Log out</button>,
+      aside: <button className={`button secondary ${s.logout}`} onClick={signOut}>{ICONS.leave}Log Out</button>,
     }}>
     <div className={s.account}>
 
@@ -506,7 +540,7 @@ export function AccountView() {
 
         <form noValidate className={`panel ${s.card}`} onSubmit={saveProfile} style={{ "--i": 1 } as React.CSSProperties}>
           <h2 className={s.cardTitle}>Profile</h2>
-          <Field label="Full name" error={fieldErr.name}><input name="name" className="control" maxLength={120} defaultValue={profile?.full_name ?? ""} key={profile?.full_name} onChange={() => fieldErr.name && setFieldErr({})} /></Field>
+          <Field label="Full name" error={fieldErr.name}><input name="name" className="control" maxLength={120} autoComplete="name" defaultValue={profile?.full_name ?? ""} key={profile?.full_name} onChange={() => fieldErr.name && setFieldErr({})} /></Field>
           <div className="field"><span>School or University</span><SchoolPicker defaultValue={profile?.school ?? ""} /></div>
           <button className="button block" disabled={busy === "profile"}>
             <span key={String(busy === "profile")} className="t-swap">{busy === "profile" ? "Saving…" : "Save Profile"}</span>
@@ -520,6 +554,7 @@ export function AccountView() {
             <span key={String(busy === "password")} className="t-swap">{busy === "password" ? "Updating…" : "Update Password"}</span>
           </button>
         </form>
+        <AccountSettings userId={session.user.id} />
       </div>
 
       <div id="account-panel-conferences" role="tabpanel" aria-labelledby="account-tab-conferences" hidden={tab !== "conferences"} className={`t-stagger ${s.panelStack}`}>

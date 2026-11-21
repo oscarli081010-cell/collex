@@ -67,10 +67,9 @@
   z-index: 0;
 }
 
-/* Page enter: a short plain fade. The browser already cross-fades pages (view transitions), so this one stays
-   light: a long fade with blur on top of that left pages half-faded for too long. */
-@keyframes t-page-in { from { opacity: 0; } }
-.t-page-enter { animation: t-page-in var(--duration-quick) var(--ease-smooth-out) backwards; }
+/* Page enter: nothing. The browser already cross-fades pages (view transitions), and a fade on the page itself
+   held back the largest thing on the screen. The first thing in a stack (below) and the hero paint at once too. */
+.t-page-enter { animation: none; }
 
 /* Month slide (page side-by-side): direction set by data-dir */
 @keyframes t-slide-from-right {
@@ -96,10 +95,16 @@
   from { opacity: 0; transform: translateY(var(--distance-medium)); filter: blur(var(--blur-medium)); }
   to   { opacity: 1; transform: none; filter: blur(0); }
 }
+/* The first thing in a stack is on the first screen: it rises a little but is never faded or blurred in. */
+@keyframes t-rise-now {
+  from { transform: translateY(var(--distance-base)); }
+  to   { transform: none; }
+}
 .t-stagger > * {
   animation: t-rise var(--duration-medium) var(--ease-smooth-out) both;
   animation-delay: calc(var(--i, 0) * var(--duration-stagger) * 2);
 }
+.t-stagger > :first-child { animation-name: t-rise-now; animation-delay: 0s; }
 .t-stagger > :nth-child(2) { --i: 1; }
 .t-stagger > :nth-child(3) { --i: 2; }
 .t-stagger > :nth-child(4) { --i: 3; }

@@ -6,7 +6,7 @@ import s from "@/components/LegalPage.module.css";
 
 export const metadata: Metadata = { alternates: { canonical: "/about" },
   title: "About · Collex",
-  description: "Why Collex exists, who it's for, and how listings work.",
+  description: "Why Collex exists, who runs it, who it is for, how listings are reviewed and what Verified means. Free for every conference and delegate.",
 };
 
 export default function About() {
@@ -16,7 +16,7 @@ export default function About() {
       <div className={`${s.page} ${s.afterBand}`}>
       <nav className={s.side} aria-label="About">
         <ul>
-          <li><a href="#why" aria-current="page">About Collex</a></li>
+          <li><a href="#why">About Collex</a></li>
           <li><a href="#who">Who runs it</a></li>
           <li><a href="#reviews">How listings are reviewed</a></li>
           <li><a href="#verified">What Verified means</a></li>

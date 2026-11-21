@@ -14,7 +14,7 @@ export default function Footer() {
         </div>
         <nav className={styles.cols} aria-label="Footer">
           <ul>
-            <li className={styles.head}>Circuit</li>
+            <li className={styles.head}>Conferences</li>
             <li><Link href="/">Home</Link></li>
             <li><Link href="/calendar">Calendar</Link></li>
             <li><Link href="/conferences">Conferences</Link></li>
@@ -24,15 +24,22 @@ export default function Footer() {
             <li><Link href="/about">About</Link></li>
           </ul>
           <ul>
-            <li className={styles.head}>Secretariats</li>
+            <li className={styles.head}>For Organisers</li>
             <li><Link href="/list">List a conference</Link></li>
             <li><Link href="/conferences/demo_listing">Demo page</Link></li>
             <li><a href={`mailto:${CONTACT}?subject=Correction%20to%20a%20listing`}>Correct a listing</a></li>
           </ul>
           <ul>
+            <li className={styles.head}>New to MUN?</li>
+            <li><Link href="/start">Start here</Link></li>
+            <li><Link href="/teachers">For teachers</Link></li>
+            <li><Link href="/practice">Practice</Link></li>
+          </ul>
+          <ul>
             <li className={styles.head}>Contact</li>
             <li><a href={`mailto:${CONTACT}`}>{CONTACT}</a></li>
             <li className="muted">Sydney, NSW, Australia</li>
+            <li><Link href="/about">Run by Oscar Li, from Sydney</Link></li>
           </ul>
           <ul>
             <li className={styles.head}>Legal</li>

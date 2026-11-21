@@ -29,7 +29,11 @@ const securityHeaders = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
 
+// A value that changes with every build, so the offline cache is renewed on each deploy (Offline.tsx reads it).
+const buildId = process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || String(Date.now());
+
 const config: NextConfig = {
+  env: { NEXT_PUBLIC_VERCEL_DEPLOYMENT_ID: buildId },
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
   // Photos in our storage are served through Next's optimiser (smaller files, in WebP). The sizes are few on purpose, to

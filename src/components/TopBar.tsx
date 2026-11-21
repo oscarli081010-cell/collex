@@ -134,11 +134,19 @@ export default function TopBar() {
         <CommandBar />
         <div className="topbarRight" data-ready={ready}>
           {profile?.is_admin && <Link href="/admin" className="button">Admin</Link>}
-          {session ? (
-            <Link href="/account" className="avatarLink" aria-label="Your account" title={who}>{/* eslint-disable-next-line @next/next/no-img-element -- the account photo */}{profile?.avatar_url ? <img src={profile.avatar_url} alt="" width={36} height={36} /> : initials}</Link>
-          ) : (
-            <Link href="/login" className="button">Log In</Link>
-          )}
+          {/* "Log In" is there from the first paint and is swapped for the avatar once the login check says so; the slot holds its width. */}
+          <span className="topbarAccount">
+            {session ? (
+              <Link href="/account" className="avatarLink" aria-label="Your account" title={who}>
+                {profile?.avatar_url
+                  // eslint-disable-next-line @next/next/no-img-element -- the account photo, already small
+                  ? <img src={profile.avatar_url} alt="" width={36} height={36} />
+                  : initials}
+              </Link>
+            ) : (
+              <Link href="/login" className="button">Log In</Link>
+            )}
+          </span>
         </div>
         </div>
         <button
@@ -167,7 +175,7 @@ export default function TopBar() {
         ))}
         <div className="mobileGroup" role="group" aria-label="Account">
           {profile?.is_admin && <Link href="/admin" onClick={close}>Admin</Link>}
-          {session ? <Link href="/account" aria-current={pathname === "/account" ? "page" : undefined} onClick={close}>Your account</Link> : <Link href="/login" onClick={close}>Log in</Link>}
+          {session ? <Link href="/account" aria-current={pathname === "/account" ? "page" : undefined} onClick={close}>Your account</Link> : <Link href="/login" onClick={close}>Log In</Link>}
         </div>
       </nav>
     </header>

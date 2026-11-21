@@ -66,6 +66,36 @@ assert.equal(ch.rooms(c).negotiation, false, "the council is on its feet in a ca
 assert.equal(ch.rooms(c).notes, true); assert.equal(ch.rooms(c).amendments, true);
 c = ch.endCaucus(c);
 assert.equal(c.step, "floor"); open(c, "on the floor");
+{
+  // 9. N on the Evatt floor calls the next on the list.
+  const fl = ch.addToList(ch.addToList(c, id("France"), "for"), id("UK"), "against");
+  const n = ch.callNextSpeaker(fl);
+  assert.ok(n.speech, "N calls the next speaker on the Evatt floor");
+  assert.equal(ch.callNextSpeaker(n), n, "and never while someone speaks");
+  // 1. Back keeps the chairs' scores, and the notes kept with them.
+  const scored = ch.setScore(ch.remember(fl, n), id("France"), { speaking: 7 });
+  const back = ch.goBack(scored, ch.now());
+  assert.equal(back.speech, null);
+  assert.equal(ch.scoreOf(back, id("France")).speaking, 7, "Back keeps the scores");
+  // 15. A timer runs past zero and shows the overtime; adding time takes the overtime off first.
+  const t0 = 1_000_000;
+  const run = ch.startTimer(n, t0);
+  const total = run.timer!.total;
+  assert.equal(ch.timerText(run.timer!, t0 + total + 12_400), "+0:12");
+  assert.equal(ch.remaining(run.timer!, t0 + total + 12_400), 0);
+  const paused = ch.pauseTimer(run, t0 + total + 12_000);
+  assert.equal(ch.timerText(paused.timer!, t0 + total + 99_000), "+0:12", "paused overtime stays put");
+  assert.equal(ch.timerText(ch.startTimer(paused, 5_000_000).timer!, 5_003_000), "+0:15", "and keeps counting when started again");
+  assert.equal(ch.timerText(ch.nudgeTimer(paused, 15, 0).timer!, 0), "0:03", "15 seconds more, 12 over, leaves 3");
+  assert.equal(ch.resetTimer(paused).timer!.over, undefined);
+  // 12. A vote needs at least one state present.
+  const none = ch.markAllRoll(fl, "absent");
+  assert.ok(ch.voteBlock(none));
+  const closing: ch.Chamber = { ...none, step: "closing" };
+  assert.equal(ch.startVote(closing), closing, "no vote with no state present");
+  assert.equal(ch.startVote({ ...fl, step: "closing" }).step, "vote");
+  assert.equal(ch.voteBlock(fl), null);
+}
 c = ch.closeDebate(c);
 shut(c, "from the closing on");
 
@@ -73,5 +103,22 @@ shut(c, "from the closing on");
 const old: ch.Speech = { who: "d0", side: "for", role: "proposer", phase: "after", asker: null, pois: 2 };
 assert.equal(ch.takingPoints(old), true);
 assert.deepEqual(ch.normalise(JSON.parse(JSON.stringify(c))), c);
+
+/* ---------- Back tags stay on the kept steps: a console on the last build that went back leaves one on the committee ---------- */
+{
+  const stray = { ...c, by: "chairA", what: "Call Brazil" } as ch.Chamber; // HEAD's goBack spreads the kept step, tags and all
+  const next = ch.remember(stray, ch.note(stray, "Something"), "chairB");
+  assert.equal(next.by, undefined, "no tag on the committee itself");
+  assert.equal(next.what, undefined);
+  assert.equal(next.hist!.at(-1)!.by, "chairB", "the step is the chair's who made it");
+  assert.equal(ch.backIsOthers(next, "chairB"), false);
+  const loaded = ch.normalise(JSON.parse(JSON.stringify(stray)))!;
+  assert.ok(!("by" in loaded) && !("what" in loaded), "and none once loaded");
+  // A step saved before steps were tagged belongs to anyone.
+  const untagged = { ...next, hist: [...next.hist!.slice(0, -1), { ...next.hist!.at(-1)!, by: undefined }] } as ch.Chamber;
+  assert.equal(ch.backIsOthers(untagged, "chairC"), false);
+  assert.notEqual(ch.goBack(untagged, ch.now(), "chairC"), untagged);
+  assert.equal(ch.goBack(next, ch.now(), "chairC"), next, "another chair's step is left alone");
+}
 
 console.log("EVATT OK");

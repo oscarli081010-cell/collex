@@ -52,3 +52,4 @@
   .rowBtns { flex: 1 1 100%; justify-content: stretch; }
   .rowBtns :global(.button) { flex: 1; }
 }
+.subHead { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--muted); }

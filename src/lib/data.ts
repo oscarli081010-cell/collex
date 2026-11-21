@@ -20,7 +20,7 @@ type Row = SummaryRow & {
   updated_at?: string; submitted_by?: string | null; claimable?: boolean;
 };
 
-const or = (v: string | null | undefined) => (v && v.trim() ? v : NA);
+const or = (v: unknown): string => (typeof v === "string" && v.trim() ? v : NA);
 
 // Reading jsonb with care: a column that isn't an array is empty, an entry that isn't an object is dropped,
 // and a field of the wrong type reads as empty. One bad listing must never break a page.
@@ -41,10 +41,11 @@ const rolesOf = (v: unknown): Role[] => objects(v).flatMap((x) => {
 
 export const summaryFromRow = (r: SummaryRow): ConferenceSummary => ({
   id: r.id,
-  slug: r.slug,
-  name: r.name,
-  shortName: r.short_name || r.name,
-  host: r.host,
+  // A row with no usable text here (a null from the database) gets an empty string, so a page can't crash on it.
+  slug: str(r.slug),
+  name: str(r.name),
+  shortName: str(r.short_name) || str(r.name),
+  host: str(r.host),
   startDate: r.start_date,
   endDate: r.end_date,
   venue: or(r.venue),

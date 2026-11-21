@@ -4,6 +4,9 @@ import type { Entry } from "../types";
 
 export const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Not approved", unpublished: "Taken down" };
 
+/** The chip in a listing's header. */
+export const STATUS_CHIP: Record<string, string> = { pending: "Waiting for Review", published: "Live", rejected: "Rejected", unpublished: "Unpublished" };
+
 // What a changed column is called to a person.
 const FIELD: Record<string, string> = {
   name: "the name", short_name: "the short name", host: "the host school", start_date: "the first day", end_date: "the last day",
@@ -43,3 +46,15 @@ export const when = (iso: string) => {
   const sameYear = d.toLocaleDateString("en-AU", { year: "numeric", timeZone: "Australia/Sydney" }) === new Date().toLocaleDateString("en-AU", { year: "numeric", timeZone: "Australia/Sydney" });
   return d.toLocaleString("en-AU", { day: "numeric", month: "short", ...(sameYear ? {} : { year: "numeric" }), hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
 };
+
+/** The groups the audit log can be narrowed to. */
+export const KIND: Record<string, string> = {
+  edited: "Edits", submitted: "Review", approved: "Review", rejected: "Review", unpublished: "Review", reopened: "Review",
+  "invited organiser": "Organisers", "changed organiser role": "Organisers", "accepted organiser invite": "Organisers", "removed organiser": "Organisers", "left organisers": "Organisers",
+  "registration received": "Registrations", "registration accepted": "Registrations", "registration waitlisted": "Registrations", "registration declined": "Registrations", "registration new": "Registrations", "registration withdrawn": "Registrations",
+};
+export const KINDS = ["Edits", "Review", "Organisers", "Registrations"];
+
+/** What undoing an entry puts back, in words. */
+export const undoWhat = (e: Entry) =>
+  e.action === "edited" && e.fields.length ? `puts back ${list(e.fields.map(fieldName))} as they were before` : "puts the listing back as it was before this change";

@@ -1,0 +1,20 @@
+.banner { display: flex; flex-direction: column; gap: 6px; padding: 22px; margin-bottom: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.banner[data-state="ok"] { border-color: var(--ok); background: var(--ok-soft); }
+.banner[data-state="warn"] { border-color: var(--warn); background: var(--warn-soft); }
+.bannerTitle { font-family: var(--serif); font-size: 26px; line-height: 1.1; }
+.banner[data-state="ok"] .bannerTitle { color: var(--ok); }
+.banner[data-state="warn"] .bannerTitle { color: var(--warn); }
+.figures { display: flex; flex-wrap: wrap; gap: 14px 48px; margin: 4px 0 24px; }
+.figure { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.figure b { font-family: var(--serif); font-weight: 400; font-size: 40px; line-height: 1; color: var(--ink); }
+.figure[data-warn="true"] b { color: var(--warn); }
+.heading { font-family: var(--serif); font-weight: 400; font-size: 22px; margin: 28px 0 12px; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.when { white-space: nowrap; color: var(--muted); font-size: 13px; }
+.job { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.state { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; background: var(--surface); color: var(--muted); }
+.state[data-state="ok"] { background: var(--ok-soft); color: var(--ok); }
+.state[data-state="bad"] { background: var(--danger-soft); color: var(--danger); }
+.slug { display: block; font-size: 12.5px; color: var(--muted); }
+.toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.toolbar button { width: auto; }

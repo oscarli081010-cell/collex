@@ -9,7 +9,8 @@ export type RoomStatus = "loading" | "ready" | "denied" | "offline" | "signin";
 
 // One call every few seconds brings a device everything it shows. It waits while the tab is hidden, and `refresh`
 // asks again at once after the person does something, so their own action shows without the wait.
-function usePolled<T>(fn: (() => PromiseLike<{ data: unknown; error: { code?: string } | null }>) | null, ms: number, onData?: (d: T) => void) {
+// `ms` may be a function, asked before each wait, so a device can slow down while nothing changes.
+function usePolled<T>(fn: (() => PromiseLike<{ data: unknown; error: { code?: string } | null }>) | null, ms: number | (() => number), onData?: (d: T) => void) {
   const [data, setData] = useState<T | null>(null);
   const [status, setStatus] = useState<RoomStatus>("loading");
   const f = useRef(fn);
@@ -28,14 +29,20 @@ function usePolled<T>(fn: (() => PromiseLike<{ data: unknown; error: { code?: st
     finally { busy.current = false; }
   }, []);
   const on = !!fn;
+  const wait = useRef(ms);
+  wait.current = ms;
   useEffect(() => {
     if (!on) return;
     void run();
-    const t = setInterval(() => { if (document.visibilityState === "visible") void run(); }, ms);
+    let t = 0;
+    const tick = () => {
+      t = window.setTimeout(() => { if (document.visibilityState === "visible") void run(); tick(); }, typeof wait.current === "function" ? wait.current() : wait.current);
+    };
+    tick();
     const vis = () => { if (document.visibilityState === "visible") void run(); };
     document.addEventListener("visibilitychange", vis);
-    return () => { clearInterval(t); document.removeEventListener("visibilitychange", vis); };
-  }, [on, ms, run]);
+    return () => { clearTimeout(t); document.removeEventListener("visibilitychange", vis); };
+  }, [on, run, typeof ms === "number" ? ms : 0]); // eslint-disable-line react-hooks/exhaustive-deps
   return { data, status, refresh: run, setData };
 }
 
@@ -46,6 +53,8 @@ export function useDelegateRoom(cid: string | null, signedIn: boolean) {
   // without the committee itself (`same`), and the copy held here is kept.
   const held = useRef<{ cid: string; full: DelegateSync } | null>(null);
   const plain = useRef(false); // the database doesn't take `known` yet (older than the site): ask the old way
+  // Every 2.5 seconds, or every 4 once nothing has changed for a minute. Any change, or anything the delegate does, makes it quick again.
+  const changed = useRef(Date.now());
   const ask = async () => {
     const last = held.current?.cid === cid ? held.current.full : null;
     let res = await db!.rpc("room_sync", last && !plain.current ? { cid, known: last.version } : { cid });
@@ -58,12 +67,16 @@ export function useDelegateRoom(cid: string | null, signedIn: boolean) {
       return { ...res, data: { ...last, ...rest } };
     }
     held.current = { cid: cid!, full: d };
+    changed.current = Date.now();
     return res;
   };
-  const r = usePolled<DelegateSync>(cid && signedIn && db ? ask : null, 2500,
+  const r = usePolled<DelegateSync>(cid && signedIn && db ? ask : null, () => (Date.now() - changed.current > 60_000 ? 4000 : 2500),
     (d) => { if (d.now) ch.setSkew(Date.parse(d.now) - Date.now()); });
-  const c = useMemo(() => (r.data ? ch.normalise(r.data.state) : null), [r.data?.state]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { ...r, c };
+  const st = r.data?.state;
+  const c = useMemo(() => (st ? ch.normalise(st) : null), [st]);
+  const again = r.refresh;
+  const refresh = useCallback(() => { changed.current = Date.now(); return again(); }, [again]);
+  return { ...r, refresh, c };
 }
 
 /** The chairs' side of delegates' devices. Asked for often while devices are on; otherwise only now and then, to notice them being turned on. */

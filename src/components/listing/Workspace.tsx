@@ -4,14 +4,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatRange } from "@/lib/conferences";
+import { supabase } from "@/lib/supabase";
 import { forgetListing } from "@/lib/listingData";
 import { refreshSite } from "@/lib/refresh";
 import { useAuth } from "../AuthProvider";
 import { BandNote, type BandProps, type Figure } from "../PageBand";
 import { ActivitySkeleton } from "../Skeleton";
+import auth from "@/app/auth.module.css";
 import { useToast } from "../useToast";
+import { STATUS_CHIP } from "./activity/words";
 import { MODULES } from "./registry";
 import Shell from "./Shell";
+import s from "./Workspace.module.css";
 import { CLOSED, VIEW_ONLY, tabOf, type TabDef } from "./tabs";
 import type { ListingCtx, Loaded, TabId } from "./types";
 import { useListing } from "./useListing";
@@ -51,6 +55,17 @@ function Open({ tab, id, userId, data, reload }: { tab: TabDef; id: string; user
   const open = live || status === "pending";
   const canEdit = open && data.canEdit !== false;
   const whyNot = canEdit ? "" : data.canEdit === false ? VIEW_ONLY : CLOSED;
+  // A listing that wasn't approved, or was taken down, is not a dead end: its editors can change it and send it again.
+  const closed = status === "rejected" || status === "unpublished";
+  const reopenable = closed && data.canEdit !== false;
+  // What the Collex team wrote when they sent it back. The table hides it; the person's own listings list gives it.
+  const [note, setNote] = useState("");
+  useEffect(() => {
+    if (!closed || !supabase) return;
+    let on = true;
+    supabase.rpc("my_listings").eq("id", id).maybeSingle().then(({ data: row }) => { if (on) setNote(((row as { review_note?: string } | null)?.review_note ?? "").trim()); });
+    return () => { on = false; };
+  }, [closed, id, status]);
 
   const changed = useCallback(() => {
     forgetListing(id);
@@ -60,22 +75,35 @@ function Open({ tab, id, userId, data, reload }: { tab: TabDef; id: string; user
   }, [id, live, reload, router]);
   const put = useCallback((list: Figure[]) => setFigures({ tab: tab.id, list }), [tab.id]);
   const ctx: ListingCtx = useMemo(
-    () => ({ data, c, id, userId, status, live, canEdit, whyNot, say, changed, reload, setFigures: put }),
-    [data, c, id, userId, status, live, canEdit, whyNot, changed, reload, put], // eslint-disable-line react-hooks/exhaustive-deps -- say is new on every render and always does the same thing
+    () => ({ data, c, id, userId, status, live, canEdit, whyNot, reopenable, say, changed, reload, setFigures: put }),
+    [data, c, id, userId, status, live, canEdit, whyNot, reopenable, changed, reload, put], // eslint-disable-line react-hooks/exhaustive-deps -- say is new on every render and always does the same thing
   );
 
   // A tab for editors, opened by someone who can only look: Activity is theirs.
-  const shown = tab.editors && !canEdit ? tabOf("activity") : tab;
+  const shown = tab.editors && !canEdit && !(tab.id === "edit" && reopenable) ? tabOf("activity") : tab;
   // The address then says where they are, so a reload or a shared link opens the same thing.
   useEffect(() => { if (shown.id !== tab.id) window.history.replaceState(null, "", shown.href(id)); }, [shown, tab.id, id]);
   const mod = MODULES[shown.id];
-  const note = <BandNote>{c.name}<br />{c.startDate ? formatRange(c) : "Dates not set"}</BandNote>;
+  const aside = (
+    <BandNote>
+      {c.name}<br />{c.startDate ? formatRange(c) : "Dates not set"}<br />
+      <span className={auth.status} data-status={status}>{STATUS_CHIP[status] ?? status}</span>
+    </BandNote>
+  );
   return (
     <Shell
-      band={{ title: mod.title, accent: mod.accent, aside: note, figures: figures?.tab === shown.id ? figures.list : mod.figures?.(ctx) ?? [] }}
-      nav={{ id, slug: c.slug, current: shown.id, live, whyNot }}
+      band={{ title: mod.title, accent: mod.accent, aside, figures: figures?.tab === shown.id ? figures.list : mod.figures?.(ctx) ?? [] }}
+      nav={{ id, slug: c.slug, current: shown.id, live, whyNot, editOpen: reopenable }}
       sections={mod.sections(ctx)}
     >
+      {closed && (
+        <section className={`panel ${s.banner}`} aria-label="Review">
+          <h2 className={s.bannerTitle}>{status === "rejected" ? "The Collex team didn’t approve this listing" : "The Collex team took this listing down"}</h2>
+          {note && <p className={s.bannerNote}>&ldquo;{note}&rdquo;</p>}
+          <p className="muted">{reopenable ? "Fix what they mention, then send it for review again." : "The person who listed it can change it and send it for review again."}</p>
+          {reopenable && shown.id !== "edit" && <Link href={tabOf("edit").href(id)} className="button block">Edit and Send Again</Link>}
+        </section>
+      )}
       <mod.Body key={shown.id} ctx={ctx} />
       {node}
     </Shell>

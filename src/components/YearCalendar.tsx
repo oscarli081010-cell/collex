@@ -27,16 +27,16 @@ export default function YearCalendar({ year, todayIso, onDay, picked, onPick, on
               {count > 0 && <span className={s.miniCount}>{count} {count === 1 ? "day" : "days"}</span>}
             </header>
             <div className={s.miniWeek} aria-hidden="true">{LETTERS.map((l, i) => <span key={i}>{l}</span>)}</div>
-            <div className={s.miniDays} role="grid" aria-label={`${name} ${year}`}>
+            <div className={s.miniDays}>
               {Array.from({ length: 42 }, (_, i) => {
                 const d = i - lead + 1;
                 if (d < 1 || d > days) return <span key={i} className={s.miniBlank} aria-hidden="true" />;
                 const iso = isoOf(year, m, d);
                 const on = onDay(iso);
                 const cls = `${s.miniDay} ${i % 7 >= 5 ? s.weekend : ""} ${iso === todayIso ? s.today : ""} ${on.length ? s.busy : ""}`;
-                if (!on.length) return <span key={i} role="gridcell" className={cls}>{d}</span>;
+                if (!on.length) return <span key={i} className={cls}>{d}</span>;
                 return (
-                  <span key={i} role="gridcell" className={`${cls} ${s.evWrap}`} data-edge={i % 7 >= 5 ? "end" : undefined}>
+                  <span key={i} className={`${cls} ${s.evWrap}`} data-edge={i % 7 >= 5 ? "end" : undefined}>
                     <button type="button" className={s.miniHit} aria-pressed={picked === iso} onClick={() => onPick(picked === iso ? null : iso)}
                       aria-label={`${d} ${name}: ${on.length} ${on.length === 1 ? "conference" : "conferences"}`}>{d}</button>
                     <span role="tooltip" className={s.preview}>

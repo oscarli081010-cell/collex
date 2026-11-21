@@ -36,5 +36,5 @@ export default function Photo({ src, alt, sizes, className, style, fill, width, 
     return <img src={src} alt={alt} className={className} style={fill ? { position: "absolute", inset: 0, width: "100%", height: "100%", ...style } : style} fetchPriority={priority ? "high" : undefined} loading={priority ? undefined : "lazy"} decoding="async" />;
   }
   const common = { ref: img, src, alt, sizes, className, style, onError: () => setFailed(true), ...(priority ? { preload: true, fetchPriority: "high" as const } : {}) };
-  return fill ? <Image {...common} fill /> : <Image {...common} width={width} height={height} />;
+  return fill ? <Image {...common} alt={alt} fill /> : <Image {...common} alt={alt} width={width} height={height} />;
 }

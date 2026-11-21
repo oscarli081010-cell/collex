@@ -92,14 +92,15 @@ function Invite({ ctx, onInvited }: { ctx: ListingCtx; onInvited: () => void }) 
   const [role, setRole] = useState<Member["role"]>("editor");
   async function invite(e: React.FormEvent) {
     e.preventDefault();
-    if (!supabase) return;
+    if (!supabase || !ctx.live) return;
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setError("Add the email they use for Collex.");
     setBusy(true);
     const { data, error } = await supabase.rpc("invite_organiser", { conf: ctx.id, invitee_email: email.trim(), as_role: role });
+    const sent = typeof data === "string" && data ? data : email.trim().toLowerCase();
     setBusy(false);
     if (error) return setError(error.message);
     setEmail("");
-    ctx.say(`Invited ${data}. They'll see it on their account page.`);
+    ctx.say(`If ${sent} has a Collex account, they've been invited.`);
     onInvited();
   }
   return (
@@ -120,9 +121,13 @@ function Invite({ ctx, onInvited }: { ctx: ListingCtx; onInvited: () => void }) 
             ? <small key="err" id="invite-hint" className={`t-reveal ${s.error}`}>{error}</small>
             : <small id="invite-hint">They need a Collex account. The invite waits on their account page.</small>}
         </label>
-        <button className="button lg block" disabled={busy}>
-          <span key={String(busy)} className="t-swap">{busy ? "Inviting…" : "Invite"}</span>
-        </button>
+        {ctx.live ? (
+          <button className="button lg block" disabled={busy}>
+            <span key={String(busy)} className="t-swap">{busy ? "Inviting…" : "Invite"}</span>
+          </button>
+        ) : (
+          <span className="tip" data-tip="Invite people once the listing is live"><button type="button" className="button lg block" disabled>Invite</button></span>
+        )}
       </form>
     </Section>
   );

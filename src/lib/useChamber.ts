@@ -321,7 +321,9 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
   // anything: replayed on a newer copy it may not. A change that never arrives answers false.
   const act = useCallback((fn0: (x: Chamber) => Chamber, track = true): Promise<boolean> => {
     if (!cur.current || o.readOnly) return Promise.resolve(false);
-    const fn = track ? (x: Chamber) => ch.remember(x, fn0(x)) : fn0;
+    // Each step kept for Back says which chair made it, so one chair's Back never takes back another's step.
+    const by = uid.current || undefined;
+    const fn = track ? (x: Chamber) => ch.remember(x, fn0(x), by) : fn0;
     const next = fn(cur.current);
     const changed = next !== cur.current;
     let answer: Promise<boolean> = Promise.resolve(changed);
@@ -336,5 +338,8 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
   const setLocal = useCallback((next: Chamber | null) => { show(next); ch.save(next); }, [show]);
   const clearNotice = useCallback(() => setNotice(null), []);
 
-  return { c, status, owner, role, manage, act, setLocal, notice, clearNotice, held };
+  // Who this chair is, for Back.
+  const me = useCallback(() => uid.current || undefined, []);
+
+  return { c, status, owner, role, manage, act, setLocal, notice, clearNotice, held, me };
 }

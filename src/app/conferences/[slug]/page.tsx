@@ -13,6 +13,7 @@ import ApplyBand from "@/components/ApplyBand";
 import { ApplyOnCollex, ClaimListing } from "@/components/ConferenceHub";
 import ConferenceActions from "@/components/ConferenceActions";
 import ConferenceTabs from "@/components/ConferenceTabs";
+import { breadcrumbJsonLd } from "@/components/Breadcrumbs";
 import FollowButton from "@/components/FollowButton";
 import StickyApply from "@/components/StickyApply";
 import Verified from "@/components/Verified";
@@ -32,8 +33,8 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const c = await getBySlug((await params).slug);
-  if (!c) return { title: "Collex" };
-  if (c.isTemplate) return { title: "Demo · Collex", robots: { index: false } };
+  if (!c) return { title: "Conference not found · Collex", description: "This conference isn't on Collex, or its listing has been taken down. See the conferences that are.", robots: { index: false } };
+  if (c.isTemplate) return { title: "Demo · Collex", description: "A demonstration conference page on Collex, showing what every listing includes. It is not a real conference.", robots: { index: false } };
   // Shared links show the organiser's cover photo when there is one, otherwise the generated card.
   const image = c.cover
     ? { url: c.cover, alt: `${c.name} cover photo` }
@@ -54,17 +55,27 @@ function shareLine(c: Conference) {
   return `${when}, ${where}.`;
 }
 
-// One or two plain sentences for search results: the overview if there is one, otherwise the facts.
+// The overview as plain running text: the "Cover photo: …" credit some organisers add, and the line breaks, are dropped.
+function plainOverview(c: Conference) {
+  if (c.overview === NA) return "";
+  return c.overview.split(/\r?\n/).filter((l) => !/^\s*cover photo\b/i.test(l)).join(" ").replace(/\s+/g, " ").trim();
+}
+
+// 70 to 155 characters for search results, ending on a whole word: the overview if there is one (with the facts added when
+// it is very short), otherwise the facts.
 function describe(c: Conference) {
   const when = c.startDate ? `, ${formatRange(c)}` : "";
-  const facts = `${c.name}, a Model UN conference hosted by ${c.host}${when}.`;
-  if (c.overview === NA) return facts;
-  return c.overview.length > 160 ? `${c.overview.slice(0, 157).trimEnd()}…` : c.overview;
+  const facts = c.host === NA ? `${c.name}, a Model UN conference in Sydney${when}.` : `${c.name}, a Model UN conference hosted by ${c.host}${when}.`;
+  const text = plainOverview(c);
+  let d = !text ? facts : text.length < 70 ? `${text.replace(/[.\s]+$/, "")}. ${facts}` : text;
+  if (d.length > 155) d = `${d.slice(0, 154).replace(/\s+\S*$/, "").replace(/[,;:\-\s]+$/, "")}.`;
+  return d;
 }
 
 // schema.org Event data, so search engines can show the conference as an event. Only facts from the listing.
 function eventSchema(c: Conference) {
   const place = c.venue === NA ? c.host : c.venue;
+  const image = c.cover ?? `https://collex.au/conferences/${c.slug}/share.png`;
   return {
     "@context": "https://schema.org",
     "@type": "Event",
@@ -76,10 +87,13 @@ function eventSchema(c: Conference) {
     location: {
       "@type": "Place",
       name: place,
-      address: { "@type": "PostalAddress", addressLocality: "Sydney", addressRegion: "NSW", addressCountry: "AU" },
+      // The venue's name is all the listing holds, so that is the address text, with the city.
+      address: { "@type": "PostalAddress", streetAddress: c.venue === NA ? undefined : c.venue, addressLocality: "Sydney", addressRegion: "NSW", addressCountry: "AU" },
     },
-    organizer: { "@type": "Organization", name: c.host },
-    ...(c.overview !== NA && { description: c.overview }),
+    image: [image],
+    // The listing doesn't hold the host's own website, so the organiser is named without a url.
+    ...(c.host !== NA && { organizer: { "@type": "Organization", name: c.host } }),
+    description: describe(c),
     url: `https://collex.au/conferences/${c.slug}`,
   };
 }
@@ -142,6 +156,9 @@ export default async function ConferencePage({ params }: Props) {
       <main id="top" className="container">
         {!c.isTemplate && c.startDate && (
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventSchema(c)).replace(/</g, "\\u003c") }} />
+        )}
+        {!c.isTemplate && (
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd([{ name: "Home", href: "/" }, { name: "Conferences", href: "/conferences" }, { name: c.name }])).replace(/</g, "\\u003c") }} />
         )}
         <section className={s.confFirst}>
         <ViewTransition name={`cover-${c.slug}`} share="morph" default="none">
@@ -320,7 +337,7 @@ export default async function ConferencePage({ params }: Props) {
               {([
                 ["Dates", formatRange(c)],
                 ["Host school", shown(c.host)],
-                ["Venue", <Venue name={c.venue} />],
+                ["Venue", <Venue key="venue" name={c.venue} />],
                 ["Level", shown(c.level)],
                 ["Delegates", shown(c.delegates)],
                 ["Delegate fee", shown(c.fee)],
@@ -329,6 +346,7 @@ export default async function ConferencePage({ params }: Props) {
                 <div key={k} className={s.fact}><dt>{k}</dt><dd>{v}</dd></div>
               ))}
             </dl>
+            {!c.isTemplate && <p className="muted" style={{ fontSize: 13, padding: "12px 0 14px", borderTop: "1px solid var(--line)" }}>Going with a school? <Link className="link" href={`/conferences/${c.slug}/sign-off`}>Print a Permission Sheet</Link></p>}
             <ClaimListing c={c} />
             {c.id && !c.isTemplate && <div className={reportStyles.wrap}><ReportProblem id={c.id} name={c.name} /></div>}
           </aside>

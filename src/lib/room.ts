@@ -10,16 +10,20 @@ export type Note = { id: string; from_id: string; to_id: string; body: string; c
 export type RoomFile = { id: string; from_id: string; name: string; path: string; size: number; created_at: string; mine: boolean };
 /** The room's own settings, kept by the chairs: who may pass notes, and a straw poll. */
 export type Straw = { id: string; q: string; options: string[]; open: boolean };
-export type RoomMeta = { notes?: "on" | "chair" | "off"; straw?: Straw | null };
-export type Seat = { user_id: string; delegate_id: string; name: string };
-export type DelegateSync = { state: Chamber; version: number; name: string; now: string; seat: string; room: RoomMeta; asks: Ask[]; notes: Note[]; files: RoomFile[]; votes: Record<string, string> };
+// approveSeats: a seat waits for a chair to approve it before the person sees anything (off unless a chair turns it on).
+export type RoomMeta = { notes?: "on" | "chair" | "off"; straw?: Straw | null; approveSeats?: boolean };
+// `approved` is missing from a database older than migration 0041, where every seat counts as approved.
+export type Seat = { user_id: string; delegate_id: string; name: string; approved?: boolean };
+// A seat still waiting for the chair gets only { pending: true, name, seat, now }: nothing of the committee.
+export type DelegateSync = { pending?: boolean; seat_name?: string; state: Chamber; version: number; name: string; now: string; seat: string; room: RoomMeta; asks: Ask[]; notes: Note[]; files: RoomFile[]; votes: Record<string, string> };
 export type ChairSync = { on: boolean; code: string | null; room: RoomMeta; seats: Seat[]; asks: Ask[]; notes: Note[]; files: RoomFile[]; votes: { key: string; delegate_id: string; ballot: string }[] };
 
 /** What is being voted on now, as the name delegates' votes are kept under; null when nothing is. */
 export const voteKey = (c: Chamber): string | null =>
-  c.poll ? `poll|${c.poll.kind}|${c.poll.motion ?? c.amend?.id ?? ""}|${c.amend?.stage ?? ""}`.slice(0, 200)
-    : c.step === "vote" ? `res|${c.tr?.current ?? c.topic}`.slice(0, 200) : null;
-export const voteTitle = (c: Chamber): string => (c.poll ? c.poll.title : c.step === "vote" ? `${ch.resNoun(c)}: ${ch.currentDoc(c)?.title ?? c.topic}` : "");
+  // An amendment to the amendment is its own vote (a second one on the same amendment must not take the first's votes).
+  c.poll ? `poll|${c.poll.kind}|${c.poll.motion ?? c.amend?.id ?? ""}|${c.amend?.stage ?? ""}${!c.poll.motion && c.amend?.sub ? `|sub|${c.amend.sub.id}` : ""}`.slice(0, 200)
+    : c.step === "vote" ? `res|${c.tr?.current ?? c.topic}${c.divide ? `|p${c.divide.at}` : ""}`.slice(0, 200) : null; // each part of a divided question is its own vote
+export const voteTitle = (c: Chamber): string => (c.poll ? c.poll.title : c.step === "vote" ? `${ch.resNoun(c)}: ${ch.currentDoc(c)?.title ?? c.topic}${ch.partText(c) ? ` (${ch.partText(c)})` : ""}` : "");
 export const strawKey = (s: Straw) => `straw|${s.id}`;
 
 export const POINTS = [["order", "Point of Order"], ["privilege", "Point of Personal Privilege"], ["inquiry", "Point of Inquiry"]] as const;

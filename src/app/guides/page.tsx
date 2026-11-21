@@ -7,7 +7,7 @@ import s from "@/components/Guides.module.css";
 export const metadata: Metadata = {
   alternates: { canonical: "/guides" },
   title: "Guides · Collex",
-  description: "Short, practical guides to Model UN: chairing a committee on Collex, Evatt and Trinity procedure, your first conference, writing a resolution and running a school conference.",
+  description: "Short Model UN guides: your first conference, speaking, research, chairing, resolutions, a glossary and running a school conference.",
 };
 
 const GROUPS = ["Chairs", "Delegates", "Organisers"] as const;

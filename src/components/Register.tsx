@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { Conference } from "@/lib/conferences";
+import { isPast, type Conference } from "@/lib/conferences";
 import { whenOpens } from "@/lib/schedule";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
@@ -36,6 +36,7 @@ export function RegisterCard({ c, mine, formOpen, setFormOpen, say, onWithdrawn 
   const { ready, session } = useAuth();
   const state = useOpen(c.delegationOpensAt);
   const [busy, setBusy] = useState(false);
+  const finished = isPast(c);
   const waiting = Boolean(c.delegationOpensAt) && state === "closed";
   const hold = state === "unknown" || !ready || mine === undefined ? { visibility: "hidden" as const } : undefined;
 
@@ -49,7 +50,7 @@ export function RegisterCard({ c, mine, formOpen, setFormOpen, say, onWithdrawn 
     onWithdrawn();
   };
 
-  const status = mine ? SAYS[mine.status] : waiting ? `Opens ${whenOpens(c.delegationOpensAt!)}` : state === "open" ? "Registrations open" : "";
+  const status = mine ? SAYS[mine.status] : finished ? "This conference has finished" : waiting ? `Opens ${whenOpens(c.delegationOpensAt!)}, Sydney time` : state === "open" ? "Registrations open" : "";
   return (
     <div className={s.applyOption}>
       <div>
@@ -58,8 +59,8 @@ export function RegisterCard({ c, mine, formOpen, setFormOpen, say, onWithdrawn 
       </div>
       {mine ? (
         <button className={`button secondary ${s.applyBtn}`} onClick={withdraw} disabled={busy} style={hold}>Withdraw Registration</button>
-      ) : waiting ? (
-        <span className="tip" data-tip={`Opens ${whenOpens(c.delegationOpensAt!)} (Sydney time)`} style={hold}><button className={`button ${s.applyBtn}`} disabled data-closed>Register →</button></span>
+      ) : finished || waiting ? (
+        <span className="tip" data-tip={finished ? "This conference has finished" : `Opens ${whenOpens(c.delegationOpensAt!)}, Sydney time`} style={hold}><button className={`button ${s.applyBtn}`} disabled data-closed>Register →</button></span>
       ) : !session ? (
         <Link href={`/login?next=${encodeURIComponent(`/conferences/${c.slug}`)}`} className={`button ${s.applyBtn}`} style={hold}>Log in to Register →</Link>
       ) : (

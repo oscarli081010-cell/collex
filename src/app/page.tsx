@@ -16,13 +16,18 @@ const SITE = {
   name: "Collex",
   url: "https://collex.au",
   description: "A calendar of Model United Nations conferences in Sydney, each with its own page.",
-  publisher: {
-    "@type": "Organization",
-    name: "Collex",
-    url: "https://collex.au",
-    email: "hello@collex.au",
-    address: { "@type": "PostalAddress", addressLocality: "Sydney", addressRegion: "NSW", addressCountry: "AU" },
-  },
+  publisher: { "@id": "https://collex.au/#organization" },
+};
+
+const ORGANIZATION = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": "https://collex.au/#organization",
+  name: "Collex",
+  url: "https://collex.au",
+  logo: "https://collex.au/pwa-512.png",
+  email: "hello@collex.au",
+  address: { "@type": "PostalAddress", addressLocality: "Sydney", addressRegion: "NSW", addressCountry: "AU" },
 };
 
 const HERO = (ext: string) => [640, 960, 1440].map((w) => `/img/general-assembly-${w}.${ext} ${w}w`).join(", ");
@@ -31,16 +36,18 @@ const HERO_SIZES = "(max-width: 980px) calc(100vw - 40px), 620px";
 export default function Home() {
   return (
     <main id="top">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify([SITE, ORGANIZATION]) }} />
       <section className={`container ${styles.hero}`}>
         <Reveal className={styles.heroText}>
           <h1 className={`serif ${styles.title}`}>
             Sydney Model UN, <em>in one place.</em>
           </h1>
           <p className={styles.lead}>Upcoming conferences, dates and links, <span className={styles.aura}>on one calendar.</span></p>
+          <p className={styles.what}>Model UN is where students act as countries to debate the world&rsquo;s problems, and Collex helps Sydney high-school delegates, chairs and organisers find the conferences.</p>
           <div className={styles.heroActions}>
             <a href="#upcoming" className="button lg">See What&rsquo;s On</a>
             <Link href="/list" className="button secondary lg">List a Conference</Link>
+            <Link href="/start" className={`link ${styles.start}`}>New to MUN? Start Here</Link>
           </div>
         </Reveal>
         <div className={styles.heroPic}>
@@ -49,7 +56,6 @@ export default function Home() {
           <picture className={styles.heroImg}>
             <source type="image/avif" srcSet={HERO("avif")} sizes={HERO_SIZES} />
             <source type="image/webp" srcSet={HERO("webp")} sizes={HERO_SIZES} />
-            {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized static files, no optimiser needed */}
             <img src="/img/general-assembly-960.jpg" srcSet={HERO("jpg")} sizes={HERO_SIZES} width={1440} height={960}
               alt="The United Nations General Assembly Hall in New York" fetchPriority="high" decoding="async" />
           </picture>

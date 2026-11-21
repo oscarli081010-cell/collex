@@ -1,7 +1,7 @@
 .footer { border-top: 1px solid var(--line); margin-top: clamp(112px, 12vw, 176px); }
 .inner { display: flex; justify-content: space-between; gap: 48px; padding-block: 64px 80px; flex-wrap: wrap; }
 .brand { display: flex; flex-direction: column; gap: 8px; max-width: 280px; }
-.cols { display: grid; grid-template-columns: repeat(4, auto); gap: 56px; font-size: 14px; }
+.cols { display: grid; grid-template-columns: repeat(5, auto); gap: 48px; font-size: 14px; }
 .cols ul { display: flex; flex-direction: column; gap: 8px; }
 .cols a { color: var(--muted); transition: color var(--duration-quick) var(--ease-smooth-out); }
 .cols a:hover { color: var(--ink); }

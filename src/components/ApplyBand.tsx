@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { Conference } from "@/lib/conferences";
+import { isPast, type Conference } from "@/lib/conferences";
 import { whenOpens } from "@/lib/schedule";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
@@ -21,6 +21,8 @@ export default function ApplyBand({ c }: { c: Conference }) {
   const here = Boolean(c.collexRegistration) && !c.delegationUrl;
   const [mine, setMine] = useMine(c);
   const [formOpen, setFormOpen] = useState(false);
+  // A conference with no end date ends on its start date.
+  const finished = isPast(c);
   const options = [
     { title: "Register a delegation", url: c.delegationUrl, cta: "Register", at: c.delegationOpensAt, status: "Registration", what: "Registration", not: "isn't" },
     { title: "Apply to chair", url: c.chairUrl, cta: "Apply", at: c.chairOpensAt, status: "Applications", what: "Chair applications", not: "aren't" },
@@ -30,9 +32,9 @@ export default function ApplyBand({ c }: { c: Conference }) {
     <section id="apply" className={s.applyBand} aria-label="Apply">
       {here
         ? <RegisterCard c={c} mine={mine} formOpen={formOpen} setFormOpen={setFormOpen} say={say} onWithdrawn={() => setMine(null)} />
-        : <ApplyCard o={options[0]} say={say} />}
+        : <ApplyCard o={options[0]} finished={finished} />}
       <Interest c={c} say={say} />
-      <ApplyCard o={options[1]} say={say} />
+      <ApplyCard o={options[1]} finished={finished} />
       {here && formOpen && !mine && <RegisterForm c={c} say={say} onDone={(m) => { setMine(m); setFormOpen(false); }} />}
       {node}
     </section>
@@ -83,12 +85,12 @@ function BuiltInInterest({ c, say }: { c: Conference; say: Say }) {
     setBusy(false);
     if (error) return say("That didn't save. Try again.");
     setState({ ...state, sent: !state.sent });
-    say(state.sent ? "Interest withdrawn" : `The ${c.shortName} team can see someone's interested`);
+    say(state.sent ? "Expression of interest withdrawn" : `The ${c.shortName} team can see your expression of interest`);
   };
 
   const organiser = state?.count != null;
   // The people who run a listing don't see the count here; it's on the Activity page.
-  const status = organiser ? "You run this listing" : state?.sent ? "Interest sent" : "Not ready to register? Let them know.";
+  const status = organiser ? "You run this listing" : state?.sent ? "Expression of interest sent" : "Not ready to register? Let them know.";
 
   return (
     <div className={s.applyOption} data-kind="interest">
@@ -116,9 +118,9 @@ function BuiltInInterest({ c, say }: { c: Conference; say: Say }) {
 type Option = { title: string; url?: string | null; cta: string; at?: string | null; status: string; what: string; not: string };
 
 // Register or apply. A scheduled button stays shut, and says when it opens, until that time arrives.
-function ApplyCard({ o, say }: { o: Option; say: Say }) {
+function ApplyCard({ o, finished }: { o: Option; finished: boolean }) {
   const state = useOpen(o.at);
-  const open = Boolean(o.url) && state === "open";
+  const open = Boolean(o.url) && state === "open" && !finished;
   const waiting = Boolean(o.url && o.at) && state === "closed";
   const hold = state === "unknown" ? { visibility: "hidden" as const } : undefined;
   return (
@@ -126,21 +128,15 @@ function ApplyCard({ o, say }: { o: Option; say: Say }) {
       <div>
         <h2 className={s.applyTitle}>{o.title}</h2>
         <span className={s.applyStatus} data-open={open} style={hold}>
-          {open ? `${o.status} open` : waiting ? `Opens ${whenOpens(o.at!)}` : `${o.status} not open yet`}
+          {finished ? "This conference has finished" : open ? `${o.status} open` : waiting ? `Opens ${whenOpens(o.at!)}, Sydney time` : `${o.status} not open yet`}
         </span>
       </div>
       {open ? (
         <a href={o.url!} className={`button ${s.applyBtn}`} target="_blank" rel="noreferrer">{o.cta} →</a>
       ) : (
-        <button
-          className={`button ${s.applyBtn}`}
-          style={hold}
-          aria-disabled="true"
-          data-closed
-          onClick={() => say(waiting ? `${o.what} ${o.not === "aren't" ? "open" : "opens"} ${whenOpens(o.at!)} (Sydney time).` : `${o.what} ${o.not} open yet. Check back soon.`)}
-        >
-          {o.cta} →
-        </button>
+        <span className="tip" data-tip={finished ? "This conference has finished" : waiting ? `Opens ${whenOpens(o.at!)}, Sydney time` : `${o.what} ${o.not} open yet. Check back soon.`} style={hold}>
+          <button className={`button ${s.applyBtn}`} disabled data-closed>{o.cta} →</button>
+        </span>
       )}
     </div>
   );

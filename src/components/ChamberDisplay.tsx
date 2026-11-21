@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import * as ch from "@/lib/chamber";
@@ -10,6 +10,9 @@ import { isId, useChamber } from "@/lib/useChamber";
 import { useAuth } from "./AuthProvider";
 import { useNow } from "./Chambers";
 import Flag from "./Flag";
+import QrCode from "./QrCode";
+import { useOfflineReady } from "./Offline";
+import { supabase } from "@/lib/supabase";
 import s from "./Chambers.module.css";
 
 // What the room sees. Every screen is built the same way, top to bottom: a pill only when it says something the heading
@@ -40,25 +43,73 @@ const leadAndBig = (text: string): [string, string] => {
   return [w.slice(0, k).join(" "), w.slice(k).join(" ")];
 };
 
-/** The roll call as pages of 20 states: it follows the states being marked, and once every one is marked it turns through the pages. */
-function RollBoard({ c, tag }: { c: ch.Chamber; tag: (id: string) => React.ReactNode }) {
-  const PER = 20;
-  const pages = Math.max(1, Math.ceil(c.delegates.length / PER));
-  const first = c.delegates.findIndex((d) => !c.roll[d.id]);
+/** Pages of 20 states: the board follows the first state still to be marked, and once every one is marked it turns through the pages. */
+const PER = 20;
+function usePage(n: number, first: number) {
+  const pages = Math.max(1, Math.ceil(n / PER));
   const [turn, setTurn] = useState(0);
   useEffect(() => {
     if (pages < 2 || first !== -1) return;
     const t = setInterval(() => setTurn((x) => (x + 1) % pages), 6000);
     return () => clearInterval(t);
   }, [pages, first]);
-  const at = pages < 2 ? 0 : first !== -1 ? Math.floor(first / PER) : turn % pages;
+  return { pages, at: pages < 2 ? 0 : first !== -1 ? Math.floor(first / PER) : turn % pages };
+}
+const Pages = ({ at, pages }: { at: number; pages: number }) => (pages > 1 ? <p className={s.dPages} aria-live="polite">{at + 1} / {pages}</p> : null);
+/** A state's name on a tile: the short form where there is one, the full name on hover, and an ellipsis if it is still too long. */
+const Seat = ({ name }: { name: string }) => <span className={s.dSeatName} title={name}>{ch.shortName(name)}</span>;
+
+/** The roll call as pages of 20 states. */
+function RollBoard({ c, tag }: { c: ch.Chamber; tag: (id: string) => React.ReactNode }) {
+  const { at, pages } = usePage(c.delegates.length, c.delegates.findIndex((d) => !c.roll[d.id]));
   return (
     <>
       <div className={s.dBoard}>
-        {c.delegates.slice(at * PER, (at + 1) * PER).map((d) => <div key={d.id} className={s.dSeat} data-a={c.roll[d.id]}><i /><span className={s.dSeatName}>{d.name}</span>{tag(d.id) ?? (c.roll[d.id] && <em title={ch.ATTEND_LABEL[c.roll[d.id]]}>{c.roll[d.id] === "voting" ? "P & V" : ch.ATTEND_LABEL[c.roll[d.id]]}</em>)}</div>)}
+        {c.delegates.slice(at * PER, (at + 1) * PER).map((d) => <div key={d.id} className={s.dSeat} data-a={c.roll[d.id]}><i /><Seat name={d.name} />{tag(d.id) ?? (c.roll[d.id] && <em title={ch.ATTEND_LABEL[c.roll[d.id]]}>{c.roll[d.id] === "voting" ? "P & V" : ch.ATTEND_LABEL[c.roll[d.id]]}</em>)}</div>)}
       </div>
-      {pages > 1 && <p className={s.dPages} aria-live="polite">{at + 1} / {pages}</p>}
+      <Pages at={at} pages={pages} />
     </>
+  );
+}
+/** The vote as pages of 20 states present, each ballot in words as well as colour. */
+const BALLOT_WORD: Record<ch.Ballot, string> = { for: "For", against: "Against", abstain: "Abstain" };
+function VoteBoard({ c, tag }: { c: ch.Chamber; tag: (id: string) => React.ReactNode }) {
+  const here = c.delegates.filter((d) => ch.isHere(c, d.id));
+  const { at, pages } = usePage(here.length, c.step === "vote" ? here.findIndex((d) => !c.ballots[d.id]) : -1);
+  return (
+    <>
+      <div className={s.dBoard}>
+        {here.slice(at * PER, (at + 1) * PER).map((d) => {
+          const b = c.ballots[d.id];
+          return <div key={d.id} className={s.dSeat} data-b={b}><i /><Seat name={d.name} />{tag(d.id) ?? (b && <em>{c.tr && b === "abstain" ? "Neutral" : BALLOT_WORD[b]}</em>)}</div>;
+        })}
+      </div>
+      <Pages at={at} pages={pages} />
+    </>
+  );
+}
+
+/** The code to join from a device, with a QR code, while the chair shows it. Only a chair's browser can read the code. */
+function JoinCode({ cid }: { cid: string }) {
+  const [code, setCode] = useState<string | null>(null);
+  useEffect(() => {
+    if (!supabase) return;
+    let live = true;
+    const get = async () => {
+      const { data } = await supabase!.rpc("room_chair", { cid });
+      if (live) setCode((data as { code?: string | null } | null)?.code ?? null);
+    };
+    void get();
+    const t = setInterval(get, 30_000); // a new code made in the console shows here within half a minute
+    return () => { live = false; clearInterval(t); };
+  }, [cid]);
+  if (!code) return null;
+  const url = `${location.origin}/chambers/room?join=${code}`;
+  return (
+    <div className={s.dJoin}>
+      <QrCode value={url} size={112} label={`QR code to join with the code ${code}`} />
+      <span>Join on your device<b>{code}</b>{location.host}/chambers/room</span>
+    </div>
   );
 }
 
@@ -81,12 +132,77 @@ function Screen({ pill, side, heading, pass, lines, foot, children }: {
   );
 }
 
+/* The display's sounds, when the chair turns them on in Settings (off by default): a chime when a speech reaches 0:00
+   and again 10 seconds over, and a softer tone 10 seconds before the end. Played with the browser's own audio, so a
+   muted tab stays silent. Browsers only allow sound after a click on the page, so until then a button asks for one. */
+// A second display tab open in the same browser plays each tone only once between them: the first tab to reach a mark
+// notes it here, and the other stays quiet for that mark.
+function first(mark: string): boolean {
+  try {
+    const k = "collex-chime";
+    const [was, at] = (localStorage.getItem(k) ?? "").split("@");
+    if (was === mark && Date.now() - Number(at) < 5000) return false;
+    localStorage.setItem(k, `${mark}@${Date.now()}`);
+  } catch { /* no storage: just play it */ }
+  return true;
+}
+function useChime(c: ch.Chamber | null, now: number) {
+  const ctx = useRef<AudioContext | null>(null);
+  const last = useRef<{ key: string; rem: number } | null>(null);
+  const [ready, setReady] = useState(false);
+  const want = !!(c?.chime?.end || c?.chime?.warn);
+  const make = () => {
+    if (ctx.current || typeof window === "undefined") return ctx.current;
+    const A = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!A) return null;
+    const a = new A();
+    a.onstatechange = () => setReady(a.state === "running");
+    setReady(a.state === "running");
+    ctx.current = a;
+    return a;
+  };
+  useEffect(() => { if (want) make(); }, [want]);
+  useEffect(() => () => { void ctx.current?.close(); }, []);
+  const tone = (freq: number, at: number, len: number, vol: number) => {
+    const a = ctx.current;
+    if (!a || a.state !== "running") return;
+    const o = a.createOscillator();
+    const g = a.createGain();
+    const t0 = a.currentTime + at;
+    o.type = "sine";
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(vol, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + len);
+    o.connect(g).connect(a.destination);
+    o.start(t0);
+    o.stop(t0 + len + 0.05);
+  };
+  // Each speech's clock is followed on its own; a tone plays when the time left crosses a mark while it runs.
+  const sp = c?.speech;
+  const timer = c?.timer ?? null;
+  const key = sp && sp.phase === "speech" && timer ? `${sp.who}|${sp.role}|${timer.label}|${timer.total}` : "";
+  const rem = timer ? ch.remaining(timer, now) - ch.overtime(timer, now) : 0;
+  useEffect(() => {
+    const prev = last.current;
+    last.current = key ? { key, rem } : null;
+    if (!key || !prev || prev.key !== key || !want || rem >= prev.rem) return;
+    const crossed = (mark: number) => prev.rem > mark && rem <= mark;
+    if (c?.chime?.warn && crossed(10_000) && first(`${key}|warn`)) tone(660, 0, 0.35, 0.18);
+    if (c?.chime?.end && (crossed(0) || crossed(-10_000)) && first(`${key}|${crossed(0) ? "end" : "over"}`)) { tone(880, 0, 0.6, 0.3); tone(660, 0.28, 0.8, 0.3); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, rem]);
+  const turnOn = want && !ready ? () => { void make()?.resume(); } : null;
+  return turnOn;
+}
+
 export default function ChamberDisplay() {
   const q = useSearchParams().get("c");
   const cloudId = isId(q) ? q : null;
   const { ready: authReady, session } = useAuth();
   const { c, status } = useChamber(cloudId, { signedIn: !!session, authReady, readOnly: true });
   const [full, setFull] = useState(false);
+  useOfflineReady(); // keeps the display's own scripts, so it opens again without wifi
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
@@ -98,6 +214,7 @@ export default function ChamberDisplay() {
   const now = useNow(ch.running(c?.timer ?? null) || ch.running(c?.tr?.cauc?.clock ?? null) || (!!c?.tr && Object.keys(c.tr.observers).length > 0));
   const left = c?.timer ? ch.remaining(c.timer, now) : 0;
   const state = !c?.timer ? "none" : left === 0 ? "up" : c.timer.endsAt === null ? "paused" : left <= 10_000 ? "low" : "running";
+  const turnSoundOn = useChime(c ?? null, now);
 
   if (!mounted) return null; // the saved committee is only known in the browser
 
@@ -111,6 +228,7 @@ export default function ChamberDisplay() {
       <div className={s.dToolRow}>
         <button type="button" className={s.dBtn} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}{full ? "Exit full screen" : "Full screen"}</button>
         <Link href={cloudId ? `/chambers?c=${cloudId}` : "/chambers"} className={s.dBtn}><Back />Console</Link>
+        {turnSoundOn && <button type="button" className={s.dBtn} onClick={turnSoundOn}>Turn Sound On</button>}
       </div>
       <span className={`${s.dBtn} ${s.dBrand}`}>Powered by <Mark size={17} /><Wordmark height={13} /></span>
     </div>
@@ -118,9 +236,10 @@ export default function ChamberDisplay() {
 
   const name = (id: string | null) => (c ? ch.nameOf(c, id) : "");
   const amendment = c?.amend ? c.amendments.find((a) => a.id === c.amend!.id) : undefined;
+  const subA = c?.amend?.sub ? c.amendments.find((a) => a.id === c.amend!.sub!.id) : undefined;
   const timerView = () => c?.timer && (
     <>
-      <div className={s.dTime} data-state={state} role="timer">{ch.clock(left)}</div>
+      <div className={s.dTime} data-state={state} data-over={ch.overtime(c.timer, now) > 0 || undefined} role="timer">{ch.timerText(c.timer, now)}</div>
       <div className={s.dTrack} aria-hidden="true"><i style={{ width: `${Math.min(100, (left / c.timer.total) * 100)}%` }} /></div>
     </>
   );
@@ -170,10 +289,13 @@ export default function ChamberDisplay() {
       <Screen pill={["Points of Information"]} heading={name(sp.who)} lines={[taken ?? "Raise your placard to ask"]} />
     ) : (
       <Screen pill={[ch.roleName(c, sp.role), sideOf(sp) && SIDE[sp.side]]} side={sideOf(sp)} heading={name(sp.who)}
-        lines={[sp.phase === "after" ? "How do you yield?" : c.step === "amend" && amendment ? amendment.text : null, kLine]}>
+        lines={[sp.phase === "after" ? "How do you yield?" : c.step === "amend" && amendment ? (subA ?? amendment).text : null, kLine]}>
         {sp.phase === "speech" && timerView()}
       </Screen>
     );
+  } else if (c.explain?.who) {
+    const e = c.explain.who;
+    mid = <Screen pill={["Explanation of Vote", e.side === "for" ? "Yes with Rights" : "No with Rights"]} side={e.side} heading={name(e.id)}>{timerView()}</Screen>;
   } else if (c.step === "welcome") {
     // "Welcome to" small and slanted over the committee's name, which is as big as it can be.
     const n = c.name.length;
@@ -227,6 +349,13 @@ export default function ChamberDisplay() {
     );
   } else if (c.step === "caucus") {
     mid = <Screen heading={k?.kind === "final" ? "Final Unmoderated Caucus" : c.tr ? "Unmoderated Caucus" : "Caucus"}>{timerView()}</Screen>;
+  } else if (c.step === "amend" && amendment && subA) {
+    const subPill = ["Amendment to the Amendment", `from ${name(subA.by)}`];
+    mid = c.poll ? (
+      <Screen pill={subPill} heading="Adopt This Amendment to the Amendment?" lines={[`\u201C${subA.text}\u201D`]}>{votes(c.poll)}</Screen>
+    ) : (
+      <Screen pill={subPill} heading={`\u201C${subA.text}\u201D`} lines={[`Instead of: \u201C${amendment.text}\u201D`]} />
+    );
   } else if (c.step === "amend" && amendment) {
     const stage = c.amend?.stage;
     const r = c.result && c.result.amendment === amendment.id && c.result.kind === "debate" ? c.result : null;
@@ -250,11 +379,9 @@ export default function ChamberDisplay() {
     mid = (
       <Screen heading={done ? (c.outcome!.passed ? `${noun} Approved` : `${noun} Not Approved`) : "Roll Call Vote"} pass={done ? c.outcome!.passed : undefined}
         pill={c.tr && doc ? [doc.title] : undefined}
-        lines={done ? [`${c.outcome!.yes} For · ${c.outcome!.no} Against · ${c.outcome!.abstain} ${c.tr ? "Neutral" : "Abstaining"}${!c.outcome!.passed ? ` · ${c.outcome!.needed} needed` : ""}`] : []}>
+        lines={done ? [`${c.outcome!.yes} For · ${c.outcome!.no} Against · ${c.outcome!.abstain} ${c.tr ? "Neutral" : "Abstaining"}${!c.outcome!.passed ? ` · ${c.outcome!.needed} needed` : ""}`, c.outcome!.struck?.length ? `Struck: ${c.outcome!.struck.join("; ")}` : null] : [ch.partText(c), ch.divisionPart(c) === null && c.divide?.parts.some((x) => x.result === "failed") ? `Struck: ${c.divide.parts.filter((x) => x.result === "failed").map((x) => x.label).join("; ")}` : null]}>
         {c.step === "vote" && votes(n, !!c.tr)}
-        <div className={s.dBoard}>
-          {c.delegates.filter((d) => ch.isHere(c, d.id)).map((d) => <div key={d.id} className={s.dSeat} data-b={c.ballots[d.id]}><i /><span className={s.dSeatName}>{d.name}</span>{obsTag(d.id)}</div>)}
-        </div>
+        <VoteBoard c={c} tag={obsTag} />
       </Screen>
     );
   } else if (c.step === "ended") {
@@ -313,10 +440,11 @@ export default function ChamberDisplay() {
           {c && ordered.length > 0 && (
             <>
               <span>Up next</span>
-              <ol>{ordered.map((x) => <li key={x.id} data-side={c && (ch.sided(c) || x.stance) ? x.side : undefined} data-plain={(c && !ch.sided(c) && !x.stance) || undefined}><i /><Flag name={name(x.id)} em />{name(x.id)}{x.stance && <small>{SIDE[x.side]}</small>}</li>)}</ol>
+              <ol>{ordered.map((x) => <li key={x.id} data-side={c && (ch.sided(c) || x.stance) ? x.side : undefined} data-plain={(c && !ch.sided(c) && !x.stance) || undefined}><i /><Flag name={name(x.id)} em /><span className={s.dNextName} title={name(x.id)}>{ch.shortName(name(x.id))}</span>{c && (ch.sided(c) || x.stance) && <small>{SIDE[x.side]}</small>}</li>)}</ol>
             </>
           )}
         </div>
+        {c?.showJoin && cloudId && <JoinCode cid={cloudId} />}
       </div>
     </div>
   );

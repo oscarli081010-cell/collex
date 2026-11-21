@@ -36,3 +36,8 @@ a.tab:hover { color: var(--ink); }
 
 /* A state with nothing to work on yet (a listing that can't be opened, a list still loading). */
 .gate { display: flex; flex-direction: column; align-items: center; }
+
+/* Why a listing was sent back, above whichever tab is open. */
+.banner { display: flex; flex-direction: column; gap: 10px; padding: 22px; }
+.bannerTitle { margin: 0; font-family: var(--font-serif); font-size: 20px; font-weight: 400; }
+.bannerNote { margin: 0; padding-left: 12px; border-left: 2px solid var(--danger); color: var(--ink); overflow-wrap: anywhere; }

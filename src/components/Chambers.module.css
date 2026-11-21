@@ -121,6 +121,8 @@
 .segPill { top: 4px; bottom: 4px; border-radius: 7px; background: var(--panel); box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.1); }
 .sideSeg { width: 100%; }
 .ballotSeg { grid-template-columns: repeat(3, minmax(64px, auto)); }
+.ballotSeg.ballotSeg4 { grid-template-columns: repeat(4, minmax(56px, auto)); }
+.h3 { margin-top: 18px; font-size: 15px; font-weight: 500; }
 .rollSeg { grid-template-columns: repeat(3, auto); }
 .rollSeg button { padding: 0 12px; white-space: nowrap; }
 /* Roll call: one colour per answer, the same on the tiles, the buttons and the display. */
@@ -132,6 +134,7 @@
 .rollSeg:has(button[aria-pressed="true"][data-v="absent"]) .segPill { background: var(--warn-soft); box-shadow: none; }
 @media (max-width: 560px) {
   .ballotSeg, .rollSeg { width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ballotSeg.ballotSeg4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .rollSeg { grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr) minmax(0, 1fr); }
   .rollSeg button { padding: 0 4px; font-size: 12.5px; }
 }
@@ -166,7 +169,7 @@
 .check { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); font-size: 14px; cursor: pointer; user-select: none; transition: background-color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
 .check:hover { background: var(--surface); border-color: var(--line-strong); }
 .check:active { transform: scale(0.98); }
-.check input { appearance: none; -webkit-appearance: none; display: grid; place-content: center; flex: none; width: 22px; height: 22px; margin: 0; border: 1.5px solid var(--line-strong); border-radius: 7px; background: var(--panel); cursor: pointer; transition: background-color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-quick) var(--ease-smooth-out); }
+.check input { appearance: none; -webkit-appearance: none; display: grid; place-content: center; flex: none; width: 22px; height: 22px; margin: 0; border: 1.5px solid var(--control-line, var(--line-strong)); border-radius: 7px; background: var(--panel); cursor: pointer; transition: background-color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-quick) var(--ease-smooth-out); }
 .check input::after { content: ""; width: 11px; height: 6px; margin-top: -2px; border-left: 2.2px solid var(--on-accent); border-bottom: 2.2px solid var(--on-accent); border-radius: 1px; transform: rotate(-45deg) scale(0); opacity: 0; transition: transform 0.2s var(--ease-smooth-out), opacity var(--duration-quick) var(--ease-smooth-out); }
 .check input:checked { background: var(--accent); border-color: var(--accent); }
 .check input:checked::after { transform: rotate(-45deg) scale(1); opacity: 1; }
@@ -623,3 +626,25 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 
 /* Something the chair must read about their changes (replaced by another chair's, or refused), until they dismiss it. */
 .noticeRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* A button for something that can't be taken back, once armed by the first click. */
+.armed[data-armed] { background: var(--danger); border-color: var(--danger); color: #fff; }
+/* A timer run past zero shows the overtime in the warning colour. */
+.time[data-over], .dTime[data-over] { color: var(--warn); }
+/* The display's topic: big enough to read from the back of the room, and never more than two lines. */
+.dTopic { font-size: clamp(16px, 1.7vw, 26px); line-height: 1.25; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.dNext li { min-width: 0; max-width: 100%; }
+.dNext li .dNextName { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The code to join, with its QR code, when the chair shows it. */
+.dJoin { display: flex; align-items: center; gap: 14px; padding: 10px 14px; border-radius: 14px; background: var(--surface); }
+.dJoin span { display: flex; flex-direction: column; gap: 2px; font-size: clamp(13px, 1.1vw, 16px); color: var(--muted); }
+.dJoin b { font-size: clamp(22px, 2.4vw, 36px); letter-spacing: 0.12em; color: var(--ink); font-variant-numeric: tabular-nums; }
+/* The roll after roll call, folded away until it is wanted. */
+details > summary.head { cursor: pointer; list-style: none; }
+details > summary.head::-webkit-details-marker { display: none; }
+.hint[data-tone="warn"] { color: var(--warn); }
+.hint[data-tone="ok"] { color: var(--ok); }
+/* Keyboard shortcuts, in Settings. */
+.keys { display: grid; gap: 8px; margin: 0; }
+.keys > div { display: grid; grid-template-columns: 7.5em 1fr; gap: 12px; align-items: baseline; }
+.keys dt kbd { font: inherit; font-size: 13px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--surface); white-space: nowrap; }
+.keys dd { margin: 0; color: var(--muted); }

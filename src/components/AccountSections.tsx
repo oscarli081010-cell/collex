@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { MyApplications } from "./HubExtras";
+import { MyAllocation, MyApplications } from "./HubExtras";
+import MyFeedback from "./MyFeedback";
+import { useRouter } from "next/navigation";
+import { CONTACT } from "./Footer";
+import h from "./Hub.module.css";
 import { useMyListings } from "./listing/useMyListings";
 import { useCallback, useEffect, useState } from "react";
 import { formatRange, isPast, todayInSydney, type ConferenceSummary } from "@/lib/conferences";
@@ -27,7 +31,9 @@ export default function ConferencesTab({ userId, onListings, onInvites }: { user
       <Invites onAccepted={reload} onCount={onInvites} />
       <Saved />
       <ListingsLink userId={userId} version={version} onCount={onListings} />
+      <MyAllocation userId={userId} />
       <MyApplications userId={userId} />
+      <MyFeedback />
     </>
   );
 }
@@ -189,6 +195,146 @@ function ListingsLink({ userId, version, onCount }: { userId: string; version: n
         </p>
       </div>
       <Link href="/listings" className="button block">{ICONS.view}See my conferences</Link>
+    </section>
+  );
+}
+
+// The account page's settings beyond the profile: the weekly email and deleting the account. Rendered on the Profile
+// tab, after the password form.
+export function AccountSettings({ userId }: { userId: string }) {
+  return (
+    <>
+      <WeeklyEmail userId={userId} />
+      <DeleteAccount userId={userId} />
+    </>
+  );
+}
+
+// The Monday email about the week in Sydney MUN. Off unless the person turns it on. If the setting can't be read
+// (the column isn't there yet, or the database is unreachable) the box stays off and says why.
+function WeeklyEmail({ userId }: { userId: string }) {
+  const [on, setOn] = useState<boolean | null>(null);
+  const [broken, setBroken] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  useEffect(() => {
+    if (!supabase) { setBroken(true); return; }
+    supabase.from("profiles").select("digest").eq("id", userId).maybeSingle()
+      .then(({ data, error }) => { if (error) setBroken(true); else setOn(Boolean((data as { digest?: boolean } | null)?.digest)); });
+  }, [userId]);
+  const change = async (next: boolean) => {
+    if (!supabase) return;
+    setBusy(true); setOn(next); setMsg("");
+    const { error } = await supabase.rpc("set_digest", { turn_on: next });
+    setBusy(false);
+    if (error) { setOn(!next); setMsg("That didn\u2019t save. Try again."); return; }
+    setMsg(next ? "On. The next one comes on Monday." : "Off. You won\u2019t get it any more.");
+  };
+  const box = (
+    <label className="check">
+      <input type="checkbox" checked={Boolean(on)} disabled={broken || on === null || busy} onChange={(e) => void change(e.target.checked)} />
+      <span>Send me the weekly email</span>
+    </label>
+  );
+  return (
+    <section className={`panel ${s.card}`} style={{ "--i": 3 } as React.CSSProperties} aria-labelledby="digest-h">
+      <h2 id="digest-h" className={s.cardTitle}>Weekly Email</h2>
+      <p className="muted">This week in Sydney MUN: new conferences, closing dates and open roles. Sent on Mondays. Off by default.</p>
+      <div className="field">{broken ? <span className="tip" data-tip="The weekly email can’t be changed right now" data-tip-align="start">{box}</span> : box}</div>
+      {msg && <p className="muted" role="status">{msg}</p>}
+    </section>
+  );
+}
+
+const BUCKETS = ["covers", "photos", "guides"] as const;
+
+// Removes every file in this account's own folder of each bucket, page by page. Throws if any of it fails, so the
+// account is never deleted while its files are left behind.
+async function deleteMyFiles(userId: string) {
+  for (const bucket of BUCKETS) {
+    for (let round = 0; round < 50; round++) {
+      const { data, error } = await supabase!.storage.from(bucket).list(userId, { limit: 100 });
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      const { data: gone, error: rmError } = await supabase!.storage.from(bucket).remove(data.map((f) => `${userId}/${f.name}`));
+      // Fewer removed than listed means the database refused some of them: stop before the account goes.
+      if (rmError || (gone?.length ?? 0) < data.length) throw rmError ?? new Error("Some files were not removed");
+      if (data.length < 100) break;
+    }
+  }
+  // Files this person shared in committees (a private bucket, in <committee>/<uploader>/), in every committee they chair
+  // or sit in. Other people's files stay: they aren't this person's to delete.
+  const [chairs, seats] = await Promise.all([supabase!.rpc("my_chambers"), supabase!.rpc("my_seats")]);
+  const rooms = new Set([...((chairs.data ?? []) as { id: string }[]), ...((seats.data ?? []) as { id: string }[])].map((r) => r.id));
+  const files = supabase!.storage.from("chamber-files");
+  for (const cid of rooms) {
+    const folder = `${cid}/${userId}`;
+    for (let round = 0; round < 50; round++) {
+      const { data, error } = await files.list(folder, { limit: 100 });
+      if (error) throw error;
+      const found = (data ?? []).filter((f) => f.id); // folders have no id
+      if (found.length === 0) break;
+      const { data: gone, error: rmError } = await files.remove(found.map((f) => `${folder}/${f.name}`));
+      if (rmError || (gone?.length ?? 0) < found.length) throw rmError ?? new Error("Some files were not removed");
+      if (found.length < 100) break;
+    }
+  }
+}
+
+// Deleting the account: what goes and what stays, then type DELETE to arm the button.
+function DeleteAccount({ userId }: { userId: string }) {
+  const router = useRouter();
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const ready = typed.trim() === "DELETE";
+  const remove = async () => {
+    if (!supabase || !ready || busy) return;
+    setBusy(true); setErr("");
+    // Nothing is touched unless the database can finish the job: a database without delete_my_account (an older one)
+    // would leave the account in place after its files had gone.
+    const probe = await supabase.rpc("team_registrations", { conf: "00000000-0000-0000-0000-000000000000" });
+    if (probe.error) {
+      setBusy(false);
+      return setErr("Deleting your account isn’t available right now. Nothing has been deleted. Try again later, or email " + CONTACT + ".");
+    }
+    try {
+      await deleteMyFiles(userId);
+    } catch {
+      setBusy(false);
+      return setErr("Some of your files couldn\u2019t be deleted, so your account hasn\u2019t been deleted. Try again, or email " + CONTACT + ".");
+    }
+    const { error } = await supabase.rpc("delete_my_account");
+    if (error) {
+      setBusy(false);
+      return setErr("Your uploaded files are deleted, but your account couldn\u2019t be. Try again, or email " + CONTACT + ".");
+    }
+    await supabase.auth.signOut().catch(() => {}); // the account is already gone, so this can fail; the session ends either way
+    try { for (const k of Object.keys(localStorage)) if (k.startsWith("collex:")) localStorage.removeItem(k); } catch { /* storage blocked */ }
+    router.push("/");
+  };
+  return (
+    <section className={`panel ${s.card}`} style={{ "--i": 4 } as React.CSSProperties} aria-labelledby="delete-h">
+      <h2 id="delete-h" className={s.cardTitle}>Delete My Account</h2>
+      <div className={h.note}>
+        <p>This deletes, straight away and for good:</p>
+        <ul style={{ listStyle: "disc", paddingLeft: 20, marginTop: 6 }}>
+          <li>Your account: your name, email, school and settings.</li>
+          <li>Your applications, registrations, follows and alerts.</li>
+          <li>Every photo and PDF you uploaded. That includes cover photos and background guides on conferences you run, which disappear from those pages, and files you shared in committees.</li>
+          <li>Every committee you own, with everything in it, for its other chairs and delegates too. To keep one, make sure someone else has its contents before you delete your account.</li>
+          <li>Your place on the teams of conferences you help run, and on committees you chair.</li>
+        </ul>
+        <p style={{ marginTop: 10 }}>Conferences you listed stay on the calendar, because they belong to the conference, and the record of changes is kept. To have a listing removed too, email {CONTACT}.</p>
+      </div>
+      <div className="field">
+        <label htmlFor="delete-confirm">Type DELETE to confirm</label>
+        <input id="delete-confirm" className="control" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} disabled={busy} />
+      </div>
+      {ready
+        ? <button type="button" className="button block" style={{ background: "var(--danger)", borderColor: "var(--danger)", color: "var(--on-ink)" }} disabled={busy} onClick={() => void remove()}>{busy ? "Deleting\u2026" : "Delete My Account"}</button>
+        : <span className="tip" data-tip="Type DELETE in the box first" data-tip-align="start" style={{ display: "flex" }}><button type="button" className="button block" disabled>Delete My Account</button></span>}
+      {err && <p className={h.err} role="alert">{err}</p>}
     </section>
   );
 }

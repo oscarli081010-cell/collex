@@ -56,17 +56,6 @@
 .right { text-align: right !important; }
 
 /* Audit log */
-.log { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
-.log li { display: grid; grid-template-columns: 150px 1fr; gap: 4px 20px; padding: 14px 18px; font-size: 14px; }
-.log li + li { border-top: 1px solid var(--line); }
-.log time { color: var(--muted); font-variant-numeric: tabular-nums; }
-.log small { grid-column: 2; }
-.action { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--surface); font-size: 12.5px; font-weight: 500; margin: 0 2px; }
-.action[data-action="approved"], .action[data-action="made admin"] { background: var(--ok-soft); color: var(--ok); }
-.action[data-action="rejected"], .action[data-action="deleted"], .action[data-action="removed admin"], .action[data-action="unpublished"] { background: var(--danger-soft); color: var(--danger); }
-.action[data-action="submitted"] { background: var(--warn-soft); color: var(--warn); }
-.action[data-action="accepted organiser invite"], .action[data-action="invited organiser"] { background: var(--accent-soft); color: var(--accent); }
-.action[data-action="removed organiser"], .action[data-action="left organisers"], .action[data-action="deleted user"] { background: var(--danger-soft); color: var(--danger); }
 
 /* Search above each tab's list. */
 .searchBar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
@@ -82,8 +71,6 @@
 .empty :global(.button) { margin-top: 10px; }
 
 @media (max-width: 640px) {
-  .log li { grid-template-columns: 1fr; }
-  .log small { grid-column: 1; }
   .reject { flex-direction: column; }
   .review { padding: 22px; }
 }
@@ -159,3 +146,13 @@
 .editCell { background: var(--surface); padding: 20px 22px !important; }
 .editForm { display: flex; flex-direction: column; gap: 14px; }
 .editGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+
+/* The delete confirmation: above the bulk bar, so it is seen whichever way the delete was started. */
+.confirmDel {
+  position: fixed; left: 50%; bottom: 84px; z-index: 60; transform: translateX(-50%);
+  width: min(520px, calc(100vw - 32px)); padding: 22px; display: grid; gap: 12px;
+  box-shadow: 0 18px 48px rgba(var(--shadow-rgb), 0.22);
+}
+.confirmDel :global(.actions) { display: flex; flex-wrap: wrap; gap: 8px; }
+.dangerBtn { color: var(--danger); }
+.dangerBtn:hover:not([disabled]) { background: var(--danger-soft); border-color: var(--danger); }

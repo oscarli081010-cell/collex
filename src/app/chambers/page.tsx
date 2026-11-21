@@ -10,5 +10,15 @@ export const metadata: Metadata = {
 };
 
 export default function ChambersPage() {
-  return <Suspense fallback={<main id="top" className="container"><PageSkeleton /></main>}><Chambers /></Suspense>;
+  // The heading and the line under it are only in the fallback, so the served HTML has them; once the client renders,
+  // the committees page (with its own heading) takes the fallback's place, so they never show twice.
+  return (
+    <Suspense fallback={(
+      <main id="top" className="container">
+        <h1 className="serif">Committees</h1>
+        <p className="muted">Run a Model UN committee&rsquo;s floor: roll call, speakers list, timer and votes, with a display for the projector.</p>
+        <PageSkeleton />
+      </main>
+    )}><Chambers /></Suspense>
+  );
 }

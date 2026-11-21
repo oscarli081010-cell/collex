@@ -12,7 +12,7 @@ const back = <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke=
 
 // Under a listing's headline band: its tabs on one sliding control, then the two ways out, back to Your conferences and
 // to the listing's public page. A tab or button that can't be used is still there, greyed out, and says why on hover.
-export default function ListingNav({ id, slug, current, live, whyNot }: { id: string; slug: string; current: TabId; live: boolean; /** Empty when this person can change the listing. */ whyNot: string }) {
+export default function ListingNav({ id, slug, current, live, whyNot, editOpen }: { id: string; slug: string; current: TabId; live: boolean; /** Empty when this person can change the listing. */ whyNot: string; /** The Edit tab opens even though the rest are shut: the listing was sent back and can be sent again. */ editOpen?: boolean }) {
   const box = useRef<HTMLElement>(null);
   const pill = usePill(box, '[aria-current="page"]', current);
 
@@ -22,7 +22,7 @@ export default function ListingNav({ id, slug, current, live, whyNot }: { id: st
     e.preventDefault();
     if (t.id === current) return;
     // The page that swaps in doesn't re-enter (see motion.css). The flag stays until the listing pages are left.
-    document.documentElement.dataset.listingSwitch = "1";
+    document.documentElement.setAttribute("data-listing-switch", "1");
     window.history.pushState(null, "", t.href(id));
     window.scrollTo({ top: 0 });
   };
@@ -31,7 +31,7 @@ export default function ListingNav({ id, slug, current, live, whyNot }: { id: st
     <div className={s.nav}>
       <nav ref={box} className={s.tabs} style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }} aria-label="This listing">
         <span ref={pill} className={`t-pill ${s.tabPill}`} aria-hidden="true" />
-        {TABS.map((t) => (t.editors && whyNot
+        {TABS.map((t) => (t.editors && whyNot && !(t.id === "edit" && editOpen)
           ? <span key={t.id} className={`tip ${s.tab}`} data-tip={whyNot} data-tip-align="start" aria-disabled="true" tabIndex={0}>{t.icon}{t.label}</span>
           : <Link key={t.id} href={t.href(id)} className={s.tab} aria-current={t.id === current ? "page" : undefined} prefetch={false} onClick={(e) => open(e, t)}>{t.icon}{t.label}</Link>
         ))}

@@ -44,7 +44,8 @@ export const PLACARD_CSS = `${BASE}
 .face.front{border-top:0.2mm dashed #c9c9c9}
 .flag{height:17mm;width:auto;border-radius:1mm;box-shadow:0 0 0 0.2mm #d9d9d9}
 .fit{width:178mm;height:60mm;display:grid;place-items:center}
-.name{display:block;max-width:100%;font-family:var(--serif);font-weight:400;font-size:150pt;line-height:0.98;letter-spacing:-0.01em;text-align:center;text-wrap:balance}
+.name{display:block;max-width:100%;font-family:var(--serif),"Noto Sans","Noto Sans CJK SC","Noto Sans Arabic","Noto Sans Thai","Noto Sans Devanagari","Segoe UI",system-ui,sans-serif;font-weight:400;font-size:150pt;line-height:1.12;padding:0.02em 0;letter-spacing:-0.01em;text-align:center;text-wrap:balance;overflow-wrap:normal}
+.name.broken{overflow-wrap:anywhere}
 .foot{font-size:11pt;color:#666;letter-spacing:0.02em;text-align:center}
 `;
 export function placardsHtml(sheet: Sheet, countries: string[]): string {
@@ -64,6 +65,7 @@ thead{display:table-header-group}
 th{text-align:left;font-weight:500;font-size:8.5pt;color:#666;padding:0 2mm 2mm;border-bottom:0.3mm solid #111}
 td{padding:2.4mm 2mm;border-bottom:0.2mm solid #d9d9d9;vertical-align:middle}
 tr{break-inside:avoid;page-break-inside:avoid}
+.grp{padding:5mm 2mm 1.5mm;border-bottom:0.3mm solid #111;font-size:9pt}
 .n{width:9mm;color:#666;font-variant-numeric:tabular-nums}
 .c{font-weight:500}
 .c span{display:inline-flex;align-items:center;gap:2.2mm}
@@ -71,11 +73,15 @@ tr{break-inside:avoid;page-break-inside:avoid}
 .p{width:18mm;text-align:center}
 .box{display:inline-block;width:4.4mm;height:4.4mm;border:0.3mm solid #111;border-radius:0.6mm;vertical-align:middle}
 `;
-export function countryListHtml(sheet: Sheet, rows: ListRow[]): string {
+/** `later` are delegates who have no country yet: they follow the countries, under a heading of their own. */
+export function countryListHtml(sheet: Sheet, rows: ListRow[], later: ListRow[] = []): string {
   const sub = [sheet.conference, sheet.dates, `${rows.length} ${rows.length === 1 ? "country" : "countries"}`].filter(Boolean).map(esc).join(" &middot; ");
   const body = rows.map((r, i) => `<tr><td class="n">${i + 1}</td><td class="c"><span>${flag(r.country, "mini")}${esc(r.country)}</span></td><td>${esc(r.delegate)}</td><td>${esc(r.school)}</td><td class="p"><i class="box"></i></td></tr>`).join("");
+  const more = later.length
+    ? `<tr><th class="grp" colspan="5">No country yet</th></tr>` + later.map((r, i) => `<tr><td class="n">${rows.length + i + 1}</td><td class="c"><span>&ndash;</span></td><td>${esc(r.delegate)}</td><td>${esc(r.school)}</td><td class="p"><i class="box"></i></td></tr>`).join("")
+    : "";
   return `<h1>${esc(sheet.committee || "Country list")}</h1><p class="sub">${sub}</p>`
-    + `<table><thead><tr><th class="n">#</th><th>Country</th><th>Delegate</th><th>School</th><th class="p">Present</th></tr></thead><tbody>${body}</tbody></table>`;
+    + `<table><thead><tr><th class="n">#</th><th>Country</th><th>Delegate</th><th>School</th><th class="p">Present</th></tr></thead><tbody>${body}${more}</tbody></table>`;
 }
 
 // The site's own typefaces, so the paper matches the screen: their @font-face rules and the names they go by here.
@@ -115,10 +121,13 @@ export async function buildFrame(title: string, css: string, body: string): Prom
     const names = Array.from(sheet.querySelectorAll<HTMLElement>(".name"));
     const first = names[0], box = first?.parentElement;
     if (!first || !box) continue;
+    // A name may take two lines (or more at the smallest size), so it shrinks until the longest word fits across and all of
+    // it fits down. Only when even the smallest size doesn't fit does a word get broken.
     let size = 150;
-    const over = () => first.scrollWidth > first.clientWidth + 1 || first.offsetHeight > box.clientHeight;
-    while (size > 24 && over()) { size -= size > 60 ? 6 : 3; first.style.fontSize = `${size}pt`; }
-    for (const n of names) n.style.fontSize = `${size}pt`;
+    const over = () => first.scrollWidth > first.clientWidth + 1 || first.offsetHeight > box.clientHeight + 1;
+    while (size > 10 && over()) { size -= size > 60 ? 6 : size > 30 ? 3 : 1; first.style.fontSize = `${size}pt`; }
+    const broken = over();
+    for (const n of names) { n.style.fontSize = `${size}pt`; if (broken) n.classList.add("broken"); }
   }
   return frame;
 }

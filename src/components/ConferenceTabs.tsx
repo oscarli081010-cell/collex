@@ -7,6 +7,8 @@ import s from "@/app/inner.module.css";
 type Lenis = { scrollTo: (target: number, opts?: { duration?: number; easing?: (t: number) => number }) => void };
 
 // Section tabs that follow the scroll and glide to a section on click.
+const msFromNow = (ms: number) => Date.now() + ms; // read when a tab is clicked, not while the page draws
+
 export default function ConferenceTabs({ tabs }: { tabs: readonly (readonly [string, string])[] }) {
   const [active, setActive] = useState(tabs[0][0]);
   const bar = useRef<HTMLElement>(null);
@@ -56,7 +58,7 @@ export default function ConferenceTabs({ tabs }: { tabs: readonly (readonly [str
     // The smooth scroller drives mouse and keyboard; on a touch screen the page scrolls natively, so use the browser's own.
     const lenis = (window as unknown as { __lenis?: Lenis }).__lenis;
     const smooth = Boolean(lenis) && !window.matchMedia("(pointer: coarse)").matches;
-    lock.current = Date.now() + (smooth ? 1100 : 1600);
+    lock.current = msFromNow(smooth ? 1100 : 1600);
     if (smooth) lenis!.scrollTo(top, { duration: 0.9, easing: (x: number) => 1 - Math.pow(1 - x, 4) });
     else window.scrollTo({ top, behavior: "smooth" });
     // The browser's own replaceState: the router's wrapper would treat this as a navigation and re-render the page.
@@ -71,7 +73,8 @@ export default function ConferenceTabs({ tabs }: { tabs: readonly (readonly [str
             <a href={`#${id}`} aria-current={active === id} onClick={(e) => go(e, id)}>{label}</a>
           </li>
         ))}
-        <span ref={pill} className={`t-pill ${s.tabPill}`} aria-hidden="true" />
+        {/* The sliding underline sits in a list item of its own (a <span> can't be a direct child of a <ul>); the item has no box. */}
+        <li className={s.pillItem} aria-hidden="true"><span ref={pill} className={`t-pill ${s.tabPill}`} /></li>
       </ul>
     </nav>
   );

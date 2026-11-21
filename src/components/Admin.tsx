@@ -23,6 +23,7 @@ import Select from "./Select";
 import { AdminClaims } from "./HubExtras";
 import AdminChambers, { type AdminChamber } from "./AdminChambers";
 import { AdminVisitors, AdminErrors, type ClientError } from "./AdminPulse";
+import AdminHealth from "./AdminHealth";
 
 type Row = {
   id: string; slug: string; status: string; name: string; host: string; start_date: string | null; end_date: string | null;
@@ -44,8 +45,8 @@ const LOG_TONE: Record<string, string> = { approved: "ok", rejected: "bad", unpu
 const LOG_WORDS: Record<string, string> = { submitted: "listed", "started a chamber": "started a committee", "shared a chamber": "shared a committee" };
 
 const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-const TABS = ["Review", "Conferences", "Reports", "Committees", "Users", "Visitors", "Errors", "Audit Log"] as const;
-const REASON: Record<string, string> = { details: "Wrong or out of date", link: "Broken link", inappropriate: "Shouldn\u2019t be here", other: "Something else" };
+const TABS = ["Review", "Conferences", "Reports", "Committees", "Users", "Visitors", "Errors", "Health", "Audit Log"] as const;
+const REASON: Record<string, string> = { details: "Wrong or out of date", link: "Broken link", inappropriate: "Shouldn\u2019t be here", changed: "Links changed after approval", other: "Something else" };
 type Tab = (typeof TABS)[number];
 const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Rejected", unpublished: "Taken down" };
 
@@ -66,9 +67,10 @@ export default function Admin() {
   const [errorsFailed, setErrorsFailed] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   // One search per tab, so switching tabs keeps what you typed in each.
-  const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Reports: "", Committees: "", Users: "", Visitors: "", Errors: "", "Audit Log": "" });
+  const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Reports: "", Committees: "", Users: "", Visitors: "", Errors: "", Health: "", "Audit Log": "" });
   // A new search starts on the first page of the audit log.
-  useEffect(() => { setLogPage(0); }, [find["Audit Log"]]);
+  const auditFind = find["Audit Log"];
+  useEffect(() => { setLogPage(0); }, [auditFind]);
   const [statusFilter, setStatusFilter] = useState("any");
   const [reportFilter, setReportFilter] = useState("open");
   // Bulk actions: what's ticked on the open tab (ids as text), the reject reason being typed, and the two-step delete.
@@ -77,6 +79,8 @@ export default function Admin() {
   const [rejectNote, setRejectNote] = useState("");
   const [armed, setArmed] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
+  // A conference delete waiting for a yes: what goes with it is counted first, and taking it down is offered instead.
+  const [del, setDel] = useState<{ ids: string[]; name: string; apps: number | null; regs: number | null; counted: boolean; live: number } | null>(null);
   const { say, node } = useToast();
   const tabsRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -145,10 +149,29 @@ export default function Admin() {
     load();
     published();
   };
-  const remove = async (r: Row) => {
-    const { error } = await supabase!.from("conferences").delete().eq("id", r.id);
-    if (error) return say("That didn't delete. Try again.");
-    say("Deleted");
+  // Counts what deleting would take with it, then asks. Nothing is deleted until the person confirms.
+  const askDelete = async (ids: string[]) => {
+    const picked = (rows ?? []).filter((r) => ids.includes(r.id));
+    const name = picked.length === 1 ? picked[0].name : `${picked.length} conferences`;
+    setDel({ ids, name, apps: null, regs: null, counted: false, live: picked.filter((r) => r.status === "published").length });
+    const count = async (table: string) => {
+      const { count, error } = await supabase!.from(table).select("id", { count: "exact", head: true }).in("conference_id", ids);
+      return error ? null : count ?? 0;
+    };
+    const [apps, regs] = await Promise.all([count("applications"), count("registrations")]);
+    setDel((d) => (d && d.ids === ids ? { ...d, apps, regs, counted: true } : d));
+  };
+  const confirmDelete = async (takeDown: boolean) => {
+    if (!del) return;
+    setBulkBusy(true);
+    const { error } = takeDown
+      ? await supabase!.from("conferences").update({ status: "unpublished" }).in("id", del.ids)
+      : await supabase!.from("conferences").delete().in("id", del.ids);
+    setBulkBusy(false);
+    if (error) return say("That didn't save. Try again.");
+    say(takeDown ? "Taken down" : "Deleted");
+    setDel(null);
+    clearSel();
     load();
     published();
   };
@@ -199,7 +222,7 @@ export default function Admin() {
   const others = rows?.filter((r) => r.status !== "pending") ?? [];
   // Tab counts are always the totals; the search only narrows what the open tab shows.
   const openReports = (reports ?? []).filter((r) => r.status === "open");
-  const counts: Record<Tab, number | null> = { Review: pending.length, Conferences: others.length, Reports: openReports.length, Committees: chambers?.length ?? null, Users: users?.length ?? null, Visitors: null, Errors: errors?.length ?? null, "Audit Log": null };
+  const counts: Record<Tab, number | null> = { Review: pending.length, Conferences: others.length, Reports: openReports.length, Committees: chambers?.length ?? null, Users: users?.length ?? null, Visitors: null, Errors: errors?.length ?? null, Health: null, "Audit Log": null };
   const q = find[tab].trim().toLowerCase();
   const has = (...parts: (string | null | undefined)[]) => !q || parts.join(" ").toLowerCase().includes(q);
   const shownConfs = others.filter((r) => has(r.name, r.host, r.venue, STATUS[r.status]) && (statusFilter === "any" || r.status === statusFilter));
@@ -291,7 +314,7 @@ export default function Admin() {
                           {r.status === "published"
                             ? <IconButton label={`Take down ${r.name}`} icon={ICONS.hide} onClick={() => setStatus(r, "unpublished")} />
                             : <IconButton label={`Publish ${r.name}`} icon={ICONS.publish} onClick={() => setStatus(r, "published")} />}
-                          <ConfirmIconButton label={`Delete ${r.name}`} confirm={`Click again to delete ${r.name} for good`} icon={ICONS.trash} onConfirm={() => remove(r)} />
+                          <ConfirmIconButton label={`Delete ${r.name}`} confirm={`Click again to delete ${r.name} for good`} icon={ICONS.trash} onConfirm={() => askDelete([r.id])} />
                         </div>
                       </td>
                     </tr>
@@ -341,6 +364,8 @@ export default function Admin() {
           {tab === "Committees" && <AdminChambers chambers={chambers ?? []} error={chambersError} say={say} reload={load} query={find.Committees} />}
 
           {tab === "Visitors" && <AdminVisitors />}
+
+          {tab === "Health" && <AdminHealth />}
 
           {tab === "Errors" && <AdminErrors errors={errors ?? []} error={errorsFailed} say={say} reload={load} query={find.Errors} />}
 
@@ -423,9 +448,7 @@ export default function Admin() {
               <button className="button secondary" disabled={bulkBusy} onClick={() => bulk("taken down", () => confStatus("unpublished"))}>Take Down</button>
               <button className="button secondary" disabled={bulkBusy} onClick={() => bulk("verified", () => db().from("conferences").update({ verified: true }).in("id", sel))}>Verify</button>
               <button className="button secondary" disabled={bulkBusy} onClick={() => bulk("unverified", () => db().from("conferences").update({ verified: false }).in("id", sel))}>Unverify</button>
-              <button className={`button secondary ${s.bulkDanger}`} data-armed={armed || undefined} disabled={bulkBusy} onClick={() => (armed ? bulk("deleted", () => db().from("conferences").delete().in("id", sel)) : setArmed(true))}>
-                {armed ? `Click Again to Delete ${sel.length}` : "Delete"}
-              </button>
+              <button className={`button secondary ${s.bulkDanger}`} disabled={bulkBusy} onClick={() => askDelete(sel)}>Delete…</button>
             </>)}
             {tab === "Reports" && (<>
               <button className="button secondary" disabled={bulkBusy} onClick={() => bulk("resolved", () => db().from("reports").update({ status: "resolved", resolved_at: new Date().toISOString() }).in("id", reportIds), false)}>Resolve</button>
@@ -434,6 +457,21 @@ export default function Admin() {
                 {armed ? `Click Again to Delete ${sel.length}` : "Delete"}
               </button>
             </>)}
+          </div>
+        </div>
+      )}
+      {del && (
+        <div className={`panel t-reveal ${s.confirmDel}`} role="alertdialog" aria-label="Delete conference">
+          <p><strong>Delete {del.name} for good?</strong></p>
+          <p className="muted">
+            {!del.counted ? "Counting what goes with it…"
+              : <>This also deletes {del.apps === null ? "its applications" : `${del.apps} ${del.apps === 1 ? "application" : "applications"}`} and {del.regs === null ? "its registrations" : `${del.regs} ${del.regs === 1 ? "registration" : "registrations"}`}, and can’t be undone.</>}
+            {del.live > 0 && " It’s live now, so it will disappear from the site."} Taking it down hides it and keeps everything.
+          </p>
+          <div className="actions">
+            <button type="button" className="button" disabled={bulkBusy} onClick={() => confirmDelete(true)}>Unpublish Instead</button>
+            <button type="button" className={`button secondary ${s.dangerBtn}`} disabled={bulkBusy || !del.counted} onClick={() => confirmDelete(false)}>Delete for Good</button>
+            <button type="button" className="button secondary" disabled={bulkBusy} onClick={() => setDel(null)}>Cancel</button>
           </div>
         </div>
       )}
@@ -476,9 +514,7 @@ function ReviewCard({ r, i, picked, onPick, onApprove, onReject }: { r: Row; i: 
           <button className="button" onClick={() => onApprove(verified)}>Approve and Publish</button>
         </div>
       </div>
-      {/* eslint-disable-next-line @next/next/no-img-element -- the organiser's photo, shown so it can be checked before approving */}
       {r.cover_path && <Photo src={coverUrl(r.cover_path)!} alt={`Cover photo sent with ${r.name}`} className={s.reviewCover} width={1600} height={500} sizes="(max-width: 720px) 100vw, 720px" style={{ height: "auto", objectPosition: coverPosition(r.cover_x, r.cover_y) ?? undefined }} />}
-      {/* eslint-disable-next-line @next/next/no-img-element -- the list photo, if one was sent */}
       {r.thumb_path && <Photo src={coverUrl(r.thumb_path)!} alt={`Photo in the lists sent with ${r.name}`} className={s.reviewCover} width={240} height={240} sizes="120px" style={{ width: 120, height: "auto", aspectRatio: "1", objectPosition: coverPosition(r.thumb_x, r.thumb_y) ?? undefined }} />}
       <dl className={s.facts}>
         {facts.filter(([, v]) => v).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}

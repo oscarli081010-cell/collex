@@ -33,7 +33,13 @@ export type Debate = { list: Slot[]; run: Slot[] };
 /** `backers` are the amendment's signatories. `at` is when it was handed in. */
 /** Strike a clause, amend it, or add one. */
 export type AmendHow = "strike" | "amend" | "add";
-export type Amendment = { id: string; by: string; how?: AmendHow; /** Trinity: the second signatory. */ seconder?: string | null; clause: string; text: string; backers: string[]; at: number; status: "waiting" | "entertained" | "passed" | "failed" | "withdrawn" | "invalid" };
+export type Amendment = { id: string; by: string; how?: AmendHow; /** Trinity: the second signatory. */ seconder?: string | null; clause: string; text: string; backers: string[]; at: number; status: "waiting" | "entertained" | "passed" | "failed" | "withdrawn" | "invalid";
+  /** Standard and Custom: an amendment to this amendment (second degree) has `to`, the amendment it changes. Its text is the amendment's new wording. */
+  to?: string;
+  /** The amendment's wording before an amendment to it passed. */
+  was?: string };
+/** Standard and Custom: an amendment to the amendment being debated, debated and voted on first. `held` is the amendment's own speakers' list, set aside meanwhile. */
+export type SubAmend = { id: string; stage: "debate" | "vote"; held: Debate };
 /** What a state did, for the analytics: a speech of each kind, a Point of Information asked or answered, an amendment handed in or signed. */
 export type StatKind = "proposer" | "seconder" | "opposer" | "amender" | "speaker" | "closing" | "poi" | "reply" | "amendment" | "signatory" | "statement";
 /** `wk` is the week of a Trinity committee the entry was made in. */
@@ -45,7 +51,15 @@ export type AmendStage = "read" | "ask" | "debate" | "vote";
 export type Poll = { title: string; kind: "debate" | "amendment" | "motion"; yes: number; no: number; abstain: number; motion?: string; ballots?: Record<string, Ballot> };
 /** `kind` says which vote it was (whether to debate an amendment, or whether to adopt it) and `amendment` which one. */
 export type Result = { title: string; kind: "debate" | "amendment" | "motion"; amendment?: string; /** The Trinity motion a result is for. */ motion?: string; passed: boolean; yes: number; no: number; abstain: number; ballots?: Record<string, Ballot> };
-export type Outcome = { passed: boolean; yes: number; no: number; abstain: number; needed: number };
+/** `struck`: the parts of a divided question that failed, so are not in the resolution. */
+export type Outcome = { passed: boolean; yes: number; no: number; abstain: number; needed: number; struck?: string[] };
+/** Standard and Custom: a divided question. Each part is voted on in turn (`at`), then what remains as a whole (`at` equal to the number of parts). */
+export type Part = { label: string; result: "passed" | "failed" | null; yes?: number; no?: number; abstain?: number };
+export type Division = { parts: Part[]; at: number };
+/** An answer in the roll-call vote on a resolution. Standard and Custom also take Pass, and For or Against with Rights. */
+export type Answer = Ballot | "pass" | "forRights" | "againstRights";
+/** States that voted with rights, waiting to explain their vote, and the one explaining now. */
+export type Explain = { queue: { id: string; side: Side }[]; who: { id: string; side: Side } | null };
 export type Entry = { at: number; text: string };
 export type Step = "welcome" | "roll" | "pick" | "proposer" | "seconder" | "opposer" | "caucus" | "floor" | "amend" | "closing" | "vote" | "closed" | "ended"
   | "statements" | "general";
@@ -79,6 +93,8 @@ export type Trin = {
   reply: { by: string; to: string | null } | null;
   /** Whether the final unmoderated caucus before the closing speeches has been held. */
   finalDone: boolean;
+  /** The roll is being taken again at the start of a new session: once it is done, the committee goes back to the general debate. */
+  retake?: boolean;
 };
 
 // Times are milliseconds. A running timer has `endsAt`; a paused one keeps what is left in `left`. The time on screen
@@ -87,7 +103,8 @@ export type Trin = {
 export type Score = { speaking: number; diplomacy: number; knowledge: number; procedure: number; note: string };
 export const SCORE_KEYS = ["speaking", "diplomacy", "knowledge", "procedure"] as const;
 export const SCORE_LABEL: Record<(typeof SCORE_KEYS)[number], string> = { speaking: "Speaking", diplomacy: "Diplomacy", knowledge: "Knowledge", procedure: "Procedure" };
-export type Timer = { label: string; total: number; endsAt: number | null; left: number };
+/** `over`: how far past zero a timer was when it was paused in overtime. */
+export type Timer = { label: string; total: number; endsAt: number | null; left: number; over?: number };
 
 export type Chamber = {
   v: 1;
@@ -118,7 +135,7 @@ export type Chamber = {
   held?: Debate | null;
   speech: Speech | null;
   amendments: Amendment[];
-  amend: { id: string; stage: AmendStage } | null;
+  amend: { id: string; stage: AmendStage; /** Standard and Custom: an amendment to this amendment, in hand. */ sub?: SubAmend | null } | null;
   poll: Poll | null;
   /** The last placard vote's outcome, kept until the next thing starts. */
   result: Result | null;
@@ -141,6 +158,23 @@ export type Chamber = {
   times?: Partial<Record<TimeKey, number>>;
   /** Delegates' requests already acted on, by id (see asked()). */
   asked?: string[];
+  /** On a step kept for Back only: who made the change that came after it (a chair's user id), and what it was. A step
+      saved before this was kept has neither, and any chair can take it back. */
+  by?: string;
+  what?: string;
+  /** The display shows the delegates' join code and a QR code to the join page. The chair's own setting, like the photo. */
+  showJoin?: boolean;
+  /** The display's sounds, the chair's own setting (both off unless turned on): a soft tone when a speech reaches 0:00
+      and again 10 seconds over (`end`), and one 10 seconds before the end (`warn`). */
+  chime?: { end?: boolean; warn?: boolean };
+  /** Standard and Custom, in the roll-call vote on a resolution: the states that passed (asked again at the end, and then
+      must vote For or Against), and the states voting with rights (counted as For or Against, then explain their vote). */
+  passed?: string[];
+  rights?: string[];
+  /** Standard and Custom: explanations of vote still to be given after a roll-call vote with rights. */
+  explain?: Explain;
+  /** Standard and Custom: the question on the resolution divided into parts. */
+  divide?: Division;
 };
 
 /** The times a committee can set for itself, in the order the settings show them. */
@@ -197,11 +231,24 @@ let skew = 0;
 export const setSkew = (ms: number) => { skew = ms; };
 export const now = () => Date.now() + skew;
 
-export const remaining = (t: Timer, at: number) => (t.endsAt === null ? t.left : Math.max(0, t.endsAt - at));
+// What is left on a timer, below zero once it has run over: a timer keeps running past 0:00 and shows the overtime.
+// `over` only counts on a paused timer with nothing left: a console still on the last build resets or nudges a timer
+// paused in overtime without knowing about `over`, and the time it gives back must show as it is.
+const signedLeft = (t: Timer, at: number) => (t.endsAt === null ? (t.left > 0 ? t.left : -(t.over ?? 0)) : t.endsAt - at);
+export const remaining = (t: Timer, at: number) => Math.max(0, signedLeft(t, at));
+/** How far past zero a timer has run, in milliseconds (0 while there is time left). */
+export const overtime = (t: Timer, at: number) => Math.max(0, -signedLeft(t, at));
 export const running = (t: Timer | null) => !!t && t.endsAt !== null;
 export const clock = (ms: number) => {
   const secs = Math.ceil(ms / 1000);
   return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
+};
+/** The time on a timer as shown: what is left, or "+0:12" once it has run over. */
+export const timerText = (t: Timer, at: number) => {
+  const over = overtime(t, at);
+  if (!over) return clock(remaining(t, at));
+  const secs = Math.floor(over / 1000);
+  return `+${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
 };
 
 /* Setting up */
@@ -210,31 +257,35 @@ const byName = (a: Delegate, b: Delegate) => a.name.localeCompare(b.name, "en-AU
 export const emptyDebate = (): Debate => ({ list: [], run: [] });
 export const timerFor = (label: string, secs: number): Timer => ({ label, total: secs * 1000, endsAt: null, left: secs * 1000 });
 
-// A long state's name goes in its short form, so the tiles it sits in stay a sensible size: the well-known ones by their
-// usual letters, and any other very long name by the first letters of its words.
+// A state's name is kept in full. Where space is tight (the display's tiles, say) a well-known long name is shown by its
+// usual short form; any other long name is cut off with an ellipsis by the page, never turned into bare initials.
 const SHORT: Record<string, string> = {
   "united states of america": "USA", "united states": "USA", "united kingdom": "UK", "united arab emirates": "UAE",
   "democratic republic of the congo": "DRC", "democratic republic of congo": "DRC", "central african republic": "CAR",
   "russian federation": "Russia", "peoples republic of china": "China", "republic of korea": "South Korea",
   "democratic peoples republic of korea": "North Korea", "great britain": "UK",
 };
+/** A state's name for a tight space: its usual short form if it has one ("USA"), otherwise the name as it is. */
 export function shortName(name: string): string {
   const clean = name.trim().replace(/\s+/g, " ");
-  const known = SHORT[clean.toLowerCase().replace(/[.'’]/g, "")];
-  if (known) return known;
-  if (clean.length <= 18) return clean;
-  const words = clean.split(" ").filter((w) => !/^(of|the|and|for|de|la|el)$/i.test(w));
-  return words.length >= 2 ? words.map((w) => w[0].toUpperCase()).join("") : clean;
+  return SHORT[clean.toLowerCase().replace(/[.'’]/g, "")] ?? clean;
 }
+/** A state's name as it is kept: spaces tidied and at most 60 characters, counted so an emoji or flag is never cut in half. */
+export const cleanName = (raw: string) => Array.from(raw.trim().replace(/\s+/g, " ")).slice(0, 60).join("").trim();
+/** Names compare without regard to case or spacing, and a well-known name matches its short form ("USA" and "United
+    States of America"): a committee saved before names were kept in full holds the short form, and both would show as
+    "USA" on the display. */
+const nameKey = (n: string) => cleanName(n).toLocaleLowerCase("en-AU");
+export const sameName = (a: string, b: string) => nameKey(a) === nameKey(b) || nameKey(shortName(a)) === nameKey(shortName(b));
 
-// Names typed one per line or separated by commas; blanks and repeats dropped, long ones shortened.
+// Names typed one per line or separated by commas; blanks and repeats dropped. Each is kept in full.
 export function parseNames(text: string): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const raw of text.split(/[\n,;]+/)) {
-    const name = shortName(raw.trim().replace(/\s+/g, " ").slice(0, 60));
-    if (!name || seen.has(name.toLowerCase())) continue;
-    seen.add(name.toLowerCase());
+    const name = cleanName(raw);
+    if (!name || seen.has(nameKey(name)) || seen.has(nameKey(shortName(name)))) continue;
+    seen.add(nameKey(name)); seen.add(nameKey(shortName(name)));
     out.push(name);
   }
   return out.slice(0, MAX_DELEGATES);
@@ -284,6 +335,7 @@ const isTrin = (t: unknown): t is Trin => {
 
 // Whatever comes in from storage or the database is checked once here. A committee saved before this shape existed keeps
 // its name, resolution, states and minutes, and starts again at the welcome.
+const untagged = ({ by: _b, what: _w, ...x }: Chamber): Chamber => x;
 export function normalise(x: unknown): Chamber | null {
   if (!x || typeof x !== "object") return null;
   const o = x as Record<string, unknown> & Partial<Chamber> & { resolution?: { title?: string } };
@@ -291,7 +343,8 @@ export function normalise(x: unknown): Chamber | null {
   const ok = (o.rules === "evatt" || (o.rules === "trinity" && isTrin(o.tr))) && o.rev === 2 && typeof o.step === "string" && o.debate && Array.isArray(o.debate.list) && Array.isArray(o.debate.run)
     && o.roll && typeof o.roll === "object" && o.roles && Array.isArray(o.closers) && Array.isArray(o.amendments) && o.ballots && typeof o.ballots === "object";
   const fixRoll = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v === "abstain" ? "present" : v])) as Record<string, Attend>;
-  if (ok) return { ...(o as Chamber), roll: fixRoll(o.roll as Record<string, string>), tr: o.rules === "trinity" ? { ...(o.tr as Trin), cauc: (o.tr as Trin).cauc ?? null, saved: (o.tr as Trin).saved ?? null, current: (o.tr as Trin).current ?? null, bonus: (o.tr as Trin).bonus ?? null, stash: (o.tr as Trin).stash ?? null, reply: (o.tr as Trin).reply ?? null, finalDone: !!(o.tr as Trin).finalDone } : null, stats: Array.isArray(o.stats) ? o.stats : [], background: validBackground(o.background) ? o.background : null, backgroundStrength: typeof o.backgroundStrength === "number" ? Math.min(100, Math.max(20, o.backgroundStrength)) : 55, ...("backgroundAt" in o ? { backgroundAt: Array.isArray(o.backgroundAt) && o.backgroundAt.length === 2 && o.backgroundAt.every((n) => typeof n === "number" && n >= 0 && n <= 100) ? [o.backgroundAt[0] as number, o.backgroundAt[1] as number] as [number, number] : undefined } : {}), amendments: (o.amendments as Amendment[]).map((a, i) => ({ ...a, at: a.at ?? i })) };
+  // `by` and `what` belong only on the steps kept for Back (see remember): never on the committee itself.
+  if (ok) return { ...untagged(o as Chamber), roll: fixRoll(o.roll as Record<string, string>), tr: o.rules === "trinity" ? { ...(o.tr as Trin), cauc: (o.tr as Trin).cauc ?? null, saved: (o.tr as Trin).saved ?? null, current: (o.tr as Trin).current ?? null, bonus: (o.tr as Trin).bonus ?? null, stash: (o.tr as Trin).stash ?? null, reply: (o.tr as Trin).reply ?? null, finalDone: !!(o.tr as Trin).finalDone } : null, stats: Array.isArray(o.stats) ? o.stats : [], background: validBackground(o.background) ? o.background : null, backgroundStrength: typeof o.backgroundStrength === "number" ? Math.min(100, Math.max(20, o.backgroundStrength)) : 55, ...("backgroundAt" in o ? { backgroundAt: Array.isArray(o.backgroundAt) && o.backgroundAt.length === 2 && o.backgroundAt.every((n) => typeof n === "number" && n >= 0 && n <= 100) ? [o.backgroundAt[0] as number, o.backgroundAt[1] as number] as [number, number] : undefined } : {}), amendments: (o.amendments as Amendment[]).map((a, i) => ({ ...a, at: a.at ?? i })) };
   const old = o.delegates as { id: string; name: string }[];
   const resolution = String(o.topic ?? "").trim() || String(o.resolution?.title ?? "").trim();
   const fresh = create(String(o.name ?? "Committee"), resolution, Number(o.speakSecs) || 120, [], []);
@@ -322,12 +375,19 @@ function within(c: Chamber, kept: Chamber[]): Chamber[] {
   while (drop < kept.length && total > SIZE_BUDGET) total -= sizes[drop++];
   return drop ? kept.slice(drop) : kept;
 }
-/** The committee after `fn`, with the one before it kept for Back. A change that does nothing keeps nothing. */
-export function remember(before: Chamber, after: Chamber): Chamber {
+/** The committee after `fn`, with the one before it kept for Back. A change that does nothing keeps nothing. `by` is the
+    chair who made the change (their user id), so another chair's Back can't take it away; the step also keeps what the
+    change was, in the words the minutes used, so Back can say what it will undo. */
+export function remember(before: Chamber, after: Chamber, by?: string): Chamber {
   if (after === before) return after;
-  const { hist, ...rest } = before;
-  const kept = [...(hist ?? []).slice(-(HISTORY - 1)), { ...rest, background: null }];
-  return { ...after, hist: within(after, kept) };
+  const { hist, by: _by, what: _what, ...rest } = before;
+  const last = after.log[after.log.length - 1];
+  const what = last && last !== before.log[before.log.length - 1] ? last.text.slice(0, 120) : undefined;
+  const kept = [...(hist ?? []).slice(-(HISTORY - 1)), { ...rest, background: null, ...(by ? { by } : {}), ...(what ? { what } : {}) }];
+  // `by` and `what` belong on kept steps only. A console still on the last build copies them onto the committee when it
+  // goes back; left there they would tag the next step with the wrong chair.
+  const { by: _b, what: _w, ...live } = after;
+  return { ...live, hist: within(live, kept) };
 }
 /** The committee small enough to save: a committee saved before the limits above (or grown by changes that keep no step,
     such as the clock) lets go of its oldest minutes and steps for Back. The same committee if nothing had to go. */
@@ -339,14 +399,27 @@ export function fit(c: Chamber): Chamber {
   return kept === x.hist ? x : { ...x, hist: kept };
 }
 export const canGoBack = (c: Chamber) => !!c.hist?.length;
-/** Take back the last action. A clock that was running is stopped where it stands, so the chair starts it again. */
-export function goBack(c: Chamber, at: number): Chamber {
+/** Whether the last step kept for Back was made by another chair: `by` is the chair asking. Untagged steps belong to anyone. */
+export const backIsOthers = (c: Chamber, by?: string) => { const top = c.hist?.[c.hist.length - 1]; return !!top?.by && !!by && top.by !== by; };
+/** What Back would undo, in a few words ("Call Brazil"), or null when the step doesn't say. */
+export const backWhat = (c: Chamber): string | null => c.hist?.[c.hist.length - 1]?.what ?? null;
+export const BACK_OTHERS = "The last change was another chair's, so it wasn't undone.";
+/** Take back the last action. A clock that was running is stopped where it stands, so the chair starts it again. `by` is
+    the chair going back: a step another chair made is left alone (two chairs at once: the newer copy's last step may be
+    theirs). The chairs' marks, the photo and the join code on the display are settings, not part of the debate, so the
+    ones in place now are kept. */
+export function goBack(c: Chamber, at: number, by?: string): Chamber {
   const hist = c.hist ?? [];
-  const prev = hist[hist.length - 1];
-  if (!prev) return c;
-  const stop = (t: Timer | null) => (t && t.endsAt !== null ? { ...t, endsAt: null, left: remaining(t, at) } : t);
+  const top = hist[hist.length - 1];
+  if (!top || backIsOthers(c, by)) return c;
+  const { by: _by, what: _what, ...prev } = top;
+  const stop = (t: Timer | null) => (t && t.endsAt !== null ? { ...t, endsAt: null, left: remaining(t, at), ...(overtime(t, at) ? { over: overtime(t, at) } : {}) } : t);
   const tr = prev.tr ? { ...prev.tr, cauc: prev.tr.cauc ? { ...prev.tr.cauc, clock: stop(prev.tr.cauc.clock) } : prev.tr.cauc } : prev.tr;
-  return note({ ...prev, tr, timer: stop(prev.timer), background: c.background, backgroundStrength: c.backgroundStrength, ...(c.backgroundAt ? { backgroundAt: c.backgroundAt } : {}), hist: hist.slice(0, -1) }, "Went back one step");
+  const { scores: _scores, showJoin: _showJoin, chime: _chime, ...base } = prev;
+  return note({
+    ...base, tr, timer: stop(prev.timer), background: c.background, backgroundStrength: c.backgroundStrength, ...(c.backgroundAt ? { backgroundAt: c.backgroundAt } : {}),
+    ...(c.scores ? { scores: c.scores } : {}), ...(c.showJoin ? { showJoin: true } : {}), ...(c.chime ? { chime: c.chime } : {}), hist: hist.slice(0, -1),
+  }, "Went back one step");
 }
 
 /** Whether a save the database refused will never succeed however often it is sent: the committee broke a rule of the
@@ -386,7 +459,8 @@ export const roleName = (c: Chamber, r: Role) => (c.tr && r === "seconder" ? "Co
 /** What the document being debated is called. */
 export const resNoun = (_c: Chamber) => "Resolution";
 export const ATTEND_LABEL: Record<Attend, string> = { absent: "Absent", present: "Present", voting: "Present & Voting" };
-/** A state there for the vote: marked present or present and voting (or not marked at all). */
+/** A state that is there: marked present or present and voting, or not marked at all. Only a state marked Absent is away.
+    This one rule is used everywhere: the speakers' list, the votes, and "X of N present". */
 export const isHere = (c: Chamber, who: string) => c.roll[who] !== "absent";
 
 /* The display's background photo */
@@ -401,15 +475,43 @@ export function setBackgroundAt(c: Chamber, x: number, y: number): Chamber {
   const k = (n: number) => Math.min(100, Math.max(0, Math.round(n)));
   return Number.isFinite(x) && Number.isFinite(y) ? { ...c, backgroundAt: [k(x), k(y)] } : c;
 }
+/** Show the delegates' join code on the display, or hide it. */
+export const setShowJoin = (c: Chamber, on: boolean): Chamber => (!!c.showJoin === on ? c : { ...c, showJoin: on });
+/** Turn one of the display's sounds on or off. With both off the setting goes, as on a committee that never had it. */
+export function setChime(c: Chamber, which: "end" | "warn", on: boolean): Chamber {
+  if (!!c.chime?.[which] === on) return c;
+  const chime = { ...c.chime, [which]: on || undefined };
+  if (!chime.end) delete chime.end;
+  if (!chime.warn) delete chime.warn;
+  if (chime.end || chime.warn) return { ...c, chime };
+  const { chime: _c, ...rest } = c;
+  return rest;
+}
 export function setBackgroundStrength(c: Chamber, n: number): Chamber {
   return Number.isFinite(n) ? { ...c, backgroundStrength: Math.min(100, Math.max(20, Math.round(n))) } : c;
 }
 
 /* People */
 export function addDelegate(c: Chamber, id: string, name: string): Chamber {
-  const clean = shortName(name.trim().replace(/\s+/g, " ").slice(0, 60));
-  if (!clean || c.delegates.length >= MAX_DELEGATES || c.delegates.some((d) => d.id === id || d.name.toLowerCase() === clean.toLowerCase())) return c;
+  const clean = cleanName(name);
+  if (!clean || c.delegates.length >= MAX_DELEGATES || c.delegates.some((d) => d.id === id || sameName(d.name, clean))) return c;
   return { ...c, delegates: [...c.delegates, { id, name: clean }].sort(byName) };
+}
+/** Why a state can't be renamed to this, or null. */
+export function renameError(c: Chamber, who: string, name: string): string | null {
+  const clean = cleanName(name);
+  if (!has(c, who)) return "That state is no longer in the committee.";
+  if (!clean) return "Type the state's name.";
+  if (c.delegates.some((d) => d.id !== who && sameName(d.name, clean))) return "Another state already has that name.";
+  return null;
+}
+/** Fix a state's name at any point (a typo, a short form typed in error). Everything is kept by the state's id, so its
+    speeches, roll, ballots, marks and seats on delegates' devices all stay with it. */
+export function renameDelegate(c: Chamber, who: string, name: string): Chamber {
+  const clean = cleanName(name);
+  const old = nameOf(c, who);
+  if (renameError(c, who, name) || old === clean) return c;
+  return note({ ...c, delegates: c.delegates.map((d) => (d.id === who ? { ...d, name: clean } : d)).sort(byName) }, `${old} renamed ${clean}`);
 }
 // Only before the debate starts or after the vote: taking a state out mid-debate would leave speeches and votes pointing at no one.
 export function removeDelegate(c: Chamber, who: string): Chamber {
@@ -432,25 +534,67 @@ export function startRoll(c: Chamber): Chamber {
   if (c.step !== "welcome" || !c.topic) return c;
   return note({ ...c, step: "roll" }, "Roll call started");
 }
+/** Whether the roll can be changed now: at any point except while a vote is being taken. */
+export const rollOpen = (c: Chamber) => c.step !== "vote" && !c.poll;
+// A state marked absent comes off the speakers' list: it can't be called while it isn't there. That goes for the lists
+// set aside meanwhile too (the resolution's, during an amendment or a moderated caucus; the amendment's, during an
+// amendment to it), so it isn't back on the list when they return.
+const dropAbsent = (c: Chamber): Chamber => {
+  const off = (d: Debate): Debate => (d.list.every((x) => isHere(c, x.id)) ? d : { ...d, list: d.list.filter((x) => isHere(c, x.id)) });
+  let next = c;
+  const debate = off(c.debate);
+  if (debate !== c.debate) next = { ...next, debate };
+  if (c.held) { const held = off(c.held); if (held !== c.held) next = { ...next, held }; }
+  if (c.tr?.saved) { const saved = off(c.tr.saved); if (saved !== c.tr.saved) next = { ...next, tr: { ...c.tr, saved } }; }
+  const sub = c.amend?.sub;
+  if (sub) { const held = off(sub.held); if (held !== sub.held) next = { ...next, amend: { ...c.amend!, sub: { ...sub, held } } }; }
+  return next;
+};
+/** Mark a state at roll call, or change its mark later (a late arrival, a state that left). Outside the roll call itself the change goes in the minutes. */
 export function markRoll(c: Chamber, who: string, a: Attend | null): Chamber {
-  if (c.step !== "roll" || !has(c, who)) return c;
+  if (!rollOpen(c) || !has(c, who) || (c.roll[who] ?? null) === a) return c;
   const roll = { ...c.roll };
   if (a) roll[who] = a; else delete roll[who];
-  return { ...c, roll };
+  const next = dropAbsent({ ...c, roll });
+  return c.step === "roll" ? next : note(next, `${nameOf(c, who)} marked ${a ? ATTEND_LABEL[a].toLowerCase() : "not marked"}`);
 }
 export function markAllRoll(c: Chamber, a: Attend): Chamber {
-  if (c.step !== "roll") return c;
-  return { ...c, roll: Object.fromEntries(c.delegates.map((d) => [d.id, a])) };
+  if (!rollOpen(c)) return c;
+  const next = dropAbsent({ ...c, roll: Object.fromEntries(c.delegates.map((d) => [d.id, a])) });
+  return c.step === "roll" ? next : note(next, `Every state marked ${ATTEND_LABEL[a].toLowerCase()}`);
+}
+/** Trinity and Standard: the roll is taken again at the start of a new session, from the general debate between resolutions. The last roll is kept. */
+export const canRetakeRoll = (c: Chamber) => !!c.tr && c.step === "general" && !c.speech && !c.poll && !c.tr.reply;
+export function retakeRoll(c: Chamber, at = now()): Chamber {
+  if (!canRetakeRoll(c)) return c;
+  const t = c.tr!;
+  return note({ ...c, step: "roll", roll: {}, result: null, tr: { ...t, retake: true, rolls: { ...t.rolls, [String(at)]: c.roll } } }, "Roll call taken again");
 }
 export function rollCount(c: Chamber) {
   const out = { absent: 0, present: 0, voting: 0, unmarked: 0 };
   for (const d of c.delegates) { const a = c.roll[d.id]; if (a) out[a]++; else out.unmarked++; }
   return out;
 }
+/* Quorum (Standard and Custom): a third of the member states present to open debate, and a majority of them present
+   for a vote on a resolution. It informs and warns; the chair may carry on without it. */
+export const quorumToDebate = (members: number) => Math.ceil(members / 3);
+export const quorumToVote = (members: number) => Math.floor(members / 2) + 1;
+export type Quorum = { present: number; members: number; needed: number; met: boolean };
+/** At roll call only the states marked present count (an unmarked one hasn't answered yet); after it, every state not marked Absent. */
+export function quorum(c: Chamber, kind: "debate" | "vote"): Quorum {
+  const members = c.delegates.length;
+  const n = rollCount(c);
+  const here = c.step === "roll" ? n.present + n.voting : present(c);
+  const needed = kind === "debate" ? quorumToDebate(members) : quorumToVote(members);
+  return { present: here, members, needed, met: here >= needed };
+}
+export const quorumText = (q: Quorum, kind: "debate" | "vote") => `Quorum: ${q.present} of ${q.members} present, ${q.needed} needed to ${kind === "debate" ? "open debate" : "vote on a resolution"}`;
 export function beginDebate(c: Chamber): Chamber {
   if (c.step !== "roll") return c;
   const n = rollCount(c);
-  return note({ ...c, step: c.tr ? "statements" : "pick" }, `Roll call: ${n.voting} present and voting, ${n.present} present, ${n.absent} absent${n.unmarked ? `, ${n.unmarked} not marked` : ""}`);
+  // A roll taken again at the start of a new session goes back to the general debate; the first one goes on to the statements.
+  const step: Step = c.tr ? (c.tr.retake ? "general" : "statements") : "pick";
+  return note({ ...c, step, ...(c.tr?.retake ? { tr: { ...c.tr, retake: false } } : {}) }, `Roll call: ${n.voting} present and voting, ${n.present} present, ${n.absent} absent${n.unmarked ? `, ${n.unmarked} not marked` : ""}`);
 }
 /** The chair picks each of the three as they go, so the display shows the choice at once. A state holds one role at a time. */
 export function pickRole(c: Chamber, role: "proposer" | "seconder" | "opposer", who: string | null): Chamber {
@@ -494,7 +638,8 @@ export function callOpposer(c: Chamber): Chamber {
 }
 /** The amendment's proposer speaks first. `secs` is the time the chair allots. */
 export function callAmender(c: Chamber, secs?: number): Chamber {
-  const a = c.amendments.find((x) => x.id === c.amend?.id);
+  // An amendment to the amendment: its mover speaks first.
+  const a = c.amendments.find((x) => x.id === (c.amend?.sub?.id ?? c.amend?.id));
   if (c.step !== "amend" || c.amend?.stage !== "debate" || c.speech || c.debate.run.length || !a || !has(c, a.by)) return c;
   return start(c, a.by, "for", "amender", secs ?? (c.tr?.cauc?.kind === "amend" ? c.tr.cauc.per : timeOf(c, "amender")));
 }
@@ -529,6 +674,18 @@ export function nextCandidate(c: Chamber): Slot | null {
   const last = c.debate.run[c.debate.run.length - 1]?.side;
   const want: Side = last ? other(last) : "for";
   return c.debate.list.find((s) => s.side === want) ?? c.debate.list.find((s) => s.side !== want) ?? null;
+}
+
+/** What the N key does: the proposer, co-sponsor or opposer at their step, the amendment's proposer first, then the next on the list. */
+export function callNextSpeaker(c: Chamber): Chamber {
+  if (c.speech) return c;
+  if (c.step === "proposer") return callProposer(c);
+  if (c.step === "seconder") return callSeconder(c);
+  if (c.step === "opposer") return callOpposer(c);
+  if (c.tr ? !listOpen(c) : c.step !== "floor" && (c.step !== "amend" || c.amend?.stage !== "debate")) return c;
+  if (c.step === "amend" && !c.debate.run.length) return callAmender(c);
+  const n = nextCandidate(c);
+  return n ? callSpeaker(c, n.id, n.side) : c;
 }
 
 export function endSpeech(c: Chamber, at: number, who: string): Chamber {
@@ -628,14 +785,18 @@ export function callCaucus(c: Chamber, secs: number): Chamber {
 export function endCaucus(c: Chamber): Chamber {
   if (c.step !== "caucus" || c.speech) return c;
   const t = c.tr;
-  return note({ ...c, step: c.after ?? "floor", after: null, timer: null, ...(t ? { debate: t.saved ?? c.debate, tr: { ...t, cauc: null, saved: null } } : {}) }, "Caucus ended");
+  // Only a moderated caucus sets the committee's list aside (callMod). Any other caucus leaves `saved` alone: during an
+  // amendment it holds the resolution's own speakers' list, which must come back when the amendment is done.
+  const mod = t?.cauc?.kind === "mod";
+  return note({ ...c, step: c.after ?? "floor", after: null, timer: null, ...(t ? (mod ? { debate: t.saved ?? c.debate, tr: { ...t, cauc: null, saved: null } } : { tr: { ...t, cauc: null } }) : {}) }, "Caucus ended");
 }
 
 /* Amendments */
 
 // Notes come in from the caucus on, and are taken one at a time once it is over. Signatories are the states that sign it.
 // Trinity: a quarter of the states present must sign (the proposer and seconder among them), and a clause already amended needs full consensus to be amended again.
-export const present = (c: Chamber) => c.delegates.filter((d) => c.roll[d.id] === "present" || c.roll[d.id] === "voting").length;
+/** How many states are present: every state not marked Absent (one not marked yet counts as present, as it does for the vote). */
+export const present = (c: Chamber) => c.delegates.filter((d) => isHere(c, d.id)).length;
 const clauseKey = (t: string) => t.trim().toLowerCase().replace(/\s+/g, " ");
 export const amendedClause = (c: Chamber, clause: string) => !!clauseKey(clause) && c.amendments.some((a) => a.status === "passed" && clauseKey(a.clause) === clauseKey(clause));
 /** Whether amendments can be handed in: Trinity, from the debate on a resolution until the closing, the first caucus included; Evatt, from the first caucus of the debate. */
@@ -721,7 +882,7 @@ export function amendDebate(c: Chamber, id: string): Chamber {
   return note({ ...toDebate(c, c.amendments.find((x) => x.id === id)), poll: null }, "Amendment to be debated");
 }
 export function amendVote(c: Chamber, id: string): Chamber {
-  if (c.step !== "amend" || c.amend?.id !== id || (c.amend.stage !== "read" && c.amend.stage !== "debate") || c.speech) return c;
+  if (c.step !== "amend" || c.amend?.id !== id || (c.amend.stage !== "read" && c.amend.stage !== "debate") || c.speech || c.amend.sub) return c;
   return note({ ...c, amend: { ...c.amend, stage: "vote" }, poll: poll("Adopt this amendment?", "amendment"), ...(c.tr ? { tr: { ...c.tr, cauc: null } } : {}) }, "Vote on the amendment");
 }
 export function tally(c: Chamber, which: "yes" | "no" | "abstain", by: 1 | -1): Chamber {
@@ -739,7 +900,7 @@ export function pollCast(c: Chamber, who: string, ballot: Ballot | null): Chambe
   if (!p?.ballots || !has(c, who) || !isHere(c, who)) return c;
   const ballots = { ...p.ballots };
   if (ballot) ballots[who] = ballot; else delete ballots[who];
-  const n = (b: Ballot) => Object.entries(ballots).filter(([id, v]) => v === b && has(c, id)).length;
+  const n = (b: Ballot) => Object.entries(ballots).filter(([id, v]) => v === b && has(c, id) && isHere(c, id)).length;
   return { ...c, poll: { ...p, ballots, yes: n("for"), no: n("against"), abstain: n("abstain") } };
 }
 /** Who voted which way, for the minutes, when the vote was by roll call. */
@@ -764,6 +925,7 @@ export function decideAsk(c: Chamber, ruling: Ruling, id: string): Chamber {
   return note({ ...c, amend: { ...c.amend, stage: "vote" }, poll: poll("Adopt this amendment?", "amendment"), result }, `Not to be debated (${tail}); straight to the vote`);
 }
 export function decideAmendment(c: Chamber, ruling: Ruling, id: string): Chamber {
+  if (c.amend?.sub) return decideSub(c, ruling, id);
   const p = c.poll;
   const a = c.amendments.find((x) => x.id === c.amend?.id);
   if (c.step !== "amend" || c.amend?.id !== id || c.amend.stage !== "vote" || p?.kind !== "amendment" || !a) return c;
@@ -776,6 +938,48 @@ export function decideAmendment(c: Chamber, ruling: Ruling, id: string): Chamber
   return note(next, `Amendment from ${nameOf(c, a.by)} ${yes ? "passed" : "failed"} (${tail})`);
 }
 
+/* Standard and Custom: amendments to the amendment. While an amendment is debated, one amendment to it at a time can be
+   moved (no third degree). It is debated with its own speakers' list (the amendment's waits) within the amendment's
+   time, then voted on. If it passes, the amendment's wording changes to the new wording before the amendment is voted on. */
+export const subOpen = (c: Chamber) => !!c.style && c.step === "amend" && c.amend?.stage === "debate" && !c.amend.sub && !c.speech && !c.poll;
+export function moveSubAmendment(c: Chamber, id: string, by: string, text: string): Chamber {
+  const a = c.amendments.find((x) => x.id === c.amend?.id);
+  const body = text.trim().slice(0, 600);
+  if (!subOpen(c) || !a || a.to || !has(c, by) || observing(c, by) || !body || body === a.text || c.amendments.some((x) => x.id === id)) return c;
+  const at = Math.max(now(), ...c.amendments.map((x) => x.at + 1));
+  // No clause of its own: it changes the amendment, not the resolution.
+  const sub: Amendment = { id, by, how: "amend", clause: "", text: body, backers: [], at, status: "entertained", to: a.id };
+  const next = record({ ...c, amendments: [...c.amendments, sub], amend: { ...c.amend!, sub: { id, stage: "debate", held: c.debate } }, debate: emptyDebate(), result: null }, by, "amendment", 0, at);
+  return note(next, `Amendment to the amendment from ${nameOf(c, by)}: ${body}`);
+}
+export function subVote(c: Chamber): Chamber {
+  const sub = c.amend?.sub;
+  if (!sub || sub.stage !== "debate" || c.speech || c.poll) return c;
+  return note({ ...c, amend: { ...c.amend!, sub: { ...sub, stage: "vote" } }, poll: poll("Adopt this amendment to the amendment?", "amendment") }, "Vote on the amendment to the amendment");
+}
+/** Withdraw the amendment to the amendment before its vote: the amendment's own debate carries on. */
+export function withdrawSub(c: Chamber): Chamber {
+  const sub = c.amend?.sub;
+  if (!sub || sub.stage !== "debate" || c.speech) return c;
+  const { sub: _s, ...amend } = c.amend!;
+  return note({ ...setAmendment(c, sub.id, "withdrawn"), amend, debate: sub.held }, "Amendment to the amendment withdrawn");
+}
+function decideSub(c: Chamber, ruling: Ruling, id: string): Chamber {
+  const sub = c.amend?.sub;
+  const p = c.poll;
+  const s = c.amendments.find((x) => x.id === sub?.id);
+  const a = c.amendments.find((x) => x.id === c.amend?.id);
+  if (c.step !== "amend" || c.amend?.id !== id || !sub || sub.stage !== "vote" || p?.kind !== "amendment" || !s || !a) return c;
+  const yes = ruling ? ruling === "for" : passes(p);
+  const overrule = ruling !== null && yes !== passes(p);
+  const result: Result = { title: `Amendment to the amendment from ${nameOf(c, s.by)}`, kind: "amendment", amendment: s.id, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain, ...(p.ballots ? { ballots: p.ballots } : {}) };
+  const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}${rollTail(c, p)}`;
+  const amendments = c.amendments.map((x) => (x.id === s.id ? { ...x, status: (yes ? "passed" : "failed") as Amendment["status"] } : x.id === a.id && yes ? { ...x, text: s.text, was: x.was ?? x.text } : x));
+  const { sub: _s, ...amend } = c.amend!;
+  const next: Chamber = { ...c, amendments, amend: { ...amend, stage: "debate" }, debate: sub.held, poll: null, result };
+  return note(next, yes ? `Amendment to the amendment from ${nameOf(c, s.by)} passed (${tail}). The amendment now reads: ${s.text}` : `Amendment to the amendment from ${nameOf(c, s.by)} failed (${tail})`);
+}
+
 /* The speakers' list for the amendment in hand */
 
 // Evatt: the opening caucus, the debate on the resolution as a whole, and an amendment's debate. Trinity: the general speakers' list, a moderated caucus, the draft resolution's own list, an amendment's debate.
@@ -786,7 +990,7 @@ export const listOpen = (c: Chamber) => c.tr
 export const sided = (c: Chamber) => !c.tr || c.step === "floor" || c.step === "amend" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer";
 export const spokeOn = (c: Chamber, who: string, side: Side) => c.debate.run.some((s) => s.id === who && s.side === side);
 export function canAdd(c: Chamber, who: string, side: Side): boolean {
-  return listOpen(c) && has(c, who) && !observing(c, who) && !c.debate.list.some((s) => s.id === who) && c.speech?.who !== who && (!!c.tr || !spokeOn(c, who, side));
+  return listOpen(c) && has(c, who) && isHere(c, who) && !observing(c, who) && !c.debate.list.some((s) => s.id === who) && c.speech?.who !== who && (!!c.tr || !spokeOn(c, who, side));
 }
 export function addToList(c: Chamber, who: string, side: Side, stance = false): Chamber {
   return canAdd(c, who, side) ? { ...c, debate: { ...c.debate, list: [...c.debate.list, { id: who, side, ...(stance && !sided(c) && c.tr ? { stance: true } : {}) }] } } : c;
@@ -817,9 +1021,17 @@ export function closeDebate(c: Chamber): Chamber {
   if (c.step !== "floor" || c.speech || c.amend) return c;
   return note({ ...c, step: "closing", closers: [], result: null, ...(c.tr ? { tr: { ...c.tr, finalDone: false } } : {}) }, "Debate closed");
 }
+/** Why the vote on the resolution can't be taken now, or null: a vote needs at least one state present. */
+export const voteBlock = (c: Chamber): string | null => (present(c) ? null : "No state is present. Mark the roll first: a vote needs at least one state present.");
 export function startVote(c: Chamber): Chamber {
-  if (c.step !== "closing" || c.speech) return c;
-  return note({ ...c, step: "vote", ballots: {} }, "Roll call vote");
+  if (c.step !== "closing" || c.speech || voteBlock(c)) return c;
+  return note({ ...plainVote(c), step: "vote", ballots: {} }, "Roll call vote");
+}
+/** The committee without what a Standard or Custom vote keeps besides the ballots (passes, rights, explanations, a division). */
+function plainVote(c: Chamber): Chamber {
+  if (!c.passed && !c.rights && !c.explain && !c.divide) return c;
+  const { passed: _p, rights: _r, explain: _e, divide: _d, ...rest } = c;
+  return rest;
 }
 
 /* The vote on the resolution: a roll call */
@@ -828,6 +1040,7 @@ export function cast(c: Chamber, who: string, ballot: Ballot | null): Chamber {
   if (c.step !== "vote" || !has(c, who)) return c;
   if (!isHere(c, who)) return c; // an absent state has no vote
   if (ballot === "abstain" && c.roll[who] === "voting") return c; // Present and Voting must vote For or Against
+  if (ballot === "abstain" && c.passed?.includes(who)) return c; // a state that passed must then vote For or Against
   const ballots = { ...c.ballots };
   if (ballot) ballots[who] = ballot; else delete ballots[who];
   return { ...c, ballots };
@@ -849,7 +1062,8 @@ export const needed = (members: number) => Math.ceil((members * 3) / 5);
 export function finishVote(c: Chamber): Chamber {
   if (c.step !== "vote") return c;
   const n = count(c);
-  if (n.left) return c;
+  if (n.left || voteBlock(c)) return c;
+  if (c.style) return finishStandardVote(c, n);
   if (c.tr) return finishTrinityVote(c, n);
   const need = needed(c.delegates.length);
   const passed = n.yes >= need;
@@ -859,7 +1073,8 @@ export function finishVote(c: Chamber): Chamber {
 // Back to amending the ballots, if the result was recorded too soon.
 export function reopenVote(c: Chamber): Chamber {
   if (c.step !== "closed" || !c.outcome) return c;
-  return note({ ...c, step: "vote", outcome: null, ...(c.tr ? { tr: { ...c.tr, docs: c.tr.docs.map((d) => (d.id === c.tr!.current ? { ...d, result: null } : d)) } } : {}) }, "Vote reopened");
+  const { explain: _e, ...open } = c;
+  return note({ ...(c.explain ? open : c), step: "vote", outcome: null, ...(c.tr ? { tr: { ...c.tr, docs: c.tr.docs.map((d) => (d.id === c.tr!.current ? { ...d, result: null } : d)) } } : {}) }, "Vote reopened");
 }
 /** The chair closes the committee after the last resolution. Everything stays, so the analytics can still be read and it can be reopened. */
 export function endCommittee(c: Chamber): Chamber {
@@ -894,26 +1109,40 @@ export function setScore(c: Chamber, who: string, patch: Partial<Score>): Chambe
 /* Timer */
 
 /** In a moderated caucus (and an amendment's debate) every speech is taken out of the whole caucus's time: its clock runs when a speaker's does. */
-const drains = (c: Chamber) => !!c.speech && !!c.tr?.cauc?.clock && (c.tr.cauc.kind === "mod" || c.tr.cauc.kind === "amend") && (c.step === "caucus" || c.step === "amend");
+const drains = (c: Chamber) => !!c.speech && !c.tr?.reply && !!c.tr?.cauc?.clock && (c.tr.cauc.kind === "mod" || c.tr.cauc.kind === "amend") && (c.step === "caucus" || c.step === "amend");
 export function startTimer(c: Chamber, at: number): Chamber {
-  if (!c.timer || running(c.timer) || c.timer.left <= 0) return c;
-  const next = { ...c, timer: { ...c.timer, endsAt: at + c.timer.left } };
-  return drains(c) ? startCauc(next, at) : next;
+  if (!c.timer || running(c.timer) || (c.timer.left <= 0 && !c.timer.over)) return c;
+  const { over: _over, ...t } = c.timer; // a timer paused in overtime carries on counting up from where it was
+  const next = { ...c, timer: { ...t, endsAt: at + signedLeft(c.timer, at) } };
+  // A speaker carrying on past 0:00 no longer takes time from the caucus: only a speech with time left starts its clock.
+  return drains(c) && signedLeft(c.timer, at) > 0 ? startCauc(next, at) : next;
+}
+/** A speaker's clock has just passed 0:00 and keeps running: the whole caucus's clock stops where the speech's time ran
+    out, so the overtime isn't taken from the caucus (and can't run the caucus out early). The console calls this once
+    the speaker's time is up. */
+export function overrun(c: Chamber, at: number): Chamber {
+  if (!c.timer || !running(c.timer) || !drains(c) || signedLeft(c.timer, at) > 0) return c;
+  return pauseCauc(c, Math.min(at, c.timer.endsAt!));
 }
 export function pauseTimer(c: Chamber, at: number): Chamber {
   if (!c.timer || !running(c.timer)) return c;
-  const next = { ...c, timer: { ...c.timer, endsAt: null, left: remaining(c.timer, at) } };
+  const next = { ...c, timer: { ...c.timer, endsAt: null, left: remaining(c.timer, at), ...(overtime(c.timer, at) ? { over: overtime(c.timer, at) } : {}) } };
   // The caucus stops with the speaker, or when the speaker's time ran out if the chair was slow to stop it.
   return drains(c) ? pauseCauc(next, Math.min(at, c.timer.endsAt ?? at)) : next;
 }
 export function resetTimer(c: Chamber): Chamber {
-  return c.timer ? { ...c, timer: { ...c.timer, endsAt: null, left: c.timer.total } } : c;
+  if (!c.timer) return c;
+  const { over: _over, ...t } = c.timer;
+  return { ...c, timer: { ...t, endsAt: null, left: t.total } };
 }
 export function nudgeTimer(c: Chamber, secs: number, at: number): Chamber {
   const t = c.timer;
   if (!t) return c;
-  const left = Math.max(0, remaining(t, at) + secs * 1000);
-  return { ...c, timer: { ...t, total: Math.max(1000, t.total + secs * 1000), left, endsAt: t.endsAt === null ? null : at + left } };
+  // Overtime counts as time below zero, so adding 15 seconds to a speech 10 seconds over leaves 5.
+  const signed = signedLeft(t, at) + secs * 1000;
+  const left = Math.max(0, signed);
+  const { over: _over, ...rest } = t;
+  return { ...c, timer: { ...rest, total: Math.max(1000, t.total + secs * 1000), left, endsAt: t.endsAt === null ? null : at + signed, ...(t.endsAt === null && signed < 0 ? { over: -signed } : {}) } };
 }
 /** A timer for anything else (explaining an amendment, say). It never changes where the debate is. */
 export function setTimer(c: Chamber, label: string, secs: number): Chamber {
@@ -922,7 +1151,8 @@ export function setTimer(c: Chamber, label: string, secs: number): Chamber {
 
 /* Analytics: what each state did, and for how long */
 
-export const used = (c: Chamber, at: number) => (c.timer ? Math.max(0, Math.round((c.timer.total - remaining(c.timer, at)) / 1000)) : 0);
+// Overtime counts: a speech that ran 12 seconds over is recorded as the time it really took.
+export const used = (c: Chamber, at: number) => (c.timer ? Math.max(0, Math.round((c.timer.total - remaining(c.timer, at) + overtime(c.timer, at)) / 1000)) : 0);
 const resTitle = (c: Chamber) => (c.tr?.current ? c.tr.docs.find((d) => d.id === c.tr!.current)?.title : null) || c.topic;
 export const record = (c: Chamber, who: string, kind: StatKind, secs: number, at: number, withWho?: string): Chamber =>
   ({ ...c, stats: [...c.stats, { at, who, kind, secs, res: resTitle(c), ...(withWho ? { with: withWho } : {}), ...(c.tr ? { wk: c.tr.week } : {}) }] });
@@ -935,6 +1165,12 @@ export const STAT_LABEL: Record<StatKind, string> = {
 export const statLabel = (c: Chamber, k: StatKind) => (k === "seconder" && c.tr ? roleName(c, "seconder") : STAT_LABEL[k]);
 /** A speech, as opposed to a Point of Information or a note handed in. */
 export const isSpeech = (k: StatKind) => k === "statement" || k === "proposer" || k === "seconder" || k === "opposer" || k === "amender" || k === "speaker" || k === "closing";
+/** How many speeches each state has given in the whole committee, for the list of states to add. */
+export function spokeCount(c: Chamber): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const x of c.stats) if (isSpeech(x.kind)) out[x.who] = (out[x.who] ?? 0) + 1;
+  return out;
+}
 export function summary(c: Chamber, wk?: 1 | 2) {
   return c.delegates.map((d) => {
     const mine = c.stats.filter((s) => s.who === d.id && (!wk || s.wk === wk));
@@ -1015,6 +1251,147 @@ export function substep(c: Chamber): string {
   }
 }
 
+/* Standard and Custom: the roll-call vote on a resolution */
+
+/** What a state has answered: its ballot (with rights or not), Pass, or nothing yet. */
+export function answerOf(c: Chamber, who: string): Answer | null {
+  const b = c.ballots[who];
+  if (b && b !== "abstain" && c.rights?.includes(who)) return b === "for" ? "forRights" : "againstRights";
+  if (b) return b;
+  return c.passed?.includes(who) ? "pass" : null;
+}
+/** Standard and Custom: answer for a state in the roll-call vote. Pass leaves it to be asked again at the end, when it
+    must vote For or Against; For or Against with Rights counts as For or Against, and the state explains its vote after
+    the result. Null takes the answer back (or, for a state that has only passed, the pass). */
+export function answer(c: Chamber, who: string, a: Answer | null): Chamber {
+  if (!c.style || c.step !== "vote" || !has(c, who) || !isHere(c, who)) return c;
+  const passed = c.passed ?? [];
+  const was = passed.includes(who);
+  const rights = (c.rights ?? []).filter((x) => x !== who);
+  if (a === null) {
+    if (c.ballots[who]) { const ballots = { ...c.ballots }; delete ballots[who]; return { ...c, ballots, rights }; }
+    return was ? { ...c, passed: passed.filter((x) => x !== who), rights } : c;
+  }
+  if (a === "pass") {
+    if (was) return c; // a state passes once
+    const ballots = { ...c.ballots }; delete ballots[who];
+    return { ...c, ballots, passed: [...passed, who], rights };
+  }
+  const ballot: Ballot = a === "forRights" ? "for" : a === "againstRights" ? "against" : a;
+  const next = cast(c, who, ballot);
+  if (next === c) return c;
+  return { ...next, rights: a === "forRights" || a === "againstRights" ? [...rights, who] : rights };
+}
+/** The states that passed and have still to vote: asked again once everyone else has answered. */
+export const secondRound = (c: Chamber) => (c.passed ?? []).filter((id) => has(c, id) && isHere(c, id) && !c.ballots[id]);
+/** The resolution's rule under Standard or Custom: more For than Against, or (Custom) two-thirds of the votes cast. */
+export function standardNeed(c: Chamber, n: { yes: number; no: number }): { need: number; passed: boolean } {
+  const cast = n.yes + n.no;
+  const two = c.pass === "twothirds";
+  const need = two ? Math.max(1, Math.ceil((cast * 2) / 3)) : Math.floor(cast / 2) + 1;
+  return { need, passed: two ? n.yes >= need : n.yes > n.no };
+}
+// The states that voted with rights, in the order they appear, to explain their vote once the result is in.
+const explainers = (c: Chamber): Explain | undefined => {
+  const queue = c.delegates.filter((d) => c.rights?.includes(d.id) && (c.ballots[d.id] === "for" || c.ballots[d.id] === "against"))
+    .map((d) => ({ id: d.id, side: c.ballots[d.id] as Side }));
+  return queue.length ? { queue, who: null } : undefined;
+};
+// Explanations still owed from an earlier part of a divided question stay in the queue, ahead of this vote's.
+const moreExplain = (was: Explain | undefined, add: Explain | undefined): Explain | undefined => {
+  if (!was) return add;
+  if (!add) return was;
+  return { who: was.who, queue: [...was.queue, ...add.queue.filter((x) => !was.queue.some((y) => y.id === x.id && y.side === x.side))] };
+};
+function finishStandardVote(c: Chamber, n: { yes: number; no: number; abstain: number }): Chamber {
+  const ex = moreExplain(c.explain, explainers(c));
+  const part = divisionPart(c);
+  if (part && c.divide) { // a part of a divided question: kept or struck, then on to the next part
+    const { passed, need } = standardNeed(c, n);
+    const d = c.divide;
+    const parts = d.parts.map((x, i) => (i === d.at ? { ...x, result: (passed ? "passed" : "failed") as Part["result"], yes: n.yes, no: n.no, abstain: n.abstain } : x));
+    const { passed: _p, rights: _r, explain: _e, ...rest } = c;
+    return note({ ...rest, ballots: {}, divide: { parts, at: d.at + 1 }, ...(ex ? { explain: ex } : {}) },
+      `Part ${d.at + 1} of the resolution (${part.label}) ${passed ? "kept" : "struck"}: ${n.yes} for, ${n.no} against, ${n.abstain} abstaining${passed ? "" : `, ${need} needed`}`);
+  }
+  const done = finishTrinityVote(c, n);
+  const struck = c.divide?.parts.filter((x) => x.result === "failed").map((x) => x.label) ?? [];
+  const withStruck = struck.length && done.outcome ? note({ ...done, outcome: { ...done.outcome, struck } }, `Struck from the resolution: ${struck.join("; ")}`) : done;
+  return ex ? { ...withStruck, explain: ex } : withStruck;
+}
+
+/* Explanations of vote: after the result, each state that voted with rights gets a short timed explanation, or is skipped. */
+export const EXPLAIN_SECS = 30;
+export function callExplain(c: Chamber, who: string, secs = EXPLAIN_SECS): Chamber {
+  const e = c.explain;
+  const slot = e?.queue.find((x) => x.id === who);
+  if (!e || !slot || e.who || c.speech || c.poll) return c;
+  return note({ ...c, explain: { queue: e.queue.filter((x) => x.id !== who), who: slot }, timer: timerFor(`${nameOf(c, who)} explains their vote`, secs) }, `${nameOf(c, who)} explains their vote`);
+}
+export function endExplain(c: Chamber, who: string): Chamber {
+  const e = c.explain;
+  if (!e?.who || e.who.id !== who) return c;
+  const { explain: _e, ...rest } = c;
+  return { ...(e.queue.length ? { ...c, explain: { ...e, who: null } } : rest), timer: null };
+}
+export function skipExplain(c: Chamber, who: string): Chamber {
+  const e = c.explain;
+  if (!e || e.who || !e.queue.some((x) => x.id === who)) return c;
+  const queue = e.queue.filter((x) => x.id !== who);
+  const { explain: _e, ...rest } = c;
+  return note(queue.length ? { ...c, explain: { ...e, queue } } : rest, `${nameOf(c, who)} did not explain their vote`);
+}
+
+/* Standard and Custom: dividing the question. Before anyone votes, the chair picks parts of the resolution (operative
+   clauses) to vote on one at a time; a part that fails is struck. Then what remains is voted on as a whole. */
+/** The operative clauses in a resolution's text: numbered lines ("1. Calls upon…"), as short labels. */
+export function operativeClauses(text: string): string[] {
+  const out: string[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    const m = /^\s*(\d{1,2})\s*[.)]\s+(\S.*)$/.exec(line);
+    if (!m) continue;
+    const words = m[2].trim();
+    out.push(`Clause ${m[1]}: ${Array.from(words).length > 50 ? `${Array.from(words).slice(0, 49).join("").trimEnd()}\u2026` : words}`);
+  }
+  return out.slice(0, 20);
+}
+/** The part being voted on now, or null when the vote is on the resolution as a whole (or the question isn't divided). */
+export const divisionPart = (c: Chamber): Part | null => (c.divide && c.divide.at < c.divide.parts.length ? c.divide.parts[c.divide.at] : null);
+/** In words for the minutes, the display and the console: "Part 2 of 3: Clause 4". */
+export const partText = (c: Chamber): string | null => {
+  const p = divisionPart(c);
+  if (p && c.divide) return `Part ${c.divide.at + 1} of ${c.divide.parts.length}: ${p.label}`;
+  return c.divide ? "The rest of the resolution, as a whole" : null;
+};
+export const canDivide = (c: Chamber) => !!c.style && c.step === "vote" && !c.divide && !Object.keys(c.ballots).length && !c.passed?.length && !c.explain;
+export function divideQuestion(c: Chamber, labels: string[]): Chamber {
+  if (!canDivide(c)) return c;
+  const parts = labels.map((l) => Array.from(l.trim().replace(/\s+/g, " ")).slice(0, 80).join("")).filter(Boolean).slice(0, 20);
+  if (!parts.length) return c;
+  return note({ ...c, divide: { parts: parts.map((label) => ({ label, result: null })), at: 0 } }, `Question divided: ${parts.join("; ")}. Each part is voted on first, then the rest as a whole`);
+}
+/** Undo the division before the first part's vote has started. */
+export function undivide(c: Chamber): Chamber {
+  if (!c.divide || c.step !== "vote" || c.divide.at !== 0 || Object.keys(c.ballots).length || c.passed?.length) return c;
+  const { divide: _d, ...rest } = c;
+  return note(rest, "Question no longer divided");
+}
+
+/* A practice committee: a sample topic and 12 member states, in any procedure, run like any other. */
+export const PRACTICE = {
+  name: "Practice Committee",
+  topic: "Access to clean water",
+  resolutions: ["Clean water for every school", "Sharing rivers across borders"],
+  states: ["Australia", "Brazil", "Canada", "China", "Egypt", "France", "Germany", "India", "Japan", "Kenya", "Mexico", "New Zealand"],
+};
+export function createPractice(proc: "evatt" | "trinity" | "standard" | "custom", ids: string[], pass: "simple" | "twothirds" = "simple"): Chamber {
+  const { name, topic, resolutions, states } = PRACTICE;
+  if (proc === "trinity") return createTrinity(name, topic, TR.speech, states, ids, resolutions.map((title, i) => ({ title, week: 1 as const, seen: i === 0 })));
+  if (proc === "standard") return createStandard(name, topic, 60, states, ids, resolutions);
+  if (proc === "custom") return createStandard(name, topic, 60, states, ids, resolutions, { pass });
+  return create(name, `That the committee ensures ${topic.toLowerCase()} for all`, 120, states, ids);
+}
+
 /* Trinity Grammar MUN */
 
 // A resolution needs more For than Against. Abstentions count for neither. A draft's result is kept on the draft.
@@ -1052,7 +1429,7 @@ export function introduceDraft(c: Chamber, id: string): Chamber {
   const d = docOf(c, id);
   if (!c.tr || c.step !== "general" || c.speech || c.poll || !d || d.kind !== "draft" || d.status !== "approved" || d.result || (d.proposer !== null && (!has(c, d.proposer) || observing(c, d.proposer))) || (d.seconder !== null && (!has(c, d.seconder) || observing(c, d.seconder)))) return c;
   return note({
-    ...c, step: "pick", roles: { proposer: d.proposer, seconder: d.seconder, opposer: null }, closers: [], debate: emptyDebate(), amendments: [], amend: null, result: null, ballots: {}, outcome: null,
+    ...plainVote(c), step: "pick", roles: { proposer: d.proposer, seconder: d.seconder, opposer: null }, closers: [], debate: emptyDebate(), amendments: [], amend: null, result: null, ballots: {}, outcome: null,
     tr: { ...c.tr, current: id, saved: null, finalDone: false },
   }, `${resNoun(c)} introduced: ${d.title}`);
 }
@@ -1080,7 +1457,7 @@ export function setAgenda(c: Chamber, slot: number, title: string): Chamber {
 export function backToGeneral(c: Chamber): Chamber {
   if (!c.tr || c.step !== "closed") return c;
   return note({
-    ...c, step: "general", after: null, roles: { proposer: null, seconder: null, opposer: null }, closers: [], debate: emptyDebate(), speech: null, amendments: [], amend: null, poll: null,
+    ...plainVote(c), step: "general", after: null, roles: { proposer: null, seconder: null, opposer: null }, closers: [], debate: emptyDebate(), speech: null, amendments: [], amend: null, poll: null,
     result: null, timer: null, ballots: {}, outcome: null, tr: { ...c.tr, current: null, saved: null, cauc: null, finalDone: false },
   }, "Back to the resolutions");
 }
@@ -1091,8 +1468,7 @@ export function startStatements(c: Chamber): Chamber {
 /** The next state to give its statement: those present, in alphabetical order. */
 export function upcomingStatements(c: Chamber, n = 3): string[] {
   if (!c.tr) return [];
-  const here = c.delegates.filter((d) => c.roll[d.id] === "present" || c.roll[d.id] === "voting");
-  return (here.length ? here : c.delegates).filter((d) => !c.tr!.opened.includes(d.id) && !observing(c, d.id)).slice(0, n).map((d) => d.id);
+  return c.delegates.filter((d) => isHere(c, d.id) && !c.tr!.opened.includes(d.id) && !observing(c, d.id)).slice(0, n).map((d) => d.id);
 }
 export const nextStatement = (c: Chamber): string | null => upcomingStatements(c, 1)[0] ?? null;
 export function callStatement(c: Chamber, who: string): Chamber {
@@ -1225,9 +1601,39 @@ export function addMotion(c: Chamber, id: string, m: MotionInput): Chamber {
   if (!t || t.motions.some((x) => x.id === id) || motionError(c, m)) return c;
   const at = Math.max(now(), ...t.motions.map((x) => x.at + 1));
   const motion: Motion = { id, kind: m.kind, by: m.by, topic: (m.topic ?? "").trim().slice(0, 120), total: m.total ?? 0, per: m.per ?? 0, ref: m.ref ?? null, at, status: "waiting" };
-  return note({ ...c, tr: { ...t, motions: [...t.motions, motion] } }, `Motion: ${motionText(c, motion)}`);
+  const added: Chamber = { ...c, tr: { ...t, motions: [...t.motions, motion] } };
+  return note(c.style ? precedenceMotions(added) : added, `Motion: ${motionText(c, motion)}`);
 }
 export const waitingMotions = (c: Chamber) => c.tr?.motions.filter((m) => m.status === "waiting") ?? [];
+
+/* Standard and Custom: motions are taken in order of precedence, the most disruptive first (as at THIMUN and Harvard):
+   suspending the meeting, then an unmoderated caucus, extending the caucus, a moderated caucus, closing a moderated
+   caucus, then closing the debate. Among motions of the same kind, the longest caucus goes first, then the oldest.
+   Closing the debate needs two-thirds of the states present; every other motion a simple majority of them. Trinity
+   keeps its own way: the chair puts motions in the order they choose and more For than Against carries one. */
+export const PRECEDENCE: MotionKind[] = ["suspend", "unmod", "extend", "mod", "closemod", "close", "amend", "open", "resume"];
+export const byPrecedence = (a: Motion, b: Motion) => PRECEDENCE.indexOf(a.kind) - PRECEDENCE.indexOf(b.kind) || b.total - a.total || a.at - b.at;
+/** The votes For a motion needs to pass under the general rules, or null where more For than Against carries it (Trinity). */
+export function motionNeeds(c: Chamber, kind: MotionKind): number | null {
+  if (!c.style) return null;
+  const n = present(c);
+  return kind === "close" ? Math.max(1, Math.ceil((n * 2) / 3)) : Math.floor(n / 2) + 1;
+}
+/** What a motion needs, in words: "Needs 7 (two-thirds)". Null where more For than Against carries it. */
+export const motionNeedsText = (c: Chamber, kind: MotionKind): string | null => {
+  const n = motionNeeds(c, kind);
+  return n === null ? null : `Needs ${n} For (${kind === "close" ? "two-thirds" : "a majority"} of ${present(c)} present)`;
+};
+/** Whether a motion's vote, as counted, carries it. */
+export const motionPasses = (c: Chamber, p: Pick<Poll, "yes" | "no" | "motion">): boolean => {
+  const m = c.tr?.motions.find((x) => x.id === p.motion);
+  const need = m ? motionNeeds(c, m.kind) : null;
+  return need === null ? passes(p) : p.yes >= need;
+};
+/** Standard and Custom: the waiting motions in order of precedence. */
+export function precedenceMotions(c: Chamber): Chamber {
+  return reorderMotions(c, [...waitingMotions(c)].sort(byPrecedence));
+}
 const reorderMotions = (c: Chamber, w: Motion[]): Chamber => {
   let i = 0;
   return c.tr ? { ...c, tr: { ...c.tr, motions: c.tr.motions.map((m) => (m.status === "waiting" ? w[i++] : m)) } } : c;
@@ -1258,9 +1664,11 @@ export function decideMotion(c: Chamber, ruling: Ruling, id: string): Chamber {
   const p = c.poll;
   const m = c.tr?.motions.find((x) => x.id === id);
   if (!c.tr || !m || p?.kind !== "motion" || p.motion !== id) return c;
-  const yes = ruling ? ruling === "for" : passes(p);
-  const overrule = ruling !== null && yes !== passes(p);
-  const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${overrule ? ", overruled" : ""}${rollTail(c, p)}`;
+  const carried = motionPasses(c, p);
+  const yes = ruling ? ruling === "for" : carried;
+  const overrule = ruling !== null && yes !== carried;
+  const need = motionNeeds(c, m.kind);
+  const tail = `${p.yes} for, ${p.no} against, ${p.abstain} abstaining${need !== null ? `, ${need} needed` : ""}${overrule ? ", overruled" : ""}${rollTail(c, p)}`;
   const result: Result = { title: p.title, kind: "motion", motion: id, passed: yes, yes: p.yes, no: p.no, abstain: p.abstain, ...(p.ballots ? { ballots: p.ballots } : {}) };
   const closed = setMotion({ ...c, poll: null, result }, id, yes ? "passed" : "failed");
   if (!yes) return note(closed, `Motion failed (${tail}): ${p.title}`);
@@ -1286,12 +1694,13 @@ export function logPoint(c: Chamber, kind: PointKind): Chamber {
   return c.tr ? note({ ...c, tr: { ...c.tr, points: [...c.tr.points, { at: now(), kind, wk: c.tr.week }] } }, `Point of ${POINT_LABEL[kind]}`) : c;
 }
 export const REPLY_SECS = 20;
-/** A speech's clock waits while a state is heard. */
-export function startReply(c: Chamber, by: string, to: string | null): Chamber {
+/** Whatever clock is running (a speech's, a caucus's) waits, paused, while a state is heard, and comes back when it is done. */
+export function startReply(c: Chamber, by: string, to: string | null, at = now()): Chamber {
   const t = c.tr;
   if (!t || t.reply || !has(c, by) || (to !== null && !has(c, to)) || by === to) return c;
-  const stash = c.timer && c.speech ? pauseTimer(c, now()).timer : null;
-  return note({ ...c, timer: timerFor("Right of reply", REPLY_SECS), tr: { ...t, reply: { by, to }, stash } }, `${nameOf(c, by)} claims a right of reply${to ? ` against ${nameOf(c, to)}` : ""}`);
+  const paused = c.timer ? pauseTimer(c, at) : c; // pauses a moderated caucus's own clock with its speaker's, too
+  const stash = paused.timer;
+  return note({ ...paused, timer: timerFor("Right of reply", REPLY_SECS), tr: { ...paused.tr!, reply: { by, to }, stash } }, `${nameOf(c, by)} claims a right of reply${to ? ` against ${nameOf(c, to)}` : ""}`);
 }
 export function finishReply(c: Chamber, outcome: "apologised" | "withdrew" | "refused" | null): Chamber {
   const t = c.tr;

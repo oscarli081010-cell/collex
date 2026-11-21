@@ -6,7 +6,8 @@ import SearchBox from "../../SearchBox";
 import { supabase } from "@/lib/supabase";
 import Section from "../Section";
 import type { Entry, ListingCtx } from "../types";
-import { SENTENCE, STAFF, TONE, when } from "./words";
+import Select from "../../Select";
+import { KIND, KINDS, SENTENCE, STAFF, TONE, undoWhat, when } from "./words";
 import { Placard } from "../../Drawings";
 import board from "../../board.module.css";
 import m from "../../Manage.module.css";
@@ -32,6 +33,8 @@ export default function AuditLog({ ctx }: { ctx: ListingCtx }) {
 function Log({ history, onUndo }: { history: Entry[] | null; onUndo: (e: Entry) => void }) {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(0);
+  const [person, setPerson] = useState("");
+  const [kind, setKind] = useState("");
   const rows = useMemo(() => (history ?? []).map((h) => {
     const who = STAFF.has(h.action) ? "The Collex team" : h.who;
     const say = SENTENCE[h.action]?.(h) ?? h.action;
@@ -41,7 +44,9 @@ function Log({ history, onUndo }: { history: Entry[] | null; onUndo: (e: Entry) 
   if (history.length === 0) return <div className={`${board.empty} ${m.empty}`}><Placard /><p className={board.emptyTitle}>Nothing recorded yet</p><p className="muted">Every change to the listing shows here.</p></div>;
 
   const words = q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/\s+/).filter(Boolean);
-  const shown = rows.filter((r) => words.every((w) => r.hay.includes(w)));
+  const people = [...new Set(rows.map((r) => r.who))].sort();
+  const narrowed = Boolean(q || person || kind);
+  const shown = rows.filter((r) => (!person || r.who === person) && (!kind || KIND[r.h.action] === kind) && words.every((w) => r.hay.includes(w)));
   const pages = Math.max(1, Math.ceil(shown.length / PER_PAGE));
   const at = Math.min(page, pages - 1);
   const slice = shown.slice(at * PER_PAGE, (at + 1) * PER_PAGE);
@@ -51,10 +56,19 @@ function Log({ history, onUndo }: { history: Entry[] | null; onUndo: (e: Entry) 
     <>
       <div className={s.logSearch} role="search">
         <SearchBox label="Search the audit log" placeholder="Search by who, what or when" value={q} onChange={(v) => { setQ(v); setPage(0); }} />
-        <span className={`muted ${s.logCount}`} aria-live="polite">{q ? `${shown.length} of ${rows.length}` : `${rows.length} ${rows.length === 1 ? "entry" : "entries"}`}</span>
+        <Select className="control" aria-label="Person" value={person} onChange={(e) => { setPerson(e.target.value); setPage(0); }}>
+          <option value="">Everyone</option>
+          {people.map((p) => <option key={p} value={p}>{p}</option>)}
+        </Select>
+        <Select className="control" aria-label="Kind of change" value={kind} onChange={(e) => { setKind(e.target.value); setPage(0); }}>
+          <option value="">All changes</option>
+          {KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
+        </Select>
+        <span className={`muted ${s.logCount}`} aria-live="polite">{narrowed ? `${shown.length} of ${rows.length}` : `${rows.length} ${rows.length === 1 ? "entry" : "entries"}`}</span>
       </div>
+      <p className={s.note}>Times are Sydney time.</p>
       {shown.length === 0 ? (
-        <p className={s.note}>No matches. Try a different word, or clear the search.</p>
+        <p className={s.note}>No matches. Try a different word, or clear the search and filters.</p>
       ) : (
         <ol className={s.history}>
           {slice.map(({ h, who, say }, i) => (
@@ -67,7 +81,7 @@ function Log({ history, onUndo }: { history: Entry[] | null; onUndo: (e: Entry) 
               </div>
               {h.can_undo && (
                 <span className={s.undo}>
-                  <ConfirmIconButton label="Undo this change" confirm="Click again to undo this change" icon={ICONS.undo} onConfirm={() => onUndo(h)} />
+                  <ConfirmIconButton label={`Undo this change. It ${undoWhat(h)}`} confirm={`Click again to undo. This ${undoWhat(h)}`} icon={ICONS.undo} onConfirm={() => onUndo(h)} />
                 </span>
               )}
             </li>

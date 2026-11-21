@@ -4,17 +4,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PageBand, { type BandProps } from "./PageBand";
 import { FormSkeleton } from "./Skeleton";
-import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { coverUrl, formatRange, type Conference, type ConferenceSummary, type Role } from "@/lib/conferences";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { coverUrl, formatRange, todayInSydney, type Conference, type ConferenceSummary, type Role } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
-import { forgetListing, keptEditing, loadEditing, staleEditing, warmActivity, type EditingData } from "@/lib/listingData";
+import { forgetListing, warmActivity, type EditingData } from "@/lib/listingData";
 import { shrinkPhoto, uploadPhoto } from "@/lib/photo";
 import { isoToSydney, sydneyToIso } from "@/lib/schedule";
 import { useAuth } from "./AuthProvider";
-import { badGuide, badRole, CommitteesEditor, committeeRows, KeyDatesEditor, keyDateRows, RolesEditor, roleRows, ScheduleEditor, scheduleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toKeyDates, toRoles, toSchedule, toSecretariat, type CommitteeRow, type KeyDateRow, type RoleRow, type ScheduleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
+import { badGuide, badRole, CommitteesEditor, committeeRows, firstRepeat, KeyDatesEditor, keyDateRows, RolesEditor, roleRows, ScheduleEditor, scheduleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toKeyDates, toRoles, toSchedule, toSecretariat, type CommitteeRow, type KeyDateRow, type RoleRow, type ScheduleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
 import Section from "./listing/Section";
+import { loadForm } from "./listing/loadForm";
+import { impactOf, moveAllocations, norm, type Impact } from "./listing/committeeImpact";
 import { Work } from "./listing/Shell";
 import type { ListingCtx } from "./listing/types";
 import auth from "@/app/auth.module.css";
@@ -39,9 +41,9 @@ const FIELDS: F[] = [
   { name: "contact", label: "Contact email", type: "email", required: true },
   { name: "fee", label: "Delegate fee", type: "text" },
   { name: "delegation_url", label: "Delegate registration link", type: "url" },
-  { name: "delegation_opens", label: "Registration opens", type: "datetime-local", },
+  { name: "delegation_opens", label: "Registration opens", type: "datetime-local", hint: "Sydney time. Leave empty to open it straight away." },
   { name: "chair_url", label: "Chair application link", type: "url" },
-  { name: "chair_opens", label: "Chair applications open", type: "datetime-local", },
+  { name: "chair_opens", label: "Chair applications open", type: "datetime-local", hint: "Sydney time. Leave empty to open it straight away." },
   { name: "interest_url", label: "Interest form link", type: "url", wide: true, hint: "Leave blank to collect interest on Collex" },
   { name: "overview", label: "Overview", type: "textarea", wide: true },
 ];
@@ -149,6 +151,18 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
   const [firstDay, setFirstDay] = useState("");
   const [lastDay, setLastDay] = useState("");
   const [editing, setEditing] = useState<Editing | null | "missing" | "viewonly">(null);
+  // When the listing was last saved, as loaded: an edit only goes through while it still reads that, so two organisers
+  // editing at once can't overwrite each other. Every save moves it on.
+  const stamp = useRef<string | null>(null);
+  // Bumped when the form is loaded over again (after "Reload"), so its fields start from what was loaded.
+  const [rev, setRev] = useState(0);
+  // The edit was turned away because someone else saved first: the form offers to load their version.
+  const [conflict, setConflict] = useState(false);
+  // A rename or removal that touches allocations or choices, waiting for the person's say before it is saved.
+  const [warn, setWarn] = useState<Impact | null>(null);
+  const confirmed = useRef<"" | "plain" | "alloc">("");
+  const saving = useRef(false);
+  const formEl = useRef<HTMLFormElement>(null);
   const editId = listing?.id ?? null;
   const editRow = editing && typeof editing === "object" ? editing : null;
   // Changes not yet saved. Only what the person does sets it: loading the listing into the form uses the plain setters.
@@ -167,12 +181,15 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
   const [stray, setStray] = useState<Conference["guides"]>([]);
   // Keyed on who is signed in, not on the session object, so a silent token refresh never reloads the form over unsaved edits.
   const userId = session?.user.id;
+  const { setAt: setCoverAt } = coverPhoto;
+  const { setAt: setThumbAt } = thumbPhoto;
   // Fills the form from a listing's row and team.
   const apply = useCallback(({ row: data, members }: EditingData) => {
     // A view-only co-organiser can open the listing's activity, not its form (the database would refuse the save anyway).
     const me = members.find((m) => m.user_id === userId);
     const viewOnly = Boolean(me && !me.is_owner && me.role === "viewer");
     const row = members.length && !viewOnly ? (data as Editing | null) : null;
+    stamp.current = (row?.updated_at as string | undefined) ?? null;
     setEditing(viewOnly ? "viewonly" : row ?? "missing");
     setFirstDay((row?.start_date as string | undefined) ?? "");
     setLastDay((row?.end_date as string | undefined) ?? "");
@@ -183,21 +200,24 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     setSchedule(scheduleRows(row?.schedule));
     setStray(strayGuides(row?.committees ?? [], row?.guides ?? []));
     const at = (k: string) => { const n = Number((row as Record<string, unknown> | null)?.[k]); return row?.[k] != null && Number.isFinite(n) ? n : 50; };
-    coverPhoto.setAt([at("cover_x"), at("cover_y")]);
-    thumbPhoto.setAt([at("thumb_x"), at("thumb_y")]);
-  }, [userId]);
-  // Layout effect, so a form whose listing was loaded a moment ago (from the Activity page) shows it on its first paint
-  // instead of a skeleton. A kept copy is used as it is when it is recent: the form never reloads over what someone has
-  // started typing. An older one is shown at once too, then replaced by a fresh load that starts as the page opens.
-  const [usedKept, setUsedKept] = useState(false);
-  useLayoutEffect(() => {
-    const kept = editId && userId ? keptEditing(editId) : undefined;
-    if (kept) { apply(kept); setUsedKept(!staleEditing(editId!)); }
-  }, [apply, userId, editId]);
+    setCoverAt([at("cover_x"), at("cover_y")]);
+    setThumbAt([at("thumb_x"), at("thumb_y")]);
+  }, [userId, setCoverAt, setThumbAt]);
+  // The listing is read fresh when the form opens (never from a copy kept earlier), so the time it was last saved is true.
+  // Nothing reloads it over what someone has started typing: only the person's own "Reload" does.
   useEffect(() => {
-    if (!editId || !userId || !supabase || usedKept) return;
-    loadEditing(editId).then((r) => { if (r) apply(r); });
-  }, [editId, userId, usedKept, apply]);
+    if (!editId || !userId || !supabase) return;
+    let on = true;
+    loadForm(editId).then((r) => { if (on && r) apply(r); });
+    return () => { on = false; };
+  }, [editId, userId, apply]);
+  // Loads the listing again, discarding what was typed, and starts the form over from it.
+  const reloadForm = async () => {
+    if (!editId) return;
+    const r = await loadForm(editId);
+    if (!r) return say.current("Couldn’t reload it. Check your connection and try again.");
+    apply(r); setRev((n) => n + 1); setDirty(false); setConflict(false); setWarn(null); setErrors({});
+  };
   // The Activity page is the likely next stop, so its numbers load quietly.
   useEffect(() => { if (editId && userId) warmActivity(editId, userId); }, [editId, userId]);
   const edit = editing && editing !== "missing" && editing !== "viewonly" ? editing : null;
@@ -205,6 +225,13 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
   const listed = useConferences();
   const clashes = firstDay ? clashing(listed, firstDay, lastDay && lastDay >= firstDay ? lastDay : firstDay, edit?.id) : [];
   const firstBadGuide = committees.findIndex(badGuide);
+  // A committee renamed to the name of one removed in the same save: the people in the removed one would silently end up
+  // in the renamed one. It has to be done in two saves.
+  const removedNames = new Set((edit?.committees ?? []).map((k) => norm(k.name)).filter((n) => n && !committees.some((r) => r.was && norm(r.was) === n)));
+  const firstTaken = committees.findIndex((r) => r.was && r.name.trim() && norm(r.name) !== norm(r.was) && removedNames.has(norm(r.name)));
+  const firstRepeated = firstRepeat(committees) >= 0 ? firstRepeat(committees) : firstTaken;
+  // A listing that was sent back or taken down is saved and sent for review again in one step.
+  const again = Boolean(edit && (edit.status === "rejected" || edit.status === "unpublished"));
   const firstBadRole = roles.findIndex(badRole);
 
   // On the new-listing page the form has its own toast; in a listing's workspace, the workspace's.
@@ -256,7 +283,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     if (!v("host")) out.host = "Add the school hosting it.";
     if (!v("contact")) out.contact = "Add an email so delegates can reach you.";
     else if (!/^\S+@\S+\.\S+$/.test(v("contact"))) out.contact = "That email doesn't look right.";
-    if (v("start_date") && v("end_date") && v("end_date") < v("start_date")) out.end_date = "The last day is before the first day.";
+    if (v("start_date") && v("end_date") && v("end_date") < v("start_date")) out.end_date = "The last day can’t be before the first day.";
     for (const k of ["delegation_url", "chair_url", "interest_url"]) if (v(k) && !isUrl(v(k))) out[k] = "Use a full link starting with https://";
     for (const [k, link] of [["delegation_opens", "delegation_url"], ["chair_opens", "chair_url"]]) {
       if (v(k) && !sydneyToIso(v(k))) out[k] = "That date and time doesn't look right.";
@@ -266,6 +293,8 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     // A photo still being shrunk isn't in the form yet: saving now would leave it out.
     if (coverPhoto.shrinking) out.cover = "Wait for the photo to finish loading.";
     if (thumbPhoto.shrinking) out.thumb = "Wait for the photo to finish loading.";
+    if (firstRepeat(committees) >= 0) out.committees = "Two committees have the same name. Rename or remove one.";
+    else if (firstTaken >= 0) out.committees = "This name belongs to a committee you removed. Save the removal first, then rename.";
     if (committees.some((r) => r.uploading)) out.guides = "Wait for the PDF to finish uploading.";
     else if (firstBadGuide >= 0) out.guides = "Fix the guide link marked below.";
     if (firstBadRole >= 0) out.roles = "Fix the apply link marked below.";
@@ -273,23 +302,53 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     return out;
   };
 
+  // Why an edit changed nothing, found by reading the listing again.
+  const whyNotSaved = async (id: string): Promise<{ text: string; conflict: boolean }> => {
+    const r = await loadForm(id);
+    if (!r) return { text: "Couldn’t send it. Check your connection and try again.", conflict: false };
+    const me = r.members.find((m) => m.user_id === userId);
+    if (!r.row || !r.members.length || (me && !me.is_owner && me.role === "viewer")) return { text: "You no longer have access to this listing.", conflict: false };
+    if (String(r.row.updated_at ?? "") !== stamp.current) return { text: "Someone else changed this listing while you were editing. Reload to see their changes.", conflict: true };
+    if (again && (r.row.status === "rejected" || r.row.status === "unpublished")) return { text: "This listing can’t be sent for review again yet. Try again in a few minutes.", conflict: false };
+    if (r.row.status === "pending") return { text: "This listing is being reviewed and can’t be edited right now.", conflict: false };
+    return { text: "You can’t edit this listing any more. Ask the person who listed it.", conflict: false };
+  };
+
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!supabase || !session) return;
-    const form = e.currentTarget;
+    // One save at a time: a second press while the first is still checking or sending would be turned away as a clash.
+    if (saving.current) return;
+    saving.current = true;
+    try { await save(e.currentTarget); } finally { saving.current = false; }
+  }
+
+  async function save(form: HTMLFormElement) {
+    if (!supabase || !session) return;
     const data = new FormData(form);
     const v = (k: string) => String(data.get(k) ?? "").trim();
     const found = check(v);
     setErrors(found);
     const first = Object.keys(found)[0];
     if (first) {
-      const el = (first === "guides" ? document.getElementById(firstBadGuide >= 0 ? `committee-${firstBadGuide}-guide` : "committee-0-first")
+      confirmed.current = "";
+      const el = (first === "committees" ? document.getElementById(`committee-${firstRepeated}-first`)
+        : first === "guides" ? document.getElementById(firstBadGuide >= 0 ? `committee-${firstBadGuide}-guide` : "committee-0-first")
         : first === "roles" ? document.getElementById(`role-${firstBadRole}-url`)
         : first === "cover" || first === "thumb" ? document.getElementById(`f-${first}`) : form.elements.namedItem(first)) as HTMLElement | null;
       el?.focus({ preventScroll: true });
       el?.scrollIntoView({ block: "center", behavior: "smooth" });
       return;
     }
+    // Renaming or removing a committee people are already placed in or chose: say so first, and let the person decide.
+    if (edit && !confirmed.current) {
+      const hit = await impactOf(edit.id, committees, (edit.committees ?? []).map((k) => k.name));
+      if (hit) { setWarn(hit); return; }
+    }
+    const also = confirmed.current === "alloc" ? warn : null;
+    confirmed.current = "";
+    setWarn(null);
+    setConflict(false);
     setBusy(true);
     const seen = edits.current;
     // Upload the photos first, into this account's own folder, so the listing only ever points at files that exist.
@@ -307,6 +366,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     const cover = await photo(coverPhoto, "cover");
     const thumb = cover && await photo(thumbPhoto, "thumb");
     if (!cover || !thumb) { setBusy(false); return setErrors({ [cover ? "thumb" : "cover"]: "The photo didn't upload. Try again, or try a smaller one." }); }
+    const sentRows = committees;
     const guideList = toGuides(committees, stray);
     const people = toSecretariat(secretariat);
     const roleList = toRoles(roles);
@@ -331,23 +391,48 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
       // Each photo with where it is framed; a removed photo clears both.
       ...cover, ...thumb,
     };
-    // .select() returns the saved row, so an edit that changed nothing (no access any more) is caught, not shown as saved.
-    const { data: saved, error } = edit
-      ? await supabase.from("conferences").update({ ...fields, guides: guideList, secretariat: people, roles: roleList, key_dates: dateList, schedule: scheduleList }).eq("id", edit.id).select("id")
+    // Only where the listing still reads as it did when it was loaded, and .select() hands the saved row back: an edit that
+    // changed nothing (someone else saved first, or access ended) is caught and explained, not shown as saved.
+    const changes = { ...fields, guides: guideList, secretariat: people, roles: roleList, key_dates: dateList, schedule: scheduleList, ...(again ? { status: "pending" } : {}) };
+    const sent = edit ? supabase.from("conferences").update(changes).eq("id", edit.id) : null;
+    const { data: saved, error } = sent
+      ? await (stamp.current ? sent.eq("updated_at", stamp.current) : sent).select("id, updated_at")
       : await supabase.from("conferences").insert({
           ...fields, ...(guideList.length ? { guides: guideList } : {}), ...(people.length ? { secretariat: people } : {}), ...(roleList.length ? { roles: roleList } : {}), ...(dateList.length ? { key_dates: dateList } : {}), ...(scheduleList.length ? { schedule: scheduleList } : {}),
           submitted_by: session.user.id,
-        }).select("id");
+        }).select("id, updated_at");
+    if (!error && !saved?.length && edit) {
+      // Nothing was updated. Read the listing again to say which of the reasons it is; what was typed stays in the form.
+      const why = await whyNotSaved(edit.id);
+      setBusy(false);
+      setConflict(why.conflict);
+      return setErrors({ form: why.text });
+    }
     setBusy(false);
-    if (!error && !saved?.length) return setErrors({ form: "You can't edit this listing any more. Ask the person who listed it." });
-    if (error) return setErrors({ form: error.message.startsWith("Too many listings") ? "You've sent 5 listings today. Try again tomorrow." : "Couldn't send it. Check your connection and try again." });
+    if (!error && !saved?.length) return setErrors({ form: "You can’t edit this listing any more. Ask the person who listed it." });
+    if (error) return setErrors({ form: error.message.startsWith("Too many listings") ? "You’ve sent 5 listings today. Try again tomorrow." : again && error.code === "42501" ? "This listing can’t be sent for review again yet." : "Couldn’t send it. Check your connection and try again." });
+    if (edit) {
+      stamp.current = (saved?.[0] as { updated_at?: string } | undefined)?.updated_at ?? stamp.current;
+      // What was just saved is the new starting point, so the next save doesn't see the same rename or removal again.
+      const sentNames = new Map(sentRows.map((r) => [r.key, r.name.trim()]));
+      setCommittees((cur) => cur.map((r) => (sentNames.has(r.key) ? { ...r, was: sentNames.get(r.key) || undefined } : r)));
+      setEditing((cur) => (cur && typeof cur === "object" ? ({ ...cur, committees: changes.committees } as Editing) : cur));
+    }
+    // Allocations follow a renamed committee when the person asked for that.
+    if (edit && also && !(await moveAllocations(edit.id, also.moves))) say.current("Saved, but the allocations weren’t moved. Fix them in Applications.");
     if (edits.current === seen) setDirty(false);
     if (edit) {
       forgetListing(edit.id);
       // New links or guides on a live listing queue emails to its followers; this sends them.
       supabase.functions.invoke("notify").catch(() => {});
       // In its workspace the form stays as it is: the listing is read again and a live one's page shows the edit straight away.
-      if (listing) { listing.say(edit.status === "published" ? "Saved. It shows on the live page now." : "Saved. It goes with the review."); listing.changed(); return; }
+      if (listing) {
+        listing.say(again ? "Sent for review again." : edit.status === "published" ? "Saved. It shows on the live page now." : "Saved. It goes with the review.");
+        // A listing sent again is now in review: the form reads it over so it says so.
+        if (again) void reloadForm();
+        listing.changed();
+        return;
+      }
       if (edit.status === "published") refreshSite().then(() => router.refresh());
     }
     // The form is gone once it is sent, so whatever was typed meanwhile went with it.
@@ -417,6 +502,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
             </div>
             {/* Right under the dates, across the form, while it matters. */}
             {f.name === "end_date" && <ClashNote clashes={clashes} />}
+            {f.name === "end_date" && firstDay && firstDay < todayInSydney() && <small className="muted">The first day has already passed. That’s fine if you’re adding a conference that’s been run.</small>}
             </Fragment>
           );
   };
@@ -428,7 +514,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
   };
 
   const form = (
-    <form key={edit?.id ?? "form"} className={s.listForm} onSubmit={submit} onInput={changed} onChange={changed} noValidate>
+    <form key={`${edit?.id ?? "form"}-${rev}`} ref={formEl} className={s.listForm} onSubmit={submit} onInput={changed} onChange={changed} noValidate>
       <Section id="sec-details" title="Details">
         <div className={s.formGrid}>{FIELDS.filter((f) => f.name !== "overview").map(field)}</div>
       </Section>
@@ -444,14 +530,16 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
       <Section id="sec-schedule" title="Schedule">
         <fieldset className="field">
           <legend className="sr-only">Schedule</legend>
+          <small className="muted">Times are Sydney time.</small>
           <ScheduleEditor rows={schedule} setRows={(a) => { touch(); setSchedule(a); }} first={firstDay} last={lastDay} />
         </fieldset>
       </Section>
       <Section id="sec-committees" title="Committees">
         <fieldset className="field">
           <legend className="sr-only">Committees</legend>
-          {errors.guides && <small key="err" className={`t-reveal ${s.error}`}>{errors.guides}</small>}
-          <CommitteesEditor rows={committees} setRows={(a) => { touch(); setCommittees(a); if (errors.guides) setErrors(({ guides: _, ...rest }) => rest); }} upload={uploadGuide} />
+          {errors.committees && <small key="err" className={`t-reveal ${s.error}`}>{errors.committees}</small>}
+          {errors.guides && <small key="gerr" className={`t-reveal ${s.error}`}>{errors.guides}</small>}
+          <CommitteesEditor rows={committees} setRows={(a) => { touch(); setCommittees(a); setWarn(null); if (errors.guides || errors.committees) setErrors(({ guides: _, committees: __, ...rest }) => rest); }} upload={uploadGuide} />
         </fieldset>
       </Section>
       <Section id="sec-secretariat" title="Secretariat">
@@ -483,10 +571,27 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
             </label>
           )}
           {!edit && errors.publish && <p key="publish" id="publish-err" className={`t-reveal ${s.error}`}>{errors.publish}</p>}
+          {warn && (
+            <div className={`${s.error} t-reveal`} role="alert" style={{ marginBottom: 8 }}>
+              <p>
+                {warn.renames.length > 0 && <>Renaming {warn.renames.map((r) => `${r.from} to ${r.to}`).join(", ")}. </>}
+                {warn.removed.length > 0 && <>Removing {warn.removed.join(", ")}. </>}
+                {warn.moves.length + warn.orphaned > 0 && <>{warn.moves.length + warn.orphaned} {warn.moves.length + warn.orphaned === 1 ? "person is" : "people are"} already placed in {warn.moves.length ? "a renamed or removed committee" : "a removed committee"}. </>}
+                {warn.choices > 0 && <>{warn.choices} {warn.choices === 1 ? "applicant chose" : "applicants chose"} a committee that changes, and their choice stays as they wrote it. </>}
+                {warn.moves.length > 0 && <>Also Update Allocations moves the people in a renamed committee to its new name. Anyone already sent their allocation gets it once more, with the new name, the next time you send allocations.</>}
+              </p>
+              <div className="actions">
+                {warn.moves.length > 0 && <button type="button" className="button" onClick={() => { confirmed.current = "alloc"; formEl.current?.requestSubmit(); }}>Also Update Allocations</button>}
+                <button type="button" className="button" onClick={() => { confirmed.current = "plain"; formEl.current?.requestSubmit(); }}>Save Anyway</button>
+                <button type="button" className="button" onClick={() => setWarn(null)}>Cancel</button>
+              </div>
+            </div>
+          )}
           {errors.form && <p key={errors.form} className={`t-reveal ${s.error} ${edit ? lf.barError : ""}`}>{errors.form}</p>}
+          {conflict && <button type="button" className="button block" onClick={() => void reloadForm()}>Reload Listing</button>}
           {edit && <span className={lf.status} role="status">{dirty ? "Unsaved changes" : ""}</span>}
           <button type="submit" className={`button lg ${edit ? lf.save : auth.submit}`} disabled={busy}>
-            <span key={String(busy)} className="t-swap">{edit ? (busy ? "Saving…" : "Update") : busy ? "Sending…" : "Send for Review"}</span>
+            <span key={String(busy)} className="t-swap">{edit ? (busy ? "Saving…" : again ? "Send for Review Again" : "Update") : busy ? "Sending…" : "Send for Review"}</span>
           </button>
           <small className={`muted ${edit ? lf.barNote : ""}`} style={{ textAlign: "center" }}>
             <span className={s.req} aria-hidden="true">*</span> is required{!edit && <> <span aria-hidden="true">&middot;</span> The Collex team will review it before it goes live</>}
@@ -499,7 +604,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
   // In a listing's workspace: only the form, which the workspace frames.
   if (listing) {
     if (editing === null) return <div className="skelWrap"><FormSkeleton fields={6} width={600} grid /></div>;
-    if (!edit) return <div className={board.empty}><Placard /><p className={board.emptyTitle}>This listing can&rsquo;t be edited</p><p className="muted">Only the people who run it can change it, while it&rsquo;s in review or live.</p></div>;
+    if (!edit) return <div className={board.empty}><Placard /><p className={board.emptyTitle}>This listing can&rsquo;t be edited</p><p className="muted">Only the people who run it can change it.</p></div>;
     return form;
   }
 

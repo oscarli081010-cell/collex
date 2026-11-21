@@ -12,7 +12,7 @@
   transition: color var(--duration-quick);
 }
 .scrollCue:hover { color: var(--ink); }
-.scrollCue svg { animation: cue 1.8s var(--ease-in-out, ease-in-out) infinite; }
+.scrollCue svg { animation: cue 1.8s var(--ease-in-out, ease-in-out) 2; /* a few nudges, then still */ }
 @keyframes cue { 50% { transform: translateY(4px); } }
 .heroText { display: flex; flex-direction: column; gap: 24px; align-items: flex-start; }
 .title { font-size: clamp(48px, 6.2vw, 88px); line-height: 0.98; letter-spacing: -0.02em; max-width: 12ch; }
@@ -25,26 +25,26 @@
   animation: auraIn 900ms var(--ease-smooth-out) 500ms forwards;
 }
 @keyframes auraIn { to { background-size: 100% 100%; } }
-.heroActions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+.heroActions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+.what { font-size: 16px; line-height: 1.55; color: var(--muted); max-width: 46ch; text-wrap: pretty; }
+.start { padding-inline: 6px; }
 
 .heroPic { position: relative; }
 .heroImg {
   position: relative; display: block; aspect-ratio: 4 / 3; border-radius: 16px; overflow: hidden;
   background: var(--accent); isolation: isolate;
-  animation: heroIn var(--duration-very-slow) var(--ease-smooth-out) both;
 }
 /* The photo drifts slowly across the frame, like a camera panning the hall. */
 .heroImg img {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 40%;
   transform: scale(1.12) translateX(-2.5%);
-  animation: heroPan 42s ease-in-out infinite alternate;
+  animation: heroPan 5s var(--ease-smooth-out) 1 forwards; /* one slow pass, then it rests */
   will-change: transform;
 }
 /* In dark mode the photo is dimmed a little so it sits on the darker page. */
 .heroImg::after { content: ""; position: absolute; inset: 0; background: #000; opacity: 0; transition: opacity 300ms var(--ease-out); }
 :global(:root[data-theme="dark"]) .heroImg::after { opacity: 0.22; }
 @media (prefers-color-scheme: dark) { :global(:root[data-theme="system"]) .heroImg::after { opacity: 0.22; } }
-@keyframes heroIn { from { opacity: 0; transform: scale(0.98); } }
 @keyframes heroPan { to { transform: scale(1.12) translateX(2.5%) translateY(-1.5%); } }
 .nextCard {
   position: absolute; left: -32px; bottom: -28px; min-width: 260px; max-width: calc(100vw - 48px);
@@ -56,7 +56,7 @@
   transition: transform var(--duration-fast) var(--ease-smooth-out), box-shadow var(--duration-fast) var(--ease-smooth-out);
 }
 .nextCard:hover { transform: translateY(-3px); box-shadow: 0 22px 52px rgba(var(--shadow-rgb), 0.16); }
-@keyframes nextIn { from { opacity: 0; transform: translateY(12px); } }
+@keyframes nextIn { from { transform: translateY(12px); } }
 .nextLabel { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
 .nextName { font-size: 28px; line-height: 1.1; }
 

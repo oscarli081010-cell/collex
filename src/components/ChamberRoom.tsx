@@ -93,7 +93,7 @@ function TakeSeat({ code, say, done }: { code: string; say: (t: string) => void;
       </header>
       <section className={`panel ${s.share}`} aria-labelledby="ts-h">
         <h2 id="ts-h" className={s.h2}>Which State Are You?</h2>
-        <p className="muted">Choose the state you represent. Up to three people can sit as one state.</p>
+        <p className="muted">{peek.mine ? "You already have a seat here. Only a chair can change it." : "Choose the state you represent. Up to three people can sit as one state. Once chosen, only a chair can change it."}</p>
         <ul className={r.rows}>
           {peek.delegates.map((d) => (
             <li key={d.id}>
@@ -102,7 +102,7 @@ function TakeSeat({ code, say, done }: { code: string; say: (t: string) => void;
                 {d.taken > 0 && <small>{d.taken} {d.taken === 1 ? "person has" : "people have"} this seat</small>}
               </span>
               <span className={r.rowBtns}>
-                <Why why={busy ? (busy === d.id ? "Joining…" : "Joining another seat…") : d.taken >= 3 && "Three people already have this seat"}><button type="button" className={peek.mine === d.id ? "button sm" : "button secondary sm"} disabled={!!busy || d.taken >= 3} onClick={() => void take(d.id)}>{busy === d.id ? "Joining…" : peek.mine === d.id ? "Continue" : d.taken >= 3 ? "Full" : "Take This Seat"}</button></Why>
+                <Why why={busy ? (busy === d.id ? "Joining…" : "Joining another seat…") : peek.mine && peek.mine !== d.id ? "You already have a seat here. Ask the chair if it isn't right." : peek.mine !== d.id && d.taken >= 3 && "Three people already have this seat"}><button type="button" className={peek.mine === d.id ? "button sm" : "button secondary sm"} disabled={!!busy || (!!peek.mine && peek.mine !== d.id) || (peek.mine !== d.id && d.taken >= 3)} onClick={() => void take(d.id)}>{busy === d.id ? "Joining…" : peek.mine === d.id ? "Continue" : d.taken >= 3 ? "Full" : "Take This Seat"}</button></Why>
               </span>
             </li>
           ))}
@@ -117,11 +117,11 @@ type Tab = "floor" | "vote" | "notes" | "files";
 function Seat({ cid, userId, say }: { cid: string; userId: string; say: (t: string) => void }) {
   const { data, c, status, refresh } = useDelegateRoom(cid, true);
   const [tab, setTab] = useState<Tab>("floor");
-  const router = useRouter();
   const run = ch.running(c?.timer ?? null) || ch.running(c?.tr?.cauc?.clock ?? null);
   const now = useNow(run);
 
   if (status === "denied") return <Shell title="You don't have a seat here" text="The chairs may have turned delegates' devices off, or your seat was taken away. Ask your chair for the delegates' code."><Link href="/chambers?join=" className="button">Type a Code</Link></Shell>;
+  if (data?.pending) return <Shell title="Waiting for the chair" text={`You asked to sit as ${data.seat_name || "a state"} in ${data.name}. A chair approves each seat here. This page carries on by itself once they do.`}><Link href="/chambers?tab=yours" className="button secondary block">Back to Committees</Link></Shell>;
   if (!data || !c) return status === "offline" ? <Shell title="Can't reach the committee" text="Check your connection. This page keeps trying." /> : <main id="top" className="container" />;
 
   const me = data.seat;
@@ -130,7 +130,6 @@ function Seat({ cid, userId, say }: { cid: string; userId: string; say: (t: stri
   const straw = data.room.straw?.open ? data.room.straw : null;
   const voting = (key && !data.votes[key] ? 1 : 0) + (straw && !data.votes[strawKey(straw)] ? 1 : 0);
   const lastAll = [...data.notes].reverse().find((n) => n.to_id === "all" && Date.now() - Date.parse(n.created_at) < 30 * 60000);
-  const leave = async () => { if (supabase) { await supabase.rpc("room_unseat", { cid, target: userId }); router.replace("/chambers?tab=yours"); } };
 
   return (
     <main id="top" className={`container ${r.room}`}>
@@ -142,7 +141,7 @@ function Seat({ cid, userId, say }: { cid: string; userId: string; say: (t: stri
             {c.topic && <div className={s.factWide}><dt>Topic</dt><dd>{c.topic}</dd></div>}
           </dl>
         </div>
-        <button type="button" className={`button secondary ${s.topBtn}`} onClick={() => void leave()}>{ICONS.leave}Leave</button>
+        <Link href="/chambers?tab=yours" className={`button secondary ${s.topBtn}`}>{ICONS.leave}Committees</Link>
       </header>
       {status === "offline" && <p className={s.result} data-pass="false" role="alert">Offline: what you see may be out of date.</p>}
       {lastAll && <p className={r.announce} role="status"><strong>From the chairs</strong>{lastAll.body}</p>}

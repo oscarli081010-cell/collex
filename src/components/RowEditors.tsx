@@ -16,6 +16,8 @@ export type CommitteeRow = Committee & {
   key: string; guide: string; released: string;
   /** The file's name after a PDF upload, so the row can say what's attached. */
   fileName?: string; uploading?: boolean; guideError?: string;
+  /** The name this committee had when the listing was loaded, so a rename can be told from a new committee. */
+  was?: string;
 };
 
 const key = () => crypto.randomUUID();
@@ -27,7 +29,7 @@ const todayIso = () => new Date().toLocaleDateString("en-CA", { timeZone: "Austr
 export const committeeRows = (list: Committee[], guides: Conference["guides"] = []): CommitteeRow[] =>
   list.map((c) => {
     const g = guides.find((x) => x.committee === c.name && x.url);
-    return { name: c.name, topic: blank(c.topic), level: blank(c.level), chairs: blank(c.chairs), guide: g?.url ?? "", released: g?.released ?? "", key: key() };
+    return { name: c.name, topic: blank(c.topic), level: blank(c.level), chairs: blank(c.chairs), guide: g?.url ?? "", released: g?.released ?? "", key: key(), was: c.name };
   });
 
 /** Guides whose committee is no longer in the list. They're kept as they were, not silently dropped. */
@@ -43,6 +45,12 @@ export const toGuides = (rows: CommitteeRow[], stray: Conference["guides"] = [])
   ...rows.filter((r) => r.name.trim() && r.guide.trim()).map((r) => ({ committee: r.name.trim(), url: r.guide.trim(), released: r.released || todayIso() })),
   ...stray,
 ];
+/** Two committees can't share a name, whatever the case or spacing: "unsc" and "UNSC " are the same one. */
+const sameName = (a: string, b: string) => a.trim().replace(/\s+/g, " ").toLowerCase() === b.trim().replace(/\s+/g, " ").toLowerCase();
+/** Whether this row repeats the name of an earlier one. */
+export const repeatsCommittee = (rows: CommitteeRow[], i: number) => Boolean(rows[i].name.trim()) && rows.slice(0, i).some((r) => sameName(r.name, rows[i].name));
+/** The first row that repeats an earlier committee's name, or -1. */
+export const firstRepeat = (rows: CommitteeRow[]) => rows.findIndex((_, i) => repeatsCommittee(rows, i));
 /** A guide link that isn't a plain web address. */
 export const badGuide = (r: CommitteeRow) => r.guide.trim() !== "" && !webUrl(r.guide);
 
@@ -54,9 +62,11 @@ function move<T>(list: T[], from: number, to: number) {
 }
 
 // The add / reorder / remove frame around the rows.
-function Rows<T extends { key: string }>({ id, rows, setRows, label, addLabel, make, render, max, inline }: {
+function Rows<T extends { key: string }>({ id, rows, setRows, label, addLabel, make, render, max, noun, inline }: {
   id: string; rows: T[]; setRows: Dispatch<SetStateAction<T[]>>; label: (r: T, i: number) => string;
   addLabel: string; make: () => T; max?: number;
+  /** What the rows are called in "12 of 60 committees". */
+  noun?: string;
   /** Rows that are a single line of fields: the buttons sit beside the inputs instead of in a tall column. */
   inline?: boolean; render: (r: T, i: number, set: (patch: Partial<T>) => void) => React.ReactNode;
 }) {
@@ -90,6 +100,7 @@ function Rows<T extends { key: string }>({ id, rows, setRows, label, addLabel, m
         ))}
       </ol>
       <button type="button" id={`${id}-add`} className={`button secondary ${s.addRow}`} onClick={add} disabled={max !== undefined && rows.length >= max}>+ {addLabel}</button>
+      {max !== undefined && noun && <small className="muted" aria-live="polite">{rows.length} of {max} {noun}</small>}
     </div>
   );
 }
@@ -100,7 +111,7 @@ export type UploadGuide = (file: File) => Promise<{ url: string } | { error: str
 export function CommitteesEditor({ rows, setRows, upload }: { rows: CommitteeRow[]; setRows: Dispatch<SetStateAction<CommitteeRow[]>>; upload: UploadGuide }) {
   return (
     <Rows<CommitteeRow>
-      id="committee" rows={rows} setRows={setRows} addLabel="Add a Committee"
+      id="committee" rows={rows} setRows={setRows} addLabel="Add a Committee" max={60} noun="committees"
       label={(r, i) => r.name.trim() || `committee ${i + 1}`}
       make={() => ({ name: "", topic: "", level: "", chairs: "", guide: "", released: "", key: key() })}
       render={(r, i, set) => {
@@ -115,7 +126,11 @@ export function CommitteesEditor({ rows, setRows, upload }: { rows: CommitteeRow
           set({ uploading: false, guide: res.url, fileName: file.name, released: r.released || todayIso() });
         };
         return <>
-          <label className={s.editWide}><span>Committee</span><input id={`committee-${i}-first`} className="control" value={r.name} maxLength={120} placeholder="For example, UNSC" onChange={(e) => set({ name: e.target.value })} /></label>
+          <label className={`${s.editWide} ${repeatsCommittee(rows, i) ? s.invalid : ""}`}>
+            <span>Committee</span>
+            <input id={`committee-${i}-first`} className="control" value={r.name} maxLength={120} placeholder="For example, UNSC" aria-invalid={repeatsCommittee(rows, i)} onChange={(e) => set({ name: e.target.value })} />
+            {repeatsCommittee(rows, i) && <small className={s.error} role="alert">Another committee already has this name.</small>}
+          </label>
           <label className={s.editWide}><span>Topic</span><input className="control" value={r.topic} maxLength={300} placeholder="For example, Arctic sovereignty" onChange={(e) => set({ topic: e.target.value })} /></label>
           <label>
             <span>Level</span>
@@ -180,7 +195,7 @@ export function SecretariatEditor({ rows, setRows, upload }: { rows: Secretariat
     <>
       <datalist id="secretariat-roles">{STANDARD_ROLES.map((r) => <option key={r} value={r} />)}</datalist>
       <Rows<SecretariatRow>
-        id="secretariat" rows={rows} setRows={setRows} addLabel="Add a Person" max={20} inline
+        id="secretariat" rows={rows} setRows={setRows} addLabel="Add a Person" max={20} noun="people" inline
         label={(r, i) => r.role.trim() || r.hint || `person ${i + 1}`}
         make={() => ({ role: "", name: "", key: key() })}
         render={(r, i, set) => <>
@@ -216,7 +231,7 @@ export const badRole = (r: RoleRow) => r.url.trim() !== "" && !webUrl(r.url);
 export function RolesEditor({ rows, setRows }: { rows: RoleRow[]; setRows: Dispatch<SetStateAction<RoleRow[]>> }) {
   return (
     <Rows<RoleRow>
-      id="role" rows={rows} setRows={setRows} addLabel="Add a Role" max={12}
+      id="role" rows={rows} setRows={setRows} addLabel="Add a Role" max={12} noun="roles"
       label={(r, i) => r.title.trim() || ROLE_KINDS.find((k) => k.id === r.kind)?.label || `role ${i + 1}`}
       make={() => ({ kind: "chair", title: "", note: "", url: "", key: key() })}
       render={(r, i, set) => {
@@ -256,7 +271,7 @@ export const toKeyDates = (rows: KeyDateRow[]) => rows.map((r) => ({ ...r, label
 export function KeyDatesEditor({ rows, setRows }: { rows: KeyDateRow[]; setRows: Dispatch<SetStateAction<KeyDateRow[]>> }) {
   return (
     <Rows<KeyDateRow>
-      id="keydate" rows={rows} setRows={setRows} addLabel="Add a Date" max={20} inline
+      id="keydate" rows={rows} setRows={setRows} addLabel="Add a Date" max={20} noun="dates" inline
       label={(r, i) => r.label.trim() || r.hint || `date ${i + 1}`}
       make={() => ({ label: "", date: "", key: key() })}
       render={(r, i, set) => <>
@@ -293,7 +308,7 @@ export function ScheduleEditor({ rows, setRows, first, last }: { rows: ScheduleR
   const max = (last && (!first || last >= first) ? last : first) || undefined;
   return (
     <Rows<ScheduleRow>
-      id="schedule" rows={rows} setRows={setRows} addLabel="Add an Item" max={60}
+      id="schedule" rows={rows} setRows={setRows} addLabel="Add an Item" max={60} noun="items"
       label={(r, i) => r.title.trim() || `item ${i + 1}`}
       make={() => ({ day: "", time: "", title: "", place: "", key: key() })}
       render={(r, i, set) => <>

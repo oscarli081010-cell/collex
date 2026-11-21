@@ -11,12 +11,13 @@ export type PanelTab<T extends string> = { id: T; label: string; icon: React.Rea
 export default function PanelTabs<T extends string>({ tabs, tab, setTab, label, idPrefix }: { tabs: PanelTab<T>[]; tab: T; setTab: (t: T) => void; label: string; idPrefix: string }) {
   const box = useRef<HTMLDivElement>(null);
   const pill = usePill(box, '[aria-selected="true"]', tab);
-  // Left and right move between the tabs, wrapping round.
+  // Left and right move between the tabs, wrapping round; Home and End go to the first and last.
   const onKey = (e: React.KeyboardEvent) => {
-    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
     e.preventDefault();
     const at = tabs.findIndex((t) => t.id === tab);
-    const next = tabs[(at + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length].id;
+    const to = e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : (at + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length;
+    const next = tabs[to].id;
     setTab(next);
     box.current?.querySelector<HTMLElement>(`#${idPrefix}-tab-${next}`)?.focus();
   };

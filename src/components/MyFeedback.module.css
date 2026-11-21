@@ -1,0 +1,13 @@
+/* Feedback from your chairs, on the account page: one card per committee, private to the delegate. */
+.card { padding: 22px; display: flex; flex-direction: column; gap: 18px; align-items: stretch; }
+.title { font-family: var(--serif); font-weight: 400; font-size: 26px; margin: 0; }
+.intro { margin: 0; }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.item { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.where { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.where strong { font-weight: 500; overflow-wrap: anywhere; }
+.where small { color: var(--muted); }
+.mark { font-family: var(--serif); font-size: 24px; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.mark small { font-family: inherit; font-size: 15px; color: var(--muted); }
+.note { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }

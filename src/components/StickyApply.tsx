@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatRange, type Conference } from "@/lib/conferences";
+import { formatRange, isPast, type Conference } from "@/lib/conferences";
 import { whenOpens } from "@/lib/schedule";
 import { useOpen } from "./useOpen";
 import s from "@/app/inner.module.css";
@@ -25,6 +25,8 @@ export default function StickyApply({ c }: { c: Conference }) {
     return () => { io.disconnect(); fo.disconnect(); };
   }, []);
 
+  // Nothing to apply for once the conference has finished.
+  if (isPast(c)) return null;
   const shown = past && !atFoot;
   return (
     <div className={s.stickyApply} data-shown={shown} aria-hidden={!shown} inert={!shown}>

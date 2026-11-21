@@ -10,7 +10,7 @@ import SearchBox from "../../SearchBox";
 import Select from "../../Select";
 import Section from "../Section";
 import type { ListingCtx } from "../types";
-import { csv, saveCsv, when } from "./shared";
+import { SYDNEY, csv, saveCsv, when } from "./shared";
 import a from "../../Activity.module.css";
 import bd from "../../board.module.css";
 import h from "../../Hub.module.css";
@@ -22,6 +22,7 @@ type Filter = "all" | "in" | "out";
 // Day-of check-in: everyone accepted, ticked off as they arrive, by a scan of their code or by hand here.
 export default function CheckIn({ ctx }: { ctx: ListingCtx }) {
   const { c, id, canEdit, whyNot, say } = ctx;
+  const viewer = ctx.data.canEdit === false;
   const [rows, setRows] = useState<Arrival[] | null | "error">(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [find, setFind] = useState("");
@@ -33,16 +34,24 @@ export default function CheckIn({ ctx }: { ctx: ListingCtx }) {
 
   const load = useCallback(() => {
     if (!supabase) return;
+    const db = supabase;
     const at = gen.current;
-    supabase.from("applications").select("id, kind, role_title, name, school, committee, country, checked_in_at")
-      .eq("conference_id", id).eq("status", "accepted").order("name")
-      .then(({ data, error }) => {
-        if (at !== gen.current || saving.current > 0) return;
-        // A failed refresh keeps what is on screen; only a first load that fails says so.
-        if (error) setRows((r) => (Array.isArray(r) ? r : "error"));
-        else setRows(data as Arrival[]);
-      });
-  }, [id]);
+    const take = ({ data, error }: { data: unknown; error: unknown }) => {
+      if (at !== gen.current || saving.current > 0) return;
+      // A failed refresh keeps what is on screen; only a first load that fails says so.
+      if (error) setRows((r) => (Array.isArray(r) ? r : "error"));
+      else setRows(data as Arrival[]);
+    };
+    const direct = () => db.from("applications").select("id, kind, role_title, name, school, committee, country, checked_in_at")
+      .eq("conference_id", id).eq("status", "accepted").order("name").then(take);
+    // A view-only co-organiser can't read the table itself: they read the team's list. If the database doesn't have it yet, the old read is used.
+    if (!viewer) return void direct();
+    db.rpc("team_applications", { conf: id }).then(({ data, error }) => {
+      if (error) return void direct();
+      const rows = ((data ?? []) as (Arrival & { status: string })[]).filter((x) => x.status === "accepted").sort((p, q) => p.name.localeCompare(q.name));
+      take({ data: rows, error: null });
+    });
+  }, [id, viewer]);
 
   // Read again every 10 seconds while the page is in view, so two people at the door see each other's ticks.
   useEffect(() => {
@@ -69,12 +78,12 @@ export default function CheckIn({ ctx }: { ctx: ListingCtx }) {
     const { error } = await supabase.rpc("set_checked_in", { app: x.id, arrived: next });
     gen.current++; saving.current--;
     setBusy((b) => { const o = { ...b }; delete o[x.id]; return o; });
-    if (error) { put(before); return say("That didn’t save. Try again."); }
+    if (error) { put(before); return say(error.code === "42501" ? "You’re a view-only organiser, so you can’t check people in." : "That didn’t save. Try again."); }
     load();
   };
 
   const download = () => saveCsv(`${c.slug}-arrivals.csv`, csv(
-    ["Name", "Applying as", "School", "Committee", "Country", "Arrived"],
+    ["Name", "Applying as", "School", "Committee", "Country", "Arrived (Sydney time)"],
     list.map((x) => [x.name, APP_KIND(x), x.school, x.committee, x.country, x.checked_in_at ? when(x.checked_in_at) : ""]),
   ));
 
@@ -86,7 +95,7 @@ export default function CheckIn({ ctx }: { ctx: ListingCtx }) {
           <div className={`${bd.empty} ${m.empty}`}><Placard /><p className={bd.emptyTitle}>Nobody to check in yet</p><p className="muted">Accepted delegates and chairs appear here.</p></div>
         ) : (
           <>
-            <p className="muted">Scan a delegate&rsquo;s code with your phone&rsquo;s camera, or tick them off here.</p>
+            <p className="muted">Scan a delegate&rsquo;s code with your phone&rsquo;s camera, or tick them off here. {SYDNEY}</p>
             <p className={a.statValue} aria-live="polite">{arrived}<small> of {list.length} arrived</small></p>
             <div className={h.two}>
               <div className="field">

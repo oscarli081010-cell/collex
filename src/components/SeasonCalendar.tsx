@@ -71,11 +71,14 @@ export default function SeasonCalendar() {
       </PageBand>
 
 
+      {/* Says the month (or the year) aloud whenever it changes. */}
+      <p className="sr-only" role="status" aria-live="polite">{mode === "year" ? y : `${MONTHS[m]} ${y}`}</p>
+
       <div id="cal-panel-month" role="tabpanel" aria-labelledby="cal-tab-month" hidden={mode !== "month"} className={s.calGrid}>
         <div className={s.weekdays} aria-hidden="true">
           {WEEKDAYS.map((d) => <span key={d}>{d}</span>)}
         </div>
-        <div key={`${y}-${m}`} className={`t-slide ${s.days}`} data-dir={dir} role="grid" aria-label={`${MONTHS[m]} ${y}`}>
+        <div key={`${y}-${m}`} className={`t-slide ${s.days}`} data-dir={dir} role="group" aria-label={`${MONTHS[m]} ${y}`}>
           {Array.from({ length: cells }, (_, i) => {
             const d = i - lead + 1;
             if (d < 1 || d > days) {
@@ -83,7 +86,7 @@ export default function SeasonCalendar() {
             }
             const iso = isoOf(y, m, d);
             return (
-              <div key={i} role="gridcell" className={`${s.day} ${i % 7 >= 5 ? s.weekend : ""} ${iso === todayIso ? s.today : ""} ${onDay(iso).length ? s.busy : ""}`}>
+              <div key={i} className={`${s.day} ${i % 7 >= 5 ? s.weekend : ""} ${iso === todayIso ? s.today : ""} ${onDay(iso).length ? s.busy : ""}`}>
                 <span className={s.dayNum}>{d}</span>
                 {onDay(iso).length > 0 && (
                   <button type="button" className={s.dayHit} aria-pressed={picked === iso} onClick={() => setPicked(picked === iso ? null : iso)}

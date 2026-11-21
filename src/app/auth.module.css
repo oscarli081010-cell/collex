@@ -14,7 +14,6 @@
 }
 .textBtn:hover { text-decoration-color: currentColor; }
 @media (pointer: coarse) { .textBtn { padding-block: 12px; } }
-.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .notice { font-size: 14px; padding: 12px 14px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); }
 .invalid .control { border-color: var(--danger); }
 .error { color: var(--danger) !important; }
@@ -66,13 +65,10 @@
 
 /* Check your email */
 .sent { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 16px; align-items: center; text-align: center; }
-.sent .row { justify-content: center; }
 .code { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 8px 0 4px; }
 /* Keeps an instruction on one line under the email address, wherever there's room. */
 .oneLine { display: block; }
 @media (min-width: 640px) { .oneLine { white-space: nowrap; } }
-.sentIcon path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw var(--duration-very-slow) var(--ease-smooth-out) var(--duration-quick) forwards; }
-@keyframes draw { to { stroke-dashoffset: 0; } }
 
 /* Status pill shared with the admin page */
 .status { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 500; background: var(--surface); color: var(--muted); white-space: nowrap; }
@@ -82,11 +78,6 @@
 .status[data-status="rejected"] { background: var(--danger-soft); color: var(--danger); }
 
 /* Account */
-.cardHead { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
-.listings { display: flex; flex-direction: column; }
-.listings li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; }
-.listings li:first-child { padding-top: 4px; }
-.listings li + li { border-top: 1px solid var(--line); }
 /* Each listing: its name, with its status and interest underneath; Edit on the right. */
 .listingMain { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
 .listingName { font-size: 18px; font-weight: 500; color: var(--ink); overflow-wrap: anywhere; }
@@ -148,8 +139,6 @@ a.listingName:hover { color: var(--accent); }
 .saved { display: flex; flex-direction: column; }
 .saved li { display: flex; align-items: center; gap: 14px; padding: 12px 0; }
 .saved li + li { border-top: 1px solid var(--line); }
-.emptyState { display: flex; flex-direction: column; align-items: stretch; gap: 14px; }
-.accountWide { width: 100%; max-width: 880px; display: flex; flex-direction: column; gap: 20px; }
 .account { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 20px; }
 .avatar {
   width: clamp(88px, 8vw, 112px); aspect-ratio: 1; border-radius: 50%; flex: none; display: grid; place-items: center;
@@ -184,13 +173,6 @@ a.listingName:hover { color: var(--accent); }
 .card > .button, .card > button { align-self: stretch; }
 .cardTitle { font-family: var(--serif); font-weight: 400; font-size: 26px; }
 .highlight { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.skeleton { height: 320px; border-radius: 14px; background: var(--surface); animation: pulse 1.4s linear infinite; }
-@keyframes pulse { 50% { opacity: 0.6; } }
-
-@media (prefers-reduced-motion: reduce) {
-  .sentIcon path { animation: none; stroke-dashoffset: 0; }
-  .skeleton { animation: none; }
-}
 @media (max-width: 560px) {
   .avatar { width: 76px; font-size: 28px; }
   .card { padding: 22px; }
@@ -199,7 +181,6 @@ a.listingName:hover { color: var(--accent); }
 
 /* 404 */
 .lost { align-items: center; text-align: center; max-width: 480px; }
-.lost .row { justify-content: center; }
 .bigCode {
   font-size: clamp(120px, 18vw, 200px); line-height: 0.85; letter-spacing: -0.03em;
   color: transparent; -webkit-text-stroke: 1.5px var(--line-strong);
@@ -217,3 +198,10 @@ a.listingName:hover { color: var(--accent); }
 .oauthNote a { color: var(--accent); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
 .or { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
 .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.spam { font-size: 13px; line-height: 1.5; color: var(--muted); }
+
+/* Server-written intro on pages whose form is drawn by script (/list): shown until the form's own headline is on the page. */
+.preIntro { padding-block: clamp(40px, 6vw, 72px) 8px; display: flex; flex-direction: column; gap: 14px; max-width: 60ch; }
+.preIntro h1 { font-size: clamp(40px, 5vw, 64px); line-height: 1.02; }
+.preIntro p { color: var(--muted); font-size: 17px; line-height: 1.55; }
+.banded:has(> :not(.preIntro) h1) > .preIntro { display: none; }

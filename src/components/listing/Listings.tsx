@@ -28,6 +28,8 @@ function ListingCard({ c, status, note, coOrganiser, canEdit, today }: { c: Conf
   const live = status === "published";
   const open = live || status === "pending";
   const whyNot = !canEdit ? VIEW_ONLY : open ? "" : CLOSED;
+  // A listing that was sent back or taken down can still be edited, and sent again.
+  const reopen = canEdit && (status === "rejected" || status === "unpublished");
   return (
     <li className={`panel ${s.listing}`}>
       <div className={s.listingTop}>
@@ -46,7 +48,7 @@ function ListingCard({ c, status, note, coOrganiser, canEdit, today }: { c: Conf
       {status === "pending" && <p className={s.listingNote}>The Collex team is reviewing it. Once approved, it gets its own page and joins the calendar.</p>}
       {(status === "rejected" || status === "unpublished") && note && <p className={s.listingNote} data-tone="danger">{note}</p>}
       <div className={s.listingButtons}>
-        {TABS.map((t) => (t.editors && whyNot
+        {TABS.map((t) => (t.editors && whyNot && !(t.id === "edit" && reopen)
           ? <span key={t.id} className="tip" data-tip={whyNot} data-tip-align="start"><button type="button" className="button secondary" disabled>{t.icon}{t.label}</button></span>
           : <Link key={t.id} href={t.href(c.id!)} className="button secondary">{t.icon}{t.label}</Link>
         ))}

@@ -84,6 +84,17 @@ export default function AdminChambers({ chambers, error, say, reload, query }: {
     if (showRaw) {
       try { parsed = JSON.parse(rawText); } catch { return say("That isn't valid JSON"); }
     }
+    // The person running it may have moved on since this was opened. Read it again, and refuse rather than overwrite them.
+    const fresh = await supabase!.rpc("admin_chambers");
+    if (fresh.error) return say("Couldn’t check for changes. Try again.");
+    const now = ((fresh.data as AdminChamber[] | null) ?? []).find((c) => c.id === x.id);
+    if (!now) { reload(); return say("This committee was deleted while you were editing it."); }
+    if (now.version !== x.version || now.updated_at !== x.updated_at) {
+      setRaw((r) => { const n = { ...r }; delete n[x.id]; return n; });
+      setEdit(null);
+      reload();
+      return say("Someone changed this committee while you were editing. Your changes weren’t saved. Open it again to see theirs.");
+    }
     const { error: e } = await supabase!.rpc("admin_edit_chamber", { cid: x.id, new_name: name, new_topic: showRaw ? null : topic, new_state: parsed });
     if (e) return say(e.message);
     say("Saved");
@@ -213,7 +224,7 @@ function Inside({ x, say, reload, enter, download, copyId, raw }: {
   const add = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    void run(() => supabase!.rpc("add_chamber_member", { cid: x.id, invitee_email: email }), "Added and emailed", () => {
+    void run(() => supabase!.rpc("add_chamber_member", { cid: x.id, invitee_email: email }), `If ${email.trim().toLowerCase()} has a Collex account, they've been added.`, () => {
       setEmail(""); supabase!.functions.invoke("chamber-invite").catch(() => {}); void loadTeam(); reload();
     });
   };

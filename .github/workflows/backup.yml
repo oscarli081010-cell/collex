@@ -1,0 +1,66 @@
+# Every night: dump the database, encrypt the dump, and keep it as a workflow artifact for 30 days.
+# Setup (once) is in docs/backups.md. Without the SUPABASE_DB_URL secret this does nothing and finishes green.
+#
+# The dump is encrypted with BACKUP_PASSPHRASE before it is uploaded. This repository is public, and anyone with a
+# GitHub account can download a public repository's artifacts, so an unencrypted dump (emails, names, schools) would
+# be a leak. Without the passphrase the job refuses to upload.
+name: Backup
+on:
+  schedule:
+    - cron: "17 16 * * *" # 16:17 UTC, about 2 or 3 am in Sydney
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Check the secrets are set
+        id: gate
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::notice title=Backup skipped::The SUPABASE_DB_URL secret is not set. See docs/backups.md."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::warning title=Backup skipped::The BACKUP_PASSPHRASE secret is not set. The dump would be public to any GitHub user, so it is not made. See docs/backups.md."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install the Postgres 17 client
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          # pg_dump must be at least as new as the server. Supabase runs 15 or 17, so use 17.
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version
+      - name: Dump and encrypt
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          stamp=$(date -u +%Y-%m-%d)
+          # Custom format is compressed and lets pg_restore pick parts back. The public tables, the sign-in records
+          # (auth) and the storage listing are what Collex cannot rebuild from the repository.
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" --format=custom --compress=9 --no-owner --no-privileges \
+            --schema=public --schema=auth --schema=storage --file="collex-$stamp.dump"
+          size=$(stat -c %s "collex-$stamp.dump")
+          if [ "$size" -lt 10000 ]; then echo "::error title=Backup too small::The dump is only $size bytes"; exit 1; fi
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 \
+            --output "collex-$stamp.dump.gpg" "collex-$stamp.dump"
+          rm "collex-$stamp.dump"
+          ls -l collex-*.gpg
+          echo "STAMP=$stamp" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          name: collex-db-${{ env.STAMP }}
+          path: collex-*.dump.gpg
+          retention-days: 30
+          if-no-files-found: error

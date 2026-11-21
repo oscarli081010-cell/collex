@@ -6,7 +6,6 @@ import PageBand from "./PageBand";
 import { ListingsPanel } from "./listing/Listings";
 import { useMyListings } from "./listing/useMyListings";
 import { FormSkeleton } from "./Skeleton";
-import s from "@/app/auth.module.css";
 
 // Your conferences: the conferences you run or help run, with where each stands. It used to be a card on the account page.
 export default function ListingsView() {

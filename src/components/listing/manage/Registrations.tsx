@@ -9,13 +9,14 @@ import SearchBox from "../../SearchBox";
 import { usePill } from "../../usePill";
 import Section from "../Section";
 import type { ListingCtx } from "../types";
-import { FACES, csv, saveCsv, when, type Answer } from "./shared";
+import { EMAIL_DELAY, FACES, SYDNEY, csv, saveCsv, when, type Answer } from "./shared";
+import { useRefresh } from "./useRefresh";
 import adm from "@/app/admin.module.css";
 import board from "../../board.module.css";
 import s from "../../Manage.module.css";
 
 export type Reg = {
-  id: string; school: string; contact_name: string; contact_email: string; delegates: number;
+  id: string; school: string; contact_name: string; contact_email?: string; delegates: number;
   notes: string | null; status: Answer; created_at: string;
 };
 
@@ -25,8 +26,8 @@ const STATUSES: { id: Answer; label: string }[] = [
 const label = (st: Answer) => STATUSES.find((x) => x.id === st)!.label;
 
 export const toCsv = (rows: Reg[]) => csv(
-  ["School", "Contact", "Email", "Delegates", "Status", "Notes", "Registered"],
-  rows.map((r) => [r.school, r.contact_name, r.contact_email, r.delegates, label(r.status), r.notes ?? "", when(r.created_at)]),
+  ["School", "Contact", "Email", "Delegates", "Status", "Notes", "Registered (Sydney time)"],
+  rows.map((r) => [r.school, r.contact_name, r.contact_email ?? "", r.delegates, label(r.status), r.notes ?? "", when(r.created_at)]),
 );
 
 // Registrations from schools, answered by the people who run the conference.
@@ -40,14 +41,27 @@ export default function Registrations({ ctx }: { ctx: ListingCtx }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [switching, setSwitching] = useState(false);
 
-  useEffect(() => {
+  // A view-only co-organiser isn't given the contact email or the notes, so those columns aren't asked for.
+  const viewer = ctx.data.canEdit === false;
+  const load = useCallback(() => {
     if (!supabase) return;
-    let on = true;
-    supabase.from("registrations").select("id, school, contact_name, contact_email, delegates, notes, status, created_at")
+    const db = supabase;
+    const done = ({ data, error }: { data: unknown; error: unknown }) => { if (error) setRows((r) => (Array.isArray(r) ? r : "error")); else setRows(data as Reg[]); };
+    const direct = () => db.from("registrations").select(viewer ? "id, school, contact_name, delegates, status, created_at" : "id, school, contact_name, contact_email, delegates, notes, status, created_at")
       .eq("conference_id", id).order("created_at", { ascending: false })
-      .then(({ data, error }) => { if (on) setRows(error ? "error" : (data as Reg[])); });
-    return () => { on = false; };
-  }, [id]);
+      // A failed read on a later visit keeps what is on screen; only the first one says so.
+      .then(done);
+    // A view-only co-organiser reads through a function that leaves out the contact email and notes. If the database
+    // doesn't have it yet, the old read is used.
+    if (!viewer) return void direct();
+    db.rpc("team_registrations", { conf: id }).then(({ data, error }) => {
+      if (error) return void direct();
+      done({ data: ((data ?? []) as Reg[]).slice().sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))), error: null });
+    });
+  }, [id, viewer]);
+  useEffect(load, [load]);
+  // Read again when the section is opened again and when the window comes back into focus.
+  useRefresh("sec-registrations", () => { if (!busy) load(); });
 
   const list = useMemo(() => (Array.isArray(rows) ? rows : []), [rows]);
   const count = (st: Answer) => list.filter((r) => r.status === st).length;
@@ -59,7 +73,7 @@ export default function Registrations({ ctx }: { ctx: ListingCtx }) {
 
   const q = find.trim().toLowerCase();
   const shown = useMemo(
-    () => list.filter((r) => (filter === "all" || r.status === filter) && (!q || [r.school, r.contact_name, r.contact_email, r.notes ?? ""].join(" ").toLowerCase().includes(q))),
+    () => list.filter((r) => (filter === "all" || r.status === filter) && (!q || [r.school, r.contact_name, r.contact_email ?? "", r.notes ?? ""].join(" ").toLowerCase().includes(q))),
     [list, filter, q],
   );
 
@@ -111,6 +125,7 @@ export default function Registrations({ ctx }: { ctx: ListingCtx }) {
               <SearchBox label="Search registrations" placeholder="Search by school, contact or note" value={find} onChange={setFind} />
               <span key={`${filter}${q}`} className={`t-swap muted ${adm.searchCount}`} aria-live="polite">{q || filter !== "all" ? `${shown.length} shown` : ""}</span>
             </div>
+            <p className={s.note}>{EMAIL_DELAY} {SYDNEY}</p>
             {shown.length === 0 ? <p className={s.note}>No matches. Try a different word, or another tab.</p> : (
               <ul key={filter} className={`t-reveal ${s.regList}`}>
                 {shown.map((r) => (
@@ -118,7 +133,7 @@ export default function Registrations({ ctx }: { ctx: ListingCtx }) {
                     <div className={s.regMain}>
                       <span className={s.regSchool}>{r.school}</span>
                       <span className={s.regMeta}>
-                        {r.delegates} {r.delegates === 1 ? "delegate" : "delegates"} · {r.contact_name} · <a className="link" href={`mailto:${r.contact_email}`}>{r.contact_email}</a> · <time dateTime={r.created_at}>{when(r.created_at)}</time>
+                        {r.delegates} {r.delegates === 1 ? "delegate" : "delegates"} · {r.contact_name} · {r.contact_email && <><a className="link" href={`mailto:${r.contact_email}`}>{r.contact_email}</a> · </>}<time dateTime={r.created_at}>{when(r.created_at)}</time>
                       </span>
                       {r.notes && <span className={s.quote}>&ldquo;{r.notes}&rdquo;</span>}
                     </div>
@@ -135,7 +150,7 @@ export default function Registrations({ ctx }: { ctx: ListingCtx }) {
                 ))}
               </ul>
             )}
-            <button type="button" className="button secondary block" onClick={() => saveCsv(`${c.slug}-registrations.csv`, toCsv(list))}>{ICONS.publish}Download as spreadsheet (CSV)</button>
+            {!viewer && <button type="button" className="button secondary block" onClick={() => saveCsv(`${c.slug}-registrations.csv`, toCsv(list))}>{ICONS.publish}Download as Spreadsheet (CSV)</button>}
           </>
         )}
     </Section>

@@ -3,7 +3,7 @@
 /* The whole photo, no taller than 340px, with what the page crops away dimmed. */
 .stage {
   position: relative; width: 100%; margin-inline: auto; overflow: hidden; border-radius: 12px;
-  background: var(--surface); border: 1px solid var(--line-strong); touch-action: none; user-select: none;
+  background: var(--surface); border: 1px solid var(--control-line, var(--line-strong)); touch-action: none; user-select: none;
 }
 .stage[data-loading] { aspect-ratio: 16 / 9; max-height: 340px; }
 .stage[data-loading] img { opacity: 0; }

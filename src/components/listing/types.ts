@@ -30,6 +30,8 @@ export type ListingCtx = {
   canEdit: boolean;
   /** Why they can't, for the hint on a greyed-out control. Empty when they can. */
   whyNot: string;
+  /** The listing was rejected or taken down and this person may edit it and send it for review again (only its Edit tab opens). */
+  reopenable: boolean;
   /** Shows a short message at the bottom of the screen. */
   say: (text: string) => void;
   /** Call after changing the listing: it is read again, and so are its public pages when it is live. */

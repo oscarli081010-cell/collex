@@ -1,17 +1,49 @@
-# Runs on every push: the types must check and the committee engine's tests must pass.
+# Runs on every push and pull request: types, lint, tests, and a production build.
 name: Check
 on:
   push:
   pull_request:
+
+# A newer push to the same branch makes an older run pointless.
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # The build needs the site's Supabase address and publishable key. Both are PUBLIC values (they are sent to every
+      # visitor's browser), so they are not secrets. Add them in GitHub: Settings > Secrets and variables > Actions >
+      # Variables tab, as NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. A repository secret with the
+      # same name also works. Until they exist, the build step is skipped (with a notice) rather than failing.
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+      - uses: actions/cache@v4
+        with:
+          # Next's build cache, so a build only redoes what changed.
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'next.config.ts') }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm test
+      - name: Build
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "::notice title=Build skipped::NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are not set as repository variables, so the production build was not run. See CONTRIBUTING.md."
+            exit 0
+          fi
+          npx next build
