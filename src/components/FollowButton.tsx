@@ -38,10 +38,10 @@ export default function FollowButton({ id, name }: { id: string; name: string })
     <span className={`tip ${s.follow}`} data-tip={following ? "Unfollow any time" : "Emails when applications open or guides are released"}>
       {session ? (
         <button className={`button ${following ? "secondary" : ""}`} onClick={toggle} disabled={busy} aria-pressed={following} aria-describedby={`follow-${id}`}>
-          <span key={String(following)} className="t-swap">{following ? "Following ✓" : "Follow for updates"}</span>
+          <span key={String(following)} className="t-swap">{following ? "Following ✓" : "Follow for Updates"}</span>
         </button>
       ) : (
-        <Link href="/login" className="button" aria-describedby={`follow-${id}`}>Log in to follow</Link>
+        <Link href="/login" className="button" aria-describedby={`follow-${id}`}>Log in to Follow</Link>
       )}
       <span id={`follow-${id}`} className="sr-only">Emails when applications open or guides are released. Unfollow any time.</span>
       {node}

@@ -1,6 +1,6 @@
 "use client";
 
-import { MONTHS, NA, formatRange, type Conference } from "@/lib/conferences";
+import { MONTHS, NA, formatRange, type ConferenceSummary } from "@/lib/conferences";
 import s from "@/app/inner.module.css";
 
 const LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -11,7 +11,7 @@ const isoOf = (y: number, m: number, d: number) => `${y}-${String(m + 1).padStar
  * marked. Hover or focus on a marked day names what is on; selecting it opens the same card of conferences under the grid.
  */
 export default function YearCalendar({ year, todayIso, onDay, picked, onPick, onOpenMonth }: {
-  year: number; todayIso: string; onDay: (iso: string) => Conference[]; picked: string | null; onPick: (iso: string | null) => void; onOpenMonth: (m: number) => void;
+  year: number; todayIso: string; onDay: (iso: string) => ConferenceSummary[]; picked: string | null; onPick: (iso: string | null) => void; onOpenMonth: (m: number) => void;
 }) {
   return (
     <div className={s.yearGrid}>

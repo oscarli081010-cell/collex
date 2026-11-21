@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Admin from "@/components/Admin";
 
-export const metadata: Metadata = { title: "Admin · Collex", robots: { index: false } };
+export const metadata: Metadata = { title: "Admin · Collex", description: "Review listings, reports and accounts on Collex.", robots: { index: false } };
 
 export default function AdminPage() {
   return (

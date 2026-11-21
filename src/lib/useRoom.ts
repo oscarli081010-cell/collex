@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as ch from "./chamber";
 import { supabase } from "./supabase";
 import type { ChairSync, DelegateSync } from "./room";
@@ -42,9 +42,27 @@ function usePolled<T>(fn: (() => PromiseLike<{ data: unknown; error: { code?: st
 /** A delegate's device: the committee as it stands, and everything of theirs in it. */
 export function useDelegateRoom(cid: string | null, signedIn: boolean) {
   const db = supabase;
-  const r = usePolled<DelegateSync>(cid && signedIn && db ? () => db.rpc("room_sync", { cid }) : null, 2500,
+  // The last full answer. Its version is sent with each call, so while nothing has changed the database answers
+  // without the committee itself (`same`), and the copy held here is kept.
+  const held = useRef<{ cid: string; full: DelegateSync } | null>(null);
+  const plain = useRef(false); // the database doesn't take `known` yet (older than the site): ask the old way
+  const ask = async () => {
+    const last = held.current?.cid === cid ? held.current.full : null;
+    let res = await db!.rpc("room_sync", last && !plain.current ? { cid, known: last.version } : { cid });
+    if (res.error?.code === "PGRST202" && !plain.current) { plain.current = true; res = await db!.rpc("room_sync", { cid }); }
+    if (res.error || !res.data) return res;
+    const d = res.data as DelegateSync & { same?: boolean };
+    if (d.same) {
+      if (!last) return { ...res, data: null };
+      const { same: _same, ...rest } = d;
+      return { ...res, data: { ...last, ...rest } };
+    }
+    held.current = { cid: cid!, full: d };
+    return res;
+  };
+  const r = usePolled<DelegateSync>(cid && signedIn && db ? ask : null, 2500,
     (d) => { if (d.now) ch.setSkew(Date.parse(d.now) - Date.now()); });
-  const c = r.data ? ch.normalise(r.data.state) : null;
+  const c = useMemo(() => (r.data ? ch.normalise(r.data.state) : null), [r.data?.state]); // eslint-disable-line react-hooks/exhaustive-deps
   return { ...r, c };
 }
 

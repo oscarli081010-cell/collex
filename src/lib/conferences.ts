@@ -94,6 +94,13 @@ export type Conference = {
   updatedAt?: string;
 };
 
+/** What the lists, search and calendars use, shipped to every page by the root layout. The rest is loaded by the pages that show it. */
+export type ConferenceSummary = Pick<Conference,
+  "id" | "slug" | "name" | "shortName" | "host" | "startDate" | "endDate" | "venue" | "level" | "keyDates"
+  | "delegationUrl" | "chairUrl" | "delegationOpensAt" | "chairOpensAt" | "collexRegistration" | "collexApplications"
+  | "isTemplate" | "verified" | "cover" | "coverPos" | "thumb" | "thumbPos">;
+type Dated = Pick<Conference, "startDate" | "endDate">;
+
 /** The stored marker for "not given". It stays "N/A" because saved listings hold it and code compares against it; visitors see `shown()`. */
 export const NA = "N/A";
 
@@ -117,7 +124,8 @@ export const webUrl = (u: string | null | undefined) => (u && /^https?:\/\//i.te
 
 /** The standard page every listing gets. Shown so the structure can be seen before anything is listed. */
 export const template: Conference = {
-  slug: "template",
+  // An underscore, which the database never puts in a listing's slug, so a real "Template" conference can't collide with it.
+  slug: "demo_listing",
   name: "Conference name",
   shortName: NA,
   host: NA,
@@ -142,7 +150,7 @@ export const template: Conference = {
     { day: null, time: "09:30", title: "Committee session I", place: "Committee rooms" },
     { day: null, time: "12:30", title: "Lunch", place: "Dining hall" },
     { day: null, time: "13:15", title: "Committee session II", place: "Committee rooms" },
-    { day: null, time: "15:30", title: "Closing ceremony and awards", place: "Great Hall" },
+    { day: null, time: "15:30", title: "Closing ceremony", place: "Great Hall" },
   ],
   committees: [],
   guides: [],
@@ -169,14 +177,14 @@ export function formatDate(iso: string | null) {
   });
 }
 
-export function formatRange(c: Conference) {
+export function formatRange(c: Dated) {
   if (!c.startDate) return DATE_TBA;
   if (!c.endDate || c.endDate === c.startDate) return formatDate(c.startDate);
   return `${formatDate(c.startDate)} to ${formatDate(c.endDate)}`;
 }
 
 /** Listed conferences overlapping the weekend (Fri to Sun) around a date. */
-export function clashesNear(list: Conference[], iso: string) {
+export function clashesNear<T extends Dated>(list: T[], iso: string) {
   const d = new Date(iso + "T00:00:00");
   const day = d.getDay();
   const fri = new Date(d);
@@ -192,19 +200,19 @@ export function clashesNear(list: Conference[], iso: string) {
 }
 
 /** Conferences running on a given day. */
-export const onDay = (list: Conference[], iso: string) =>
+export const onDay = <T extends Dated>(list: T[], iso: string) =>
   list.filter((c) => c.startDate && c.startDate <= iso && (c.endDate ?? c.startDate) >= iso);
 
 /** Today's date in Sydney (yyyy-mm-dd), whatever time zone the server or browser runs in. */
 export const todayInSydney = () => new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
 
 /** A conference has finished once its last day is over. Listings without dates never count as past. */
-export const isPast = (c: Conference, today = todayInSydney()) => Boolean(c.startDate && (c.endDate ?? c.startDate) < today);
+export const isPast = (c: Dated, today = todayInSydney()) => Boolean(c.startDate && (c.endDate ?? c.startDate) < today);
 
 /** "2027-03" → "March 2027" */
 export const monthLabel = (ym: string) => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
 
 /** One or two letters standing in for a cover photo: "Sydney Collegiate MUN" → "SC". */
-export const monogram = (c: Conference) =>
+export const monogram = (c: Pick<Conference, "name" | "shortName">) =>
   (c.shortName && c.shortName !== c.name && c.shortName.length <= 4 ? c.shortName : c.name.split(/\s+/).filter((w) => /^[A-Za-z0-9]/.test(w)).map((w) => w[0]).join(""))
     .slice(0, 2).toUpperCase();

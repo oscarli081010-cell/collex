@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import ListingPages from "@/components/ListingPages";
 import s from "../auth.module.css";
 
-export const metadata: Metadata = { title: "Activity · Collex", robots: { index: false } };
+export const metadata: Metadata = { title: "Activity · Collex", description: "Interest and activity for a conference you list on Collex.", robots: { index: false } };
 
 export default function Page() {
   return (

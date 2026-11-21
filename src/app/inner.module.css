@@ -19,7 +19,7 @@
 .day.today .dayNum { color: var(--accent); }
 .day.today::after {
   content: "Today"; position: absolute; top: 12px; right: 12px;
-  font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent);
+  font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent);
 }
 .event {
   font-size: 12px; font-weight: 500; line-height: 1.25; border-radius: 6px;
@@ -180,12 +180,12 @@
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; scroll-margin-top: 96px;
 }
 /* The registration form opens under the three cards, across the whole row. */
-.registerForm { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 18px; padding: 28px 30px; border-radius: 14px; }
+.registerForm { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 18px; padding: 22px; border-radius: 14px; }
 .registerRow { display: grid; grid-template-columns: 1.2fr 1.2fr 0.6fr; gap: 16px; }
-@media (max-width: 720px) { .registerForm { padding: 20px; } .registerRow { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .registerForm { padding: 22px; } .registerRow { grid-template-columns: 1fr; } }
 .applyOption {
   display: flex; flex-direction: column; justify-content: space-between; align-items: stretch; gap: 24px;
-  padding: 28px 30px 30px; border-radius: 14px;
+  padding: 22px; border-radius: 14px;
   background: var(--panel); border: 1px solid var(--line);
   transition: border-color var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-fast) var(--ease-smooth-out);
 }
@@ -277,10 +277,10 @@
   .dayNum { font-size: 15px; }
   .day.today::after { display: none; }
   .weekdays, .days { gap: 3px; }
-  .weekdays span { padding: 0 4px; font-size: 11px; }
+  .weekdays span { padding: 0 4px; font-size: 12px; }
   .event { font-size: 0; padding: 0; height: 6px; }
   .people, .applyBand, .formGrid { grid-template-columns: 1fr; }
-  .applyOption { padding: 24px; }
+  .applyOption { padding: 22px; }
   .table th, .table td { padding-inline: 10px; }
 }
 
@@ -294,13 +294,13 @@
 
 /* A past conference: one calm line in place of the apply buttons. */
 .finished {
-  display: flex; flex-direction: column; gap: 6px; padding: 24px 28px; margin-bottom: 28px;
+  display: flex; flex-direction: column; gap: 6px; padding: 22px; margin-bottom: 28px;
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
 }
 .finishedTitle { font-family: var(--serif); font-weight: 400; font-size: 28px; line-height: 1.1; text-wrap: balance; }
 
 @media (max-width: 640px) {
-  .finished { padding: 20px; }
+  .finished { padding: 22px; }
 }
 
 /* Committees and guides, one row of labelled fields each, with move and remove on the right. */
@@ -409,7 +409,7 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 /* On a phone the conference markers in a day are too small to tap, so the whole day is the button: it opens a card
    under the month with that day's conferences. */
 .dayHit { display: none; }
-.dayCard { margin-top: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.dayCard { margin-top: 12px; padding: 22px; display: flex; flex-direction: column; gap: 10px; }
 .dayCardHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .dayCardHead strong { font-family: var(--serif); font-weight: 400; font-size: 24px; line-height: 1.1; }
 .dayCard ul { display: flex; flex-direction: column; }
@@ -433,7 +433,7 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 .miniName:hover { color: var(--accent); }
 .miniCount { font-size: 12px; font-weight: 500; color: var(--accent); }
 .miniWeek, .miniDays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; text-align: center; }
-.miniWeek span { font-size: 10.5px; font-weight: 500; letter-spacing: 0.04em; color: var(--faint); }
+.miniWeek span { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; color: var(--muted); }
 .miniDay, .miniBlank { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 13px; font-variant-numeric: lining-nums tabular-nums; color: var(--ink); }
 .miniDay.weekend { background: var(--surface); }
 .miniDay.busy { background: var(--accent-soft); color: var(--accent); font-weight: 600; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent); }

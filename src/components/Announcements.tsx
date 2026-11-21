@@ -70,7 +70,7 @@ export default function Announcements({ id }: { id?: string }) {
         ))}
       </ul>
       {!all && list.length > FIRST && (
-        <button type="button" className={`button secondary block ${an.more}`} onClick={() => setAll(true)}>Show older</button>
+        <button type="button" className={`button secondary block ${an.more}`} onClick={() => setAll(true)}>Show Older</button>
       )}
     </section>
   );

@@ -87,7 +87,7 @@ export default function Admin() {
   const load = useCallback(async () => {
     if (!supabase) return;
     const [c, u, l, rp, ch, er] = await Promise.all([
-      supabase.from("conferences").select("*").order("created_at", { ascending: false }),
+      supabase.rpc("admin_conferences").order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, email, full_name, school, role, is_admin, created_at").order("created_at", { ascending: false }),
       supabase.from("audit_log").select("*").order("at", { ascending: false }).limit(200),
       supabase.from("reports").select("id, conference_id, reason, note, reply_to, status, created_at, resolved_at, conferences(name, slug)").order("created_at", { ascending: false }).limit(200),
@@ -126,7 +126,7 @@ export default function Admin() {
       <div className={`t-reveal ${auth.form}`} style={{ marginTop: "clamp(48px, 6vw, 80px)" }}>
         <h1 className={auth.title}>Admins only</h1>
         <p className="muted">{session ? "Your account doesn't have admin access." : "Log in with an admin account to continue."}</p>
-        {!session && <Link href="/login" className="button lg">Log in</Link>}
+        {!session && <Link href="/login" className="button lg">Log In</Link>}
       </div>
     );
   }
@@ -211,7 +211,7 @@ export default function Admin() {
   const goLog = (n: number) => { setLogPage(n); document.getElementById("audit-list")?.scrollIntoView({ block: "start", behavior: "smooth" }); };
   const searching = Boolean(q) || (tab === "Conferences" && statusFilter !== "any") || (tab === "Reports" && reportFilter !== "open");
   const clearSearch = () => { setFind((f) => ({ ...f, [tab]: "" })); if (tab === "Conferences") setStatusFilter("any"); if (tab === "Reports") setReportFilter("open"); };
-  const noMatches = <Empty title="No matches" body="Try a different word, or clear the search."><button className="button secondary" onClick={clearSearch}>Clear search</button></Empty>;
+  const noMatches = <Empty title="No matches" body="Try a different word, or clear the search."><button className="button secondary" onClick={clearSearch}>Clear Search</button></Empty>;
   const searchFor: Partial<Record<Tab, string>> = { Conferences: "Search by name, host, venue or status", Reports: "Search by listing, reason or message", Committees: "Search by name, owner or where it is", Users: "Search by name, email or school", Errors: "Search by message or page", "Audit Log": "Search by who, action or what" };
 
   return (
@@ -257,7 +257,7 @@ export default function Admin() {
           )}
           {tab === "Review" && <AdminClaims say={say} />}
           {tab === "Review" && (pending.length === 0 ? (
-            <Empty title="Nothing to review" body="New listings land here for approval." />
+            <Empty title="No listings to review yet" body="New listings land here for approval." />
           ) : (
             <div className={`t-stagger ${s.stack}`}>
               {pending.map((r, i) => <ReviewCard key={r.id} r={r} i={i} picked={sel.includes(r.id)} onPick={() => toggle(r.id)} onApprove={(verified) => setStatus(r, "published", "", verified)} onReject={(note) => setStatus(r, "rejected", note)} />)}
@@ -304,10 +304,10 @@ export default function Admin() {
           ))}
 
           {tab === "Reports" && ((reports ?? []).length === 0 ? (
-            <Empty title="No reports" body="When someone reports a problem with a listing, it lands here." />
+            <Empty title="No reports yet" body="When someone reports a problem with a listing, it lands here." />
           ) : shownReports.length === 0 ? (
-            <Empty title={q ? "No matches" : reportFilter === "open" ? "Nothing open" : "Nothing here"} body={q ? "Try a different word, or clear the search." : reportFilter === "open" ? "Every report has been dealt with." : "No reports match."}>
-              {(q || reportFilter !== "open") && <button className="button secondary" onClick={clearSearch}>Show open reports</button>}
+            <Empty title={q ? "No matches" : reportFilter === "open" ? "No open reports" : "No reports here"} body={q ? "Try a different word, or clear the search." : reportFilter === "open" ? "Every report has been dealt with." : "No reports match."}>
+              {(q || reportFilter !== "open") && <button className="button secondary" onClick={clearSearch}>Show Open Reports</button>}
             </Empty>
           ) : (
             <div className={`t-stagger ${s.stack}`}>
@@ -390,9 +390,9 @@ export default function Admin() {
               </ol>
               {logPages > 1 && (
                 <nav className={act.pager} aria-label="Audit log pages">
-                  <button type="button" className="button secondary" onClick={() => goLog(logAt - 1)} disabled={logAt === 0}>Previous</button>
+                  {logAt === 0 ? <span className="tip" data-tip="You’re on the first page"><button type="button" className="button secondary" onClick={() => goLog(logAt - 1)} disabled={logAt === 0}>Previous</button></span> : <button type="button" className="button secondary" onClick={() => goLog(logAt - 1)} disabled={logAt === 0}>Previous</button>}
                   <span className="muted" aria-live="polite">Page {logAt + 1} of {logPages}</span>
-                  <button type="button" className="button secondary" onClick={() => goLog(logAt + 1)} disabled={logAt === logPages - 1}>Next</button>
+                  {logAt === logPages - 1 ? <span className="tip" data-tip="You’re on the last page"><button type="button" className="button secondary" onClick={() => goLog(logAt + 1)} disabled={logAt === logPages - 1}>Next</button></span> : <button type="button" className="button secondary" onClick={() => goLog(logAt + 1)} disabled={logAt === logPages - 1}>Next</button>}
                 </nav>
               )}
             </>
@@ -410,7 +410,8 @@ export default function Admin() {
             {tab === "Review" && (rejecting ? (
               <form className={s.bulkForm} onSubmit={(e) => { e.preventDefault(); bulk("rejected", () => confStatus("rejected", rejectNote.trim())); }}>
                 <input className="control" placeholder="Reason, shown to each person" value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} aria-label="Reason for rejecting" autoFocus />
-                <button className={`button ${s.bulkDanger}`} disabled={bulkBusy} data-armed>Reject {sel.length}</button>
+                {bulkBusy ? <span className="tip" data-tip="Working on the last change" data-tip-align="start"><button className={`button ${s.bulkDanger}`} disabled data-armed>Reject {sel.length}</button></span>
+                  : <button className={`button ${s.bulkDanger}`} data-armed>Reject {sel.length}</button>}
                 <button type="button" className="button secondary" onClick={() => setRejecting(false)}>Back</button>
               </form>
             ) : (<>
@@ -423,14 +424,14 @@ export default function Admin() {
               <button className="button secondary" disabled={bulkBusy} onClick={() => bulk("verified", () => db().from("conferences").update({ verified: true }).in("id", sel))}>Verify</button>
               <button className="button secondary" disabled={bulkBusy} onClick={() => bulk("unverified", () => db().from("conferences").update({ verified: false }).in("id", sel))}>Unverify</button>
               <button className={`button secondary ${s.bulkDanger}`} data-armed={armed || undefined} disabled={bulkBusy} onClick={() => (armed ? bulk("deleted", () => db().from("conferences").delete().in("id", sel)) : setArmed(true))}>
-                {armed ? `Click again to delete ${sel.length}` : "Delete"}
+                {armed ? `Click Again to Delete ${sel.length}` : "Delete"}
               </button>
             </>)}
             {tab === "Reports" && (<>
               <button className="button secondary" disabled={bulkBusy} onClick={() => bulk("resolved", () => db().from("reports").update({ status: "resolved", resolved_at: new Date().toISOString() }).in("id", reportIds), false)}>Resolve</button>
               <button className="button secondary" disabled={bulkBusy} onClick={() => bulk("reopened", () => db().from("reports").update({ status: "open", resolved_at: null }).in("id", reportIds), false)}>Reopen</button>
               <button className={`button secondary ${s.bulkDanger}`} data-armed={armed || undefined} disabled={bulkBusy} onClick={() => (armed ? bulk("deleted", () => db().from("reports").delete().in("id", reportIds), false) : setArmed(true))}>
-                {armed ? `Click again to delete ${sel.length}` : "Delete"}
+                {armed ? `Click Again to Delete ${sel.length}` : "Delete"}
               </button>
             </>)}
           </div>
@@ -472,7 +473,7 @@ function ReviewCard({ r, i, picked, onPick, onApprove, onReject }: { r: Row; i: 
         </div>
         <div className={s.actions}>
           <button className="button secondary" onClick={() => setRejecting(!rejecting)} aria-expanded={rejecting}>Reject</button>
-          <button className="button" onClick={() => onApprove(verified)}>Approve and publish</button>
+          <button className="button" onClick={() => onApprove(verified)}>Approve and Publish</button>
         </div>
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element -- the organiser's photo, shown so it can be checked before approving */}
@@ -495,7 +496,7 @@ function ReviewCard({ r, i, picked, onPick, onApprove, onReject }: { r: Row; i: 
         <div>
           <form className={s.reject} onSubmit={(e) => { e.preventDefault(); onReject(note.trim()); }}>
             <input className="control" placeholder="Reason (shown to the person who listed it)" value={note} onChange={(e) => setNote(e.target.value)} tabIndex={rejecting ? 0 : -1} />
-            <button className={`button ${s.dangerSolid}`} tabIndex={rejecting ? 0 : -1}>Reject listing</button>
+            <button className={`button ${s.dangerSolid}`} tabIndex={rejecting ? 0 : -1}>Reject Listing</button>
           </form>
         </div>
       </div>

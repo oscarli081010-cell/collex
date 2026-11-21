@@ -7,7 +7,7 @@ import Offline from "@/components/Offline";
 import Pulse from "@/components/Pulse";
 import AuthProvider from "@/components/AuthProvider";
 import ConferencesProvider from "@/components/ConferencesContext";
-import { getPublished } from "@/lib/data";
+import { getSummaries } from "@/lib/data";
 import { themeBootScript } from "@/lib/theme";
 
 export const revalidate = 60;
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const list = await getPublished();
+  const list = await getSummaries();
   return (
     <html lang="en-AU" data-theme="light" className={`${sans.variable} ${serif.variable}`} suppressHydrationWarning>
       <head>

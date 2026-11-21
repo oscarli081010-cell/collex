@@ -278,7 +278,7 @@ select.control {
 .mobileGroup { display: flex; flex-direction: column; gap: 2px; }
 .mobileNav a { padding: 12px 12px; min-height: 44px; display: flex; align-items: center; border-radius: 8px; font-size: 15px; transition: background-color var(--duration-quick); }
 .mobileNav a:hover, .mobileNav a[aria-current="page"] { background: var(--surface); }
-.mobileHead { padding: 8px 12px 2px; font-size: 11.5px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.mobileHead { padding: 8px 12px 2px; font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 /* Search and the account buttons sit together at the right end of the bar. */
 .topbarEnd { display: flex; align-items: center; gap: 10px; }
 .menu-toggle { display: none; }
@@ -431,9 +431,13 @@ p, li, dd, small, figcaption { text-wrap: pretty; }
   opacity: 0; translate: 0 4px; scale: 0;
   transition: opacity var(--duration-quick), translate var(--duration-quick), scale 0s linear var(--duration-quick);
 }
+/* A disabled control swallows taps; let them land on the tip around it. */
+.tip > :disabled, .tip > [aria-disabled="true"] { pointer-events: none; }
 .tip:hover::after { opacity: 1; translate: 0 0; scale: 1; transition-delay: 500ms; }
-.tip:has(:focus-visible)::after, .tip[data-tip-open]::after { opacity: 1; translate: 0 0; scale: 1; transition-delay: 0ms; }
+.tip:has(:focus-visible)::after, .tip[data-tip-open]::after, .tip[data-tip-show]::after { opacity: 1; translate: 0 0; scale: 1; transition-delay: 0ms; }
 @media (prefers-reduced-motion: reduce) { .tip::after { translate: none; } }
+/* On a phone a long reason wraps, so it stays on the screen. */
+@media (max-width: 640px) { .tip::after { white-space: normal; width: max-content; max-width: min(260px, 70vw); line-height: 1.4; } }
 /* A longer explanation (the Verified badge): opens from the left edge and wraps. */
 .tip[data-tip-align="start"]::after { right: auto; left: 0; white-space: normal; width: max-content; max-width: 240px; line-height: 1.4; }
 

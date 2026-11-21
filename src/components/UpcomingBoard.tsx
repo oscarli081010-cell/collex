@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { isPast, MONTHS, monthLabel, todayInSydney, type Conference } from "@/lib/conferences";
+import { isPast, MONTHS, monthLabel, todayInSydney, type ConferenceSummary } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import ConferenceRow from "./ConferenceRow";
 import { Placard } from "./Drawings";
@@ -41,13 +41,13 @@ export default function UpcomingBoard({ band = false }: { band?: boolean }) {
   const filtered = Boolean(q || level !== "any" || month !== "any");
   const reset = () => { setQ(""); setLevel("any"); pickMonth("any"); input.current?.focus(); };
 
-  const match = (c: Conference) =>
+  const match = (c: ConferenceSummary) =>
     (!q || `${c.name} ${c.host} ${c.venue}`.toLowerCase().includes(q.toLowerCase())) &&
     (level === "any" || c.level === level) &&
     (month === "any" || c.startDate?.startsWith(month));
 
   const rows = conferences.filter(match).sort((a, b) => (a.startDate ?? "").localeCompare(b.startDate ?? ""));
-  const groups = new Map<string, Conference[]>();
+  const groups = new Map<string, ConferenceSummary[]>();
   for (const c of rows) {
     const key = c.startDate ? `${MONTHS[new Date(c.startDate).getMonth()]} ${c.startDate.slice(0, 4)}` : "Date to be announced";
     groups.set(key, [...(groups.get(key) ?? []), c]);
@@ -139,8 +139,8 @@ export default function UpcomingBoard({ band = false }: { band?: boolean }) {
                   : "Try another month or level, or clear the search."}
               </p>
               {conferences.length === 0
-                ? <Link href="/list" className="button secondary">List the first one</Link>
-                : <button className="button secondary" onClick={reset}>Clear filters</button>}
+                ? <Link href="/list" className="button secondary">List the First One</Link>
+                : <button className="button secondary" onClick={reset}>Clear Filters</button>}
             </div>
           </div>
         )}

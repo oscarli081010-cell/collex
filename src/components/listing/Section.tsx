@@ -21,7 +21,7 @@ export default function Section({ id, title, count, toggle, children }: {
   );
   const button = toggle && (
     <button type="button" className={`button ${toggle.on ? "secondary" : ""} ${m.switchBtn}`} onClick={toggle.flip} disabled={toggle.busy || Boolean(toggle.whyNot)} aria-pressed={toggle.on}>
-      <span key={String(toggle.on)} className="t-swap">{toggle.on ? "Turn off" : "Turn on"}</span>
+      <span key={String(toggle.on)} className="t-swap">{toggle.on ? "Turn Off" : "Turn On"}</span>
     </button>
   );
   return (

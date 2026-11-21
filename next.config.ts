@@ -42,6 +42,12 @@ const config: NextConfig = {
     deviceSizes: [640, 960, 1280, 1920],
     minimumCacheTTL: 31536000,
   },
+  async redirects() {
+    return [
+      { source: "/guides/chairing-with-chambers", destination: "/guides/chairing-with-committees", permanent: true },
+      { source: "/conferences/template", destination: "/conferences/demo_listing", permanent: false },
+    ];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

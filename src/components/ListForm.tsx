@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import PageBand, { type BandProps } from "./PageBand";
 import { FormSkeleton } from "./Skeleton";
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { coverUrl, formatRange, type Conference, type Role } from "@/lib/conferences";
+import { coverUrl, formatRange, type Conference, type ConferenceSummary, type Role } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
@@ -83,8 +83,8 @@ function PhotoField({ id, label, frame, ratio, ph, error, hint }: {
         : !ph.shown && <small id={`f-${id}-hint`}>{hint ? `${hint} ` : ""}JPG, PNG or WebP, up to 20MB.</small>}
       {ph.shown && (
         <div className="btnStack">
-          <label htmlFor={`f-${id}`} className="button secondary">Change photo</label>
-          <button type="button" className="button secondary" onClick={ph.remove}>Remove photo</button>
+          <label htmlFor={`f-${id}`} className="button secondary">Change Photo</label>
+          <button type="button" className="button secondary" onClick={ph.remove}>Remove Photo</button>
         </div>
       )}
     </div>
@@ -486,7 +486,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
           {errors.form && <p key={errors.form} className={`t-reveal ${s.error} ${edit ? lf.barError : ""}`}>{errors.form}</p>}
           {edit && <span className={lf.status} role="status">{dirty ? "Unsaved changes" : ""}</span>}
           <button type="submit" className={`button lg ${edit ? lf.save : auth.submit}`} disabled={busy}>
-            <span key={String(busy)} className="t-swap">{edit ? (busy ? "Saving…" : "Update") : busy ? "Sending…" : "Send for review"}</span>
+            <span key={String(busy)} className="t-swap">{edit ? (busy ? "Saving…" : "Update") : busy ? "Sending…" : "Send for Review"}</span>
           </button>
           <small className={`muted ${edit ? lf.barNote : ""}`} style={{ textAlign: "center" }}>
             <span className={s.req} aria-hidden="true">*</span> is required{!edit && <> <span aria-hidden="true">&middot;</span> The Collex team will review it before it goes live</>}
@@ -518,8 +518,8 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
       ...band, lead: "Log in first. Your listing stays tied to your account, so you can track it.",
       aside: (
         <div className="btnStack">
-          <Link href="/login" className="button lg">Log in</Link>
-          <Link href="/signup" className="button secondary lg">Create an account</Link>
+          <Link href="/login" className="button lg">Log In</Link>
+          <Link href="/signup" className="button secondary lg">Create an Account</Link>
         </div>
       ),
     }, null);
@@ -536,7 +536,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
           ))}
         </ol>
         <div className="btnStack one">
-          <Link href="/listings" className="button lg">See its status</Link>
+          <Link href="/listings" className="button lg">See Its Status</Link>
           <button className="button secondary lg" onClick={() => { setSent(false); setCommittees([]); setStray([]); setSecretariat(secretariatRows()); setRoles([]); setKeyDates(keyDateRows()); setSchedule([]); }}>List another</button>
         </div>
       </div>);
@@ -551,12 +551,12 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
 }
 
 /** Live listings running on any day from first to last, except the one being edited. */
-function clashing(list: Conference[], first: string, last: string, except?: string) {
+function clashing(list: ConferenceSummary[], first: string, last: string, except?: string) {
   return list.filter((c) => c.id !== except && c.startDate && c.startDate <= last && (c.endDate ?? c.startDate) >= first);
 }
 
 // Polite, not blocking: it names the clash so the organiser can decide. Always in the page, so screen readers hear it appear.
-function ClashNote({ clashes }: { clashes: Conference[] }) {
+function ClashNote({ clashes }: { clashes: ConferenceSummary[] }) {
   return (
     <>
       {/* Out of the layout, so an empty one adds no gap; it makes screen readers announce the note when it appears. */}

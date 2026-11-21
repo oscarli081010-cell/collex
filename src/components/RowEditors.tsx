@@ -100,7 +100,7 @@ export type UploadGuide = (file: File) => Promise<{ url: string } | { error: str
 export function CommitteesEditor({ rows, setRows, upload }: { rows: CommitteeRow[]; setRows: Dispatch<SetStateAction<CommitteeRow[]>>; upload: UploadGuide }) {
   return (
     <Rows<CommitteeRow>
-      id="committee" rows={rows} setRows={setRows} addLabel="Add a committee"
+      id="committee" rows={rows} setRows={setRows} addLabel="Add a Committee"
       label={(r, i) => r.name.trim() || `committee ${i + 1}`}
       make={() => ({ name: "", topic: "", level: "", chairs: "", guide: "", released: "", key: key() })}
       render={(r, i, set) => {
@@ -180,7 +180,7 @@ export function SecretariatEditor({ rows, setRows, upload }: { rows: Secretariat
     <>
       <datalist id="secretariat-roles">{STANDARD_ROLES.map((r) => <option key={r} value={r} />)}</datalist>
       <Rows<SecretariatRow>
-        id="secretariat" rows={rows} setRows={setRows} addLabel="Add a person" max={20} inline
+        id="secretariat" rows={rows} setRows={setRows} addLabel="Add a Person" max={20} inline
         label={(r, i) => r.role.trim() || r.hint || `person ${i + 1}`}
         make={() => ({ role: "", name: "", key: key() })}
         render={(r, i, set) => <>
@@ -216,7 +216,7 @@ export const badRole = (r: RoleRow) => r.url.trim() !== "" && !webUrl(r.url);
 export function RolesEditor({ rows, setRows }: { rows: RoleRow[]; setRows: Dispatch<SetStateAction<RoleRow[]>> }) {
   return (
     <Rows<RoleRow>
-      id="role" rows={rows} setRows={setRows} addLabel="Add a role" max={12}
+      id="role" rows={rows} setRows={setRows} addLabel="Add a Role" max={12}
       label={(r, i) => r.title.trim() || ROLE_KINDS.find((k) => k.id === r.kind)?.label || `role ${i + 1}`}
       make={() => ({ kind: "chair", title: "", note: "", url: "", key: key() })}
       render={(r, i, set) => {
@@ -256,7 +256,7 @@ export const toKeyDates = (rows: KeyDateRow[]) => rows.map((r) => ({ ...r, label
 export function KeyDatesEditor({ rows, setRows }: { rows: KeyDateRow[]; setRows: Dispatch<SetStateAction<KeyDateRow[]>> }) {
   return (
     <Rows<KeyDateRow>
-      id="keydate" rows={rows} setRows={setRows} addLabel="Add a date" max={20} inline
+      id="keydate" rows={rows} setRows={setRows} addLabel="Add a Date" max={20} inline
       label={(r, i) => r.label.trim() || r.hint || `date ${i + 1}`}
       make={() => ({ label: "", date: "", key: key() })}
       render={(r, i, set) => <>
@@ -293,7 +293,7 @@ export function ScheduleEditor({ rows, setRows, first, last }: { rows: ScheduleR
   const max = (last && (!first || last >= first) ? last : first) || undefined;
   return (
     <Rows<ScheduleRow>
-      id="schedule" rows={rows} setRows={setRows} addLabel="Add an item" max={60}
+      id="schedule" rows={rows} setRows={setRows} addLabel="Add an Item" max={60}
       label={(r, i) => r.title.trim() || `item ${i + 1}`}
       make={() => ({ day: "", time: "", title: "", place: "", key: key() })}
       render={(r, i, set) => <>

@@ -96,7 +96,7 @@ export function ApplyOnCollex({ c }: { c: Conference }) {
         </ul>
       )}
       {!ready ? null : !session ? (
-        <div className="btnStack one"><Link href={`/login?next=${encodeURIComponent(`/conferences/${c.slug}`)}`} className="button">Log in to apply</Link></div>
+        <div className="btnStack one"><Link href={`/login?next=${encodeURIComponent(`/conferences/${c.slug}`)}`} className="button">Log in to Apply</Link></div>
       ) : (
         <div className={h.btnRow}>
           <button type="button" className={open === "delegate" ? "button" : "button secondary"} aria-expanded={open === "delegate"} onClick={() => setOpen(open === "delegate" ? "" : "delegate")}>{has("delegate") ? "Change Delegate Application" : "Apply as a Delegate"}</button>
@@ -143,7 +143,7 @@ export function ApplyOnCollex({ c }: { c: Conference }) {
           <label className="field"><span>{open === "chair" ? "Your chairing and MUN experience" : "Your MUN experience"} <span className="muted">(optional)</span></span><textarea name="experience" className="control" rows={3} maxLength={800} /></label>
           <label className="field"><span>Anything the organisers should know <span className="muted">(optional)</span></span><textarea name="note" className="control" rows={2} maxLength={1000} /></label>
           {error && <small role="alert" className={`t-reveal ${h.err}`}>{error}</small>}
-          <button className="button lg block" disabled={busy}><span key={String(busy)} className="t-swap">{busy ? "Sending…" : "Send application"}</span></button>
+          <button className="button lg block" disabled={busy}><span key={String(busy)} className="t-swap">{busy ? "Sending…" : "Send Application"}</span></button>
         </form>
       )}
       {node}

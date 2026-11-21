@@ -27,7 +27,7 @@
 .actions .button { height: 36px; padding: 0 14px; font-size: 13.5px; }
 
 /* Review cards */
-.review { padding: 28px; display: flex; flex-direction: column; gap: 18px; }
+.review { padding: 22px; display: flex; flex-direction: column; gap: 18px; }
 .reviewHead { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
 .reviewTitle { font-family: var(--serif); font-weight: 400; font-size: 30px; line-height: 1.1; }
 .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
@@ -85,7 +85,7 @@
   .log li { grid-template-columns: 1fr; }
   .log small { grid-column: 1; }
   .reject { flex-direction: column; }
-  .review { padding: 20px; }
+  .review { padding: 22px; }
 }
 
 /* The cover photo a listing was sent with, so it can be checked before it goes live. */

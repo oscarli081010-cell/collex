@@ -8,7 +8,7 @@ export type Guide = { slug: string; title: string; accent: string; lead: string;
 
 export const GUIDES: Guide[] = [
   {
-    slug: "chairing-with-chambers", title: "Chair a committee on", accent: "Collex", for: "Chairs", minutes: 6,
+    slug: "chairing-with-committees", title: "Chair a committee on", accent: "Collex", for: "Chairs", minutes: 6,
     lead: "From opening the committee to the final vote, on one laptop and a projector.",
     sections: [
       { id: "before", title: "Before the session", steps: [

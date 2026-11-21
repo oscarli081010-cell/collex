@@ -7,6 +7,8 @@ import { CodeBoxes } from "./CodeInput";
 import { useAuth } from "./AuthProvider";
 import IconButton, { ConfirmIconButton, ICONS } from "./IconButton";
 import { supabase } from "@/lib/supabase";
+import { Gavel } from "./Drawings";
+import board from "./board.module.css";
 import s from "@/app/admin.module.css";
 import c from "./AdminChambers.module.css";
 import { STEP, ago, procName } from "@/lib/chamberLabels";
@@ -229,8 +231,9 @@ function Inside({ x, say, reload, enter, download, copyId, raw }: {
           </div>
           <div className={c.adminBtns}>
             <button type="button" className="button" onClick={enter}>{ENTER}{mine ? "Open Console" : "Enter as Admin"}</button>
-            <Link href={`/chambers/display?c=${x.id}`} target="_blank" rel="noopener" className="button secondary" aria-disabled={!mine || undefined}
-              onClick={(e) => { if (!mine) { e.preventDefault(); say("Enter as Admin first to open the display"); } }}>{MONITOR}Open Display</Link>
+            {mine
+              ? <Link href={`/chambers/display?c=${x.id}`} target="_blank" rel="noopener" className="button secondary">{MONITOR}Open Display</Link>
+              : <span className="tip" data-tip="Enter as Admin first"><button type="button" className="button secondary" disabled>{MONITOR}Open Display</button></span>}
           </div>
         </div>
       </section>
@@ -269,13 +272,14 @@ function Inside({ x, say, reload, enter, download, copyId, raw }: {
         <form className={c.addRow} onSubmit={add}>
           <label htmlFor={`ae-${x.id}`} className="sr-only">Add a chair by the email on their Collex account</label>
           <input id={`ae-${x.id}`} type="email" className="control" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Add by email on their Collex account" maxLength={254} />
-          <button type="submit" className="button secondary" disabled={busy || !email.trim()}>Add</button>
+          {email.trim() ? <button type="submit" className="button secondary" disabled={busy}>Add</button>
+            : <span className="tip" data-tip="Type their email first"><button type="button" className="button secondary" disabled>Add</button></span>}
         </form>
       </section>
 
       <section className={c.card} aria-label="Join Code">
         <h3 className={c.cardTitle}>Join Code</h3>
-        {code ? <CodeBoxes code={code} label="Join code" /> : <p className="muted">No join code. Chairs can only be added by email.</p>}
+        {code ? <CodeBoxes code={code} label="Join code" /> : <div className={board.empty}><Gavel /><p className={board.emptyTitle}>No join code yet</p><p className="muted">Chairs can only be added by email.</p></div>}
         <div className={c.btnGrid}>
           {code && <button type="button" className="button secondary" onClick={() => copy(`${location.origin}/chambers?join=${code}`, "Link copied")}>Copy Link</button>}
           <button type="button" className="button secondary" disabled={busy} onClick={() => void codeDo("new")}>{code ? "New Code" : "Make a Join Code"}</button>
@@ -285,7 +289,7 @@ function Inside({ x, say, reload, enter, download, copyId, raw }: {
 
       <section className={c.card} aria-label="Recent Activity">
         <h3 className={c.cardTitle}>Recent Activity</h3>
-        {(x.summary.log ?? []).length === 0 ? <p className="muted">Nothing yet.</p> : (
+        {(x.summary.log ?? []).length === 0 ? <div className={board.empty}><Gavel /><p className={board.emptyTitle}>No activity yet</p><p className="muted">What happens in this committee shows here.</p></div> : (
           <ol className={c.log}>{(x.summary.log ?? []).map((l, i) => <li key={i}><time>{stamp(l.at)}</time><span>{l.text}</span></li>)}</ol>
         )}
       </section>

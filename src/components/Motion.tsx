@@ -17,6 +17,24 @@ const inScroller = (node: Element | null) => {
 export default function Motion() {
   const pathname = usePathname();
 
+  // Phones don't hover and a disabled button can't be focused, so tapping a tip shows its reason for a few seconds.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let shown: Element | null = null;
+    const hide = () => { shown?.removeAttribute("data-tip-show"); shown = null; };
+    const tap = (e: MouseEvent) => {
+      const tip = (e.target as Element | null)?.closest?.(".tip[data-tip]") ?? null;
+      clearTimeout(timer);
+      if (shown !== tip) hide();
+      if (!tip) return;
+      tip.setAttribute("data-tip-show", "");
+      shown = tip;
+      timer = setTimeout(hide, 3500);
+    };
+    document.addEventListener("click", tap);
+    return () => { document.removeEventListener("click", tap); clearTimeout(timer); };
+  }, []);
+
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const root = document.documentElement;

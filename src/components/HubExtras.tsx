@@ -6,7 +6,7 @@ import { ROLE_KINDS, type RoleKind } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
 import { APP_KIND, APP_STATUS, allocationText, type AppRow } from "./ConferenceHub";
-import { Placard } from "./Drawings";
+import { Gavel, Placard } from "./Drawings";
 import PageBand from "./PageBand";
 import QrCode from "./QrCode";
 import Select from "./Select";
@@ -92,7 +92,7 @@ export function AdminClaims({ say }: { say: Say }) {
   if (rows.length === 0) return null;
   return (
     <section className={`panel ${h.card}`} aria-labelledby="claims-h" style={{ marginBottom: 16 }}>
-      <div className={h.head}><h2 id="claims-h" className={h.h2}>Claims on Listings<span className={h.count}>{rows.length}</span></h2></div>
+      <div className={h.head}><h2 id="claims-h" className={h.h2}>Claims<span className={h.count}>{rows.length}</span></h2></div>
       <ul className={h.rows}>
         {rows.map((k) => (
           <li key={k.id} className={h.app}>
@@ -138,8 +138,10 @@ export function MyApplications({ userId }: { userId: string }) {
     <section className={`panel ${au.card}`} aria-labelledby="myapps-h">
       <div>
         <h2 id="myapps-h" className={au.cardTitle}>Your applications</h2>
-        {rows !== null && rows.length === 0 && <p className="muted">Nothing applied for yet.</p>}
       </div>
+      {rows !== null && rows.length === 0 && (
+        <div className={board.empty}><Gavel /><p className={board.emptyTitle}>No applications yet</p><p className="muted">Apply to chair or take a role at a conference and it shows here.</p><Link href="/roles" className="button secondary">See Open Roles</Link></div>
+      )}
       {rows && rows.length > 0 && (
         <ul className={h.rows}>
           {rows.map((a) => {
@@ -178,7 +180,8 @@ export function MyApplications({ userId }: { userId: string }) {
       </div>
       <div className={h.btnRow}>
         <Link href={`/delegates/${userId}`} className="button secondary">See My Record</Link>
-        <button type="button" className="button secondary" disabled={!pub} onClick={() => navigator.clipboard?.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })}>{copied ? "Link Copied" : "Copy the Link"}</button>
+        {pub ? <button type="button" className="button secondary block" onClick={() => navigator.clipboard?.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })}>{copied ? "Link Copied" : "Copy the Link"}</button>
+          : <span className="tip" data-tip="Make your record public first" data-tip-align="start" style={{ display: "flex" }}><button type="button" className="button secondary block" disabled>Copy the Link</button></span>}
       </div>
     </section>
   );
@@ -214,7 +217,7 @@ export function DelegateRecord({ id }: { id: string }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 20 }}>
         <section className={`panel ${h.card}`} aria-labelledby="rec-c">
           <div className={h.head}><h2 id="rec-c" className={h.h2}>Conferences</h2></div>
-          {rec.conferences.length === 0 ? <p className={h.note}>No conferences yet.</p> : (
+          {rec.conferences.length === 0 ? <div className={board.empty}><Placard /><p className={board.emptyTitle}>No conferences yet</p><p className="muted">Conferences you run or take part in show here.</p></div> : (
             <ul className={h.rows}>
               {rec.conferences.map((c, i) => (
                 <li key={i}>

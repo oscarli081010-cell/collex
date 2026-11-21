@@ -18,11 +18,9 @@ export function useMyListings(userId: string, version = 0) {
     let current = true;
     (async () => {
       const { data: team } = await db.from("organisers").select("conference_id, role").eq("user_id", userId).not("accepted_at", "is", null);
-      const ids = (team ?? []).map((t) => t.conference_id);
-      const roleOf = new Map((team ?? []).map((t) => [t.conference_id as string, t.role as string]));
-      const base = db.from("conferences").select("*");
-      const { data } = await (ids.length ? base.or(`submitted_by.eq.${userId},id.in.(${ids.join(",")})`) : base.eq("submitted_by", userId))
-        .order("created_at", { ascending: false });
+            const roleOf = new Map((team ?? []).map((t) => [t.conference_id as string, t.role as string]));
+      // my_listings returns the listings you sent or help run, with the review fields only their own team may read.
+      const { data } = await db.rpc("my_listings").order("created_at", { ascending: false });
       const list = ((data ?? []) as (Parameters<typeof fromRow>[0] & { status: string; review_note: string; submitted_by: string | null })[])
         .map((r) => ({ c: fromRow(r), status: r.status, note: r.review_note, mine: r.submitted_by === userId, canEdit: r.submitted_by === userId || roleOf.get(r.id) === "editor" }));
       if (current) setRows(list);

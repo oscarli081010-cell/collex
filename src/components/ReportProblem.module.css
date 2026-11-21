@@ -15,7 +15,7 @@
 
 .panel {
   display: flex; flex-direction: column; gap: 20px; max-height: calc(100svh - 48px); overflow-y: auto; overscroll-behavior: contain;
-  padding: 28px; background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
+  padding: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
   box-shadow: 0 30px 80px -24px rgba(var(--shadow-rgb), 0.5);
 }
 .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
@@ -43,7 +43,7 @@
 .done svg path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: rpDraw var(--duration-very-slow) var(--ease-smooth-out) var(--duration-quick) forwards; }
 @keyframes rpDraw { to { stroke-dashoffset: 0; } }
 
-@media (max-width: 560px) { .panel { padding: 22px 20px; } .title { font-size: 28px; } }
+@media (max-width: 560px) { .panel { padding: 22px; } .title { font-size: 28px; } }
 @media (prefers-reduced-motion: reduce) {
   .dialog[open] .panel, .dialog[open]::backdrop { animation: none; }
   .done svg path { animation: none; stroke-dashoffset: 0; }

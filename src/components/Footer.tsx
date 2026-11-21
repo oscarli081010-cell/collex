@@ -26,7 +26,7 @@ export default function Footer() {
           <ul>
             <li className={styles.head}>Secretariats</li>
             <li><Link href="/list">List a conference</Link></li>
-            <li><Link href="/conferences/template">Demo page</Link></li>
+            <li><Link href="/conferences/demo_listing">Demo page</Link></li>
             <li><a href={`mailto:${CONTACT}?subject=Correction%20to%20a%20listing`}>Correct a listing</a></li>
           </ul>
           <ul>

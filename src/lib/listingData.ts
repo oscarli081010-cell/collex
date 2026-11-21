@@ -1,4 +1,4 @@
-import { fromRow } from "./data";
+import { fromRow, PUBLIC_COLUMNS } from "./data";
 import { supabase } from "./supabase";
 import type { Entry, Loaded } from "@/components/listing/types";
 import type { Member } from "@/components/listing/organisers";
@@ -41,7 +41,7 @@ export const forgetListing = (id: string) => {
 export async function loadActivity(id: string, uid: string): Promise<Loaded | "missing" | null> {
   const db = supabase;
   if (!db) return null;
-  const { data: row } = await db.from("conferences").select("*").eq("id", id).maybeSingle();
+  const { data: row } = await db.from("conferences").select(PUBLIC_COLUMNS).eq("id", id).maybeSingle();
   if (!row) { activity.set(id, { at: Date.now(), value: "missing" }); return "missing"; } // not yours (or not there): the database only shows a listing to the people who edit it
   const [counts, weekly, followers, team, history] = await Promise.all([
     db.rpc("interest_counts"), db.rpc("interest_weekly"),

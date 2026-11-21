@@ -39,8 +39,8 @@ export default function Home() {
           </h1>
           <p className={styles.lead}>Upcoming conferences, dates and links, <span className={styles.aura}>on one calendar.</span></p>
           <div className={styles.heroActions}>
-            <a href="#upcoming" className="button lg">See what&rsquo;s on</a>
-            <Link href="/list" className="button secondary lg">List a conference</Link>
+            <a href="#upcoming" className="button lg">See What&rsquo;s On</a>
+            <Link href="/list" className="button secondary lg">List a Conference</Link>
           </div>
         </Reveal>
         <div className={styles.heroPic}>
@@ -78,7 +78,7 @@ export default function Home() {
         <div className="callout">
           <h2 id="list-h" className="calloutTitle">Running a conference?</h2>
           <div className="calloutActions">
-            <Link href="/list" className="button">List it free</Link>
+            <Link href="/list" className="button">List It Free</Link>
           </div>
         </div>
       </section>

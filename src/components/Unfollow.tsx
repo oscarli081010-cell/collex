@@ -35,7 +35,7 @@ export default function Unfollow() {
           : "You'll stop getting emails about this conference. You can follow it again from its page."}
       </p>
       {state === "done" || state === "bad" ? (
-        <div className="btnStack one"><Link href="/" className="button lg">Go home</Link></div>
+        <div className="btnStack one"><Link href="/" className="button lg">Go Home</Link></div>
       ) : (
         <button className={`button lg ${s.submit}`} onClick={go} disabled={state === "busy" || !token}>
           <span key={state} className="t-swap">{state === "busy" ? "Unsubscribing…" : "Unsubscribe"}</span>

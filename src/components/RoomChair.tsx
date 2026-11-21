@@ -13,7 +13,14 @@ import s from "./Chambers.module.css";
 import mg from "./Manage.module.css";
 import r from "./Room.module.css";
 
-type Act = (fn: (x: Chamber) => Chamber, track?: boolean) => void;
+type Act = (fn: (x: Chamber) => Chamber, track?: boolean) => Promise<boolean> | void;
+
+/** A button that can't be used now, with the reason shown on hover and focus. Give the button `disabled={!!why}` from
+    the same reason, so the two can never disagree. The wrapper fills its place, so a full-width button stays full width. */
+export function Why({ why, children }: { why: string | false | null | undefined; children: React.ReactElement }) {
+  if (!why) return children;
+  return <span className="tip" data-tip={why} data-tip-align="start" tabIndex={0} style={{ display: "grid" }}>{children}</span>;
+}
 const uid = () => crypto.randomUUID();
 
 /* The chairs' inbox: what delegates have asked for from their own devices. Accepting one does it on the committee,
@@ -27,13 +34,22 @@ export function Inbox({ c, act, room, say, refresh }: { c: Chamber; act: Act; ro
     setBusy("");
     refresh();
   };
-  const accept = (a: Ask) => {
-    const { next, why } = acceptAsk(c, a, uid());
+  // What it makes carries the request's own id, so accepting it twice (two chairs, or a save replayed on a newer copy
+  // after another chair's) never adds it twice.
+  const accept = async (a: Ask) => {
+    if (ch.holds(c, a.id)) { void settle(a, "done"); return; } // already done, by this chair or another
+    // Already on the speakers' list (accepted once already, or added by hand): nothing left to do, so the request is cleared.
+    if (a.kind === "floor" && c.debate.list.some((x) => x.id === a.delegate_id)) { void settle(a, "done"); return; }
+    const { next, why } = acceptAsk(c, a, a.id);
     if (next === c) { say(why ?? "That can't be done now."); return; }
+    setBusy(a.id);
     // Replayed on a newer copy of the committee if another chair acted first, so it is worked out again from that copy.
-    const id = uid();
-    act((x) => acceptAsk(x, a, id).next);
-    void settle(a, "done");
+    const changed = await act((x) => (ch.holds(x, a.id) ? x : acceptAsk(x, a, a.id).next));
+    setBusy("");
+    // Marked done only once the change is saved and really changed the committee. If it didn't (another chair got there
+    // first, or the debate moved on), the request stays for the chair to look at again.
+    if (changed) void settle(a, "done");
+    else if (changed === false) refresh();
   };
   const key = voteKey(c);
   const votes = key ? room.votes.filter((v) => v.key === key && ch.has(c, v.delegate_id) && ch.isHere(c, v.delegate_id)) : [];
@@ -58,7 +74,7 @@ export function Inbox({ c, act, room, say, refresh }: { c: Chamber; act: Act; ro
             <strong>Votes from devices: {n("for")} For, {n("against")} Against, {n("abstain")} Abstain</strong>
             <small>{votes.length} of {ch.present(c)} states present have voted on their own device. Using them records each state&rsquo;s answer, and you can still change any of them.</small>
           </div>
-          <button type="button" className="button block" disabled={!votes.length} onClick={useVotes}>Use These Votes</button>
+          <Why why={!votes.length && "No votes from devices yet"}><button type="button" className="button block" disabled={!votes.length} onClick={useVotes}>Use These Votes</button></Why>
         </div>
       )}
       {room.asks.length > 0 && (
@@ -73,8 +89,8 @@ export function Inbox({ c, act, room, say, refresh }: { c: Chamber; act: Act; ro
                   <small>{[t.detail, shortTime(a.created_at)].filter(Boolean).join(" · ")}</small>
                 </span>
                 <span className={r.rowBtns}>
-                  <button type="button" className="button sm" disabled={busy === a.id} onClick={() => accept(a)}>{a.kind === "point" ? "Note It" : "Accept"}</button>
-                  <button type="button" className="button secondary sm" disabled={busy === a.id} onClick={() => void settle(a, "dismissed")}>Dismiss</button>
+                  <Why why={busy === a.id && "Saving…"}><button type="button" className="button sm" disabled={busy === a.id} onClick={() => void accept(a)}>{a.kind === "point" ? "Note It" : "Accept"}</button></Why>
+                  <Why why={busy === a.id && "Saving…"}><button type="button" className="button secondary sm" disabled={busy === a.id} onClick={() => void settle(a, "dismissed")}>Dismiss</button></Why>
                 </span>
               </li>
             );
@@ -106,12 +122,12 @@ export function DevicesCard({ c, cid, room, manage, say, refresh }: { c: Chamber
       <div className={mg.cardTop}>
         <h2 id="st-dev" className={s.h2}>Delegates&rsquo; Devices <span className={mg.dot} data-on={on} aria-hidden="true" /><span className="sr-only" aria-live="polite">{on ? "On" : "Off"}</span>{on && room && room.seats.length > 0 && <span className={r.count}>{room.seats.length} seated</span>}</h2>
         {manage ? (
-          <button type="button" className={`button ${on ? "secondary" : ""} ${mg.switchBtn}`} disabled={busy} aria-pressed={on} onClick={() => void set(on ? "off" : "on")}>
-            <span key={String(on)} className="t-swap">{on ? "Turn off" : "Turn on"}</span>
-          </button>
+          <Why why={busy && "Saving…"}><button type="button" className={`button ${on ? "secondary" : ""} ${mg.switchBtn}`} disabled={busy} aria-pressed={on} onClick={() => void set(on ? "off" : "on")}>
+            <span key={String(on)} className="t-swap">{on ? "Turn Off" : "Turn On"}</span>
+          </button></Why>
         ) : (
           <span className="tip" data-tip="Only the person who shared the committee can change this" tabIndex={0}>
-            <button type="button" className={`button ${on ? "secondary" : ""} ${mg.switchBtn}`} disabled aria-pressed={on}>{on ? "Turn off" : "Turn on"}</button>
+            <button type="button" className={`button ${on ? "secondary" : ""} ${mg.switchBtn}`} disabled aria-pressed={on}>{on ? "Turn Off" : "Turn On"}</button>
           </span>
         )}
       </div>
@@ -121,7 +137,7 @@ export function DevicesCard({ c, cid, room, manage, say, refresh }: { c: Chamber
           <div className={s.codeActions}>
             {code && <button type="button" className="button secondary" onClick={() => copy(code, "Code copied")}>Copy Code</button>}
             {code && <button type="button" className="button secondary" onClick={() => copy(`${location.origin}/chambers/room?join=${code}`, "Link copied")}>Copy Link</button>}
-            {manage && <button type="button" className="button secondary" disabled={busy} onClick={() => void set("new")}>New Code</button>}
+            {manage && <Why why={busy && "Saving…"}><button type="button" className="button secondary" disabled={busy} onClick={() => void set("new")}>New Code</button></Why>}
           </div>
           {room && room.seats.length > 0 && (
             <ul className={s.team}>
@@ -166,6 +182,7 @@ export function RoomSettings({ cid, room, say, refresh }: { cid: string; room: C
   };
   const tally = straw ? straw.options.map((_, i) => room.votes.filter((v) => v.key === strawKey(straw) && v.ballot === String(i)).length) : [];
   const total = tally.reduce((a, b) => a + b, 0);
+  const strawWhy = busy ? "Saving…" : q.trim().length < 2 ? "Type the question first" : options.length < 2 ? "Add at least two answers" : null;
   return (
     <>
       <section className={`panel ${s.share}`} aria-labelledby="rs-straw">
@@ -182,8 +199,8 @@ export function RoomSettings({ cid, room, say, refresh }: { cid: string; room: C
               ))}
             </div>
             <div className={s.btnRow}>
-              <button type="button" className="button secondary" disabled={busy} onClick={() => void save({ ...meta, straw: { ...straw, open: !straw.open } })}>{straw.open ? "Close the Poll" : "Reopen the Poll"}</button>
-              <button type="button" className="button secondary" disabled={busy} onClick={async () => { if (supabase) await supabase.rpc("room_clear_votes", { cid, vote_key: strawKey(straw) }); await save({ ...meta, straw: null }); }}>Remove the Poll</button>
+              <Why why={busy && "Saving…"}><button type="button" className="button secondary" disabled={busy} onClick={() => void save({ ...meta, straw: { ...straw, open: !straw.open } })}>{straw.open ? "Close the Poll" : "Reopen the Poll"}</button></Why>
+              <Why why={busy && "Saving…"}><button type="button" className="button secondary" disabled={busy} onClick={async () => { if (supabase) await supabase.rpc("room_clear_votes", { cid, vote_key: strawKey(straw) }); await save({ ...meta, straw: null }); }}>Remove the Poll</button></Why>
             </div>
           </>
         ) : (
@@ -191,7 +208,7 @@ export function RoomSettings({ cid, room, say, refresh }: { cid: string; room: C
             <p className="muted">Ask the room a question. Delegates answer from their devices; it binds no one.</p>
             <div className="field"><label htmlFor="rs-q">Question</label><input id="rs-q" className="control" value={q} maxLength={200} onChange={(e) => setQ(e.target.value)} /></div>
             <div className="field"><label htmlFor="rs-o">Answers</label><textarea id="rs-o" className="control" rows={3} value={opts} onChange={(e) => setOpts(e.target.value)} /><small>One per line, two to eight.</small></div>
-            <button type="submit" className="button block" disabled={busy || q.trim().length < 2 || options.length < 2}>Open the Straw Poll</button>
+            <Why why={strawWhy}><button type="submit" className="button block" disabled={!!strawWhy}>Open the Straw Poll</button></Why>
           </form>
         )}
       </section>

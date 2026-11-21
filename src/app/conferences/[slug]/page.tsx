@@ -6,7 +6,7 @@ import { formatDate, formatRange, isPast, monogram, NA, shown, template, type Co
 import RoleCard, { applyFor } from "@/components/RoleCard";
 import ReportProblem from "@/components/ReportProblem";
 import roleStyles from "@/components/Roles.module.css";
-import { getBySlug, getPublished } from "@/lib/data";
+import { getBySlug, getSummaries } from "@/lib/data";
 import Photo from "@/components/Photo";
 import Announcements from "@/components/Announcements";
 import ApplyBand from "@/components/ApplyBand";
@@ -18,6 +18,8 @@ import StickyApply from "@/components/StickyApply";
 import Verified from "@/components/Verified";
 import { META_ICONS as ICONS } from "@/components/MetaIcons";
 import s from "../../inner.module.css";
+import board from "@/components/board.module.css";
+import { Placard } from "@/components/Drawings";
 import reportStyles from "@/components/ReportProblem.module.css";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -25,7 +27,7 @@ type Props = { params: Promise<{ slug: string }> };
 export const revalidate = 60;
 
 export async function generateStaticParams() {
-  return [template, ...(await getPublished())].map((c) => ({ slug: c.slug }));
+  return [template, ...(await getSummaries())].map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -91,10 +93,10 @@ function Venue({ name }: { name: string }) {
 
 function Nothing({ what }: { what: string }) {
   return (
-    <div className={s.nothing}>
-      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="5" y="4" width="18" height="20" rx="3" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M9.5 10h9M9.5 14h9M9.5 18h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-      <p>There&rsquo;s nothing to show yet.</p>
-      <span>The {what} will appear here once announced.</span>
+    <div className={board.empty}>
+      <Placard />
+      <p className={board.emptyTitle}>No {what} yet</p>
+      <p className="muted">The {what} will appear here once announced.</p>
     </div>
   );
 }

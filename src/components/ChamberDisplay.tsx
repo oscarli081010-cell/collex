@@ -148,7 +148,7 @@ export default function ChamberDisplay() {
   let mid: React.ReactNode;
   if (!c) {
     mid = status === "signin" ? (
-      <Screen heading="Log in to See This Committee"><Link href="/login" className={s.dBtn}>Log in</Link></Screen>
+      <Screen heading="Log in to See This Committee"><Link href="/login" className={s.dBtn}>Log In</Link></Screen>
     ) : status === "denied" ? (
       <Screen heading="This Committee Isn't Shared with You" lines={["Ask the person who runs it to add the email on your Collex account."]} />
     ) : status === "loading" || cloudId ? null : (

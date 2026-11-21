@@ -15,6 +15,7 @@ import { Gavel } from "./Drawings";
 import Flag from "./Flag";
 import { ICONS } from "./IconButton";
 import PanelTabs from "./PanelTabs";
+import { Why } from "./RoomChair";
 import { Empty, FilesPanel, NotesPanel } from "./RoomParts";
 import Select from "./Select";
 import { useToast } from "./useToast";
@@ -80,6 +81,8 @@ function TakeSeat({ code, say, done }: { code: string; say: (t: string) => void;
     const { data, error } = await supabase.rpc("room_take_seat", { code, delegate: id });
     setBusy("");
     if (error) { say(error.message); return; }
+    // No answer means the code no longer matches a committee (or there were too many tries).
+    if (!data) { say("No committee has that code. Check it with the chair."); return; }
     done(data as string);
   };
   return (
@@ -99,7 +102,7 @@ function TakeSeat({ code, say, done }: { code: string; say: (t: string) => void;
                 {d.taken > 0 && <small>{d.taken} {d.taken === 1 ? "person has" : "people have"} this seat</small>}
               </span>
               <span className={r.rowBtns}>
-                <button type="button" className={peek.mine === d.id ? "button sm" : "button secondary sm"} disabled={!!busy || d.taken >= 3} onClick={() => void take(d.id)}>{busy === d.id ? "Joining…" : peek.mine === d.id ? "Continue" : d.taken >= 3 ? "Full" : "Take This Seat"}</button>
+                <Why why={busy ? (busy === d.id ? "Joining…" : "Joining another seat…") : d.taken >= 3 && "Three people already have this seat"}><button type="button" className={peek.mine === d.id ? "button sm" : "button secondary sm"} disabled={!!busy || d.taken >= 3} onClick={() => void take(d.id)}>{busy === d.id ? "Joining…" : peek.mine === d.id ? "Continue" : d.taken >= 3 ? "Full" : "Take This Seat"}</button></Why>
               </span>
             </li>
           ))}
@@ -228,7 +231,7 @@ function Requests({ c, cid, me, asks, say, refresh }: { c: Chamber; cid: string;
   // Every button is always there. One that can't be used now is greyed, and hovering (or pressing) it says why.
   const btn = (label: string, off: string | null, onClick: () => void, primary: boolean, expanded?: boolean) => off
     ? <span key={label} className="tip" data-tip={off} data-tip-align="start" tabIndex={0}><button type="button" className={primary ? "button" : "button secondary"} disabled>{label}</button></span>
-    : <button key={label} type="button" className={primary ? "button" : "button secondary"} disabled={busy} aria-expanded={expanded} onClick={onClick}>{label}</button>;
+    : <Why key={label} why={busy && "Sending…"}><button type="button" className={primary ? "button" : "button secondary"} disabled={busy} aria-expanded={expanded} onClick={onClick}>{label}</button></Why>;
   const signable = ch.waitingAmendments(c).filter((a) => a.by !== me && a.seconder !== me && !a.backers.includes(me) && !asks.some((x) => x.kind === "sign" && x.status === "open" && x.body.amendment === a.id));
 
   return (
@@ -254,7 +257,7 @@ function Requests({ c, cid, me, asks, say, refresh }: { c: Chamber; cid: string;
             <label htmlFor="rq-pt-t">What It Is About (optional)</label>
             <input id="rq-pt-t" className="control" value={text} maxLength={200} onChange={(e) => setText(e.target.value)} />
           </div>
-          <button type="submit" className="button" disabled={busy}>Raise the Point</button>
+          <Why why={busy && "Sending…"}><button type="submit" className="button block" disabled={busy}>Raise the Point</button></Why>
         </form>
       )}
       {form === "motion" && (
@@ -271,7 +274,7 @@ function Requests({ c, cid, me, asks, say, refresh }: { c: Chamber; cid: string;
             </div>
           )}
           {motionErr && <p className={s.hint}>{motionErr}</p>}
-          <button type="submit" className="button" disabled={busy || !!motionErr}>Propose the Motion</button>
+          <Why why={busy ? "Sending…" : motionErr}><button type="submit" className="button block" disabled={busy || !!motionErr}>Propose the Motion</button></Why>
         </form>
       )}
       {form === "amendment" && (
@@ -293,7 +296,7 @@ function Requests({ c, cid, me, asks, say, refresh }: { c: Chamber; cid: string;
             </div>
           )}
           <div className="field"><label htmlFor="rq-at">The Amendment</label><textarea id="rq-at" className="control" rows={3} value={text} maxLength={600} onChange={(e) => setText(e.target.value)} /></div>
-          <button type="submit" className="button" disabled={busy || !text.trim() || (!!c.tr && !second)}>Hand In the Amendment</button>
+          <Why why={busy ? "Sending…" : !text.trim() ? "Write the amendment first" : !!c.tr && !second && "Choose who seconds it"}><button type="submit" className="button block" disabled={busy || !text.trim() || (!!c.tr && !second)}>Hand In the Amendment</button></Why>
         </form>
       )}
 
@@ -304,7 +307,7 @@ function Requests({ c, cid, me, asks, say, refresh }: { c: Chamber; cid: string;
             {signable.map((a) => (
               <li key={a.id}>
                 <span className={r.rowMain}><strong>From {ch.nameOf(c, a.by)}{a.clause ? ` · ${a.clause}` : ""}</strong><small>{a.text}</small></span>
-                <span className={r.rowBtns}><button type="button" className="button secondary sm" disabled={busy} onClick={() => void ask("sign", { amendment: a.id }, "Asked to sign")}>Sign</button></span>
+                <span className={r.rowBtns}><Why why={busy && "Sending…"}><button type="button" className="button secondary sm" disabled={busy} onClick={() => void ask("sign", { amendment: a.id }, "Asked to sign")}>Sign</button></Why></span>
               </li>
             ))}
           </ul>
@@ -361,7 +364,7 @@ function Vote({ c, cid, me, data, say, refresh }: { c: Chamber; cid: string; me:
             {!here ? <p className={s.hint}>Your state was marked absent at roll call, so it has no vote.</p> : (
               <div className={r.voteBtns} role="group" aria-label="Your vote">
                 {([["for", "For"], ["against", "Against"], ["abstain", "Abstain"]] as const).map(([b, label]) => (
-                  <button key={b} type="button" className="button secondary" aria-pressed={mine(key) === b} disabled={b === "abstain" && noAbstain} onClick={() => void cast(key, b)}>{label}</button>
+                  <Why key={b} why={b === "abstain" && noAbstain && "Present and Voting states can't abstain"}><button type="button" className="button secondary" aria-pressed={mine(key) === b} disabled={b === "abstain" && noAbstain} onClick={() => void cast(key, b)}>{label}</button></Why>
                 ))}
               </div>
             )}
@@ -374,7 +377,7 @@ function Vote({ c, cid, me, data, say, refresh }: { c: Chamber; cid: string; me:
           <h2 id="vs-h" className={s.h2}>Straw Poll{!straw.open && <span className={r.count}>Closed</span>}</h2>
           <p className={`serif ${r.nowBig}`}>{straw.q}</p>
           <div className={r.strawBtns} role="group" aria-label="Your answer">
-            {straw.options.map((o, i) => <button key={i} type="button" className="button secondary" aria-pressed={mine(strawKey(straw)) === String(i)} disabled={!straw.open} onClick={() => void cast(strawKey(straw), String(i))}>{o}</button>)}
+            {straw.options.map((o, i) => <Why key={i} why={!straw.open && "The poll is closed"}><button type="button" className="button secondary" aria-pressed={mine(strawKey(straw)) === String(i)} disabled={!straw.open} onClick={() => void cast(strawKey(straw), String(i))}>{o}</button></Why>)}
           </div>
           <p className={s.hint}>A straw poll doesn&rsquo;t bind anyone. It shows the chairs where the room stands.</p>
         </section>

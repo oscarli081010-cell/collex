@@ -137,7 +137,7 @@ export default function TopBar() {
           {session ? (
             <Link href="/account" className="avatarLink" aria-label="Your account" title={who}>{/* eslint-disable-next-line @next/next/no-img-element -- the account photo */}{profile?.avatar_url ? <img src={profile.avatar_url} alt="" width={36} height={36} /> : initials}</Link>
           ) : (
-            <Link href="/login" className="button">Log in</Link>
+            <Link href="/login" className="button">Log In</Link>
           )}
         </div>
         </div>

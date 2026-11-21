@@ -91,7 +91,7 @@ export default function ReportProblem({ id, name }: { id: string; name: string }
               {error && <p className={s.error} role="alert">{error}</p>}
               <div className={s.actions}>
                 <button type="submit" className="button lg block" disabled={busy}>
-                  <span key={String(busy)} className="t-swap">{busy ? "Sending…" : "Send report"}</span>
+                  <span key={String(busy)} className="t-swap">{busy ? "Sending…" : "Send Report"}</span>
                 </button>
               </div>
             </>

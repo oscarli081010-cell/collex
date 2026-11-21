@@ -52,7 +52,7 @@ function InterestLink({ url }: { url: string }) {
         <h2 className={s.applyTitle}>Express interest</h2>
         <span className={s.applyStatus} data-open="true">Not ready to register? Let them know.</span>
       </div>
-      <a href={url} className={`button ${s.applyBtn}`} target="_blank" rel="noreferrer">Express interest →</a>
+      <a href={url} className={`button ${s.applyBtn}`} target="_blank" rel="noreferrer">Express Interest →</a>
     </div>
   );
 }
@@ -99,14 +99,14 @@ function BuiltInInterest({ c, say }: { c: Conference; say: Say }) {
       {!ready || state === null ? (
         <span className={`button ${s.applyBtn}`} aria-hidden="true" data-closed />
       ) : organiser ? (
-        <Link href={`/activity?id=${c.id}`} className={`button secondary ${s.applyBtn}`}>See activity →</Link>
+        <Link href={`/activity?id=${c.id}`} className={`button secondary ${s.applyBtn}`}>See Activity →</Link>
       ) : !c.id ? (
-        <button className={`button ${s.applyBtn}`} onClick={() => say("This is a demo. On a real listing, this tells the organisers you're interested.")}>Send interest →</button>
+        <button className={`button ${s.applyBtn}`} onClick={() => say("This is a demo. On a real listing, this tells the organisers you're interested.")}>Send Interest →</button>
       ) : !session ? (
-        <Link href="/login" className={`button ${s.applyBtn}`}>Log in to send →</Link>
+        <Link href="/login" className={`button ${s.applyBtn}`}>Log in to Send →</Link>
       ) : (
         <button className={`button ${state.sent ? "secondary" : ""} ${s.applyBtn}`} onClick={toggle} disabled={busy} aria-pressed={state.sent}>
-          <span key={String(state.sent)} className="t-swap">{state.sent ? "Interest sent ✓" : "Send interest →"}</span>
+          <span key={String(state.sent)} className="t-swap">{state.sent ? "Interest Sent ✓" : "Send Interest →"}</span>
         </button>
       )}
     </div>

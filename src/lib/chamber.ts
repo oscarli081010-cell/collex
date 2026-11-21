@@ -299,11 +299,42 @@ export function normalise(x: unknown): Chamber | null {
 /* Back: every action the chair takes keeps the committee as it was, so the last few can be taken back. The photo and its strength
    are the chair's own setting, not part of the debate, so they are neither kept nor taken back. */
 export const HISTORY = 12;
+/* A shared committee is saved whole, and the database takes at most 256 KB. Two things grow without end, so both are
+   kept in check here: the minutes keep their most recent LOG_MAX lines, and if the steps kept for Back are too big
+   together, the oldest go first. Each step is a whole copy, as it has always been, so every console (an older one left
+   open included) restores it the same way. */
+export const LOG_MAX = 400;
+/** The most the committee and its steps for Back may come to, in characters of JSON: well under the database's 256 KB. */
+export const SIZE_BUDGET = 200_000;
+const size = (x: unknown) => JSON.stringify(x).length;
+// A step kept for Back never changes, and the same one is carried from action to action, so its size is worked out once.
+const stepSizes = new WeakMap<Chamber, number>();
+const stepSize = (x: Chamber) => { let n = stepSizes.get(x); if (n === undefined) { n = size(x); stepSizes.set(x, n); } return n; };
+// Within the budget: the oldest steps go until it fits. The background photo isn't counted: a committee kept only in
+// this browser holds the photo itself, and that never goes to the database.
+function within(c: Chamber, kept: Chamber[]): Chamber[] {
+  let total = size({ ...c, hist: undefined, background: null });
+  const sizes = kept.map(stepSize);
+  for (const n of sizes) total += n;
+  let drop = 0;
+  while (drop < kept.length && total > SIZE_BUDGET) total -= sizes[drop++];
+  return drop ? kept.slice(drop) : kept;
+}
 /** The committee after `fn`, with the one before it kept for Back. A change that does nothing keeps nothing. */
 export function remember(before: Chamber, after: Chamber): Chamber {
   if (after === before) return after;
   const { hist, ...rest } = before;
-  return { ...after, hist: [...(hist ?? []).slice(-(HISTORY - 1)), { ...rest, background: null }] };
+  const kept = [...(hist ?? []).slice(-(HISTORY - 1)), { ...rest, background: null }];
+  return { ...after, hist: within(after, kept) };
+}
+/** The committee small enough to save: a committee saved before the limits above (or grown by changes that keep no step,
+    such as the clock) lets go of its oldest minutes and steps for Back. The same committee if nothing had to go. */
+export function fit(c: Chamber): Chamber {
+  const cut = c.log.length - LOG_MAX;
+  const x = cut > 0 ? { ...c, log: c.log.slice(cut) } : c;
+  if (!x.hist?.length) return x;
+  const kept = within(x, x.hist);
+  return kept === x.hist ? x : { ...x, hist: kept };
 }
 export const canGoBack = (c: Chamber) => !!c.hist?.length;
 /** Take back the last action. A clock that was running is stopped where it stands, so the chair starts it again. */
@@ -316,7 +347,29 @@ export function goBack(c: Chamber, at: number): Chamber {
   return note({ ...prev, tr, timer: stop(prev.timer), background: c.background, backgroundStrength: c.backgroundStrength, ...(c.backgroundAt ? { backgroundAt: c.backgroundAt } : {}), hist: hist.slice(0, -1) }, "Went back one step");
 }
 
-export const note = (c: Chamber, text: string): Chamber => ({ ...c, log: [...c.log, { at: now(), text }] });
+/** Whether a save the database refused will never succeed however often it is sent: the committee broke a rule of the
+    database (too big, a bad shape) rather than the network or the login failing. A lost connection, a server that is
+    busy or down, or a login that has run out (401, PGRST301) are worth trying again; so is a clash with another save. */
+export function savePermanent(code: string | undefined, status: number | undefined): boolean {
+  if (status === 401 || status === 408 || status === 429 || (status !== undefined && (status === 0 || status >= 500))) return false;
+  const k = code ?? "";
+  if (!k || k.startsWith("PGRST3") || /^PGRST00[0-3]$/.test(k)) return false;
+  // Postgres: no connection (08), a clash with another transaction (40), out of resources (53) or cancelled (57).
+  if (/^(08|40|53|57)/.test(k)) return false;
+  // Postgres: data that breaks a rule (22, 23), too big (54), a statement the database won't run (42, 0A) or an error raised on purpose (P0).
+  return /^(22|23|42|54|0A|P0)/.test(k) || (status !== undefined && status >= 400 && status < 500);
+}
+
+/** Whether the committee already holds a motion or amendment made with this id: a delegate's request accepted by
+    one chair carries the request's id, so a second chair accepting the same request adds nothing. */
+export const holds = (c: Chamber, id: string) => c.amendments.some((a) => a.id === id) || !!c.tr?.motions.some((m) => m.id === id);
+
+/** Add a line to the minutes. Past LOG_MAX lines the oldest are let go, so the committee can always be saved. */
+export const note = (c: Chamber, text: string): Chamber => {
+  const log = [...c.log, { at: now(), text }];
+  const cut = log.length - LOG_MAX;
+  return cut > 0 ? { ...c, log: log.slice(cut) } : { ...c, log };
+};
 export const nameOf = (c: Chamber, who: string | null) => c.delegates.find((d) => d.id === who)?.name ?? "";
 export const has = (c: Chamber, who: string | null | undefined): who is string => !!who && c.delegates.some((d) => d.id === who);
 export const other = (s: Side): Side => (s === "for" ? "against" : "for");

@@ -9,13 +9,14 @@ import SearchBox from "../../SearchBox";
 import Select from "../../Select";
 import Section from "../Section";
 import type { ListingCtx } from "../types";
-import { allocateByPreference } from "./allocate";
+import { allocateByPreference, wants } from "./allocate";
 import { FACES, csv, saveCsv, sendMail, when } from "./shared";
 import bd from "../../board.module.css";
 import h from "../../Hub.module.css";
 import m from "../../Manage.module.css";
 
 type Status = AppRow["status"];
+const tip = (why: string, b: React.ReactNode) => (why ? <span className="tip" data-tip={why}>{b}</span> : b);
 
 // Applications from individuals, answered and allocated by the people who run the conference.
 export default function Applications({ ctx }: { ctx: ListingCtx }) {
@@ -67,7 +68,7 @@ export default function Applications({ ctx }: { ctx: ListingCtx }) {
     setDraft((d) => { const o = { ...d }; if (next.committee === a.committee && next.country === a.country) delete o[a.id]; else o[a.id] = next; return o; });
   };
   const save = async () => {
-    if (!supabase || !dirty) return;
+    if (!supabase || !dirty || busy) return;
     setBusy("save");
     const { error } = await supabase.rpc("allocate_applications", { conf: c.id, allocations: Object.entries(draft).map(([id, v]) => ({ id, ...v })) });
     setBusy("");
@@ -82,7 +83,7 @@ export default function Applications({ ctx }: { ctx: ListingCtx }) {
     say(`${n} allocated from their preferences. Check them, then save.`);
   };
   const mail = async () => {
-    if (!supabase) return;
+    if (!supabase || busy) return;
     setBusy("mail");
     const { data, error } = await supabase.rpc("send_allocations", { conf: c.id });
     setBusy("");
@@ -92,7 +93,7 @@ export default function Applications({ ctx }: { ctx: ListingCtx }) {
   };
   const download = () => saveCsv(`${c.slug}-applications.csv`, csv(
     ["Name", "Applying as", "School", "Year", "Status", "Committee", "Country", "Committee choices", "Country choices", "Experience", "Notes", "Applied"],
-    list.map((a) => [a.name, APP_KIND(a), a.school, a.year, a.status, a.committee, a.country, (a.prefs.committees ?? []).join("; "), (a.prefs.countries ?? []).join("; "), a.experience, a.note, when(a.created_at)]),
+    list.map((a) => [a.name, APP_KIND(a), a.school, a.year, a.status, a.committee, a.country, wants(a).committees.join("; "), wants(a).countries.join("; "), a.experience, a.note, when(a.created_at)]),
   ));
 
   return (
@@ -122,7 +123,7 @@ export default function Applications({ ctx }: { ctx: ListingCtx }) {
                   <span className={h.main}>
                     <strong>{a.name} <span className={h.chip} data-tone={a.kind === "chair" ? "accent" : undefined}>{APP_KIND(a)}</span></strong>
                     <small>{[a.school, a.year, when(a.created_at)].filter(Boolean).join(" · ")}</small>
-                    {((a.prefs.committees ?? []).length > 0 || (a.prefs.countries ?? []).length > 0) && <small>Wants: {[...(a.prefs.committees ?? []), ...(a.prefs.countries ?? [])].join(", ")}</small>}
+                    {(wants(a).committees.length > 0 || wants(a).countries.length > 0) && <small>Wants: {[...wants(a).committees, ...wants(a).countries].join(", ")}</small>}
                     {a.experience && <span className={h.quote}>{a.experience}</span>}
                     {a.note && <span className={h.quote}>&ldquo;{a.note}&rdquo;</span>}
                   </span>
@@ -151,9 +152,9 @@ export default function Applications({ ctx }: { ctx: ListingCtx }) {
             </ul>
           )}
           <div className={h.btnRow}>
-            <button type="button" className="button secondary" disabled={!canEdit || count("accepted") === 0} onClick={auto}>Allocate by Preference</button>
+            {tip(!canEdit ? whyNot : count("accepted") === 0 ? "Accept someone first" : "", <button type="button" className="button secondary" disabled={!canEdit || count("accepted") === 0} onClick={auto}>Allocate by Preference</button>)}
             <button type="button" className={dirty ? "button" : "button secondary"} disabled={!dirty || busy === "save"} onClick={() => void save()}>{dirty ? `Save ${dirty} ${dirty === 1 ? "Allocation" : "Allocations"}` : "Allocations Saved"}</button>
-            <button type="button" className="button secondary" disabled={!canEdit || !!dirty || !unsent || busy === "mail"} onClick={() => void mail()}>{unsent ? `Email ${unsent} ${unsent === 1 ? "Allocation" : "Allocations"}` : "Allocations Emailed"}</button>
+            {tip(!canEdit ? whyNot : dirty ? "Save your allocations first" : !unsent ? "Everyone allocated has been emailed" : "", <button type="button" className="button secondary" disabled={!canEdit || !!dirty || !unsent || busy === "mail"} onClick={() => void mail()}>{unsent ? `Email ${unsent} ${unsent === 1 ? "Allocation" : "Allocations"}` : "Allocations Emailed"}</button>)}
             <button type="button" className="button secondary" onClick={download}>{ICONS.publish}Download (CSV)</button>
           </div>
         </>

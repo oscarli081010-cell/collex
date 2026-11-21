@@ -43,7 +43,7 @@
 .opening > div:first-child:not(.head) { display: flex; flex-direction: column; gap: 6px; }
 
 /* The floor: who has it and the time on one side, what the chair does next on the other. */
-.floor { padding: 26px; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, 1fr); gap: 18px 36px; align-items: center; }
+.floor { padding: 22px; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, 1fr); gap: 18px 36px; align-items: center; }
 .floorMain { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 12.5px; font-weight: 500; }
@@ -202,13 +202,13 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .team li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
 .team li:first-child { border-top: 0; }
 .tname { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
-.notice { max-width: 560px; margin: 48px auto 0; padding: 28px; }
+.notice { max-width: 560px; margin: 48px auto 0; padding: 22px; }
 .mine { display: flex; flex-direction: column; gap: 8px; }
 
 /* Setting a committee up */
 .setup { display: flex; flex-direction: column; gap: 20px; padding-bottom: 72px; }
 .setupStack { width: 100%; max-width: 760px; margin-inline: auto; display: flex; flex-direction: column; gap: 16px; }
-.setupCard { padding: 28px; display: flex; flex-direction: column; gap: 18px; }
+.setupCard { padding: 22px; display: flex; flex-direction: column; gap: 18px; }
 .procedure { display: flex; flex-direction: column; gap: 8px; border: 0; padding: 0; margin: 0; min-width: 0; }
 .procedure legend { font-size: 13px; font-weight: 500; padding: 0; margin-bottom: 8px; }
 .proc {
@@ -620,3 +620,6 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 
 /* The groups under Your Committees are named in the same size as the labels on the Start form beside them. */
 .groupLabel { font-size: 13px; font-weight: 500; }
+
+/* Something the chair must read about their changes (replaced by another chair's, or refused), until they dismiss it. */
+.noticeRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

@@ -57,14 +57,14 @@ export function RegisterCard({ c, mine, formOpen, setFormOpen, say, onWithdrawn 
         <span className={s.applyStatus} data-open={Boolean(mine) || (state === "open")} style={hold} aria-live="polite">{status}</span>
       </div>
       {mine ? (
-        <button className={`button secondary ${s.applyBtn}`} onClick={withdraw} disabled={busy} style={hold}>Withdraw registration</button>
+        <button className={`button secondary ${s.applyBtn}`} onClick={withdraw} disabled={busy} style={hold}>Withdraw Registration</button>
       ) : waiting ? (
-        <button className={`button ${s.applyBtn}`} style={hold} aria-disabled="true" data-closed onClick={() => say(`Registration opens ${whenOpens(c.delegationOpensAt!)} (Sydney time).`)}>Register →</button>
+        <span className="tip" data-tip={`Opens ${whenOpens(c.delegationOpensAt!)} (Sydney time)`} style={hold}><button className={`button ${s.applyBtn}`} disabled data-closed>Register →</button></span>
       ) : !session ? (
-        <Link href="/login" className={`button ${s.applyBtn}`} style={hold}>Log in to register →</Link>
+        <Link href={`/login?next=${encodeURIComponent(`/conferences/${c.slug}`)}`} className={`button ${s.applyBtn}`} style={hold}>Log in to Register →</Link>
       ) : (
         <button className={`button ${s.applyBtn}`} style={hold} aria-expanded={formOpen} aria-controls="register-form" onClick={() => setFormOpen(!formOpen)}>
-          <span key={String(formOpen)} className="t-swap">{formOpen ? "Close form" : "Register →"}</span>
+          <span key={String(formOpen)} className="t-swap">{formOpen ? "Close Form" : "Register →"}</span>
         </button>
       )}
     </div>
@@ -112,7 +112,7 @@ export function RegisterForm({ c, say, onDone }: { c: Conference; say: Say; onDo
       </div>
       <label className="field"><span>Anything the organisers should know <span className="muted">(optional)</span></span><textarea name="notes" className="control" maxLength={1000} rows={3} /></label>
       {error && <small role="alert" className="t-reveal" style={{ color: "var(--danger)" }}>{error}</small>}
-      <button className="button lg block" disabled={busy}><span key={String(busy)} className="t-swap">{busy ? "Sending…" : "Send registration"}</span></button>
+      <button className="button lg block" disabled={busy}><span key={String(busy)} className="t-swap">{busy ? "Sending…" : "Send Registration"}</span></button>
     </form>
   );
 }

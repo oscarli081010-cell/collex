@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { PageSkeleton } from "@/components/Skeleton";
 import Chambers from "@/components/Chambers";
 
 export const metadata: Metadata = {
@@ -9,5 +10,5 @@ export const metadata: Metadata = {
 };
 
 export default function ChambersPage() {
-  return <Suspense fallback={null}><Chambers /></Suspense>;
+  return <Suspense fallback={<main id="top" className="container"><PageSkeleton /></main>}><Chambers /></Suspense>;
 }

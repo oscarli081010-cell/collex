@@ -154,8 +154,8 @@ function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"
         </div>
       )}
       <div className="btnStack one">
-        <button className="button secondary lg" onClick={resend}>Send it again</button>
-        <button className="button secondary lg" onClick={onBack}>Use a different email</button>
+        <button className="button secondary lg" onClick={resend}>Send It Again</button>
+        <button className="button secondary lg" onClick={onBack}>Use a Different Email</button>
       </div>
       {node}
     </div>
@@ -240,7 +240,7 @@ export function SignupForm() {
     <form key="form" className={`t-reveal ${s.form}`} onSubmit={submit} noValidate>
       <NotReady />
       <GoogleSignIn onError={(form) => setErrors({ form })}>
-        <p className={s.oauthNote}>By continuing you agree to the <Link href="/terms" target="_blank">Terms of use</Link> and <Link href="/privacy" target="_blank">Privacy policy</Link>. If you&rsquo;re under 18, a parent or guardian has said yes.</p>
+        <p className={s.oauthNote}>By continuing you agree to the <Link href="/terms" target="_blank" rel="noopener" aria-label="Terms of use (opens in a new tab)">Terms of use</Link> and <Link href="/privacy" target="_blank" rel="noopener" aria-label="Privacy policy (opens in a new tab)">Privacy policy</Link>. If you&rsquo;re under 18, a parent or guardian has said yes.</p>
       </GoogleSignIn>
       <Field label="Full name" error={errors.name}><input name="name" className="control" maxLength={120} autoComplete="name" onChange={clear("name")} /></Field>
       <Field label="School or University" hint="Optional"><SchoolPicker /></Field>
@@ -249,13 +249,13 @@ export function SignupForm() {
       <div>
         <label className={`check ${errors.agree ? "invalid" : ""}`}>
           <input type="checkbox" name="agree" aria-invalid={Boolean(errors.agree)} aria-describedby={errors.agree ? "agree-err" : undefined} onChange={clear("agree")} />
-          <span>I agree to the <Link href="/terms" target="_blank">Terms of use</Link> and <Link href="/privacy" target="_blank">Privacy policy</Link>. If I&rsquo;m under 18, a parent or guardian has said yes.</span>
+          <span>I agree to the <Link href="/terms" target="_blank" rel="noopener" aria-label="Terms of use (opens in a new tab)">Terms of use</Link> and <Link href="/privacy" target="_blank" rel="noopener" aria-label="Privacy policy (opens in a new tab)">Privacy policy</Link>. If I&rsquo;m under 18, a parent or guardian has said yes.</span>
         </label>
         {errors.agree && <small key="e" id="agree-err" className={`t-reveal ${s.error}`} style={{ display: "block", marginTop: 6, fontSize: 12.5 }}>{errors.agree}</small>}
       </div>
       {errors.form && <p key={errors.form} className={`t-reveal ${s.formError}`}>{errors.form}</p>}
       <button className={`button lg ${s.submit}`} disabled={busy || !supabase}>
-        <span key={String(busy)} className="t-swap">{busy ? "Creating account…" : "Create account"}</span>
+        <span key={String(busy)} className="t-swap">{busy ? "Creating Account…" : "Create Account"}</span>
       </button>
       <p className={s.switch}>Already have an account? <NextLink path="/login" className="link">Log in</NextLink></p>
     </form>
@@ -305,7 +305,7 @@ export function LoginForm() {
       {mode === "login" && (
         <GoogleSignIn onError={setError}>
           {/* A new person can arrive this way too, so the same agreement is shown here. */}
-          <p className={s.oauthNote}>By continuing you agree to the <Link href="/terms" target="_blank">Terms of use</Link> and <Link href="/privacy" target="_blank">Privacy policy</Link>. If you&rsquo;re under 18, a parent or guardian has said yes.</p>
+          <p className={s.oauthNote}>By continuing you agree to the <Link href="/terms" target="_blank" rel="noopener" aria-label="Terms of use (opens in a new tab)">Terms of use</Link> and <Link href="/privacy" target="_blank" rel="noopener" aria-label="Privacy policy (opens in a new tab)">Privacy policy</Link>. If you&rsquo;re under 18, a parent or guardian has said yes.</p>
         </GoogleSignIn>
       )}
       <Field label="Email"><input name="email" type="email" className="control" autoComplete="email" onChange={() => setError("")} /></Field>
@@ -315,12 +315,12 @@ export function LoginForm() {
       {error && (
         <p key={error} className={`t-reveal ${s.formError}`}>
           {error}{" "}
-          {unconfirmed && <button type="button" className={s.textBtn} onClick={() => setSent(unconfirmed)}>Resend link</button>}
+          {unconfirmed && <button type="button" className={s.textBtn} onClick={() => setSent(unconfirmed)}>Resend Link</button>}
         </p>
       )}
       <button className={`button lg ${s.submit}`} disabled={busy || !supabase}>
         <span key={`${mode}${busy}`} className="t-swap">
-          {busy ? "One moment…" : mode === "login" ? "Log in" : "Email me a link"}
+          {busy ? "One moment…" : mode === "login" ? "Log In" : "Email Me a Link"}
         </span>
       </button>
       <p className={s.switch}>
@@ -382,6 +382,7 @@ export function AccountView() {
   const router = useRouter();
   const { say, node } = useToast();
   const [busy, setBusy] = useState("");
+  const [fieldErr, setFieldErr] = useState<{ name?: string; password?: string }>({});
   const pwRef = useRef<HTMLFormElement>(null);
   const [counts, setCounts] = useState<{ listings: number | null; following: number | null }>({ listings: null, following: null });
   const [invites, setInvites] = useState(0);
@@ -419,8 +420,8 @@ export function AccountView() {
         title: "Your", accent: "account", lead: "Log in to see your account.",
         aside: (
           <div className="btnStack">
-            <Link href="/login" className="button lg">Log in</Link>
-            <Link href="/signup" className="button secondary lg">Create an account</Link>
+            <Link href="/login" className="button lg">Log In</Link>
+            <Link href="/signup" className="button secondary lg">Create an Account</Link>
           </div>
         ),
       }}>{null}</Banded>
@@ -433,6 +434,8 @@ export function AccountView() {
   async function saveProfile(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
+    if (!String(f.get("name") ?? "").trim()) return setFieldErr({ name: "Add your name." });
+    setFieldErr({});
     setBusy("profile");
     const { error } = await supabase!.from("profiles")
       .update({ full_name: String(f.get("name")).trim(), school: String(f.get("school")).trim() })
@@ -447,7 +450,8 @@ export function AccountView() {
     e.preventDefault();
     const form = e.currentTarget;
     const pw = String(new FormData(form).get("password") ?? "");
-    if (pw.length < 8) return say("Use at least 8 characters.");
+    if (pw.length < 8) return setFieldErr({ password: "Use at least 8 characters." });
+    setFieldErr({});
     setBusy("password");
     const { error } = await supabase!.auth.updateUser({ password: pw });
     setBusy("");
@@ -500,20 +504,20 @@ export function AccountView() {
           <ThemePicker userId={session.user.id} initial={profile?.theme ?? "light"} onSaved={(ok) => { if (!ok) say("Couldn't save that. It still applies on this device."); }} />
         </section>
 
-        <form className={`panel ${s.card}`} onSubmit={saveProfile} style={{ "--i": 1 } as React.CSSProperties}>
+        <form noValidate className={`panel ${s.card}`} onSubmit={saveProfile} style={{ "--i": 1 } as React.CSSProperties}>
           <h2 className={s.cardTitle}>Profile</h2>
-          <label className="field"><span>Full name</span><input name="name" className="control" maxLength={120} defaultValue={profile?.full_name ?? ""} key={profile?.full_name} /></label>
+          <Field label="Full name" error={fieldErr.name}><input name="name" className="control" maxLength={120} defaultValue={profile?.full_name ?? ""} key={profile?.full_name} onChange={() => fieldErr.name && setFieldErr({})} /></Field>
           <div className="field"><span>School or University</span><SchoolPicker defaultValue={profile?.school ?? ""} /></div>
-          <button className="button" disabled={busy === "profile"}>
-            <span key={String(busy === "profile")} className="t-swap">{busy === "profile" ? "Saving…" : "Save profile"}</span>
+          <button className="button block" disabled={busy === "profile"}>
+            <span key={String(busy === "profile")} className="t-swap">{busy === "profile" ? "Saving…" : "Save Profile"}</span>
           </button>
         </form>
 
-        <form ref={pwRef} className={`panel ${s.card} ${recovering ? s.highlight : ""}`} onSubmit={savePassword} style={{ "--i": 2 } as React.CSSProperties}>
+        <form ref={pwRef} noValidate className={`panel ${s.card} ${recovering ? s.highlight : ""}`} onSubmit={savePassword} style={{ "--i": 2 } as React.CSSProperties}>
           <h2 className={s.cardTitle}>Password</h2>
-          <label className="field"><span>New password</span><Password name="password" label="New password" autoComplete="new-password" /></label>
-          <button className="button" disabled={busy === "password"}>
-            <span key={String(busy === "password")} className="t-swap">{busy === "password" ? "Updating…" : "Update password"}</span>
+          <Field label="New password" error={fieldErr.password} hint="At least 8 characters"><Password name="password" label="New password" autoComplete="new-password" onChange={() => fieldErr.password && setFieldErr({})} /></Field>
+          <button className="button block" disabled={busy === "password"}>
+            <span key={String(busy === "password")} className="t-swap">{busy === "password" ? "Updating…" : "Update Password"}</span>
           </button>
         </form>
       </div>

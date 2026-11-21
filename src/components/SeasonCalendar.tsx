@@ -139,7 +139,7 @@ export default function SeasonCalendar() {
           <div key={`${y}-${m}-${mode}`} className={`t-reveal ${board.empty}`}>
             <p className={board.emptyTitle}>Nothing on in {mode === "year" ? y : MONTHS[m]}.</p>
             {next && <Link href={`/conferences/${next.slug}`} className="link">The next conference is on {nextWhen} →</Link>}
-            <Link href="/list" className="button secondary">List a conference</Link>
+            <Link href="/list" className="button secondary">List a Conference</Link>
           </div>
         ) : (
           <div className={`t-stagger ${board.list}`}>

@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { DelegateRecord } from "@/components/HubExtras";
 
 export const metadata: Metadata = {
-  title: "MUN Record · Collex",
+  title: "MUN record · Collex",
+  description: "A delegate's Model UN conferences and roles, shared on Collex.",
   robots: { index: false },
 };
 

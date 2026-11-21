@@ -51,7 +51,7 @@ export default function RolesBoard({ items }: { items: BoardItem[] }) {
           <Placard />
           <p className={board.emptyTitle}>Nothing posted yet</p>
           <p className="muted">When a conference says it needs a hand, it appears here.</p>
-          <Link href="/list" className="button secondary">Ask for help with your conference</Link>
+          <Link href="/list" className="button secondary">Ask for Help with Your Conference</Link>
         </div>
       ) : (
         <div key={kind} className={`t-stagger ${s.grid}`} aria-live="polite">

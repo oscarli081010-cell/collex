@@ -1,4 +1,4 @@
-.card { padding: 28px; display: flex; flex-direction: column; gap: 18px; }
+.card { padding: 22px; display: flex; flex-direction: column; gap: 18px; }
 .cardHead { display: flex; flex-direction: column; gap: 6px; }
 .cardTitle { font-family: var(--serif); font-weight: 400; font-size: 26px; line-height: 1.1; scroll-margin-top: 96px; }
 .note { font-size: 14px; padding: 12px 14px; border-radius: 10px; background: var(--surface); color: var(--muted); }
@@ -52,7 +52,7 @@
 .face[data-on="true"][data-status="declined"] { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
 @media (max-width: 640px) { .regActions { width: 100%; } }
 @media (max-width: 640px) {
-  .card { padding: 20px; }
+  .card { padding: 22px; }
 }
 
 /* The standard dashed "nothing here yet" box, inside a card. */

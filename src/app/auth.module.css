@@ -94,7 +94,7 @@ a.listingName:hover { color: var(--accent); }
 .listingMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13px; color: var(--muted); }
 /* An invite to help run a listing: the details, then Decline and Accept as an equal pair across the card. */
 .inviteList { display: flex; flex-direction: column; gap: 12px; }
-.invite { display: flex; flex-direction: column; gap: 18px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.invite { display: flex; flex-direction: column; gap: 18px; padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .inviteActions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .inviteActions .button { height: 46px; width: 100%; gap: 8px; }
 .invite :global(.button.secondary) { background: var(--panel); }
@@ -180,7 +180,7 @@ a.listingName:hover { color: var(--accent); }
 /* Log out sits under the figures, as wide as they are, instead of hanging off the corner. */
 .logout { align-self: stretch; height: 44px; border-radius: 999px; }
 .logout svg { color: var(--muted); }
-.card { padding: 28px; display: flex; flex-direction: column; gap: 18px; align-items: stretch; }
+.card { padding: 22px; display: flex; flex-direction: column; gap: 18px; align-items: stretch; }
 .card > .button, .card > button { align-self: stretch; }
 .cardTitle { font-family: var(--serif); font-weight: 400; font-size: 26px; }
 .highlight { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
@@ -193,7 +193,7 @@ a.listingName:hover { color: var(--accent); }
 }
 @media (max-width: 560px) {
   .avatar { width: 76px; font-size: 28px; }
-  .card { padding: 20px; }
+  .card { padding: 22px; }
   .listing { padding: 16px; }
 }
 

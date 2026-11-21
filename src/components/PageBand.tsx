@@ -1,4 +1,4 @@
-import { formatDate, todayInSydney, type Conference } from "@/lib/conferences";
+import { formatDate, todayInSydney, type ConferenceSummary } from "@/lib/conferences";
 import s from "./PageBand.module.css";
 
 export type Figure = { label: string; value: string; note?: string; /** The label goes above the value, in bold (a heading for it, not a caption under a number). */ lead?: boolean };
@@ -54,7 +54,7 @@ export function BandNote({ children }: { children: React.ReactNode }) {
 }
 
 // The next conference that hasn't started yet, as a figure.
-export function nextUp(list: Conference[]): Figure {
+export function nextUp(list: ConferenceSummary[]): Figure {
   const today = todayInSydney();
   const next = list.filter((c) => c.startDate && c.startDate >= today).sort((a, b) => a.startDate!.localeCompare(b.startDate!))[0];
   return next ? { label: "Next Up:", value: next.shortName, note: formatDate(next.startDate!), lead: true } : { label: "Next Up:", value: "TBA", lead: true };

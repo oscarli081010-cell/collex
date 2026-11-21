@@ -12,7 +12,6 @@ type Sent = { id: string; audience: string; subject: string; recipients: number;
 const AUDIENCE: [string, string][] = [["accepted", "Everyone accepted"], ["applicants", "Everyone who applied"], ["delegates", "Accepted delegates"], ["chairs", "Accepted chairs"], ["schools", "Schools that registered a delegation"], ["followers", "People following the conference"]];
 const TEMPLATES: { label: string; subject: string; body: string }[] = [
   { label: "Welcome and what happens next", subject: "Welcome", body: "Thank you for joining us.\n\nHere is what happens next: \n\nIf you have a question, reply to the organisers through the contact on our page." },
-  { label: "Payment reminder", subject: "A reminder about your fee", body: "This is a reminder that the delegate fee is due by .\n\nHow to pay: " },
   { label: "Background guides are out", subject: "Background guides are out", body: "The background guides for every committee are now on our page. Position papers are due by ." },
   { label: "On the day", subject: "Everything you need for the day", body: "Arrive by  at .\n\nDress: Western business attire.\n\nBring: " },
 ];

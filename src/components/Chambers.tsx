@@ -12,6 +12,7 @@ import { useAuth } from "./AuthProvider";
 import { usePill } from "./usePill";
 import IconButton, { ConfirmIconButton, ICONS } from "./IconButton";
 import PageBand from "./PageBand";
+import { PageSkeleton } from "./Skeleton";
 import { GROUPS } from "@/lib/groups";
 import PanelTabs from "./PanelTabs";
 import { useToast } from "./useToast";
@@ -24,7 +25,7 @@ import { STEP, ago, procName } from "@/lib/chamberLabels";
 import CoverFrame from "./CoverFrame";
 import Flag from "./Flag";
 import { useChairRoom } from "@/lib/useRoom";
-import { DevicesCard, Inbox, RoomSettings } from "./RoomChair";
+import { DevicesCard, Inbox, RoomSettings, Why } from "./RoomChair";
 import { FilesPanel, NotesPanel } from "./RoomParts";
 import { ConferenceLink } from "./HubExtras";
 
@@ -121,7 +122,7 @@ export default function Chambers() {
   const home = !cloudId && params.get("tab") !== null;
   const { ready: authReady, session } = useAuth();
   const router = useRouter();
-  const { c, status, owner, manage, act, setLocal } = useChamber(cloudId, { signedIn: !!session, authReady });
+  const { c, status, owner, manage, act, setLocal, notice, clearNotice } = useChamber(cloudId, { signedIn: !!session, authReady });
   const [live, setLive] = useState("");
   const [view, setView] = useState<"manage" | "room" | "analytics" | "settings" | "share">("manage");
   // Delegates' devices, for a shared committee. Asked for often while they are on; otherwise only now and then.
@@ -196,14 +197,14 @@ export default function Chambers() {
           <h1 className={`serif ${s.name}`}>{status === "signin" ? "Log in to open this committee" : "This committee isn't shared with you"}</h1>
           <p className="muted">{status === "signin" ? "Shared committees are for the chairs who were added to them. Log in with the account they added." : "Ask the person who runs it to add the email on your Collex account."}</p>
           <div className="btnStack">
-            {status === "signin" && <Link href="/login" className="button">Log in</Link>}
-            <Link href="/chambers" className="button secondary">Your committees</Link>
+            {status === "signin" && <Link href="/login" className="button">Log In</Link>}
+            <Link href="/chambers?tab=yours" className="button secondary">Your Committees</Link>
           </div>
         </div>
       </main>
     );
   }
-  if (status === "loading" || (cloudId && !c)) return <main id="top" className="container" />;
+  if (status === "loading" || (cloudId && !c)) return <main id="top" className="container"><PageSkeleton /></main>;
   if (!c || home) return <>
     <Setup signedIn={!!session} local={c} onCreate={async (x, devices) => {
       // Every committee is saved to the account from the start, so it survives a cleared browser or a dead laptop.
@@ -274,12 +275,18 @@ export default function Chambers() {
         </div>
         <div className={s.topActions}>
           <Link className={`button secondary ${s.topBtn}`} href="/chambers?tab=yours">{LEFT}<span><span className={s.topLong}>Back to </span>Committees</span></Link>
-          <a className={`button secondary ${s.topBtn}`} href={display} target="_blank" rel="noopener">{MONITOR}Open display</a>
+          <a className={`button secondary ${s.topBtn}`} href={display} target="_blank" rel="noopener">{MONITOR}Open Display</a>
           <ConfirmIconButton label={cloudId && !owner ? "Leave this committee" : cloudId ? "Delete this committee" : "Close this committee"}
             confirm="Click again to confirm" icon={cloudId && !owner ? ICONS.leave : ICONS.trash} onConfirm={() => void remove()} />
         </div>
       </header>
-      {status === "offline" && <p className={s.result} data-pass="false" role="alert">Offline: your changes are kept here and will be sent when the connection is back.</p>}
+      {notice && (
+        <div className={`${s.result} ${s.noticeRow}`} data-pass="false" role="alert">
+          <span>{notice}</span>
+          <IconButton label="Dismiss" icon={ICONS.close} onClick={clearNotice} />
+        </div>
+      )}
+      {status === "offline" && <p className={s.result} data-pass="false" role="alert">Offline, changes will send when you&rsquo;re back.</p>}
 
       <div className="sr-only" role="status" aria-live="polite">{live}</div>
 
@@ -405,10 +412,10 @@ function Welcome({ c, act }: { c: Chamber; act: Act }) {
             <label htmlFor="wl-res">Resolution</label>
             <input id="wl-res" className="control" value={text} onChange={(e) => setText(e.target.value)} maxLength={160} placeholder="The resolution being debated" />
           </div>
-          <button type="submit" className="button secondary" disabled={!text.trim()}>Save the Resolution</button>
+          <Why why={!text.trim() && "Type the resolution first"}><button type="submit" className="button secondary block" disabled={!text.trim()}>Save the Resolution</button></Why>
         </form>
       )}
-      <button type="button" className="button lg block" disabled={!c.topic} onClick={() => act(ch.startRoll)}>Start Roll Call</button>
+      <Why why={!c.topic && "Save the resolution first"}><button type="button" className="button lg block" disabled={!c.topic} onClick={() => act(ch.startRoll)}>Start Roll Call</button></Why>
     </section>
   );
 }
@@ -454,6 +461,7 @@ function Pick({ c, act }: { c: Chamber; act: Act }) {
   const here = c.delegates.filter((d) => c.roll[d.id] === "present" || c.roll[d.id] === "voting");
   const pool = here.length ? here : c.delegates;
   const ok = !!(c.roles.proposer && c.roles.seconder); // nobody has to oppose
+  const why = ok ? null : !c.roles.proposer && !c.roles.seconder ? "Choose a proposer and seconder" : !c.roles.proposer ? "Choose a proposer" : "Choose a seconder";
   return (
     <form className={`panel ${s.opening}`} onSubmit={(e) => { e.preventDefault(); if (ok) act(ch.startSpeeches); }}>
       <div className={s.head}>
@@ -474,7 +482,7 @@ function Pick({ c, act }: { c: Chamber; act: Act }) {
           );
         })}
       </div>
-      <button type="submit" className="button lg block" disabled={!ok}>Start the Speeches</button>
+      <Why why={why}><button type="submit" className="button lg block" disabled={!ok}>Start the Speeches</button></Why>
     </form>
   );
 }
@@ -520,13 +528,13 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
   const extend = k && k.ext < 2 && k.kind !== "final" && (k.clock ? kUp : state === "up") && !sp ? (
     <div className={s.anyBox}>
       <Duration id="fl-ext" label={`Extend the caucus (${k.ext} of 2 used)`} value={Math.min(k.total, 120)} min={10} max={k.total} onChange={(v, ok) => setExtSecs(ok ? v : null)} />
-      <button type="button" className="button secondary sm" disabled={extSecs === null} onClick={() => act((x) => ch.extendCaucus(x, extSecs ?? 0, ch.now()))}>Extend</button>
+      <Why why={extSecs === null && "Enter a valid time"}><button type="button" className="button secondary sm" disabled={extSecs === null} onClick={() => act((x) => ch.extendCaucus(x, extSecs ?? 0, ch.now()))}>Extend</button></Why>
     </div>
   ) : null;
 
   const timerBtn = (cls = "button") => state === "up"
     ? <button type="button" className={cls} onClick={() => act(ch.resetTimer, false)}>Reset Time</button>
-    : <button type="button" className={cls} onClick={toggle} disabled={state === "none"}>{state === "running" ? "Pause" : "Start"} Timer</button>;
+    : <Why why={state === "none" && "Nothing to time yet"}><button type="button" className={cls} onClick={toggle} disabled={state === "none"}>{state === "running" ? "Pause" : "Start"} Timer</button></Why>;
   const sm = "button secondary sm";
   // After a speech the chair asks how the speaker yields. Once they yield to Points of Information, those are taken one at a time.
   const points = !!sp && ch.takingPoints(sp);
@@ -589,7 +597,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
                   <option value="">Yield to another country{sp.left ? ` (adds ${ch.clock(sp.left * 1000)})` : ""}</option>
                   {c.delegates.filter((d) => d.id !== sp.who && !ch.observing(c, d.id)).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </Select>
-                <button type="button" className="button secondary sm" disabled={!yTo} onClick={() => { act((x) => ch.yieldToCountry(x, sp.who, sp.pois, yTo)); setYTo(""); }}>Yield</button>
+                <Why why={!yTo && "Choose a country first"}><button type="button" className="button secondary sm" disabled={!yTo} onClick={() => { act((x) => ch.yieldToCountry(x, sp.who, sp.pois, yTo)); setYTo(""); }}>Yield</button></Why>
               </div>
             </div>
           )}
@@ -605,7 +613,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
               {askers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </Select>
           </div>
-          <button type="button" className="button" disabled={!askerId} onClick={() => { act((x) => ch.askPoi(x, askerId, sp.who, sp.pois)); setAsker(""); }}>Take the POI</button>
+          <Why why={!askerId && "Choose who is asking first"}><button type="button" className="button" disabled={!askerId} onClick={() => { act((x) => ch.askPoi(x, askerId, sp.who, sp.pois)); setAsker(""); }}>Take the POI</button></Why>
           <button type="button" className="button secondary" onClick={() => act((x) => ch.yieldToChair(x, sp.who, sp.pois))}>Yield to the Chair</button>
           {sp.pois === 0 && <button type="button" className={sm} onClick={() => act((x) => ch.backPhase(x, sp.who, sp.pois))}>Back</button>}
         </>
@@ -638,7 +646,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
                   <option value="">Call another state first</option>
                   {c.delegates.filter((d) => !t!.opened.includes(d.id) && !ch.observing(c, d.id)).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </Select>
-                <button type="button" className="button secondary sm" disabled={!stWho} onClick={() => { act((x) => ch.callStatement(x, stWho)); setStWho(""); }}>Call</button>
+                <Why why={!stWho && "Choose a state first"}><button type="button" className="button secondary sm" disabled={!stWho} onClick={() => { act((x) => ch.callStatement(x, stWho)); setStWho(""); }}>Call</button></Why>
               </div>
             </div>
           )}
@@ -712,9 +720,9 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
             {roles.map((r) => {
               const done = c.closers.includes(r.id);
               return (
-                <button key={r.role} type="button" className={r === nextRole ? "button" : "button secondary"} disabled={done} onClick={() => act((x) => ch.callCloser(x, r.id))}>
+                <Why key={r.role} why={done && "Already spoken"}><button type="button" className={r === nextRole ? "button" : "button secondary"} disabled={done} onClick={() => act((x) => ch.callCloser(x, r.id))}>
                   {done ? `${ch.roleName(c, r.role)} ${name(r.id)} Has Spoken` : `Call the ${ch.roleName(c, r.role)}: ${name(r.id)}`}
-                </button>
+                </button></Why>
               );
             })}
             {t && !t.finalDone && !c.closers.length && <button type="button" className="button secondary" onClick={() => act((x) => ch.callCaucus(x, ch.TR.final))}>Final Unmoderated Caucus - 4 min</button>}
@@ -724,7 +732,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
       }
       case "vote": return (
         <>
-          <button type="button" className="button" disabled={ch.count(c).left > 0} onClick={() => act(ch.finishVote)}>Record the Result</button>
+          <Why why={ch.count(c).left > 0 && `${ch.count(c).left} ${ch.count(c).left === 1 ? "state" : "states"} still to vote`}><button type="button" className="button" disabled={ch.count(c).left > 0} onClick={() => act(ch.finishVote)}>Record the Result</button></Why>
           <p className={s.hint}>{ch.count(c).left ? `${ch.count(c).left} state${ch.count(c).left === 1 ? "" : "s"} still to vote.` : "Everyone has voted."}</p>
         </>
       );
@@ -741,7 +749,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
               <label htmlFor="fl-next">Next Resolution</label>
               <input id="fl-next" className="control" value={nextRes} onChange={(e) => setNextRes(e.target.value)} maxLength={160} placeholder="The next resolution to debate" />
             </div>
-            <button type="submit" className="button" disabled={!nextRes.trim()}>Start the Next Resolution</button>
+            <Why why={!nextRes.trim() && "Type the next resolution first"}><button type="submit" className="button" disabled={!nextRes.trim()}>Start the Next Resolution</button></Why>
           </form>
           <button type="button" className="button secondary" onClick={() => act(ch.reopenVote)}>Reopen the Vote</button>
           <button type="button" className="button secondary" onClick={() => act(ch.endCommittee)}>End the Committee</button>
@@ -812,7 +820,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
                       <option value="">Choose a state</option>
                       {c.delegates.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </Select>
-                    <button type="button" className="button secondary sm" disabled={!anyWho} onClick={() => { act((x) => ch.callSpeaker(x, anyWho, anySide, secs)); setAnyOpen(false); setAnyWho(""); }}>Call</button>
+                    <Why why={!anyWho && "Choose a state first"}><button type="button" className="button secondary sm" disabled={!anyWho} onClick={() => { act((x) => ch.callSpeaker(x, anyWho, anySide, secs)); setAnyOpen(false); setAnyWho(""); }}>Call</button></Why>
                   </div>
                   <SideSwitch side={anySide} setSide={setAnySide} />
                 </div>
@@ -911,7 +919,7 @@ function PollBox({ c, act }: { c: Chamber; act: Act }) {
             <output className={`${s.count} num`} aria-live="polite">{p[k]}</output>
             {!byRoll && (
               <div className={s.step}>
-                <button type="button" className="button secondary" onClick={() => act((x) => ch.tally(x, k, -1))} aria-label={`One fewer ${label.toLowerCase()}`} disabled={!p[k]}>−</button>
+                <Why why={!p[k] && "Already at 0"}><button type="button" className="button secondary" onClick={() => act((x) => ch.tally(x, k, -1))} aria-label={`One fewer ${label.toLowerCase()}`} disabled={!p[k]}>−</button></Why>
                 <button type="button" className="button secondary" onClick={() => act((x) => ch.tally(x, k, 1))} aria-label={`One more ${label.toLowerCase()}`}>+</button>
               </div>
             )}
@@ -981,7 +989,7 @@ function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
         </Select>
         {!plain && <SideSwitch side={side} setSide={setSide} />}
         {plain && !!c.tr && <Seg label="Stance" value={stance} onPick={setStance} className={s.sideSeg} items={[{ id: "none", label: "No Side" }, { id: "for", label: SIDE.for }, { id: "against", label: SIDE.against }]} />}
-        <button type="submit" className="button secondary" disabled={!pick}>Add</button>
+        <Why why={!pick && (options.length ? "Choose a state first" : "No one else can join this side")}><button type="submit" className="button secondary" disabled={!pick}>Add</button></Why>
       </form>
     </>
   );
@@ -1068,8 +1076,8 @@ function CardSide({ next, tag, first, last, label, move }: { next?: boolean; tag
   return (
     <span className={s.cardSide}>
       {next && <span className={s.nextTag}>{tag ?? "Next"}</span>}
-      <IconButton label={`Move ${label} up`} icon={ICONS.up} disabled={first} onClick={() => move(-1)} />
-      <IconButton label={`Move ${label} down`} icon={ICONS.down} disabled={last} onClick={() => move(1)} />
+      <IconButton label={`Move ${label} up`} tip={first ? "Already first" : undefined} icon={ICONS.up} disabled={first} onClick={() => move(-1)} />
+      <IconButton label={`Move ${label} down`} tip={last ? "Already last" : undefined} icon={ICONS.down} disabled={last} onClick={() => move(1)} />
     </span>
   );
 }
@@ -1109,6 +1117,7 @@ function AmendmentForm({ c, act }: { c: Chamber; act: Act }) {
   const signed = new Set([by, second, ...backers].filter(Boolean)).size;
   const again = !!t && ch.amendedClause(c, clause);
   const ready = !!by && text.trim().length > 0 && (!t || (!!second && second !== by && (!again || consensus)));
+  const why = ready ? null : !by ? "Choose the state it's from" : !text.trim() ? "Describe the amendment" : t && (!second || second === by) ? "Choose a seconder" : "Confirm full consensus for this clause";
   const free = c.delegates.filter((d) => !ch.observing(c, d.id));
   return (
     <section className={`panel ${s.list}`} aria-labelledby="ch-am-add">
@@ -1158,7 +1167,7 @@ function AmendmentForm({ c, act }: { c: Chamber; act: Act }) {
         {again && (
           <label className={s.check}><input type="checkbox" checked={consensus} onChange={(e) => setConsensus(e.target.checked)} />This clause was already amended: full consensus, no votes against and no abstentions</label>
         )}
-        <button type="submit" className="button secondary block" disabled={!ready}>Add Amendment</button>
+        <Why why={why}><button type="submit" className="button secondary block" disabled={!ready}>Add Amendment</button></Why>
       </form>
     </section>
   );
@@ -1170,6 +1179,7 @@ function AmendmentQueue({ c, act }: { c: Chamber; act: Act }) {
   const done = c.amendments.filter((a) => a.status !== "waiting" && a.status !== "entertained");
   const name = (id: string) => ch.nameOf(c, id);
   const canEntertain = c.step === "floor" && !c.speech && !c.amend;
+  const entertainWhy = canEntertain ? null : c.amend ? "Finish the amendment being considered" : c.speech ? "Wait until the speech is over" : "Only during debate on the resolution";
   return (
     <section className={`panel ${s.list}`} aria-labelledby="ch-am">
       <div className={s.head}>
@@ -1202,7 +1212,7 @@ function AmendmentQueue({ c, act }: { c: Chamber; act: Act }) {
               </span>
               <span className={s.amText}>{a.text}</span>
               <span className={s.kActions}>
-                <button type="button" className="button secondary sm" disabled={!canEntertain} onClick={() => act((x) => ch.entertain(x, a.id))}>Entertain</button>
+                <Why why={entertainWhy}><button type="button" className="button secondary sm" disabled={!canEntertain} onClick={() => act((x) => ch.entertain(x, a.id))}>Entertain</button></Why>
                 <button type="button" className="button secondary sm" onClick={() => act((x) => ch.invalidAmendment(x, a.id))}>Rule Invalid</button>
                 <button type="button" className={`button secondary sm ${s.kDanger}`} onClick={() => act((x) => ch.withdrawAmendment(x, a.id))}>Withdraw</button>
               </span>
@@ -1310,7 +1320,7 @@ function TrinityPick({ c, act }: { c: Chamber; act: Act }) {
           </Select>
         </div>
       </div>
-      <button type="submit" className="button lg block" disabled={!ch.has(c, c.roles.proposer) || !ch.has(c, c.roles.seconder)}>Start the Speeches</button>
+      <Why why={!ch.has(c, c.roles.proposer) && !ch.has(c, c.roles.seconder) ? `Choose a proposer and ${ch.roleName(c, "seconder").toLowerCase()}` : !ch.has(c, c.roles.proposer) ? "Choose a proposer" : !ch.has(c, c.roles.seconder) && `Choose a ${ch.roleName(c, "seconder").toLowerCase()}`}><button type="submit" className="button lg block" disabled={!ch.has(c, c.roles.proposer) || !ch.has(c, c.roles.seconder)}>Start the Speeches</button></Why>
       <button type="button" className="button secondary block" onClick={() => act(ch.cancelIntroduction)}>Back to the Resolutions</button>
     </form>
   );
@@ -1383,7 +1393,7 @@ function Motions({ c, act }: { c: Chamber; act: Act }) {
           </div>
         )}
         {err && !(kind === "mod" && !topic.trim()) && <p className={s.hint} role="status">{err}</p>}
-        <button type="submit" className="button secondary block" disabled={!!err}>Add the Motion</button>
+        <Why why={err}><button type="submit" className="button secondary block" disabled={!!err}>Add the Motion</button></Why>
       </form>
     </section>
     <section className={`panel ${s.list}`} aria-labelledby="ch-mo">
@@ -1408,8 +1418,8 @@ function Motions({ c, act }: { c: Chamber; act: Act }) {
                 <span className={s.cardLine}>{m.by && <><strong>{ch.nameOf(c, m.by)}</strong> proposes{ch.motionDetail(c, m) ? " " : ""}</>}{ch.motionDetail(c, m)}</span>
               </span>
               <span className={s.kActions}>
-                <button type="button" className="button secondary sm" disabled={busy || !!ch.motionError(c, m)} onClick={() => act((x) => ch.voteMotion(x, m.id))}>Put to the Vote</button>
-                <button type="button" className={`button secondary sm ${s.kDanger}`} disabled={c.poll?.motion === m.id} onClick={() => act((x) => ch.withdrawMotion(x, m.id))}>Withdraw</button>
+                <Why why={c.poll ? "Finish the vote that's open first" : c.speech ? "Wait until the speech is over" : ch.motionError(c, m)}><button type="button" className="button secondary sm" disabled={busy || !!ch.motionError(c, m)} onClick={() => act((x) => ch.voteMotion(x, m.id))}>Put to the Vote</button></Why>
+                <Why why={c.poll?.motion === m.id && "Being voted on now"}><button type="button" className={`button secondary sm ${s.kDanger}`} disabled={c.poll?.motion === m.id} onClick={() => act((x) => ch.withdrawMotion(x, m.id))}>Withdraw</button></Why>
               </span>
             </li>
           ))}
@@ -1449,7 +1459,7 @@ function Documents({ c, act }: { c: Chamber; act: Act }) {
               {!c.style && <span className={s.seenTag} data-seen={d.seen}>{d.seen ? "Seen" : "Unseen"}</span>}
               {d.link && <a className={s.docLink} href={d.link} target="_blank" rel="noopener noreferrer">Open the document</a>}
               <span className={s.kActions}>
-                {!d.result && t.current !== d.id && <button type="button" className="button secondary sm" disabled={c.step !== "general" || !!c.speech || !!c.poll} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce</button>}
+                {!d.result && t.current !== d.id && <Why why={c.step !== "general" ? "Only from the general speakers' list" : c.speech ? "Wait until the speech is over" : !!c.poll && "Finish the vote that's open first"}><button type="button" className="button secondary sm" disabled={c.step !== "general" || !!c.speech || !!c.poll} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce</button></Why>}
                 {c.style && !d.result && t.current !== d.id && <button type="button" className="button secondary sm" onClick={() => act((x) => ch.removeDraft(x, d.id))}>Remove</button>}
               </span>
             </li>
@@ -1460,7 +1470,7 @@ function Documents({ c, act }: { c: Chamber; act: Act }) {
         <form className={s.addRow2} onSubmit={(e) => { e.preventDefault(); if (!title.trim()) return; act((x) => ch.addDraft(x, uid(), title)); setTitle(""); }}>
           <label htmlFor="ch-doc-new" className="sr-only">Title of the Draft Resolution</label>
           <input id="ch-doc-new" className="control" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} placeholder="Title of the draft resolution" />
-          <button type="submit" className="button secondary" disabled={!title.trim()}>Add</button>
+          <Why why={!title.trim() && "Type a title first"}><button type="submit" className="button secondary" disabled={!title.trim()}>Add</button></Why>
         </form>
       )}
     </section>
@@ -1502,7 +1512,7 @@ function ChairTools({ c, act, now }: { c: Chamber; act: Act; now: number }) {
                 <option value="">Against whom?</option>
                 {c.delegates.filter((d) => d.id !== by).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </Select>
-              <button type="button" className="button secondary" disabled={!by || by === toId} onClick={() => { act((x) => ch.startReply(x, by, toId || null)); setBy(""); setTo(""); }}>Start the 20 seconds</button>
+              <Why why={!by ? "Choose who claims it first" : by === toId && "Choose a different state to reply to"}><button type="button" className="button secondary" disabled={!by || by === toId} onClick={() => { act((x) => ch.startReply(x, by, toId || null)); setBy(""); setTo(""); }}>Start the 20 Seconds</button></Why>
             </div>
           )}
         </fieldset>
@@ -1513,7 +1523,7 @@ function ChairTools({ c, act, now }: { c: Chamber; act: Act; now: number }) {
               <option value="">Which state?</option>
               {c.delegates.filter((d) => !ch.observing(c, d.id, now) && c.speech?.who !== d.id).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </Select>
-            <button type="button" className="button secondary sm" disabled={!obs} onClick={() => { act((x) => ch.setObserver(x, obs)); setObs(""); }}>5 minutes</button>
+            <Why why={!obs && "Choose a state first"}><button type="button" className="button secondary sm" disabled={!obs} onClick={() => { act((x) => ch.setObserver(x, obs)); setObs(""); }}>5 Minutes</button></Why>
           </div>
           {active.length > 0 && (
             <ul className={s.queue}>
@@ -1570,7 +1580,7 @@ function Analytics({ c, say, act }: { c: Chamber; say: (t: string) => void; act:
     <section id="chv-panel-analytics" role="tabpanel" aria-labelledby="chv-tab-analytics" className={`panel ${s.log}`}>
       <div className={s.head}>
         <h2 className={s.h2}>Analytics</h2>
-        <button type="button" className={`button secondary ${s.csvBtn}`} onClick={csv} disabled={!c.stats.length}>{COPY}Copy as CSV</button>
+        <Why why={!c.stats.length && "Nothing recorded yet"}><button type="button" className={`button secondary ${s.csvBtn}`} onClick={csv} disabled={!c.stats.length}>{COPY}Copy as CSV</button></Why>
       </div>
       <PanelTabs idPrefix="cha" label="Analytics Views" tab={tab} setTab={setTab}
         tabs={[{ id: "states", label: "By State", icon: ICONS.chart }, { id: "activity", label: "Activity", icon: ICONS.clock }, { id: "scores", label: "Scores", icon: ICONS.verify }]} />
@@ -1708,9 +1718,9 @@ function Sound() {
 function Pager({ at, pages, go, label }: { at: number; pages: number; go: (n: number) => void; label: string }) {
   return (
     <nav className={s.pager} aria-label={label}>
-      <button type="button" className="button secondary" onClick={() => go(at - 1)} disabled={at === 0}>Previous</button>
+      <Why why={at === 0 && "You're on the first page"}><button type="button" className="button secondary" onClick={() => go(at - 1)} disabled={at === 0}>Previous</button></Why>
       <span className="muted" aria-live="polite">Page {at + 1} of {pages}</span>
-      <button type="button" className="button secondary" onClick={() => go(at + 1)} disabled={at === pages - 1}>Next</button>
+      <Why why={at === pages - 1 && "You're on the last page"}><button type="button" className="button secondary" onClick={() => go(at + 1)} disabled={at === pages - 1}>Next</button></Why>
     </nav>
   );
 }
@@ -1740,7 +1750,7 @@ function Times({ c, act }: { c: Chamber; act: Act }) {
             onChange={(v, ok) => { if (ok && v !== null) act((x) => (r.k === "proposer" ? ch.setTime(ch.setTime(ch.setTime(ch.setTime(x, "proposer", v), "seconder", v), "opposer", v), "closer", v) : ch.setTime(x, r.k, v))); }} />
         ))}
       </div>
-      <button type="button" className="button secondary" disabled={!set} onClick={() => act(ch.resetTimes)}>Use the Standard Times</button>
+      <Why why={!set && "Already using the standard times"}><button type="button" className="button secondary block" disabled={!set} onClick={() => act(ch.resetTimes)}>Use the Standard Times</button></Why>
     </section>
   );
 }
@@ -1779,7 +1789,7 @@ function Background({ c, act, say, userId }: { c: Chamber; act: Act; say: (t: st
       ) : <div className={s.bgPreview} data-empty><span>No photo</span></div>}
       <div className={s.bgActions} data-one={!c.background}>
         <label className={`button ${s.fileBtn}`} aria-disabled={busy}>
-          {busy ? "Uploading…" : c.background ? "Change photo" : "Choose a photo"}
+          {busy ? "Uploading…" : c.background ? "Change Photo" : "Choose a Photo"}
           <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} onChange={(e) => { void choose(e.target.files?.[0]); e.target.value = ""; }} />
         </label>
         {c.background && <button type="button" className="button secondary" onClick={() => act((x) => ch.setBackground(x, null), false)}>Remove Photo</button>}
@@ -1875,8 +1885,8 @@ function Share({ c, cloudId, manage, signedIn, meId, say, setLocal }: {
         <>
           <p className="muted">Share this committee to give other chairs a join code, or add them by the email on their Collex account.</p>
           {signedIn
-            ? <button type="button" className="button" onClick={share} disabled={busy}>Share This Committee</button>
-            : <Link href="/login" className="button">Log in to share</Link>}
+            ? <Why why={busy && "Sharing…"}><button type="button" className="button block" onClick={share} disabled={busy}>Share This Committee</button></Why>
+            : <Link href="/login" className="button block">Log in to Share</Link>}
         </>
       ) : (
         <>
@@ -1907,13 +1917,13 @@ function Share({ c, cloudId, manage, signedIn, meId, say, setLocal }: {
                 <div className={s.codeActions}>
                   <button type="button" className="button secondary" onClick={() => copy(code, "Code copied")}>{COPY}Copy Code</button>
                   <button type="button" className="button secondary" onClick={() => copy(`${location.origin}/chambers?join=${code}`, "Link copied")}>{COPY}Copy Link</button>
-                  {manage && <button type="button" className="button secondary" disabled={busy} onClick={() => codeDo("new")}>New Code</button>}
-                  {manage && <button type="button" className="button secondary" disabled={busy} onClick={() => codeDo("off")}>Turn Off</button>}
+                  {manage && <Why why={busy && "Saving…"}><button type="button" className="button secondary" disabled={busy} onClick={() => codeDo("new")}>New Code</button></Why>}
+                  {manage && <Why why={busy && "Saving…"}><button type="button" className="button secondary" disabled={busy} onClick={() => codeDo("off")}>Turn Off</button></Why>}
                 </div>
               </>
             ) : manage ? (
               <>
-                <button type="button" className="button" disabled={busy} onClick={() => codeDo("new")}>Make a Join Code</button>
+                <Why why={busy && "Saving…"}><button type="button" className="button block" disabled={busy} onClick={() => codeDo("new")}>Make a Join Code</button></Why>
               </>
             ) : <p className="muted">There is no join code. The person who shared it can make one.</p>}
           </section>
@@ -1923,7 +1933,7 @@ function Share({ c, cloudId, manage, signedIn, meId, say, setLocal }: {
             <form className={s.addRow2} onSubmit={add}>
               <label htmlFor="ch-inv" className="sr-only">Email on Their Collex Account</label>
               <input id="ch-inv" type="email" className="control" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email on their Collex account" maxLength={254} />
-              <button type="submit" className="button secondary" disabled={busy || !email.trim()}>Add</button>
+              <Why why={busy ? "Saving…" : !email.trim() && "Type their email first"}><button type="submit" className="button secondary" disabled={busy || !email.trim()}>Add</button></Why>
             </form>
           </>) : <p className="muted">Only the person who shared it can add people.</p>}
           </section>
@@ -1965,7 +1975,7 @@ function Join({ signedIn, initial }: { signedIn: boolean; initial: string }) {
                 onChange={(v) => { setCode(v); if (v) setErr(""); }} onComplete={(v) => void join(v)} />
               <small className={s.codeNote}><span className={s.req} aria-hidden="true">*</span> Chairs and delegates each have their own code.</small>
             </div>
-            <button type="submit" className="button lg block" disabled={busy || code.length !== 6}>{busy ? "Joining…" : "Join Committee"}</button>
+            <Why why={busy ? "Joining…" : code.length !== 6 && "Type the 6-character code"}><button type="submit" className="button lg block" disabled={busy || code.length !== 6}>{busy ? "Joining…" : "Join Committee"}</button></Why>
           </form>
         ) : (
           <div className={s.joinForm}>
@@ -2094,6 +2104,10 @@ function Setup({ onCreate, signedIn, local }: { onCreate: (c: Chamber, devices: 
   const [tab, setTab] = useState<"start" | "join" | "yours">(joinQ !== null ? "join" : params.get("tab") === "yours" ? "yours" : "start");
   const names = ch.parseNames(text);
   const ok = name.trim().length >= 2 && resolution.trim().length >= 2 && (proc !== "trinity" || res.every((r) => r.trim().length >= 2)) && speakOk && speak !== null && names.length > 0;
+  const why = !signedIn ? "Log in to start a committee" : name.trim().length < 2 ? "Name the committee"
+    : resolution.trim().length < 2 ? (proc !== "evatt" ? "Add the topic" : "Add the resolution")
+    : proc === "trinity" && !res.every((r) => r.trim().length >= 2) ? "Add both resolutions"
+    : !speakOk || speak === null ? "Fix the speaking time" : names.length === 0 ? "Add the member states" : null;
 
   useEffect(() => {
     if (!signedIn || !supabase) return;
@@ -2186,7 +2200,7 @@ function Setup({ onCreate, signedIn, local }: { onCreate: (c: Chamber, devices: 
               items={[{ id: "off", label: "On the Display" }, { id: "on", label: "On Their Own Devices" }]} />
             <small aria-live="polite">{devices ? "Delegates get a code to follow, ask for the floor, vote and pass notes." : "No phones or laptops needed."}</small>
           </div>
-          <button type="submit" className="button lg block" disabled={!ok}>Open Committee</button>
+          <Why why={why}><button type="submit" className="button lg block" disabled={!!why}>Open Committee</button></Why>
         </form>
         </>}
       </div>

@@ -4,12 +4,14 @@ import Link from "next/link";
 import { MyApplications } from "./HubExtras";
 import { useMyListings } from "./listing/useMyListings";
 import { useCallback, useEffect, useState } from "react";
-import { formatRange, isPast, todayInSydney, type Conference } from "@/lib/conferences";
+import { formatRange, isPast, todayInSydney, type ConferenceSummary } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
 import { useConferences } from "./ConferencesContext";
 import { Thumb } from "./ConferenceRow";
 import { ICONS } from "./IconButton";
 import { RowsSkeleton } from "./Skeleton";
+import { Placard } from "./Drawings";
+import board from "./board.module.css";
 import { useToast } from "./useToast";
 import s from "@/app/auth.module.css";
 
@@ -88,7 +90,7 @@ function Invites({ onAccepted, onCount }: { onAccepted: () => void; onCount: (n:
 }
 
 // The next key date still to come, before the conference itself: "Chair applications close · 3 Feb".
-function nextKeyDate(c: Conference, today: string) {
+function nextKeyDate(c: ConferenceSummary, today: string) {
   const k = c.keyDates.filter((d) => d.date && d.date >= today).sort((a, b) => a.date!.localeCompare(b.date!))[0];
   return k ? `${k.label} · ${new Date(k.date! + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })}` : null;
 }
@@ -96,7 +98,7 @@ function nextKeyDate(c: Conference, today: string) {
 const shiftDay = (iso: string, n: number) => { const d = new Date(iso + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
 // Other conferences in the list that run on the same days, or the day before or after: you can't be at both.
-function clashesOf(c: Conference, others: Conference[], today: string) {
+function clashesOf(c: ConferenceSummary, others: ConferenceSummary[], today: string) {
   if (!c.startDate) return [];
   const [as, ae] = [c.startDate, c.endDate ?? c.startDate];
   return others.flatMap((o) => {
@@ -135,7 +137,6 @@ function Saved() {
     <section className={`panel ${s.card}`} style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="saved-h">
       <div>
         <h2 id="saved-h" className={s.cardTitle}>Saved</h2>
-        {saved !== null && list.length === 0 && <p className="muted">Nothing saved yet.</p>}
       </div>
       {clashing.length > 0 && (
         <p className={s.clashBanner} role="status">
@@ -144,7 +145,7 @@ function Saved() {
         </p>
       )}
       {saved === null ? <RowsSkeleton rows={2} height={52} /> : list.length === 0 ? (
-        <Link href="/conferences" className="button">Browse conferences</Link>
+        <div className={board.empty}><Placard /><p className={board.emptyTitle}>No saved conferences yet</p><p className="muted">Follow a conference and it shows here.</p><Link href="/conferences" className="button">Browse Conferences</Link></div>
       ) : (
         <ul className={s.saved}>
           {list.map((c) => {

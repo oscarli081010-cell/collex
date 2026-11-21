@@ -19,8 +19,8 @@ export default function ListingsView() {
       <PageBand title="Your" accent="conferences" lead="Log in to see the conferences you run."
         aside={(
           <div className="btnStack">
-            <Link href="/login" className="button lg">Log in</Link>
-            <Link href="/signup" className="button secondary lg">Create an account</Link>
+            <Link href="/login" className="button lg">Log In</Link>
+            <Link href="/signup" className="button secondary lg">Create an Account</Link>
           </div>
         )} />
     );
@@ -37,7 +37,7 @@ export default function ListingsView() {
           { label: "Live", value: num(live) },
           { label: "In review", value: num(review) },
         ]}
-        aside={<div className="btnStack one"><Link href="/list" className="button secondary lg">List a conference</Link></div>} />
+        aside={<div className="btnStack one"><Link href="/list" className="button secondary lg">List a Conference</Link></div>} />
       <ListingsPanel rows={rows} />
     </>
   );

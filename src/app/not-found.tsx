@@ -14,8 +14,8 @@ export default function NotFound() {
         <h1 className={s.title}>This page is out of order.</h1>
         <p className="muted">The link may be old, or the page may have moved. The calendar has every listed conference.</p>
         <div className="btnStack one">
-          <Link href="/calendar" className="button lg">Open the calendar</Link>
-          <Link href="/" className="button secondary lg">Go home</Link>
+          <Link href="/calendar" className="button lg">Open the Calendar</Link>
+          <Link href="/" className="button secondary lg">Go Home</Link>
         </div>
       </div>
     </main>

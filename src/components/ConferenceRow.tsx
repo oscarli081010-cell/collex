@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ViewTransition } from "react";
-import { formatRange, monogram, shown, type Conference } from "@/lib/conferences";
+import { formatRange, monogram, shown, type ConferenceSummary } from "@/lib/conferences";
 import Photo from "./Photo";
 import RowAction from "./RowAction";
 import Verified from "./Verified";
@@ -9,7 +9,7 @@ import s from "./board.module.css";
 
 // The listing's photo, or its initials when it has none. It morphs into the conference page's cover on the way in.
 // A separate list photo (a logo, say) doesn't morph, since it isn't the photo the page opens on.
-export function Thumb({ c, size }: { c: Conference; size?: "sm" }) {
+export function Thumb({ c, size }: { c: ConferenceSummary; size?: "sm" }) {
   const src = c.thumb ?? c.cover;
   const pos = c.thumb ? c.thumbPos : c.coverPos;
   const box = (
@@ -21,7 +21,7 @@ export function Thumb({ c, size }: { c: Conference; size?: "sm" }) {
 }
 
 // A listing: the whole card opens the page; the two buttons go straight to applying (not once it has finished).
-export default function ConferenceRow({ c, past = false }: { c: Conference; past?: boolean }) {
+export default function ConferenceRow({ c, past = false }: { c: ConferenceSummary; past?: boolean }) {
   const page = `/conferences/${c.slug}`;
   return (
     <div className={s.row}>

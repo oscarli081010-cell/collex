@@ -76,9 +76,9 @@ function Log({ history, onUndo }: { history: Entry[] | null; onUndo: (e: Entry) 
       )}
       {pages > 1 && (
         <nav className={s.pager} aria-label="Audit log pages">
-          <button type="button" className="button secondary" onClick={() => go(at - 1)} disabled={at === 0}>Previous</button>
+          {at === 0 ? <span className="tip" data-tip="You’re on the first page"><button type="button" className="button secondary" onClick={() => go(at - 1)} disabled={at === 0}>Previous</button></span> : <button type="button" className="button secondary" onClick={() => go(at - 1)} disabled={at === 0}>Previous</button>}
           <span className="muted" aria-live="polite">Page {at + 1} of {pages}</span>
-          <button type="button" className="button secondary" onClick={() => go(at + 1)} disabled={at === pages - 1}>Next</button>
+          {at === pages - 1 ? <span className="tip" data-tip="You’re on the last page"><button type="button" className="button secondary" onClick={() => go(at + 1)} disabled={at === pages - 1}>Next</button></span> : <button type="button" className="button secondary" onClick={() => go(at + 1)} disabled={at === pages - 1}>Next</button>}
         </nav>
       )}
     </>

@@ -1,7 +1,7 @@
 
 /* The numbers: one tile each. */
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.stat { padding: 20px 22px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.stat { padding: 22px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .statLabel { font-size: 13px; color: var(--muted); }
 .statValue { font-family: var(--serif); font-size: clamp(30px, 3.4vw, 40px); line-height: 1; font-variant-numeric: lining-nums tabular-nums; overflow-wrap: anywhere; }
 .statValue small { font-family: var(--sans); font-size: 14px; color: var(--muted); }
@@ -33,7 +33,7 @@
 
 @media (max-width: 640px) {
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .stat { padding: 16px 18px; }
+  .stat { padding: 22px; }
 }
 
 /* Audit log: a search row above the entries and a pager under them. */

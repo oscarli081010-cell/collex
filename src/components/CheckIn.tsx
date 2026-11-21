@@ -76,7 +76,7 @@ export default function CheckIn() {
   if (!session) {
     return (
       <PageBand title="Check-in" aside={
-        <div className="btnStack one"><Link href={`/login?next=${encodeURIComponent(`/checkin?t=${token}`)}`} className="button lg">Log in</Link></div>
+        <div className="btnStack one"><Link href={`/login?next=${encodeURIComponent(`/checkin?t=${token}`)}`} className="button lg">Log In</Link></div>
       } />
     );
   }
@@ -96,7 +96,7 @@ export default function CheckIn() {
           <p>{[APP_KIND(r), alloc].filter(Boolean).join(" · ")}</p>
           <p className="muted">{r.conference_name}</p>
           {r.checked_in_at && <p className={s.time}>{again ? "Already checked in" : "Checked in"} at {arrivedAt(r.checked_in_at)}</p>}
-          <button type="button" className="button secondary block" disabled={busy} onClick={() => void undo(r)}>{ICONS.undo}Undo</button>
+          {!again && <button type="button" className="button secondary block" disabled={busy} onClick={() => void undo(r)}>{ICONS.undo}Undo</button>}
           {err && <p className={h.err} role="alert">{err}</p>}
         </section>
       </div>

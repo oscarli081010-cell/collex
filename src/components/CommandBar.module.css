@@ -31,7 +31,7 @@
 /* The site-wide focus ring would box the whole text field; here the caret and the open menu already show where you are. */
 .input:focus, .input:focus-visible { outline: none; box-shadow: none; }
 .list { overflow-y: auto; padding: 8px; overscroll-behavior: contain; }
-.group { display: block; padding: 12px 10px 6px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); }
+.group { display: block; padding: 12px 10px 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
 .option { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; cursor: pointer; }
 .option[aria-selected="true"] { background: var(--accent-soft); }
 .option[aria-selected="true"] .label { color: var(--accent); }

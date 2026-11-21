@@ -16,8 +16,8 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
         <h1 className={s.title}>This page didn&rsquo;t load.</h1>
         <p className="muted">Something went wrong on our side, not yours. Try again, and if it keeps happening, email <a className="link" href="mailto:hello@collex.au">hello@collex.au</a>.</p>
         <div className="btnStack one">
-          <button type="button" className="button lg" onClick={reset}>Try again</button>
-          <Link href="/" className="button secondary lg">Go home</Link>
+          <button type="button" className="button lg" onClick={reset}>Try Again</button>
+          <Link href="/" className="button secondary lg">Go Home</Link>
         </div>
       </div>
     </main>

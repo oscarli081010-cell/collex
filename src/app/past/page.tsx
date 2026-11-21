@@ -35,7 +35,7 @@ export default async function PastPage() {
           <Placard />
           <p className={s.emptyTitle}>Nothing has finished yet</p>
           <p className="muted">Once a listed conference&rsquo;s last day passes, it moves here.</p>
-          <Link href="/conferences" className="button secondary">See what&rsquo;s coming up</Link>
+          <Link href="/conferences" className="button secondary">See What&rsquo;s Coming Up</Link>
         </div>
       ) : [...years].map(([year, list]) => (
         <section key={year} className={s.group}>
