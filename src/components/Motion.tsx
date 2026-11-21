@@ -25,7 +25,11 @@ function describeTip(tip: Element) {
   const text = tip.getAttribute("data-tip") ?? "";
   let note = tip.querySelector<HTMLElement>(":scope > [data-tip-note]");
   const control = tip.matches("[tabindex]") ? tip : tip.querySelector<HTMLElement>("button, a[href], input, select, textarea, [tabindex]");
-  const said = control ? plain(`${control.getAttribute("aria-label") ?? ""} ${control.textContent ?? ""}`) : plain(tip.textContent ?? "");
+  // What the control already says, leaving out the hidden note itself: when the tip is its own control (it can take
+  // focus), the note sits inside it, and counting the note's words made the note look redundant, so it was removed, then
+  // added again, without end.
+  const words = (el: Element) => { const copy = el.cloneNode(true) as Element; copy.querySelectorAll("[data-tip-note]").forEach((n) => n.remove()); return copy.textContent ?? ""; };
+  const said = control ? plain(`${control.getAttribute("aria-label") ?? ""} ${words(control)}`) : plain(words(tip));
   const redundant = !text || !control || (tip.hasAttribute("data-tip-self")) || said.includes(plain(text));
   if (redundant) {
     if (note && !tip.hasAttribute("data-tip-self")) { forget(control, note.id); note.remove(); }
@@ -72,10 +76,13 @@ export default function Motion() {
         m.addedNodes.forEach((n) => {
           if (n.nodeType !== 1) return;
           const el = n as Element;
+          if (el.hasAttribute("data-tip-note")) return;
           if (el.matches(TIPS)) describeTip(el);
           sweep(el);
         });
       }
+      // The changes made just above are this observer's own: they are dropped here, so it never answers itself.
+      watch.takeRecords();
     });
     watch.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-tip", "aria-describedby", "aria-label"] });
     const shown = '.tip:hover, .tip:has(:focus-visible), .tip[data-tip-open], .tip[data-tip-show]';
