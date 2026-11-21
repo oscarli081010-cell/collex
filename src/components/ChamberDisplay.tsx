@@ -426,10 +426,7 @@ export default function ChamberDisplay() {
     <div className={s.display} data-photo={photo ? "" : undefined} style={photo}>
       <div className={s.dTop}>
         <div className={s.dId}>
-          <div className={`${s.dBtn} ${s.dBig}`}>
-            <p className={`serif ${s.dName}`}>{c?.name ?? "Committees"}</p>
-            {c?.topic && <p className={s.dTopic}>{c.topic}</p>}
-          </div>
+          <span className={`${s.dBtn} ${s.dBig}`}>{c?.name ?? "Committees"}</span>
         </div>
         {openNow ? <span className={`${s.dBtn} ${s.dStatus}`} role="status">{openNow}</span> : <span className={s.dGap} />}
         {tools}

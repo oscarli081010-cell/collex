@@ -31,7 +31,7 @@ export const GUIDES: Guide[] = [
         "Take votes by placard with the counters, or switch a vote to By Roll Call to record each state’s answer in the minutes. Press Record the Result. Overrule lets the chair set the result, and the minutes say so.",
         "In a Standard or Custom committee, the vote on a resolution lets each state answer For, Against, Abstain or Pass, and mark For or Against With Rights. See Standard procedure.",
         "In a Standard or Custom committee, a state can also move to divide the question. Press Divide the Question before anyone votes. See Standard procedure.",
-        "A state arrives late or leaves early? Open The Roll at the bottom of the Manage tab and change its mark at any time except while a vote is being taken. You can rename a state there too, and nothing is lost. In a Trinity or Standard committee, press Retake the Roll on the general speakers’ list to start a new session. The earlier roll is kept.",
+        "In a Trinity or Standard committee, press Retake the Roll on the general speakers’ list to start a new session. The earlier roll is kept.",
         "Made a mistake? *The back arrow undoes* your last step, and Ctrl or ⌘ with Z does the same. Press it again to go further back, up to the last 12 steps. With two chairs working, Back only undoes your own last step. If the last change was your co-chair’s, Collex says so and leaves it alone.",
       ] },
       { id: "display", title: "The display", text: [
@@ -62,7 +62,7 @@ export const GUIDES: Guide[] = [
     sections: [
       { id: "note", title: "First, a caution", text: ["This is how Collex steps through an Evatt round. Your competition’s own rules and *the President’s ruling come first* wherever they differ. Unsure of a word? See the MUN glossary. For rulings and keeping time, read How to chair a committee."] },
       { id: "opening", title: "Opening", steps: [
-        "The President welcomes the council and takes the roll call. If a state arrives late or leaves, the chair can change its mark at any time except while a vote is being taken.",
+        "The President welcomes the council and takes the roll call.",
         "The President names the Proposer and the Seconder of the resolution, and an Opposer if a state wishes to oppose.",
         "The Proposer, then the Seconder, then the Opposer each speak. After a speech the President asks how the speaker yields: to Points of Information (a short question, then a short reply, one at a time) or to the chair.",
         "The negotiation chamber and note-passing *open as the Seconder starts to speak*.",
@@ -86,7 +86,7 @@ export const GUIDES: Guide[] = [
     sections: [
       { id: "note", title: "First, a caution", text: ["This follows the rules Collex was built to for Trinity Grammar MUN. *The conference’s handbook for the year comes first* wherever it differs. Unsure of a word? See the MUN glossary. For rulings and keeping time, read How to chair a committee."] },
       { id: "opening", title: "Opening", steps: [
-        "Roll call, then opening statements: every state present speaks in alphabetical order, up to 90 seconds each. A state that arrives late or leaves can be re-marked at any time except during a vote.",
+        "Roll call, then opening statements: every state present speaks in alphabetical order, up to 90 seconds each.",
         "The committee has two resolutions: one seen in advance, one unseen. The chair introduces one at a time.",
         "When a resolution is introduced, its proposer and co-sponsor are named and the chair asks for an opposer. Each of the three speaks.",
       ] },
@@ -114,7 +114,6 @@ export const GUIDES: Guide[] = [
       { id: "roll", title: "Roll call and quorum", steps: [
         "Take the roll: mark each state Absent, Present, or Present & Voting. A state that is Present & Voting can’t abstain on a resolution.",
         "Quorum is the number of states that must be in the room. To open debate, a third of the member states, rounded up. To vote on a resolution, a majority of them: half plus one. Collex warns you when the room is short, but the chair can still carry on.",
-        "A state arrives late or leaves? The chair changes its mark at any time except during a vote.",
       ] },
       { id: "opening", title: "The topic and the agenda", steps: [
         "The topic is set when the committee is made. Draft resolutions go into the Resolutions panel, with a title each, as the chairs receive them.",

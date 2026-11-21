@@ -8,7 +8,7 @@
   --ink: #15161a;
   --muted: #5f626a;
   --faint: #63666e;
-  --control-line: #8a8579; /* borders of inputs and checkboxes: 3:1 against the page and panels */
+  --control-line: var(--line-strong); /* borders of inputs and checkboxes: the soft line, as before */
   --accent: #213a73;
   --accent-soft: #e8ecf5;
   --on-accent: #ffffff;
@@ -48,7 +48,7 @@
   --ink: #ecebe7;
   --muted: #a3a5ac;
   --faint: #9a9da5;
-  --control-line: #6c6f78;
+  --control-line: var(--line-strong);
   --accent: #9fb5ec;
   --accent-soft: #212a42;
   --on-accent: #0f1424;
@@ -77,7 +77,7 @@
     --ink: #ecebe7;
     --muted: #a3a5ac;
     --faint: #9a9da5;
-    --control-line: #6c6f78;
+    --control-line: var(--line-strong);
     --accent: #9fb5ec;
     --accent-soft: #212a42;
     --on-accent: #0f1424;

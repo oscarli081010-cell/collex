@@ -9,14 +9,11 @@ import { backgroundData, dataToBlob, uploadBackground, uploadBackgroundBlob } fr
 import { supabase } from "@/lib/supabase";
 import IconButton, { ICONS } from "../IconButton";
 import s from "../Chambers.module.css";
-import Select from "../Select";
 import { CodeBoxes } from "../CodeInput";
 import CoverFrame from "../CoverFrame";
-import Flag from "../Flag";
 import { Why } from "../RoomChair";
 import { type OfflineState } from "../Offline";
-import { COPY, SOUND_KEY, soundOn, chime, type Act, Duration, Seg } from "./shared";
-import { ATTEND } from "./opening";
+import { COPY, SOUND_KEY, soundOn, chime, type Act, Duration } from "./shared";
 
 /* The given resolutions: set when the committee is made, and here they can be added or renamed until they are debated. */
 export function Resolutions({ c, act }: { c: Chamber; act: Act }) {
@@ -49,49 +46,10 @@ export function Resolutions({ c, act }: { c: Chamber; act: Act }) {
 }
 
 /* Settings: the chime when a speaker's time is up. Kept on this device only. */
-/* The roll after roll call: a state that arrives late or leaves early is marked at any point, except while a vote is
-   taken. A state can be renamed without losing anything. Trinity and Standard take the roll again for a new session. */
+/* Trinity and Standard take the roll again for a new session. */
 export function RollPanel({ c, act }: { c: Chamber; act: Act }) {
-  const [who, setWho] = useState("");
-  const [to, setTo] = useState("");
-  const open = ch.rollOpen(c);
-  const shut = !open && (c.poll ? "Not while a vote is being taken" : "Not while the vote is being taken");
-  const n = ch.present(c);
-  const renameWhy = !who ? "Choose a state first" : !to.trim() ? "Type the new name first" : ch.renameError(c, who, to);
-  return (
-    <>
-    {ch.canRetakeRoll(c) && <button type="button" className="button secondary block" onClick={() => act((x) => ch.retakeRoll(x, ch.now()))}>Retake the Roll</button>}
-    <details className={`panel ${s.list}`}>
-      <summary className={s.head}>
-        <h2 className={s.h2}>The Roll</h2>
-        <span className="badge">{n} of {c.delegates.length} present</span>
-      </summary>
-      <div className={s.panelBody}>
-        {shut && <p className={s.hint} role="status">{shut}: the roll can be changed once it is over.</p>}
-        <ul className={s.ballots}>
-          {c.delegates.map((d) => (
-            <li key={d.id} className={s.ballot}>
-              <span className={s.cname2}><Flag name={d.name} />{d.name}</span>
-              <Seg label={`Roll: ${d.name}`} value={c.roll[d.id]} disabled={!open} className={`${s.ballotSeg} ${s.rollSeg}`}
-                items={ATTEND.map((a) => ({ id: a, label: ch.ATTEND_LABEL[a] }))}
-                onPick={(a) => act((x) => ch.markRoll(x, d.id, c.roll[d.id] === a ? null : a))} />
-            </li>
-          ))}
-        </ul>
-        <form className={s.addRow} onSubmit={(e) => { e.preventDefault(); if (renameWhy) return; act((x) => ch.renameDelegate(x, who, to)); setTo(""); setWho(""); }}>
-          <label htmlFor="rp-who" className="sr-only">State to Rename</label>
-          <Select id="rp-who" className={`control ${s.addWho}`} value={who} onChange={(e) => { setWho(e.target.value); setTo(ch.nameOf(c, e.target.value)); }}>
-            <option value="">Rename a state…</option>
-            {c.delegates.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </Select>
-          <label htmlFor="rp-to" className="sr-only">New Name</label>
-          <input id="rp-to" className="control" value={to} maxLength={60} onChange={(e) => setTo(e.target.value)} placeholder="New name" />
-          <Why why={renameWhy}><button type="submit" className="button secondary" disabled={!!renameWhy}>Rename</button></Why>
-        </form>
-      </div>
-    </details>
-    </>
-  );
+  if (!ch.canRetakeRoll(c)) return null;
+  return <button type="button" className="button secondary block" onClick={() => act((x) => ch.retakeRoll(x, ch.now()))}>Retake the Roll</button>;
 }
 
 /* The keys a chair can use on the console. None of them work while typing in a box. */

@@ -244,8 +244,6 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dTop { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 16px; align-self: start; padding: var(--edge) var(--edge) 0; z-index: 2; pointer-events: none; }
 .dTop > * { pointer-events: auto; }
 @media (max-width: 1100px) { .dTop { grid-template-columns: 1fr auto; } .dTop > .dStatus { grid-column: 1 / -1; grid-row: 2; justify-self: center; } .dGap { display: none; } }
-.dName { font-size: clamp(26px, 2.8vw, 40px); line-height: 1.05; overflow-wrap: anywhere; }
-.dTopic { color: var(--muted); font-size: clamp(13px, 1.1vw, 16px); margin-top: 6px; }
 /* The display's own buttons, with "Powered by Collex" under them at the same width. */
 .dTools { display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 0; justify-self: end; }
 .dToolRow { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }
@@ -420,13 +418,12 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 
 /* The display's top-left: the committee in a big pill and "Powered by" in a small one, in the same style as the buttons opposite. */
 .dId { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
-/* The same corner as the small pill (half its 44px height) and the same inset, so the two texts start on one line. */
-.dBig { height: auto; flex-direction: column; align-items: flex-start; gap: 0; padding: 14px 30px 16px; border-radius: 36px; cursor: default; white-space: normal; max-width: min(100%, 520px); }
-.dBig .dName { color: var(--ink); }
-.dBig .dTopic { margin-top: 6px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, var(--ink) 16%, transparent); align-self: stretch; }
+/* The committee's name in a pill like the buttons opposite: the same height and shape, with the name in ink. */
+.dBig { cursor: default; color: var(--ink); font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .dBrand { gap: 7px; font-size: 13px; color: var(--faint); cursor: default; }
 .dBrand svg { color: var(--muted); }
-.dBig:hover, .dBrand:hover { color: inherit; background: color-mix(in srgb, var(--panel) 70%, transparent); border-color: var(--line); }
+.dBig:hover { color: var(--ink); background: color-mix(in srgb, var(--panel) 70%, transparent); border-color: var(--line); }
+.dBrand:hover { color: inherit; background: color-mix(in srgb, var(--panel) 70%, transparent); border-color: var(--line); }
 .dBig:active, .dBrand:active { transform: none; }
 
 /* The welcome: a small slanted "Welcome to" over the committee's name, centred. */
@@ -612,7 +609,8 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 
 /* The back arrow: tucked into the bottom corner of its panel, out of the way of everything in it. */
 .floor, .opening, .welcome { position: relative; }
-.undo { position: absolute; left: 5px; bottom: 5px; z-index: 1; }
+/* Two classes, so the global .tip (position: relative) can't put it back in the flow, where it took a grid cell of its own. */
+.undo:global(.tip) { position: absolute; left: 5px; bottom: 5px; z-index: 1; }
 .undo :global(.iconbtn) { position: relative; width: 22px; height: 22px; border-color: transparent; background: transparent; color: var(--muted); }
 .undo :global(.iconbtn):hover:not(:disabled) { background: var(--surface); color: var(--ink); }
 .undo :global(.iconbtn)::after { content: ""; position: absolute; inset: -8px; }
@@ -631,7 +629,6 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 /* A timer run past zero shows the overtime in the warning colour. */
 .time[data-over], .dTime[data-over] { color: var(--warn); }
 /* The display's topic: big enough to read from the back of the room, and never more than two lines. */
-.dTopic { font-size: clamp(16px, 1.7vw, 26px); line-height: 1.25; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .dNext li { min-width: 0; max-width: 100%; }
 .dNext li .dNextName { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The code to join, with its QR code, when the chair shows it. */
