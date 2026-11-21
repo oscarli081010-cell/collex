@@ -66,7 +66,7 @@ export default function Start() {
               <li>Some conferences mark committees as suitable for beginners. Look at the committee list on each conference&rsquo;s page.</li>
               <li>Check that registration is open and that the date doesn&rsquo;t clash with exams or another conference.</li>
             </ul>
-            <p><Link href="/compare">Compare upcoming conferences</Link> side by side, or <Link href="/conferences">see them all</Link> with their dates and links.</p>
+            <p><Link href="/conferences">See every upcoming conference</Link> with its dates and links.</p>
           </section>
 
           <section id="week">
@@ -83,7 +83,7 @@ export default function Start() {
           <div className={`panel ${x.next}`}>
             <h2 className={x.nextTitle}>Your next step</h2>
             <p className={x.nextText}>Find a conference that suits you, then ask your teacher about going.</p>
-            <Link href="/compare" className="button block">Compare Conferences</Link>
+            <Link href="/conferences" className="button block">See the Conferences</Link>
           </div>
         </article>
       </div>
