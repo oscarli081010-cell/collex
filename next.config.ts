@@ -32,6 +32,16 @@ const securityHeaders = [
 const config: NextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
+  // Photos in our storage are served through Next's optimiser (smaller files, in WebP). The sizes are few on purpose, to
+  // keep the number of generated variants low. A photo's address never changes (a replaced photo gets a new file name),
+  // so the optimised copies may be kept for a year. SVG is not allowed through the optimiser.
+  images: {
+    remotePatterns: [{ protocol: "https", hostname: "npdaczdwmhbtgitmplxc.supabase.co", pathname: "/storage/v1/object/public/**" }],
+    formats: ["image/webp"],
+    imageSizes: [96, 160, 256],
+    deviceSizes: [640, 960, 1280, 1920],
+    minimumCacheTTL: 31536000,
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

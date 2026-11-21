@@ -4,6 +4,7 @@ import Motion from "@/components/Motion";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
 import Offline from "@/components/Offline";
+import Pulse from "@/components/Pulse";
 import AuthProvider from "@/components/AuthProvider";
 import ConferencesProvider from "@/components/ConferencesContext";
 import { getPublished } from "@/lib/data";
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <ConferencesProvider list={list}>
             <Motion />
             <Offline />
+            <Pulse />
             <TopBar />
             {children}
             <Footer />

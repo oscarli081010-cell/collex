@@ -31,6 +31,7 @@ export default function About() {
           <h2>Why it exists</h2>
           <p>Collex puts the Model United Nations conferences in Sydney on one calendar, each with its own clear page: dates, host, committees and the links to apply.</p>
           <p>Conference details are often spread across school websites, social posts and group chats, which makes deadlines easy to miss and dates easy to clash. Collex gathers them in one place, in the same format, so the season can be seen at a glance.</p>
+          <p>Collex also has the tools to run a conference. Organisers take registrations and applications, allocate committees and email everyone from one page, and chairs run their committee from a laptop with <Link href="/chambers" className="link">Committees</Link>. There are <Link href="/guides" className="link">short guides</Link> for chairs, delegates and organisers too.</p>
         </section>
 
         <section id="who">

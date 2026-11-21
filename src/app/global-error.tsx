@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { themeBootScript } from "@/lib/theme";
+import { reportError } from "@/components/Pulse";
 import "./globals.css";
 import "./motion.css";
 import s from "./auth.module.css";
@@ -9,7 +10,7 @@ import s from "./auth.module.css";
 // The last resort, when even the top bar and footer fail: a whole page of its own, in the visitor's theme.
 // The site fonts load in the main layout, so this page names system fonts directly.
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  useEffect(() => { console.error(error); }, [error]);
+  useEffect(() => { console.error(error); reportError(error.message, error.stack, error.digest ? `\nDigest: ${error.digest}` : ""); }, [error]);
   return (
     <html lang="en-AU" data-theme="light" style={{ "--font-sans": "ui-sans-serif", "--font-serif": "\"Iowan Old Style\"" } as React.CSSProperties} suppressHydrationWarning>
       <head>

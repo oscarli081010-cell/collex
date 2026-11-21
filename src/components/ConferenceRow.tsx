@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ViewTransition } from "react";
-import { formatRange, monogram, type Conference } from "@/lib/conferences";
+import { formatRange, monogram, shown, type Conference } from "@/lib/conferences";
+import Photo from "./Photo";
 import RowAction from "./RowAction";
 import Verified from "./Verified";
 import { META_ICONS } from "./MetaIcons";
@@ -13,8 +14,7 @@ export function Thumb({ c, size }: { c: Conference; size?: "sm" }) {
   const pos = c.thumb ? c.thumbPos : c.coverPos;
   const box = (
     <span className={`${s.thumb} ${size === "sm" ? s.thumbSm : ""}`} aria-hidden="true">
-      {/* eslint-disable-next-line @next/next/no-img-element -- organisers' photos come straight from storage */}
-      {src ? <img src={src} alt="" loading="lazy" decoding="async" style={pos ? { objectPosition: pos } : undefined} /> : <span className="serif">{monogram(c)}</span>}
+      {src ? <Photo src={src} alt="" width={160} height={160} sizes="80px" style={pos ? { objectPosition: pos } : undefined} /> : <span className="serif">{monogram(c)}</span>}
     </span>
   );
   return c.thumb ? box : <ViewTransition name={`cover-${c.slug}`} share="morph" default="none">{box}</ViewTransition>;
@@ -38,15 +38,15 @@ export default function ConferenceRow({ c, past = false }: { c: Conference; past
         </span>
         <ul className={s.rowMeta}>
           <li>{META_ICONS.date}{formatRange(c)}</li>
-          <li>{META_ICONS.host}{c.host}</li>
-          <li>{META_ICONS.venue}{c.venue}</li>
+          <li>{META_ICONS.host}{shown(c.host)}</li>
+          <li>{META_ICONS.venue}{shown(c.venue)}</li>
         </ul>
       </div>
       <span className={s.rowActions}>
         {!past && (
           <span className={s.rowBtns}>
-            <RowAction url={c.delegationUrl} label="Register" primary page={page} opensAt={c.delegationOpensAt} />
-            <RowAction url={c.chairUrl} label="Apply to chair" primary={false} page={page} opensAt={c.chairOpensAt} />
+            <RowAction url={c.delegationUrl} onCollex={c.collexRegistration && !c.delegationUrl ? "timed" : null} label="Register" what="Registration" not="isn't" primary page={page} opensAt={c.delegationOpensAt} />
+            <RowAction url={c.chairUrl} onCollex={c.collexApplications && c.id ? "always" : null} label="Apply to chair" what="Chair applications" not="aren't" primary={false} page={page} opensAt={c.chairOpensAt} />
           </span>
         )}
         <Link href={page} className={s.go} aria-label={`Open ${c.name}`}>→</Link>

@@ -8,8 +8,10 @@ import { useAuth } from "./AuthProvider";
 import { APP_KIND, APP_STATUS, allocationText, type AppRow } from "./ConferenceHub";
 import { Placard } from "./Drawings";
 import PageBand from "./PageBand";
+import QrCode from "./QrCode";
 import Select from "./Select";
 import board from "./board.module.css";
+import ci from "./CheckIn.module.css";
 import au from "@/app/auth.module.css";
 import h from "./Hub.module.css";
 import rs from "./Roles.module.css";
@@ -110,7 +112,7 @@ export function AdminClaims({ say }: { say: Say }) {
   );
 }
 
-type Mine = AppRow & { conferences: { name: string; slug: string } | null };
+type Mine = AppRow & { conferences: { name: string; slug: string } | null; checkin_token: string; checked_in_at: string | null };
 
 /* Account: the conferences you applied to as one person, and whether your record of them is public. */
 export function MyApplications({ userId }: { userId: string }) {
@@ -118,9 +120,10 @@ export function MyApplications({ userId }: { userId: string }) {
   const [rows, setRows] = useState<Mine[] | null>(null);
   const [pub, setPub] = useState<boolean | null>(null);
   const [copied, setCopied] = useState(false);
+  const [code, setCode] = useState<string | null>(null);
   useEffect(() => {
     if (!supabase) return;
-    supabase.from("applications").select("id, conference_id, kind, role_title, status, committee, country, created_at, conferences(name, slug)").eq("user_id", userId).order("created_at", { ascending: false })
+    supabase.from("applications").select("id, conference_id, kind, role_title, status, committee, country, created_at, checkin_token, checked_in_at, conferences(name, slug)").eq("user_id", userId).order("created_at", { ascending: false })
       .then(({ data }) => setRows((data as unknown as Mine[] | null) ?? []));
     supabase.from("profiles").select("public_record").eq("id", userId).maybeSingle().then(({ data }) => setPub(Boolean(data?.public_record)));
   }, [userId]);
@@ -139,15 +142,32 @@ export function MyApplications({ userId }: { userId: string }) {
       </div>
       {rows && rows.length > 0 && (
         <ul className={h.rows}>
-          {rows.map((a) => (
-            <li key={a.id}>
-              <span className={h.main}>
-                <strong>{a.conferences ? <Link className="link" href={`/conferences/${a.conferences.slug}`}>{a.conferences.name}</Link> : "A conference"}</strong>
-                <small>{APP_KIND(a)}{a.status === "accepted" && allocationText(a) ? ` · ${allocationText(a)}` : ""}</small>
-              </span>
-              <span className={h.btns}><span className={h.chip} data-tone={APP_STATUS[a.status][1]}>{APP_STATUS[a.status][0]}</span></span>
-            </li>
-          ))}
+          {rows.map((a) => {
+            const accepted = a.status === "accepted";
+            const open = accepted && code === a.id;
+            return (
+              <li key={a.id} className={accepted ? h.app : undefined}>
+                <span className={h.main}>
+                  <strong>{a.conferences ? <Link className="link" href={`/conferences/${a.conferences.slug}`}>{a.conferences.name}</Link> : "A conference"}</strong>
+                  <small>{APP_KIND(a)}{accepted && allocationText(a) ? ` · ${allocationText(a)}` : ""}</small>
+                </span>
+                <span className={h.btns}>
+                  {accepted && a.checked_in_at && <span className={h.chip} data-tone="ok">Checked in</span>}
+                  <span className={h.chip} data-tone={APP_STATUS[a.status][1]}>{APP_STATUS[a.status][0]}</span>
+                  {accepted && (
+                    <button type="button" className="button secondary sm" aria-expanded={open} aria-controls={`code-${a.id}`} onClick={() => setCode(open ? null : a.id)}>Check-in Code</button>
+                  )}
+                </span>
+                {open && (
+                  <div id={`code-${a.id}`} className={ci.code}>
+                    <QrCode value={`${location.origin}/checkin?t=${a.checkin_token}`} size={200} label={`Check-in code for ${a.conferences?.name ?? "this conference"}`} />
+                    <strong>{a.conferences?.name ?? "A conference"}</strong>
+                    <small className="muted">Show this at the door.</small>
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
       <div className="field">

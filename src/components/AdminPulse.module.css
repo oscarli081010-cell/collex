@@ -1,0 +1,17 @@
+.figures { display: flex; flex-wrap: wrap; gap: 14px 48px; margin: 4px 0 24px; }
+.figure { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.figure b { font-family: var(--serif); font-weight: 400; font-size: 40px; line-height: 1; color: var(--ink); }
+.chartWrap { margin-bottom: 28px; }
+.bar { cursor: default; }
+.page { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.toolbar button { width: auto; }
+.msg { overflow-wrap: anywhere; font-weight: 500; }
+.details { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+.details summary { cursor: pointer; }
+.stack { margin: 8px 0 0; max-height: 220px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.5; color: var(--ink); }
+.when { white-space: nowrap; color: var(--muted); font-size: 13px; }
+.toolbar :global(.button).danger { color: var(--danger); }
+.toolbar :global(.button).danger:hover { background: var(--danger-soft); border-color: var(--danger); }
+.toolbar :global(.button).danger[data-armed] { background: var(--danger); border-color: var(--danger); color: #fff; }

@@ -22,8 +22,8 @@ export default function ApplyBand({ c }: { c: Conference }) {
   const [mine, setMine] = useMine(c);
   const [formOpen, setFormOpen] = useState(false);
   const options = [
-    { title: "Register a delegation", url: c.delegationUrl, cta: "Register", at: c.delegationOpensAt, what: "Delegate registration" },
-    { title: "Apply to chair", url: c.chairUrl, cta: "Apply", at: c.chairOpensAt, what: "Chair applications" },
+    { title: "Register a delegation", url: c.delegationUrl, cta: "Register", at: c.delegationOpensAt, status: "Registration", what: "Registration", not: "isn't" },
+    { title: "Apply to chair", url: c.chairUrl, cta: "Apply", at: c.chairOpensAt, status: "Applications", what: "Chair applications", not: "aren't" },
   ];
 
   return (
@@ -113,7 +113,7 @@ function BuiltInInterest({ c, say }: { c: Conference; say: Say }) {
   );
 }
 
-type Option = { title: string; url?: string | null; cta: string; at?: string | null; what: string };
+type Option = { title: string; url?: string | null; cta: string; at?: string | null; status: string; what: string; not: string };
 
 // Register or apply. A scheduled button stays shut, and says when it opens, until that time arrives.
 function ApplyCard({ o, say }: { o: Option; say: Say }) {
@@ -126,7 +126,7 @@ function ApplyCard({ o, say }: { o: Option; say: Say }) {
       <div>
         <h2 className={s.applyTitle}>{o.title}</h2>
         <span className={s.applyStatus} data-open={open} style={hold}>
-          {open ? "Applications open" : waiting ? `Opens ${whenOpens(o.at!)}` : "Applications not open yet"}
+          {open ? `${o.status} open` : waiting ? `Opens ${whenOpens(o.at!)}` : `${o.status} not open yet`}
         </span>
       </div>
       {open ? (
@@ -137,7 +137,7 @@ function ApplyCard({ o, say }: { o: Option; say: Say }) {
           style={hold}
           aria-disabled="true"
           data-closed
-          onClick={() => say(waiting ? `${o.what} open ${whenOpens(o.at!)} (Sydney time).` : `${o.what} haven't opened yet. Check back soon.`)}
+          onClick={() => say(waiting ? `${o.what} ${o.not === "aren't" ? "open" : "opens"} ${whenOpens(o.at!)} (Sydney time).` : `${o.what} ${o.not} open yet. Check back soon.`)}
         >
           {o.cta} →
         </button>

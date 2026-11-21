@@ -85,3 +85,52 @@ export function dataToBlob(data: string): Blob | null {
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return new Blob([bytes], { type: m[1] });
 }
+
+/** A photo decoded the right way up, with what draws it and its size. The <img> route is for browsers without
+ *  createImageBitmap or its orientation option; modern browsers draw an <img> the way its camera tags say. */
+async function decode(file: File): Promise<{ src: CanvasImageSource; w: number; h: number; done: () => void }> {
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    return { src: bitmap, w: bitmap.width, h: bitmap.height, done: () => bitmap.close() };
+  } catch {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      return { src: img, w: img.naturalWidth, h: img.naturalHeight, done: () => URL.revokeObjectURL(url) };
+    } catch (e) { URL.revokeObjectURL(url); throw e; }
+  }
+}
+
+/** A photo made no longer than `maxSide` pixels on its longest side, as a JPEG, so a camera-sized picture uploads quickly.
+ *  The original comes back unchanged when it is already small, when the copy wouldn't be smaller, or when anything
+ *  goes wrong: shrinking is a saving, never a reason an upload fails. */
+export async function shrinkPhoto(file: File, maxSide: number): Promise<File> {
+  let pic: Awaited<ReturnType<typeof decode>> | null = null;
+  try {
+    pic = await decode(file);
+    const { w, h } = pic;
+    if (!w || !h) return file;
+    const long = Math.max(w, h);
+    if (long <= maxSide && file.size < 400 * 1024) return file;
+    const scale = Math.min(1, maxSide / long);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(w * scale));
+    canvas.height = Math.max(1, Math.round(h * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    // JPEG has no transparency: without a white ground first, a see-through PNG would turn black.
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(pic.src, 0, 0, canvas.width, canvas.height);
+    const blob: Blob | null = await new Promise((done) => canvas.toBlob(done, "image/jpeg", 0.82));
+    if (!blob || blob.size >= file.size) return file;
+    const name = `${file.name.replace(/\.[^.]*$/, "") || "photo"}.jpg`;
+    return new File([blob], name, { type: "image/jpeg", lastModified: Date.now() });
+  } catch {
+    return file;
+  } finally {
+    pic?.done();
+  }
+}

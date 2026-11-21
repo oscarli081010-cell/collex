@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ViewTransition } from "react";
-import { formatDate, formatRange, isPast, monogram, NA, template, type Conference } from "@/lib/conferences";
+import { ViewTransition, type ReactNode } from "react";
+import { formatDate, formatRange, isPast, monogram, NA, shown, template, type Conference } from "@/lib/conferences";
 import RoleCard, { applyFor } from "@/components/RoleCard";
 import ReportProblem from "@/components/ReportProblem";
 import roleStyles from "@/components/Roles.module.css";
 import { getBySlug, getPublished } from "@/lib/data";
+import Photo from "@/components/Photo";
 import ApplyBand from "@/components/ApplyBand";
 import { ApplyOnCollex, ClaimListing } from "@/components/ConferenceHub";
 import ConferenceActions from "@/components/ConferenceActions";
@@ -80,6 +81,13 @@ function eventSchema(c: Conference) {
   };
 }
 
+// The venue, as a link that opens it in Google Maps. Unknown, it is just the "to be announced" text.
+function Venue({ name }: { name: string }) {
+  if (name === NA) return <>{shown(name)}</>;
+  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name}, NSW, Australia`)}`;
+  return <a href={url} className="link" target="_blank" rel="noopener noreferrer" aria-label={`Open ${name} in Google Maps`}>{name}</a>;
+}
+
 function Nothing({ what }: { what: string }) {
   return (
     <div className={s.nothing}>
@@ -115,10 +123,9 @@ export default async function ConferencePage({ params }: Props) {
         <ViewTransition name={`cover-${c.slug}`} share="morph" default="none">
           <div className={s.cover}>
             {c.cover
-              // eslint-disable-next-line @next/next/no-img-element -- organisers' photos come straight from storage at their own size
-              ? <img src={c.cover} alt="" className={s.coverImg} fetchPriority="high" style={c.coverPos ? { objectPosition: c.coverPos } : undefined} />
+              ? <Photo src={c.cover} alt="" className={s.coverImg} fill priority sizes="(max-width: 720px) 100vw, 1170px" style={c.coverPos ? { objectPosition: c.coverPos } : undefined} />
               : c.isTemplate
-                ? <span className={s.coverNote}>Cover image N/A</span>
+                ? <span className={s.coverNote}>Cover image to be announced</span>
                 // No photo yet: the conference's initials, as in the lists, so the page still opens on something of its own.
                 : <span className={`serif ${s.coverMark}`} aria-hidden="true">{monogram(c)}</span>}
           </div>
@@ -137,8 +144,8 @@ export default async function ConferencePage({ params }: Props) {
               The facts go underneath, the full width, so they never push the buttons down. */}
           <ul className={s.confMeta}>
             <li>{ICONS.date}{formatRange(c)}</li>
-            <li>{ICONS.host}Hosted by {c.host}</li>
-            <li>{ICONS.venue}{c.venue}</li>
+            <li>{ICONS.host}{c.host === NA ? "Host to be announced" : `Hosted by ${c.host}`}</li>
+            <li>{ICONS.venue}<Venue name={c.venue} /></li>
           </ul>
           <div className={s.confSide}>
             <div className={s.confAside}>
@@ -169,7 +176,7 @@ export default async function ConferencePage({ params }: Props) {
           <div className={s.main}>
             <section id="overview" className={s.block}>
               <h2 className={s.h2}>Overview</h2>
-              <p>{c.overview}</p>
+              <p>{shown(c.overview)}</p>
               {c.updatedAt && <p className={s.updated}>Updated {new Date(c.updatedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" })}</p>}
             </section>
 
@@ -243,10 +250,9 @@ export default async function ConferencePage({ params }: Props) {
                   {c.secretariat.map((p) => (
                     <div key={p.role} className={`panel ${s.person}`}>
                       <span className={s.avatar} aria-hidden="true">
-                        {/* eslint-disable-next-line @next/next/no-img-element -- a small saved photo */}
-                        {p.photo ? <img src={p.photo} alt="" width={36} height={36} loading="lazy" /> : initials(p.name)}
+                        {p.photo ? <Photo src={p.photo} alt="" width={36} height={36} sizes="36px" /> : initials(p.name)}
                       </span>
-                      <span>{p.name}<small>{p.role}</small></span>
+                      <span>{shown(p.name)}<small>{p.role}</small></span>
                     </div>
                   ))}
                 </div>
@@ -265,15 +271,15 @@ export default async function ConferencePage({ params }: Props) {
 
           <aside className={`panel ${s.facts}`} aria-label="At a glance">
             <dl>
-              {[
+              {([
                 ["Dates", formatRange(c)],
-                ["Host school", c.host],
-                ["Venue", c.venue],
-                ["Level", c.level ?? NA],
-                ["Delegates", c.delegates],
-                ["Delegate fee", c.fee],
-                ["Contact", c.contact],
-              ].map(([k, v]) => (
+                ["Host school", shown(c.host)],
+                ["Venue", <Venue name={c.venue} />],
+                ["Level", shown(c.level)],
+                ["Delegates", shown(c.delegates)],
+                ["Delegate fee", shown(c.fee)],
+                ["Contact", shown(c.contact)],
+              ] as [string, ReactNode][]).map(([k, v]) => (
                 <div key={k} className={s.fact}><dt>{k}</dt><dd>{v}</dd></div>
               ))}
             </dl>

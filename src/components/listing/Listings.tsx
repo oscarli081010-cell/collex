@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { formatRange, isPast, monogram, todayInSydney, type Conference } from "@/lib/conferences";
 import { ICONS } from "../IconButton";
+import Photo from "../Photo";
 import SearchBox from "../SearchBox";
 import { RowsSkeleton } from "../Skeleton";
 import { STATUS } from "./activity/words";
@@ -16,8 +17,7 @@ function ListingThumb({ c }: { c: Conference }) {
   const src = c.thumb ?? c.cover, at = c.thumb ? c.thumbPos : c.coverPos;
   return (
     <span className={s.listingThumb} aria-hidden="true">
-      {/* eslint-disable-next-line @next/next/no-img-element -- organisers' photos come straight from storage */}
-      {src ? <img src={src} alt="" loading="lazy" decoding="async" style={at ? { objectPosition: at } : undefined} /> : <span className="serif">{monogram(c)}</span>}
+      {src ? <Photo src={src} alt="" width={136} height={136} sizes="68px" style={at ? { objectPosition: at } : undefined} /> : <span className="serif">{monogram(c)}</span>}
     </span>
   );
 }

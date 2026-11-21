@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { googleEnabled } from "@/lib/authProviders";
 import { uploadPhoto } from "@/lib/photo";
 import { supabase } from "@/lib/supabase";
 import { applyTheme, THEMES, type Theme } from "@/lib/theme";
@@ -160,6 +161,44 @@ function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"
   );
 }
 
+// "Continue with Google", shown only once Supabase confirms Google sign-in is on. Until then (and whenever it is off)
+// it renders nothing at all, so the form does not move. Google sends people back to the same page they would reach
+// after a password login. The sign-up form passes its agreement line as the note under the button.
+function GoogleSignIn({ onError, children }: { onError: (message: string) => void; children?: React.ReactNode }) {
+  const [on, setOn] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    googleEnabled().then((v) => { if (alive) setOn(v); });
+    // Coming back with the browser's Back button restores this page as it was, button disabled; undo that.
+    const restored = (e: PageTransitionEvent) => { if (e.persisted) setBusy(false); };
+    window.addEventListener("pageshow", restored);
+    return () => { alive = false; window.removeEventListener("pageshow", restored); };
+  }, []);
+  if (!on || !supabase) return null;
+
+  const go = async () => {
+    setBusy(true);
+    const { error } = await supabase!.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${origin()}${nextPage()}` } });
+    if (error) { setBusy(false); onError(friendly(error.message)); }
+  };
+  return (
+    <div className={s.oauth}>
+      <button type="button" className="button secondary lg" onClick={go} disabled={busy}>
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+          <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 01-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z" />
+          <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.34A9 9 0 009 18z" />
+          <path fill="#FBBC05" d="M3.95 10.7A5.41 5.41 0 013.67 9c0-.59.1-1.17.28-1.7V4.96H.96A9 9 0 000 9c0 1.45.35 2.82.96 4.04l2.99-2.34z" />
+          <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58A9 9 0 009 0 9 9 0 00.96 4.96L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z" />
+        </svg>
+        <span key={String(busy)} className="t-swap">{busy ? "Opening Google…" : "Continue with Google"}</span>
+      </button>
+      {children}
+      <div className={s.or} role="separator"><span>or</span></div>
+    </div>
+  );
+}
+
 export function SignupForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -198,6 +237,9 @@ export function SignupForm() {
     <Banded band={{ title: "Create your", accent: "account", lead: "Follow conferences for email updates, and list your own." }}>
     <form key="form" className={`t-reveal ${s.form}`} onSubmit={submit} noValidate>
       <NotReady />
+      <GoogleSignIn onError={(form) => setErrors({ form })}>
+        <p className={s.oauthNote}>By continuing you agree to the <Link href="/terms" target="_blank">Terms of use</Link> and <Link href="/privacy" target="_blank">Privacy policy</Link>. If you&rsquo;re under 18, a parent or guardian has said yes.</p>
+      </GoogleSignIn>
       <Field label="Full name" error={errors.name}><input name="name" className="control" maxLength={120} autoComplete="name" onChange={clear("name")} /></Field>
       <Field label="School or University" hint="Optional"><SchoolPicker /></Field>
       <Field label="Email" error={errors.email}><input name="email" type="email" className="control" autoComplete="email" onChange={clear("email")} /></Field>
@@ -258,6 +300,12 @@ export function LoginForm() {
       : { title: "Reset your", accent: "password", lead: "We’ll email you a link to set a new one." }}>
     <form key={mode} className={`t-reveal ${s.form}`} onSubmit={submit} noValidate>
       <NotReady />
+      {mode === "login" && (
+        <GoogleSignIn onError={setError}>
+          {/* A new person can arrive this way too, so the same agreement is shown here. */}
+          <p className={s.oauthNote}>By continuing you agree to the <Link href="/terms" target="_blank">Terms of use</Link> and <Link href="/privacy" target="_blank">Privacy policy</Link>. If you&rsquo;re under 18, a parent or guardian has said yes.</p>
+        </GoogleSignIn>
+      )}
       <Field label="Email"><input name="email" type="email" className="control" autoComplete="email" onChange={() => setError("")} /></Field>
       {mode === "login" && (
         <Field label="Password"><Password name="password" autoComplete="current-password" onChange={() => setError("")} /></Field>

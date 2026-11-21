@@ -1,0 +1,15 @@
+/* The scan page: one centred card or box, sized for a phone held at the door. */
+.wrap { width: min(100%, 480px); margin: 32px auto 0; }
+.card { padding: 32px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
+.tick { width: 88px; height: 88px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 6px; background: var(--ok-soft); color: var(--ok); }
+.tick[data-tone="warn"] { background: var(--warn-soft); color: var(--warn); }
+.tick[data-tone="off"] { background: var(--surface); color: var(--muted); }
+.tick svg { width: 44px; height: 44px; }
+.wrap > .flat { margin-top: 0; }
+.name { font-family: var(--serif); font-weight: 400; font-size: clamp(32px, 8vw, 44px); line-height: 1.05; overflow-wrap: anywhere; text-wrap: balance; }
+.time { font-size: 17px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.card :global(.button) { margin-top: 12px; }
+
+/* A check-in code opened under its row on the account page. */
+.code { flex-basis: 100%; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 8px 0 4px; }
+.code > svg { margin-bottom: 6px; }

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CONTACT } from "./Footer";
 import s from "./LegalPage.module.css";
 
-export const UPDATED = "5 November 2026";
+export const UPDATED = "21 November 2026";
 
 const PAGES = [
   { href: "/privacy", label: "Privacy policy" },

@@ -116,8 +116,10 @@
   .confHead > .confMeta { margin-top: 0; }
   .confSide { padding-bottom: 0; }
   .confSide, .confAside { width: 100%; }
-  /* The calendar button sits at the left here, so its menu opens rightwards, on screen. */
-  .calPop { left: 0; right: auto; }
+  /* With Follow beside it the calendar button sits at the right end of the row, so its menu stays lined up with its right
+     edge and opens leftwards, on screen. Only when there is no Follow button (the buttons start at the left) does it
+     open rightwards instead; left-aligned beside Follow, the menu would stick out past the screen and scroll the page. */
+  .confAside:not(:has(.follow)) .calPop { left: 0; right: auto; transform-origin: top left; }
   .confAside .follow { flex: 1; }
   .confAside .follow > :global(.button) { width: 100%; }
 }

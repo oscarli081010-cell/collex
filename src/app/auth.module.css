@@ -209,3 +209,11 @@ a.listingName:hover { color: var(--accent); }
 .clashBanner { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: var(--warn-soft); color: var(--warn); font-size: 14px; line-height: 1.5; }
 .clashBanner svg { flex: none; margin-top: 3px; }
 .clashTag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; margin-top: 6px; border-radius: 6px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 500; }
+
+/* Continue with Google: the button, the sign-up agreement under it, and an "or" rule before the email fields. */
+.oauth { display: flex; flex-direction: column; gap: 14px; }
+.oauth > .button { width: 100%; gap: 10px; }
+.oauthNote { font-size: 13px; line-height: 1.5; color: var(--muted); }
+.oauthNote a { color: var(--accent); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+.or { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }

@@ -7,7 +7,7 @@ import * as ch from "@/lib/chamber";
 import type { Ballot, Chamber, Side } from "@/lib/chamber";
 import { backgroundData, dataToBlob, uploadBackground, uploadBackgroundBlob } from "@/lib/photo";
 import { supabase } from "@/lib/supabase";
-import { isId, useChamber } from "@/lib/useChamber";
+import { forgetChamber, isId, useChamber } from "@/lib/useChamber";
 import { useAuth } from "./AuthProvider";
 import { usePill } from "./usePill";
 import IconButton, { ConfirmIconButton, ICONS } from "./IconButton";
@@ -206,14 +206,31 @@ export default function Chambers() {
   if (status === "loading" || (cloudId && !c)) return <main id="top" className="container" />;
   if (!c || home) return <>
     <Setup signedIn={!!session} local={c} onCreate={async (x, devices) => {
-      // With delegates' devices the committee has to live on Collex from the start, so it is shared straight away.
-      if (devices && supabase) {
-        const { data, error } = await supabase.rpc("create_chamber", { initial: x });
-        if (error || !data) { say(error?.message ?? "Couldn't share the committee"); setLocal(x); return; }
-        await supabase.rpc("chamber_devices", { cid: data, action: "on" });
-        router.replace(`/chambers?c=${data}`);
+      // Every committee is saved to the account from the start, so it survives a cleared browser or a dead laptop.
+      // A committee kept in this browser is never replaced: if saving fails while one is kept, the chair stays on the form.
+      if (supabase && session) {
+        let id: string | null = null;
+        let message = "";
+        let limit = false;
+        try {
+          const { data, error } = await supabase.rpc("create_chamber", { initial: x });
+          if (error || !data) { message = error?.message ?? ""; limit = error?.code === "54000"; } else id = data as string;
+        } catch { /* the network dropped part-way: handled like any other failure below */ }
+        if (id) {
+          // Delegates' devices are turned on straight away; a failure here leaves the committee made, and the Share tab can retry.
+          if (devices) await supabase.rpc("chamber_devices", { cid: id, action: "on" });
+          router.replace(`/chambers?c=${id}`);
+          return;
+        }
+        // The account's own limit message is shown as it is, because keeping the committee in this browser would not fix it.
+        if (limit) { say(message); return; }
+        if (c) { say(message || "Couldn't reach Collex"); return; }
+        setLocal(x);
+        say("Couldn't reach Collex, so this committee is kept in this browser for now. Share it from the Share tab once you're back online.");
+        if (home) router.replace("/chambers");
         return;
       }
+      if (c) { say("Log in to start another committee"); return; }
       setLocal(x); say("Committee opened");
       if (home) router.replace("/chambers");
     }} />
@@ -224,7 +241,9 @@ export default function Chambers() {
 
   const finish = async (fn: () => PromiseLike<{ error: { message: string } | null }>) => {
     const { error } = await fn();
-    if (error) say(error.message); else router.replace("/chambers");
+    if (error) { say(error.message); return; }
+    if (cloudId) forgetChamber(cloudId); // deleted or left: the copy kept in this browser goes with it
+    router.replace("/chambers");
   };
   const leave = () => cloudId && supabase && session && finish(() => supabase!.rpc("remove_chamber_member", { cid: cloudId, target: session.user.id }));
   const remove = () => {
@@ -2030,7 +2049,7 @@ function Yours({ signedIn, mine, seats, local }: { signedIn: boolean; mine: Mine
       ) : mine === null ? (
         <section className={`panel ${s.setupCard}`}><p className="muted">Loading…</p></section>
       ) : (<>
-        {group("cs-started", "Started by You", started, "Nothing started yet", "Share a committee from its Share tab and it appears here, so you can open it on any device.")}
+        {group("cs-started", "Started by You", started, "Nothing started yet", "Committees you start appear here, on any device you log in on.")}
         {group("cs-shared", "Shared with You", shared, "Nothing shared yet", "When a chair adds you or you join with a code, the committee appears here.")}
         {seats && seats.length > 0 && (
           <section className={`panel ${s.setupCard}`} aria-labelledby="cs-seats">
@@ -2165,9 +2184,7 @@ function Setup({ onCreate, signedIn, local }: { onCreate: (c: Chamber, devices: 
               items={[{ id: "off", label: "On the Display" }, { id: "on", label: "On Their Own Devices" }]} />
             <small aria-live="polite">{devices ? "Delegates get a code to follow, ask for the floor, vote and pass notes." : "No phones or laptops needed."}</small>
           </div>
-          {local && !devices
-            ? <span className="tip" data-tip={`Only one committee is kept in this browser. Close ${local.name} first, or let delegates join on their devices.`} data-tip-align="start" style={{ display: "flex" }}><button type="submit" className="button lg block" disabled>Open Committee</button></span>
-            : <button type="submit" className="button lg block" disabled={!ok}>Open Committee</button>}
+          <button type="submit" className="button lg block" disabled={!ok}>Open Committee</button>
         </form>
         </>}
       </div>

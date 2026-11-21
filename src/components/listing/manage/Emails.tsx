@@ -25,6 +25,7 @@ export default function Emails({ ctx }: { ctx: ListingCtx }) {
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [armed, setArmed] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [sent, setSent] = useState<Sent[]>([]);
   const load = () => {
     if (!supabase || !c.id) return;
@@ -45,6 +46,17 @@ export default function Emails({ ctx }: { ctx: ListingCtx }) {
     setSubject(""); setBody("");
     sendMail(); load();
   };
+  // A test goes only to the organiser, so it leaves the draft and the real button's state alone: they send the real one next.
+  const test = async () => {
+    if (!supabase || !ok || testing) return;
+    setTesting(true);
+    const { data, error } = await supabase.rpc("send_broadcast_test", { conf: c.id, mail_subject: subject, mail_body: body });
+    setTesting(false);
+    if (error) return say(error.message);
+    say(`Test sent to ${data}`);
+    sendMail();
+  };
+  const testWhyNot = !canEdit ? ctx.whyNot || "You can't send email for this conference" : !ok ? "Write a subject and a message first" : "";
   return (
     <Section id="sec-emails" title="Emails">
       <div className={h.two}>
@@ -62,7 +74,12 @@ export default function Emails({ ctx }: { ctx: ListingCtx }) {
       </div>
       <div className="field"><label htmlFor="mail-sub">Subject</label><input id="mail-sub" className="control" value={subject} maxLength={120} onChange={(e) => setSubject(e.target.value)} disabled={!canEdit} /></div>
       <div className="field"><label htmlFor="mail-body">Message</label><textarea id="mail-body" className="control" rows={7} value={body} maxLength={3000} onChange={(e) => setBody(e.target.value)} disabled={!canEdit} /></div>
-      <button type="button" className="button" disabled={!canEdit || !ok || busy} onClick={() => void go()}>{busy ? "Sending…" : armed ? "Click Again to Send" : "Send Email"}</button>
+      <div className="btnStack">
+        {testWhyNot
+          ? <span className="tip" data-tip={testWhyNot}><button type="button" className="button secondary" disabled>Send Me a Test</button></span>
+          : <button type="button" className="button secondary" disabled={testing || busy} onClick={() => void test()}>{testing ? "Sending…" : "Send Me a Test"}</button>}
+        <button type="button" className="button" disabled={!canEdit || !ok || busy || testing} onClick={() => void go()}>{busy ? "Sending…" : armed ? "Click Again to Send" : "Send Email"}</button>
+      </div>
       {sent.length > 0 && (
         <ul className={h.rows}>
           {sent.map((x) => (

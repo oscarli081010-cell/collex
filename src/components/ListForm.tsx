@@ -4,13 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PageBand, { type BandProps } from "./PageBand";
 import { FormSkeleton } from "./Skeleton";
-import { Fragment, useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { coverUrl, formatRange, type Conference, type Role } from "@/lib/conferences";
 import { useConferences } from "./ConferencesContext";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
 import { forgetListing, keptEditing, loadEditing, staleEditing, warmActivity, type EditingData } from "@/lib/listingData";
-import { uploadPhoto } from "@/lib/photo";
+import { shrinkPhoto, uploadPhoto } from "@/lib/photo";
 import { isoToSydney, sydneyToIso } from "@/lib/schedule";
 import { useAuth } from "./AuthProvider";
 import { badGuide, badRole, CommitteesEditor, committeeRows, KeyDatesEditor, keyDateRows, RolesEditor, roleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toKeyDates, toRoles, toSecretariat, type CommitteeRow, type KeyDateRow, type RoleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
@@ -24,6 +24,8 @@ import board from "./board.module.css";
 import s from "@/app/inner.module.css";
 import Select from "./Select";
 import CoverFrame from "./CoverFrame";
+import { useToast } from "./useToast";
+import lf from "./ListForm.module.css";
 
 type F = { name: string; label: string; type: "text" | "date" | "email" | "url" | "select" | "textarea" | "datetime-local"; wide?: boolean; required?: boolean; hint?: string; options?: string[] };
 
@@ -51,6 +53,9 @@ const isUrl = (v: string) => /^https?:\/\/\S+\.\S+/.test(v);
 // Cover photos: the kinds and size the storage bucket accepts.
 const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const COVER_MAX = 5 * 1024 * 1024;
+// A picked photo may be bigger than that: it is shrunk in the browser first, and only what is uploaded has to fit.
+const COVER_PICK_MAX = 20 * 1024 * 1024;
+const COVER_SIDE = 2000;
 const GUIDE_MAX = 10 * 1024 * 1024;
 
 // A photo field: a newly picked file (uploaded on send), what the picker shows (the new one, the saved one, or
@@ -63,7 +68,7 @@ function PhotoField({ id, label, frame, ratio, ph, error, hint }: {
     <div className={`field ${error ? s.invalid : ""}`}>
       <label htmlFor={`f-${id}`}>{label} <span className="muted">(optional)</span></label>
       {ph.shown ? (
-        <CoverFrame src={ph.shown} x={ph.at[0]} y={ph.at[1]} ratio={ratio} label={frame} onChange={(x, y) => ph.setAt([x, y])} />
+        <CoverFrame src={ph.shown} x={ph.at[0]} y={ph.at[1]} ratio={ratio} label={frame} onChange={(x, y) => ph.reframe([x, y])} />
       ) : (
         <label htmlFor={`f-${id}`} className={s.coverPick}>
           <span className={s.coverEmpty}>
@@ -75,7 +80,7 @@ function PhotoField({ id, label, frame, ratio, ph, error, hint }: {
       <input id={`f-${id}`} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-invalid={Boolean(error)} aria-describedby={`f-${id}-hint`} onChange={ph.pick} />
       {error
         ? <small key="err" id={`f-${id}-hint`} className={`t-reveal ${s.error}`}>{error}</small>
-        : !ph.shown && <small id={`f-${id}-hint`}>{hint ? `${hint} ` : ""}JPG, PNG or WebP, up to 5MB.</small>}
+        : !ph.shown && <small id={`f-${id}-hint`}>{hint ? `${hint} ` : ""}JPG, PNG or WebP, up to 20MB.</small>}
       {ph.shown && (
         <div className="btnStack">
           <label htmlFor={`f-${id}`} className="button secondary">Change photo</label>
@@ -86,24 +91,38 @@ function PhotoField({ id, label, frame, ratio, ph, error, hint }: {
   );
 }
 
-function usePhoto(saved: string | null | undefined, fail: (msg: string | null) => void) {
+// `touched` is called when the person changes the photo (picks, removes or reframes it), not when a saved one is loaded.
+function usePhoto(saved: string | null | undefined, fail: (msg: string | null) => void, touched: () => void) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [removed, setRemoved] = useState(false);
   const [at, setAt] = useState<[number, number]>([50, 50]);
+  const [shrinking, setShrinking] = useState(false);
+  // Shrinking takes a moment, so only the latest pick (or a remove after it) counts: an older one that finishes late is dropped.
+  const latest = useRef(0);
+  // Read when a slow pick finishes, so the preview shown by then is the one revoked, not the one shown when it started.
+  const previewRef = useRef<string | null>(null);
+  const show = (url: string | null) => { if (previewRef.current) URL.revokeObjectURL(previewRef.current); previewRef.current = url; setPreview(url); };
   const savedUrl = saved && !removed ? coverUrl(saved) : null;
-  const pick = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
-    if (!COVER_TYPES[f.type]) return fail("Use a JPG, PNG or WebP photo.");
-    if (f.size > COVER_MAX) return fail("That photo is over 5 MB. Try a smaller one.");
+    const turn = ++latest.current;
+    if (!COVER_TYPES[f.type]) { setShrinking(false); return fail("Use a JPG, PNG or WebP photo."); }
+    if (f.size > COVER_PICK_MAX) { setShrinking(false); return fail("That photo is over 20 MB. Try a smaller one."); }
+    setShrinking(true);
+    const small = await shrinkPhoto(f, COVER_SIDE);
+    if (turn !== latest.current) return;
+    setShrinking(false);
+    if (small.size > COVER_MAX) return fail("That photo is over 5 MB. Try a smaller one.");
     fail(null);
-    if (preview) URL.revokeObjectURL(preview);
-    setFile(f); setPreview(URL.createObjectURL(f)); setRemoved(false); setAt([50, 50]); // a new photo starts in the middle
+    setFile(small); show(URL.createObjectURL(small)); setRemoved(false); setAt([50, 50]); // a new photo starts in the middle
+    touched();
   };
-  const remove = () => { if (preview) URL.revokeObjectURL(preview); setFile(null); setPreview(null); setRemoved(Boolean(saved)); };
-  return { file, removed, at, setAt, savedUrl, shown: preview ?? savedUrl, pick, remove };
+  const remove = () => { latest.current++; setShrinking(false); fail(null); show(null); setFile(null); setRemoved(Boolean(saved)); touched(); };
+  const reframe = (to: [number, number]) => { setAt(to); touched(); };
+  return { file, removed, at, setAt, reframe, shrinking, savedUrl, shown: preview ?? savedUrl, pick, remove };
 }
 
 // The fields an organiser can change on their listing, read back to fill the form.
@@ -132,8 +151,13 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
   const [editing, setEditing] = useState<Editing | null | "missing" | "viewonly">(null);
   const editId = listing?.id ?? null;
   const editRow = editing && typeof editing === "object" ? editing : null;
-  const coverPhoto = usePhoto(editRow?.cover_path, (m) => setErrors(({ cover: _, ...rest }) => (m ? { ...rest, cover: m } : rest)));
-  const thumbPhoto = usePhoto(editRow?.thumb_path, (m) => setErrors(({ thumb: _, ...rest }) => (m ? { ...rest, thumb: m } : rest)));
+  // Changes not yet saved. Only what the person does sets it: loading the listing into the form uses the plain setters.
+  // `edits` counts every change, so a save only clears the flag if nothing was changed while it was being sent.
+  const [dirty, setDirty] = useState(false);
+  const edits = useRef(0);
+  const touch = useCallback(() => { edits.current++; setDirty(true); }, []);
+  const coverPhoto = usePhoto(editRow?.cover_path, (m) => setErrors(({ cover: _, ...rest }) => (m ? { ...rest, cover: m } : rest)), touch);
+  const thumbPhoto = usePhoto(editRow?.thumb_path, (m) => setErrors(({ thumb: _, ...rest }) => (m ? { ...rest, thumb: m } : rest)), touch);
   const [committees, setCommittees] = useState<CommitteeRow[]>([]);
   const [secretariat, setSecretariat] = useState<SecretariatRow[]>(() => secretariatRows());
   const [roles, setRoles] = useState<RoleRow[]>([]);
@@ -181,6 +205,49 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
   const firstBadGuide = committees.findIndex(badGuide);
   const firstBadRole = roles.findIndex(badRole);
 
+  // On the new-listing page the form has its own toast; in a listing's workspace, the workspace's.
+  const toast = useToast();
+  const say = useRef(toast.say);
+  useEffect(() => { say.current = listing ? listing.say : toast.say; });
+  // While there are unsaved changes: closing or reloading the tab asks first, and leaving by a link takes a second click
+  // (the site's "click again to confirm"). The first click is stopped before Next's links or the tabs see it.
+  useEffect(() => {
+    if (!dirty) return;
+    let warnedAt = 0;
+    // A page the person chose to leave by a second click doesn't ask again as it unloads.
+    let leftAt = 0;
+    const onUnload = (e: BeforeUnloadEvent) => {
+      if (Date.now() - leftAt < 1000) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    const onClick = (e: MouseEvent) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (!(e.target instanceof Element)) return;
+      const a = e.target.closest("a[href]");
+      if (!a) return;
+      // Links that open somewhere else, or download, leave this page as it is.
+      const target = a.getAttribute("target");
+      if ((target && !["_self", "_top", "_parent"].includes(target)) || a.hasAttribute("download")) return;
+      let to: URL;
+      try { to = new URL(a.getAttribute("href")!, window.location.href); } catch { return; }
+      if (to.protocol !== "http:" && to.protocol !== "https:") return; // mailto: and the like
+      const here = window.location;
+      if (to.origin === here.origin && to.pathname === here.pathname && to.search === here.search) return; // only the hash differs
+      if (Date.now() - warnedAt < 4000) { warnedAt = 0; leftAt = Date.now(); return; }
+      e.preventDefault();
+      e.stopPropagation();
+      warnedAt = Date.now();
+      say.current("You have unsaved changes. Click again to leave without saving.");
+    };
+    window.addEventListener("beforeunload", onUnload);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("beforeunload", onUnload);
+      document.removeEventListener("click", onClick, true);
+    };
+  }, [dirty]);
+
   const check = (v: (k: string) => string) => {
     const out: Record<string, string> = {};
     if (!v("name")) out.name = "Add the conference's name.";
@@ -193,7 +260,10 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
       if (v(k) && !sydneyToIso(v(k))) out[k] = "That date and time doesn't look right.";
       else if (v(k) && !v(link)) out[k] = "Add the link this button opens first.";
     }
-    if (!v("publish")) out.publish = "Tick the box to confirm before sending.";
+    if (!edit && !v("publish")) out.publish = "Tick the box to confirm before sending.";
+    // A photo still being shrunk isn't in the form yet: saving now would leave it out.
+    if (coverPhoto.shrinking) out.cover = "Wait for the photo to finish loading.";
+    if (thumbPhoto.shrinking) out.thumb = "Wait for the photo to finish loading.";
     if (committees.some((r) => r.uploading)) out.guides = "Wait for the PDF to finish uploading.";
     else if (firstBadGuide >= 0) out.guides = "Fix the guide link marked below.";
     if (firstBadRole >= 0) out.roles = "Fix the apply link marked below.";
@@ -212,12 +282,14 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     const first = Object.keys(found)[0];
     if (first) {
       const el = (first === "guides" ? document.getElementById(firstBadGuide >= 0 ? `committee-${firstBadGuide}-guide` : "committee-0-first")
-        : first === "roles" ? document.getElementById(`role-${firstBadRole}-url`) : form.elements.namedItem(first)) as HTMLElement | null;
+        : first === "roles" ? document.getElementById(`role-${firstBadRole}-url`)
+        : first === "cover" || first === "thumb" ? document.getElementById(`f-${first}`) : form.elements.namedItem(first)) as HTMLElement | null;
       el?.focus({ preventScroll: true });
       el?.scrollIntoView({ block: "center", behavior: "smooth" });
       return;
     }
     setBusy(true);
+    const seen = edits.current;
     // Upload the photos first, into this account's own folder, so the listing only ever points at files that exist.
     const upload = async (f: File) => {
       const path = `${session.user.id}/${crypto.randomUUID()}.${COVER_TYPES[f.type]}`;
@@ -266,6 +338,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     setBusy(false);
     if (!error && !saved?.length) return setErrors({ form: "You can't edit this listing any more. Ask the person who listed it." });
     if (error) return setErrors({ form: error.message.startsWith("Too many listings") ? "You've sent 5 listings today. Try again tomorrow." : "Couldn't send it. Check your connection and try again." });
+    if (edits.current === seen) setDirty(false);
     if (edit) {
       forgetListing(edit.id);
       // New links or guides on a live listing queue emails to its followers; this sends them.
@@ -274,6 +347,8 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
       if (listing) { listing.say(edit.status === "published" ? "Saved. It shows on the live page now." : "Saved. It goes with the review."); listing.changed(); return; }
       if (edit.status === "published") refreshSite().then(() => router.refresh());
     }
+    // The form is gone once it is sent, so whatever was typed meanwhile went with it.
+    setDirty(false);
     setSent(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -298,7 +373,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
             <div className={`field ${f.wide ? s.wide : ""} ${err ? s.invalid : ""}`}>
               <label htmlFor={id} className={f.name === "overview" ? "sr-only" : undefined}>{f.label}{f.required ? <span className={s.req} aria-hidden="true"> *</span> : <span className="muted"> (optional)</span>}</label>
               {f.type === "select" ? (
-                <Select id={id} name={f.name} className="control" defaultValue={edit?.level ?? ""} onChange={clear}>
+                <Select id={id} name={f.name} className="control" defaultValue={edit?.level ?? ""} onChange={() => { clear(); touch(); }}>
                   <option value="">Not sure yet</option>
                   {f.options!.map((o) => <option key={o}>{o}</option>)}
                 </Select>
@@ -343,8 +418,14 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
           );
   };
 
+  // Any field typed in or changed. A photo picker is left to the photo, which counts only a photo it accepts.
+  const changed = (e: React.FormEvent<HTMLFormElement>) => {
+    if (e.target instanceof HTMLInputElement && e.target.type === "file") return;
+    touch();
+  };
+
   const form = (
-    <form key={edit?.id ?? "form"} className={s.listForm} onSubmit={submit} noValidate>
+    <form key={edit?.id ?? "form"} className={s.listForm} onSubmit={submit} onInput={changed} onChange={changed} noValidate>
       <Section id="sec-details" title="Details">
         <div className={s.formGrid}>{FIELDS.filter((f) => f.name !== "overview").map(field)}</div>
       </Section>
@@ -354,27 +435,27 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
       <Section id="sec-keydates" title="Key dates">
         <fieldset className="field">
           <legend className="sr-only">Key dates</legend>
-          <KeyDatesEditor rows={keyDates} setRows={setKeyDates} />
+          <KeyDatesEditor rows={keyDates} setRows={(a) => { touch(); setKeyDates(a); }} />
         </fieldset>
       </Section>
       <Section id="sec-committees" title="Committees">
         <fieldset className="field">
           <legend className="sr-only">Committees</legend>
           {errors.guides && <small key="err" className={`t-reveal ${s.error}`}>{errors.guides}</small>}
-          <CommitteesEditor rows={committees} setRows={(a) => { setCommittees(a); if (errors.guides) setErrors(({ guides: _, ...rest }) => rest); }} upload={uploadGuide} />
+          <CommitteesEditor rows={committees} setRows={(a) => { touch(); setCommittees(a); if (errors.guides) setErrors(({ guides: _, ...rest }) => rest); }} upload={uploadGuide} />
         </fieldset>
       </Section>
       <Section id="sec-secretariat" title="Secretariat">
         <fieldset className="field">
           <legend className="sr-only">Secretariat</legend>
-          <SecretariatEditor rows={secretariat} setRows={setSecretariat} upload={(file) => uploadPhoto(file, session!.user.id)} />
+          <SecretariatEditor rows={secretariat} setRows={(a) => { touch(); setSecretariat(a); }} upload={(file) => uploadPhoto(file, session!.user.id)} />
         </fieldset>
       </Section>
       <Section id="sec-roles" title="Help wanted">
         <fieldset className="field">
           <legend className="sr-only">Help wanted</legend>
           {errors.roles && <small key="err" className={`t-reveal ${s.error}`}>{errors.roles}</small>}
-          <RolesEditor rows={roles} setRows={(a) => { setRoles(a); if (errors.roles) setErrors(({ roles: _, ...rest }) => rest); }} />
+          <RolesEditor rows={roles} setRows={(a) => { touch(); setRoles(a); if (errors.roles) setErrors(({ roles: _, ...rest }) => rest); }} />
         </fieldset>
       </Section>
       <Section id="sec-photos" title="Photos">
@@ -382,18 +463,23 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
         <PhotoField id="thumb" label="Photo in the lists" frame="In the lists" ratio={1} ph={thumbPhoto} error={errors.thumb}
           hint={coverPhoto.shown ? "Leave empty to use the cover photo." : undefined} />
       </Section>
-      <div className={`panel ${card.card}`}>
-        <div className="field">
-          <label className={`check ${errors.publish ? "invalid" : ""}`} style={{ marginBottom: 8 }}>
-            <input type="checkbox" name="publish" aria-invalid={Boolean(errors.publish)} aria-describedby={errors.publish ? "publish-err" : undefined} onChange={() => errors.publish && setErrors(({ publish: _, ...rest }) => rest)} />
-            <span>I help run this conference or have its organisers&rsquo; permission, and I agree these details, including the contact email, will be public once approved. See the <Link href="/terms" target="_blank">Terms of use</Link>.</span>
-          </label>
-          {errors.publish && <p key="publish" id="publish-err" className={`t-reveal ${s.error}`}>{errors.publish}</p>}
-          {errors.form && <p key={errors.form} className={`t-reveal ${s.error}`}>{errors.form}</p>}
-          <button type="submit" className={`button lg ${auth.submit}`} disabled={busy}>
+      {/* In a listing's Edit tab this card stays at the foot of the screen while the form scrolls, so saving is always in reach. */}
+      <div className={`panel ${card.card} ${edit ? lf.bar : ""}`}>
+        <div className={`field ${edit ? lf.barInner : ""}`}>
+          {/* Agreed when the listing was first sent, so not asked again on every edit. */}
+          {!edit && (
+            <label className={`check ${errors.publish ? "invalid" : ""}`} style={{ marginBottom: 8 }}>
+              <input type="checkbox" name="publish" aria-invalid={Boolean(errors.publish)} aria-describedby={errors.publish ? "publish-err" : undefined} onChange={() => errors.publish && setErrors(({ publish: _, ...rest }) => rest)} />
+              <span>I help run this conference or have its organisers&rsquo; permission, and I agree these details, including the contact email, will be public once approved. See the <Link href="/terms" target="_blank">Terms of use</Link>.</span>
+            </label>
+          )}
+          {!edit && errors.publish && <p key="publish" id="publish-err" className={`t-reveal ${s.error}`}>{errors.publish}</p>}
+          {errors.form && <p key={errors.form} className={`t-reveal ${s.error} ${edit ? lf.barError : ""}`}>{errors.form}</p>}
+          {edit && <span className={lf.status} role="status">{dirty ? "Unsaved changes" : ""}</span>}
+          <button type="submit" className={`button lg ${edit ? lf.save : auth.submit}`} disabled={busy}>
             <span key={String(busy)} className="t-swap">{edit ? (busy ? "Saving…" : "Update") : busy ? "Sending…" : "Send for review"}</span>
           </button>
-          <small className="muted" style={{ textAlign: "center" }}>
+          <small className={`muted ${edit ? lf.barNote : ""}`} style={{ textAlign: "center" }}>
             <span className={s.req} aria-hidden="true">*</span> is required{!edit && <> <span aria-hidden="true">&middot;</span> The Collex team will review it before it goes live</>}
           </small>
         </div>
@@ -450,6 +536,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     <>
       <PageBand {...band} />
       <Work sections={FORM_SECTIONS}>{form}</Work>
+      {toast.node}
     </>
   );
 }

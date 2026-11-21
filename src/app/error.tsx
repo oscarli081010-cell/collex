@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { Placard } from "@/components/Drawings";
+import { reportError } from "@/components/Pulse";
 import s from "./auth.module.css";
 
 // Something broke while showing a page. A calm way back instead of a blank screen; the details stay in the console.
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  useEffect(() => { console.error(error); }, [error]);
+  useEffect(() => { console.error(error); reportError(error.message, error.stack, error.digest ? `\nDigest: ${error.digest}` : ""); }, [error]);
   return (
     <main id="top" className={`container ${s.page}`}>
       <div role="alert" className={`t-reveal ${s.form} ${s.lost}`}>

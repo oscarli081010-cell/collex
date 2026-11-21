@@ -74,7 +74,15 @@ export type Conference = {
   updatedAt?: string;
 };
 
+/** The stored marker for "not given". It stays "N/A" because saved listings hold it and code compares against it; visitors see `shown()`. */
 export const NA = "N/A";
+
+/** What a visitor reads in place of an unknown value. Never put this into data, files or search results. */
+export const TBA = "To be announced";
+export const DATE_TBA = "Date to be announced";
+
+/** A stored value as a visitor should see it: the "not given" marker reads as "To be announced". */
+export const shown = (v: string | null | undefined) => (!v || v === NA ? TBA : v);
 
 /** Where a cover photo is framed, from the two percentages saved with the listing. Neither saved means the middle. */
 export const coverPosition = (x: number | null | undefined, y: number | null | undefined) =>
@@ -127,14 +135,14 @@ export const MONTHS = [
 ];
 
 export function formatDate(iso: string | null) {
-  if (!iso) return NA;
+  if (!iso) return DATE_TBA;
   return new Date(iso + "T00:00:00").toLocaleDateString("en-AU", {
     weekday: "short", day: "numeric", month: "short", year: "numeric",
   });
 }
 
 export function formatRange(c: Conference) {
-  if (!c.startDate) return NA;
+  if (!c.startDate) return DATE_TBA;
   if (!c.endDate || c.endDate === c.startDate) return formatDate(c.startDate);
   return `${formatDate(c.startDate)} to ${formatDate(c.endDate)}`;
 }

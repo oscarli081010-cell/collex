@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RowsSkeleton } from "./Skeleton";
+import Photo from "./Photo";
 import SearchBox from "./SearchBox";
 import { Placard } from "./Drawings";
 import Verified from "./Verified";
@@ -21,6 +22,7 @@ import act from "./Activity.module.css";
 import Select from "./Select";
 import { AdminClaims } from "./HubExtras";
 import AdminChambers, { type AdminChamber } from "./AdminChambers";
+import { AdminVisitors, AdminErrors, type ClientError } from "./AdminPulse";
 
 type Row = {
   id: string; slug: string; status: string; name: string; host: string; start_date: string | null; end_date: string | null;
@@ -42,7 +44,7 @@ const LOG_TONE: Record<string, string> = { approved: "ok", rejected: "bad", unpu
 const LOG_WORDS: Record<string, string> = { submitted: "listed", "started a chamber": "started a committee", "shared a chamber": "shared a committee" };
 
 const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-const TABS = ["Review", "Conferences", "Reports", "Committees", "Users", "Audit Log"] as const;
+const TABS = ["Review", "Conferences", "Reports", "Committees", "Users", "Visitors", "Errors", "Audit Log"] as const;
 const REASON: Record<string, string> = { details: "Wrong or out of date", link: "Broken link", inappropriate: "Shouldn\u2019t be here", other: "Something else" };
 type Tab = (typeof TABS)[number];
 const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Rejected", unpublished: "Taken down" };
@@ -60,9 +62,11 @@ export default function Admin() {
   const [reports, setReports] = useState<Report[] | null>(null);
   const [chambers, setChambers] = useState<AdminChamber[] | null>(null);
   const [chambersError, setChambersError] = useState(false);
+  const [errors, setErrors] = useState<ClientError[] | null>(null);
+  const [errorsFailed, setErrorsFailed] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   // One search per tab, so switching tabs keeps what you typed in each.
-  const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Reports: "", Committees: "", Users: "", "Audit Log": "" });
+  const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Reports: "", Committees: "", Users: "", Visitors: "", Errors: "", "Audit Log": "" });
   // A new search starts on the first page of the audit log.
   useEffect(() => { setLogPage(0); }, [find["Audit Log"]]);
   const [statusFilter, setStatusFilter] = useState("any");
@@ -82,12 +86,13 @@ export default function Admin() {
 
   const load = useCallback(async () => {
     if (!supabase) return;
-    const [c, u, l, rp, ch] = await Promise.all([
+    const [c, u, l, rp, ch, er] = await Promise.all([
       supabase.from("conferences").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, email, full_name, school, role, is_admin, created_at").order("created_at", { ascending: false }),
       supabase.from("audit_log").select("*").order("at", { ascending: false }).limit(200),
       supabase.from("reports").select("id, conference_id, reason, note, reply_to, status, created_at, resolved_at, conferences(name, slug)").order("created_at", { ascending: false }).limit(200),
       supabase.rpc("admin_chambers"),
+      supabase.rpc("admin_errors"),
     ]);
     setRows((c.data as Row[]) ?? []);
     setUsers((u.data as User[]) ?? []);
@@ -95,6 +100,8 @@ export default function Admin() {
     setReports((rp.data as unknown as Report[] | null) ?? []);
     setChambersError(!!ch.error);
     setChambers((ch.data as AdminChamber[] | null) ?? []);
+    setErrorsFailed(!!er.error);
+    setErrors((er.data as ClientError[] | null) ?? []);
   }, []);
 
   useEffect(() => { if (profile?.is_admin) load(); }, [profile?.is_admin, load]);
@@ -192,7 +199,7 @@ export default function Admin() {
   const others = rows?.filter((r) => r.status !== "pending") ?? [];
   // Tab counts are always the totals; the search only narrows what the open tab shows.
   const openReports = (reports ?? []).filter((r) => r.status === "open");
-  const counts: Record<Tab, number | null> = { Review: pending.length, Conferences: others.length, Reports: openReports.length, Committees: chambers?.length ?? null, Users: users?.length ?? null, "Audit Log": null };
+  const counts: Record<Tab, number | null> = { Review: pending.length, Conferences: others.length, Reports: openReports.length, Committees: chambers?.length ?? null, Users: users?.length ?? null, Visitors: null, Errors: errors?.length ?? null, "Audit Log": null };
   const q = find[tab].trim().toLowerCase();
   const has = (...parts: (string | null | undefined)[]) => !q || parts.join(" ").toLowerCase().includes(q);
   const shownConfs = others.filter((r) => has(r.name, r.host, r.venue, STATUS[r.status]) && (statusFilter === "any" || r.status === statusFilter));
@@ -205,7 +212,7 @@ export default function Admin() {
   const searching = Boolean(q) || (tab === "Conferences" && statusFilter !== "any") || (tab === "Reports" && reportFilter !== "open");
   const clearSearch = () => { setFind((f) => ({ ...f, [tab]: "" })); if (tab === "Conferences") setStatusFilter("any"); if (tab === "Reports") setReportFilter("open"); };
   const noMatches = <Empty title="No matches" body="Try a different word, or clear the search."><button className="button secondary" onClick={clearSearch}>Clear search</button></Empty>;
-  const searchFor: Partial<Record<Tab, string>> = { Conferences: "Search by name, host, venue or status", Reports: "Search by listing, reason or message", Committees: "Search by name, owner or where it is", Users: "Search by name, email or school", "Audit Log": "Search by who, action or what" };
+  const searchFor: Partial<Record<Tab, string>> = { Conferences: "Search by name, host, venue or status", Reports: "Search by listing, reason or message", Committees: "Search by name, owner or where it is", Users: "Search by name, email or school", Errors: "Search by message or page", "Audit Log": "Search by who, action or what" };
 
   return (
     <div className={s.wrap}>
@@ -227,7 +234,7 @@ export default function Admin() {
 
       {rows === null ? <RowsSkeleton rows={4} height={72} /> : (
         <div key={tab} className="t-reveal">
-          {searchFor[tab] && (tab !== "Conferences" || others.length > 0) && (tab !== "Reports" || (reports ?? []).length > 0) && (tab !== "Audit Log" || log!.length > 0) && (tab !== "Committees" || (chambers ?? []).length > 0) && (
+          {searchFor[tab] && (tab !== "Conferences" || others.length > 0) && (tab !== "Reports" || (reports ?? []).length > 0) && (tab !== "Audit Log" || log!.length > 0) && (tab !== "Committees" || (chambers ?? []).length > 0) && (tab !== "Errors" || ((errors ?? []).length > 0 && !errorsFailed)) && (
             <div className={s.searchBar} role="search">
               <SearchBox label={`Search ${tab.toLowerCase()}`} placeholder={searchFor[tab]!} value={find[tab]} onChange={(v) => setFind((f) => ({ ...f, [tab]: v }))} />
               {tab === "Conferences" && (
@@ -244,7 +251,7 @@ export default function Admin() {
                 </Select>
               )}
               <span key={`${tab}${q}${statusFilter}${reportFilter}`} className={`t-swap muted ${s.searchCount}`} aria-live="polite">
-                {searching ? `${tab === "Conferences" ? shownConfs.length : tab === "Reports" ? shownReports.length : tab === "Committees" ? (chambers ?? []).filter((x) => `${x.name} ${x.owner_email} ${x.owner_name}`.toLowerCase().includes(q)).length : tab === "Users" ? shownUsers.length : shownLog.length} shown` : ""}
+                {searching ? `${tab === "Conferences" ? shownConfs.length : tab === "Reports" ? shownReports.length : tab === "Committees" ? (chambers ?? []).filter((x) => `${x.name} ${x.owner_email} ${x.owner_name}`.toLowerCase().includes(q)).length : tab === "Users" ? shownUsers.length : tab === "Errors" ? (errors ?? []).filter((x) => `${x.message} ${x.path}`.toLowerCase().includes(q)).length : shownLog.length} shown` : ""}
               </span>
             </div>
           )}
@@ -332,6 +339,10 @@ export default function Admin() {
           ))}
 
           {tab === "Committees" && <AdminChambers chambers={chambers ?? []} error={chambersError} say={say} reload={load} query={find.Committees} />}
+
+          {tab === "Visitors" && <AdminVisitors />}
+
+          {tab === "Errors" && <AdminErrors errors={errors ?? []} error={errorsFailed} say={say} reload={load} query={find.Errors} />}
 
           {tab === "Users" && (shownUsers.length === 0 ? noMatches : (
             <div className={s.tableWrap}>
@@ -465,9 +476,9 @@ function ReviewCard({ r, i, picked, onPick, onApprove, onReject }: { r: Row; i: 
         </div>
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element -- the organiser's photo, shown so it can be checked before approving */}
-      {r.cover_path && <img src={coverUrl(r.cover_path)!} alt={`Cover photo sent with ${r.name}`} className={s.reviewCover} style={{ objectPosition: coverPosition(r.cover_x, r.cover_y) ?? undefined }} />}
+      {r.cover_path && <Photo src={coverUrl(r.cover_path)!} alt={`Cover photo sent with ${r.name}`} className={s.reviewCover} width={1600} height={500} sizes="(max-width: 720px) 100vw, 720px" style={{ height: "auto", objectPosition: coverPosition(r.cover_x, r.cover_y) ?? undefined }} />}
       {/* eslint-disable-next-line @next/next/no-img-element -- the list photo, if one was sent */}
-      {r.thumb_path && <img src={coverUrl(r.thumb_path)!} alt={`Photo in the lists sent with ${r.name}`} className={s.reviewCover} style={{ width: 120, aspectRatio: "1", objectPosition: coverPosition(r.thumb_x, r.thumb_y) ?? undefined }} />}
+      {r.thumb_path && <Photo src={coverUrl(r.thumb_path)!} alt={`Photo in the lists sent with ${r.name}`} className={s.reviewCover} width={240} height={240} sizes="120px" style={{ width: 120, height: "auto", aspectRatio: "1", objectPosition: coverPosition(r.thumb_x, r.thumb_y) ?? undefined }} />}
       <dl className={s.facts}>
         {facts.filter(([, v]) => v).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
         {webUrl(r.delegation_url) && <div><dt>Registration</dt><dd><a className="link" href={webUrl(r.delegation_url)!} target="_blank" rel="noreferrer">Open link</a></dd></div>}

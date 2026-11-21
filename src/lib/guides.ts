@@ -18,7 +18,7 @@ export const GUIDES: Guide[] = [
         "Press Open Display and drag that tab to the projector. It follows the console by itself.",
       ] },
       { id: "share", title: "Share it with your co-chair", text: [
-        "In the Share tab, share the committee and give your co-chair the join code, or add them by the email on their Collex account. Both of you can then run the console at once from your own laptops, and the committee is saved on Collex so nothing is lost if a laptop dies.",
+        "Every committee you start is saved to your Collex account, so nothing is lost if a laptop dies. In the Share tab, give your co-chair the join code, or add them by the email on their Collex account, and both of you can run the console at once from your own laptops.",
       ] },
       { id: "running", title: "Running debate", steps: [
         "Take the roll call: Absent, Present, or Present & Voting. A state that is *Present & Voting cannot abstain* on the resolution.",
