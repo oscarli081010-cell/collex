@@ -43,7 +43,6 @@ export default function Home() {
             Sydney Model UN, <em>in one place.</em>
           </h1>
           <p className={styles.lead}>Upcoming conferences, dates and links, <span className={styles.aura}>on one calendar.</span></p>
-          <p className={styles.what}>Model UN is where students act as countries to debate the world&rsquo;s problems, and Collex helps Sydney high-school delegates, chairs and organisers find the conferences.</p>
           <div className={styles.heroActions}>
             <a href="#upcoming" className="button lg">See What&rsquo;s On</a>
             <Link href="/list" className="button secondary lg">List a Conference</Link>

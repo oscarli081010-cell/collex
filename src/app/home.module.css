@@ -26,7 +26,6 @@
 }
 @keyframes auraIn { to { background-size: 100% 100%; } }
 .heroActions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
-.what { font-size: 16px; line-height: 1.55; color: var(--muted); max-width: 46ch; text-wrap: pretty; }
 .start { padding-inline: 6px; }
 
 .heroPic { position: relative; }
