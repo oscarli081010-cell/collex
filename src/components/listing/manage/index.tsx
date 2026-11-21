@@ -1,4 +1,5 @@
 import type { SectionDef, TabModule } from "../types";
+import Announcements from "./Announcements";
 import Applications from "./Applications";
 import CheckIn from "./CheckIn";
 import Committees from "./Committees";
@@ -12,6 +13,7 @@ const SECTIONS: SectionDef[] = [
   { id: "sec-registrations", label: "Registrations", Body: Registrations },
   { id: "sec-applications", label: "Applications", Body: Applications },
   { id: "sec-emails", label: "Emails", Body: Emails },
+  { id: "sec-announcements", label: "Announcements", Body: Announcements },
   { id: "sec-print", label: "Placards and lists", Body: Printables },
   { id: "sec-checkin", label: "Check-in", Body: CheckIn },
   { id: "sec-committees", label: "Committees live", Body: Committees },

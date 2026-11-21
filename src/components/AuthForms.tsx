@@ -32,7 +32,9 @@ const origin = () => window.location.origin;
 const nextPage = () => {
   if (typeof window === "undefined") return "/account";
   const n = new URLSearchParams(window.location.search).get("next");
-  return n && n.startsWith("/") && !n.startsWith("//") && !n.startsWith("/\\") ? n : "/account";
+  if (!n || !n.startsWith("/")) return "/account";
+  // Resolved the way the browser will resolve it, so nothing that parses as another site gets through.
+  try { const u = new URL(n, window.location.origin); return u.origin === window.location.origin ? u.pathname + u.search + u.hash : "/account"; } catch { return "/account"; }
 };
 /** A link to the other auth page that carries ?next= along (read after the page loads, so the server and browser agree). */
 function NextLink({ path, className, children }: { path: string; className: string; children: React.ReactNode }) {
@@ -456,6 +458,8 @@ export function AccountView() {
 
   async function signOut() {
     await supabase!.auth.signOut();
+    // Committees kept in this browser for working without a connection go when the person logs out.
+    try { for (const k of Object.keys(localStorage)) if (k.startsWith("collex:chamber:") || k === "collex:chambers:kept") localStorage.removeItem(k); } catch { /* storage blocked */ }
     router.push("/");
   }
 

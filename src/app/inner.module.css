@@ -447,3 +447,7 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 .miniDays .evWrap[data-edge="end"] .preview { left: auto; right: -6px; transform: translate(0, 4px) scale(var(--scale-small, 0.98)); }
 .miniDays .evWrap[data-edge="end"]:hover .preview, .miniDays .evWrap[data-edge="end"]:focus-within .preview { transform: none; }
 .mini:hover, .mini:focus-within, .mini:has(.evWrap:hover, .evWrap:focus-within) { z-index: 6; }
+
+/* A conference's schedule: when it runs over several days, each day opens with a small heading row across the table. */
+.table .scheduleDay { border-top: 1px solid var(--line); color: var(--ink); }
+.table .scheduleTime { white-space: nowrap; font-variant-numeric: tabular-nums; }

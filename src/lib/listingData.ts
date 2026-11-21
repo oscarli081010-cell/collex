@@ -67,7 +67,7 @@ export async function loadEditing(id: string): Promise<EditingData | null> {
   if (!db) return null;
   const [{ data }, team] = await Promise.all([
     db.from("conferences")
-      .select("id, slug, status, name, host, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, delegation_opens_at, chair_opens_at, interest_url, overview, committees, guides, secretariat, roles, key_dates, cover_path, cover_x, cover_y, thumb_path, thumb_x, thumb_y")
+      .select("id, slug, status, name, host, start_date, end_date, venue, level, contact, fee, delegation_url, chair_url, delegation_opens_at, chair_opens_at, interest_url, overview, committees, guides, secretariat, roles, key_dates, schedule, cover_path, cover_x, cover_y, thumb_path, thumb_x, thumb_y")
       .eq("id", id).in("status", ["pending", "published"]).maybeSingle(),
     db.rpc("organisers_of", { conf: id }),
   ]);

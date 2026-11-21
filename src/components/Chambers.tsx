@@ -223,7 +223,9 @@ export default function Chambers() {
           return;
         }
         // The account's own limit message is shown as it is, because keeping the committee in this browser would not fix it.
-        if (limit) { say(message); return; }
+        if (limit && c) { say(message); return; }
+        // At the account's limit with nothing kept here: the committee is kept in this browser, as it always could be.
+        if (limit) { setLocal(x); say(message); if (home) router.replace("/chambers"); return; }
         if (c) { say(message || "Couldn't reach Collex"); return; }
         setLocal(x);
         say("Couldn't reach Collex, so this committee is kept in this browser for now. Share it from the Share tab once you're back online.");

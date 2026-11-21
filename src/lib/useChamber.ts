@@ -76,6 +76,8 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
 
   useEffect(() => {
     alive.current = true;
+    // This run's own flag: a request started for one committee must never answer into the next one.
+    let current = true;
     pending.current = [];
     ver.current = 0;
     fedAt.current = 0;
@@ -86,15 +88,15 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
       show(ch.load());
       setStatus("ready");
       // The display follows the console through the browser's own storage events.
-      if (!o.readOnly) return () => { alive.current = false; };
+      if (!o.readOnly) return () => { current = false; alive.current = false; };
       const onStore = (e: StorageEvent) => { if (e.key === ch.KEY || e.key === null) show(ch.load()); };
       window.addEventListener("storage", onStore);
-      return () => { alive.current = false; window.removeEventListener("storage", onStore); };
+      return () => { current = false; alive.current = false; window.removeEventListener("storage", onStore); };
     }
 
     show(null);
-    if (!o.authReady) { setStatus("loading"); return () => { alive.current = false; }; }
-    if (!o.signedIn || !supabase) { setStatus("signin"); return () => { alive.current = false; }; }
+    if (!o.authReady) { setStatus("loading"); return () => { current = false; alive.current = false; }; }
+    if (!o.signedIn || !supabase) { setStatus("signin"); return () => { current = false; alive.current = false; }; }
     setStatus("loading");
     const db = supabase;
 
@@ -109,8 +111,9 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
     const open = async (first: boolean) => {
       // Whose browser this is: read from the session kept here, with no request, so it is known with no connection too.
       if (!uid.current) uid.current = (await db.auth.getSession()).data.session?.user.id ?? "";
+      if (!current) return;
       const { data, error } = await db.rpc("open_chamber", { cid: cloudId });
-      if (!alive.current) return;
+      if (!current || !alive.current) return;
       if (error) {
         if (error.code === "42501") { dropKept(cloudId); setStatus("denied"); return; } // no longer theirs to open: the copy goes too
         if (!first) return;
@@ -151,6 +154,7 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chambers", filter: `id=eq.${cloudId}` },
         (p) => {
           const r = p.new as { state: Chamber; version: number };
+          if (!current) return;
           if (pending.current.length || r.version <= ver.current || (o.readOnly && Date.now() - fedAt.current < FED)) return;
           ver.current = r.version;
           show(ch.normalise(r.state));
@@ -168,7 +172,7 @@ export function useChamber(cloudId: string | null, o: { signedIn: boolean; authR
       show(k.state);
     };
     if (o.readOnly) window.addEventListener("storage", onStore);
-    return () => { alive.current = false; clearInterval(poll); void db.removeChannel(live); window.removeEventListener("storage", onStore); };
+    return () => { current = false; alive.current = false; clearInterval(poll); void db.removeChannel(live); window.removeEventListener("storage", onStore); };
   }, [cloudId, o.signedIn, o.authReady, o.readOnly, show, keep]);
 
   // Local committees save to this browser after every change.

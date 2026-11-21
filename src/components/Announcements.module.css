@@ -1,0 +1,15 @@
+/* Notes from the organisers, under the register cards: one panel, a note to a row, newest first. */
+.wrap { margin-bottom: 28px; }
+.list { margin: 0; padding: 0 22px; list-style: none; }
+.list > li { display: flex; flex-direction: column; gap: 6px; padding: 16px 0; }
+.list > li + li { border-top: 1px solid var(--line); }
+/* Line breaks the organiser typed are kept; the text is never read as markup. */
+.body { white-space: pre-line; overflow-wrap: anywhere; font-size: 15px; line-height: 1.55; color: var(--ink); max-width: 65ch; }
+.when { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.more { margin-top: 12px; }
+/* The same notes in the Manage tab's list. */
+.keepBreaks { white-space: pre-line; }
+
+@media (max-width: 640px) {
+  .list { padding: 0 18px; }
+}

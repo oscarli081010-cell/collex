@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ViewTransition, type ReactNode } from "react";
-import { formatDate, formatRange, isPast, monogram, NA, shown, template, type Conference } from "@/lib/conferences";
+import { formatDate, formatRange, isPast, monogram, NA, shown, template, type Conference, type ScheduleItem } from "@/lib/conferences";
 import RoleCard, { applyFor } from "@/components/RoleCard";
 import ReportProblem from "@/components/ReportProblem";
 import roleStyles from "@/components/Roles.module.css";
 import { getBySlug, getPublished } from "@/lib/data";
 import Photo from "@/components/Photo";
+import Announcements from "@/components/Announcements";
 import ApplyBand from "@/components/ApplyBand";
 import { ApplyOnCollex, ClaimListing } from "@/components/ConferenceHub";
 import ConferenceActions from "@/components/ConferenceActions";
@@ -98,6 +99,27 @@ function Nothing({ what }: { what: string }) {
   );
 }
 
+// "13:05" → "1:05 pm". Written out by hand so the server and every browser show it the same way.
+function clock(time: string) {
+  const [h, m] = time.split(":").map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "am" : "pm"}`;
+}
+
+// The schedule in order: by day, then time. Items with no day come first, and on any day an item without a time comes
+// before the timed ones. Split by day only when it runs over more than one day; otherwise it is one list.
+function scheduleGroups(items: ScheduleItem[]) {
+  const sorted = [...items].sort((a, b) => (a.day ?? "").localeCompare(b.day ?? "") || a.time.localeCompare(b.time));
+  const days = new Set(sorted.flatMap((x) => (x.day ? [x.day] : [])));
+  if (days.size < 2) return [{ day: null, items: sorted }];
+  const groups: { day: string | null; items: ScheduleItem[] }[] = [];
+  for (const x of sorted) {
+    const last = groups[groups.length - 1];
+    if (last && last.day === x.day) last.items.push(x);
+    else groups.push({ day: x.day, items: [x] });
+  }
+  return groups;
+}
+
 // A committee's released guide, by name.
 const guideOf = (c: Conference, committee: string) => c.guides.find((g) => g.committee === committee && g.url)?.url ?? null;
 
@@ -110,7 +132,7 @@ export default async function ConferencePage({ params }: Props) {
   // The secretariat comes before the ways to get involved.
   const hasRoles = Boolean(c.roles?.length) && !past;
   const tabs = [
-    ["overview", "Overview"], ["dates", "Key dates"], ["committees", "Committees"], ["guides", "Background guides"], ["secretariat", "Secretariat"],
+    ["overview", "Overview"], ["dates", "Key dates"], ["schedule", "Schedule"], ["committees", "Committees"], ["guides", "Background guides"], ["secretariat", "Secretariat"],
     ...(hasRoles ? [["roles", "Get involved"] as const] : []),
   ] as const;
 
@@ -162,6 +184,7 @@ export default async function ConferencePage({ params }: Props) {
             <p className="muted">Its page stays up so committees and guides are easy to look back on. <Link href="/conferences" className="link">See what&rsquo;s coming up</Link></p>
           </section>
         ) : <><ApplyBand c={c} /><ApplyOnCollex c={c} /></>}
+        {c.id && !c.isTemplate && <Announcements id={c.id} />}
         {!past && !c.isTemplate && <StickyApply c={c} />}
         <a href="#details" className={s.cue}>
           Details
@@ -193,6 +216,27 @@ export default async function ConferencePage({ params }: Props) {
                         <tr key={k.label}><td>{k.label}</td><td className={s.right}>{formatDate(k.date)}</td></tr>
                       ))}
                     </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            <section id="schedule" className={s.block}>
+              <h2 className={s.h2}>Schedule</h2>
+              {c.schedule.length === 0 ? (
+                <Nothing what="schedule" />
+              ) : (
+                <div className={s.tableWrap}>
+                  <table className={s.table}>
+                    <thead><tr><th scope="col">When</th><th scope="col">What</th><th scope="col">Where</th></tr></thead>
+                    {scheduleGroups(c.schedule).map((g, i) => (
+                      <tbody key={g.day ?? `none-${i}`}>
+                        {g.day && <tr><th scope="rowgroup" colSpan={3} className={s.scheduleDay}>{formatDate(g.day)}</th></tr>}
+                        {g.items.map((x, j) => (
+                          <tr key={j}><td className={s.scheduleTime}>{x.time ? clock(x.time) : ""}</td><td>{x.title}</td><td>{x.place}</td></tr>
+                        ))}
+                      </tbody>
+                    ))}
                   </table>
                 </div>
               )}

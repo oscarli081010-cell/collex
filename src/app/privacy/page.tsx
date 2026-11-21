@@ -40,7 +40,7 @@ export default function Privacy() {
         <h3>When you visit</h3>
         <p>Like any website, the servers that deliver Collex receive your IP address, browser type and the page you asked for. Our providers use this to deliver pages, stop abuse and find faults, and keep it in short-lived logs.</p>
         <p>Collex counts page views without cookies. For each page it keeps only the day and a running count of views and of first views in a browser tab. No IP address, account or device identifier is stored with the count.</p>
-        <p>If a page breaks, we record the error message, the page&rsquo;s address (without anything after a &ldquo;?&rdquo;), and the browser&rsquo;s name and version so it can be fixed. This is not linked to an account.</p>
+        <p>If a page breaks, we record the error message, the page&rsquo;s address (without anything after a &ldquo;?&rdquo;), and the details your browser sends about itself (its name, version and device type) so it can be fixed. This is not linked to an account.</p>
         <p>Nothing is sent to an analytics or advertising company. We do not use advertising, tracking pixels or social media embeds, and we do not build profiles of visitors.</p>
       </section>
 

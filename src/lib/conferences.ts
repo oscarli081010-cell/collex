@@ -24,6 +24,24 @@ export type Committee = {
   chairs: string;
 };
 
+/** One item of the day's schedule. `day` is null when the schedule doesn't say which day; `time` is "HH:MM" (24-hour) or empty. */
+export type ScheduleItem = { day: string | null; time: string; title: string; place: string };
+
+/** A stored schedule as the page can trust it: anything malformed is dropped or emptied, and a missing one is empty. */
+export const scheduleOf = (v: unknown): ScheduleItem[] =>
+  (Array.isArray(v) ? v : []).flatMap((x): ScheduleItem[] => {
+    if (!x || typeof x !== "object") return [];
+    const o = x as Record<string, unknown>;
+    const title = typeof o.title === "string" ? o.title.trim() : "";
+    if (!title) return [];
+    return [{
+      day: typeof o.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(o.day) ? o.day : null,
+      time: typeof o.time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(o.time) ? o.time : "",
+      title,
+      place: typeof o.place === "string" ? o.place.trim() : "",
+    }];
+  });
+
 export type Conference = {
   /** Database id; the demo page has none. */
   id?: string;
@@ -40,6 +58,8 @@ export type Conference = {
   delegates: string;
   overview: string;
   keyDates: { label: string; date: string | null }[];
+  /** What happens when on the day, in the order the organiser entered it. */
+  schedule: ScheduleItem[];
   committees: Committee[];
   guides: { committee: string; released: string | null; url: string | null }[];
   /** Roles the conference needs filled; empty for most. */
@@ -115,6 +135,14 @@ export const template: Conference = {
     { label: "Background guides released", date: null },
     { label: "Position papers due", date: null },
     { label: "Conference day", date: null },
+  ],
+  schedule: [
+    { day: null, time: "08:00", title: "Registration and check-in", place: "Main foyer" },
+    { day: null, time: "08:45", title: "Opening ceremony", place: "Great Hall" },
+    { day: null, time: "09:30", title: "Committee session I", place: "Committee rooms" },
+    { day: null, time: "12:30", title: "Lunch", place: "Dining hall" },
+    { day: null, time: "13:15", title: "Committee session II", place: "Committee rooms" },
+    { day: null, time: "15:30", title: "Closing ceremony and awards", place: "Great Hall" },
   ],
   committees: [],
   guides: [],

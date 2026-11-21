@@ -2,7 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { flushSync } from "react-dom";
-import { NA, ROLE_KINDS, webUrl, type Committee, type Conference, type Role, type RoleKind } from "@/lib/conferences";
+import { NA, ROLE_KINDS, scheduleOf, webUrl, type Committee, type Conference, type Role, type RoleKind, type ScheduleItem } from "@/lib/conferences";
 import IconButton, { ICONS } from "./IconButton";
 import s from "@/app/inner.module.css";
 import Select from "./Select";
@@ -262,6 +262,45 @@ export function KeyDatesEditor({ rows, setRows }: { rows: KeyDateRow[]; setRows:
       render={(r, i, set) => <>
         <label><span>What</span><input id={`keydate-${i}-first`} className="control" value={r.label} maxLength={80} placeholder={r.hint ?? "For example, Position papers due"} onChange={(e) => set({ label: e.target.value })} /></label>
         <label><span>When</span><input className="control" type="date" value={r.date} onChange={(e) => set({ date: e.target.value })} /></label>
+      </>}
+    />
+  );
+}
+
+// ---- Schedule: what happens when on the day ----
+
+export type ScheduleRow = { day: string; time: string; title: string; place: string; key: string };
+
+/** The rows for a saved schedule; a missing or malformed one gives none. */
+export const scheduleRows = (list: unknown): ScheduleRow[] =>
+  scheduleOf(list).map((x) => ({ day: x.day ?? "", time: x.time, title: x.title, place: x.place, key: key() }));
+/** Back to what the listing stores: a row with nothing under What is dropped, and one with no time keeps an empty time.
+ *  A time field can give seconds ("09:00:00"), so only the hours and minutes are kept. Day is always written, null when empty. */
+export const toSchedule = (rows: ScheduleRow[]): ScheduleItem[] =>
+  rows.filter((r) => r.title.trim()).map((r) => {
+    const time = r.time.slice(0, 5);
+    return {
+      day: /^\d{4}-\d{2}-\d{2}$/.test(r.day) ? r.day : null,
+      time: /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : "",
+      title: r.title.trim(),
+      place: r.place.trim(),
+    };
+  });
+
+/** `first` and `last` are the conference's days, when known, so the date picker opens on them. */
+export function ScheduleEditor({ rows, setRows, first, last }: { rows: ScheduleRow[]; setRows: Dispatch<SetStateAction<ScheduleRow[]>>; first?: string; last?: string }) {
+  // A one-day conference may have no last day; the picker then keeps to its first.
+  const max = (last && (!first || last >= first) ? last : first) || undefined;
+  return (
+    <Rows<ScheduleRow>
+      id="schedule" rows={rows} setRows={setRows} addLabel="Add an item" max={60}
+      label={(r, i) => r.title.trim() || `item ${i + 1}`}
+      make={() => ({ day: "", time: "", title: "", place: "", key: key() })}
+      render={(r, i, set) => <>
+        <label><span>Day</span><input id={`schedule-${i}-first`} className="control" type="date" value={r.day} min={first || undefined} max={max} onChange={(e) => set({ day: e.target.value })} /></label>
+        <label><span>Time</span><input className="control" type="time" value={r.time} onChange={(e) => set({ time: e.target.value })} /></label>
+        <label><span>What</span><input className="control" value={r.title} maxLength={120} placeholder="For example, Opening ceremony" onChange={(e) => set({ title: e.target.value })} /></label>
+        <label><span>Where</span><input className="control" value={r.place} maxLength={120} placeholder="For example, Great Hall" onChange={(e) => set({ place: e.target.value })} /></label>
       </>}
     />
   );

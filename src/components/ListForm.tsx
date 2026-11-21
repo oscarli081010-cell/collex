@@ -13,7 +13,7 @@ import { forgetListing, keptEditing, loadEditing, staleEditing, warmActivity, ty
 import { shrinkPhoto, uploadPhoto } from "@/lib/photo";
 import { isoToSydney, sydneyToIso } from "@/lib/schedule";
 import { useAuth } from "./AuthProvider";
-import { badGuide, badRole, CommitteesEditor, committeeRows, KeyDatesEditor, keyDateRows, RolesEditor, roleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toKeyDates, toRoles, toSecretariat, type CommitteeRow, type KeyDateRow, type RoleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
+import { badGuide, badRole, CommitteesEditor, committeeRows, KeyDatesEditor, keyDateRows, RolesEditor, roleRows, ScheduleEditor, scheduleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toKeyDates, toRoles, toSchedule, toSecretariat, type CommitteeRow, type KeyDateRow, type RoleRow, type ScheduleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
 import Section from "./listing/Section";
 import { Work } from "./listing/Shell";
 import type { ListingCtx } from "./listing/types";
@@ -134,7 +134,7 @@ const OPENS: Record<string, string> = { delegation_opens: "delegation_opens_at",
 /** The form's cards, in order: what the list beside it jumps to. */
 export const FORM_SECTIONS = [
   { id: "sec-details", label: "Details" }, { id: "sec-overview", label: "Overview" }, { id: "sec-keydates", label: "Key dates" },
-  { id: "sec-committees", label: "Committees" },
+  { id: "sec-schedule", label: "Schedule" }, { id: "sec-committees", label: "Committees" },
   { id: "sec-secretariat", label: "Secretariat" }, { id: "sec-roles", label: "Help wanted" }, { id: "sec-photos", label: "Photos" },
 ];
 
@@ -162,6 +162,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
   const [secretariat, setSecretariat] = useState<SecretariatRow[]>(() => secretariatRows());
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [keyDates, setKeyDates] = useState<KeyDateRow[]>(() => keyDateRows());
+  const [schedule, setSchedule] = useState<ScheduleRow[]>([]);
   // Guides whose committee has since been removed or renamed: kept as they were.
   const [stray, setStray] = useState<Conference["guides"]>([]);
   // Keyed on who is signed in, not on the session object, so a silent token refresh never reloads the form over unsaved edits.
@@ -179,6 +180,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     setSecretariat(secretariatRows((row?.secretariat as unknown as { role: string; name: string; photo?: string }[] | undefined) ?? []));
     setRoles(roleRows(row?.roles as unknown as Partial<Role>[] | undefined));
     setKeyDates(keyDateRows(row ? (row.key_dates as unknown as { label: string; date: string | null }[] | null) ?? [] : undefined));
+    setSchedule(scheduleRows(row?.schedule));
     setStray(strayGuides(row?.committees ?? [], row?.guides ?? []));
     const at = (k: string) => { const n = Number((row as Record<string, unknown> | null)?.[k]); return row?.[k] != null && Number.isFinite(n) ? n : 50; };
     coverPhoto.setAt([at("cover_x"), at("cover_y")]);
@@ -309,6 +311,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     const people = toSecretariat(secretariat);
     const roleList = toRoles(roles);
     const dateList = toKeyDates(keyDates);
+    const scheduleList = toSchedule(schedule);
     const fields = {
       name: v("name"),
       host: v("host"),
@@ -330,9 +333,9 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     };
     // .select() returns the saved row, so an edit that changed nothing (no access any more) is caught, not shown as saved.
     const { data: saved, error } = edit
-      ? await supabase.from("conferences").update({ ...fields, guides: guideList, secretariat: people, roles: roleList, key_dates: dateList }).eq("id", edit.id).select("id")
+      ? await supabase.from("conferences").update({ ...fields, guides: guideList, secretariat: people, roles: roleList, key_dates: dateList, schedule: scheduleList }).eq("id", edit.id).select("id")
       : await supabase.from("conferences").insert({
-          ...fields, ...(guideList.length ? { guides: guideList } : {}), ...(people.length ? { secretariat: people } : {}), ...(roleList.length ? { roles: roleList } : {}), ...(dateList.length ? { key_dates: dateList } : {}),
+          ...fields, ...(guideList.length ? { guides: guideList } : {}), ...(people.length ? { secretariat: people } : {}), ...(roleList.length ? { roles: roleList } : {}), ...(dateList.length ? { key_dates: dateList } : {}), ...(scheduleList.length ? { schedule: scheduleList } : {}),
           submitted_by: session.user.id,
         }).select("id");
     setBusy(false);
@@ -438,6 +441,12 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
           <KeyDatesEditor rows={keyDates} setRows={(a) => { touch(); setKeyDates(a); }} />
         </fieldset>
       </Section>
+      <Section id="sec-schedule" title="Schedule">
+        <fieldset className="field">
+          <legend className="sr-only">Schedule</legend>
+          <ScheduleEditor rows={schedule} setRows={(a) => { touch(); setSchedule(a); }} first={firstDay} last={lastDay} />
+        </fieldset>
+      </Section>
       <Section id="sec-committees" title="Committees">
         <fieldset className="field">
           <legend className="sr-only">Committees</legend>
@@ -528,7 +537,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
         </ol>
         <div className="btnStack one">
           <Link href="/listings" className="button lg">See its status</Link>
-          <button className="button secondary lg" onClick={() => { setSent(false); setCommittees([]); setStray([]); setSecretariat(secretariatRows()); setRoles([]); setKeyDates(keyDateRows()); }}>List another</button>
+          <button className="button secondary lg" onClick={() => { setSent(false); setCommittees([]); setStray([]); setSecretariat(secretariatRows()); setRoles([]); setKeyDates(keyDateRows()); setSchedule([]); }}>List another</button>
         </div>
       </div>);
   }
