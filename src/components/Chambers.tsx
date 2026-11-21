@@ -578,7 +578,7 @@ function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: Act; lef
       if (sp.phase === "after") return (
         <>
           <div className="field">
-            <label htmlFor="fl-ask">Who Asks?</label>
+            <label htmlFor="fl-ask">Point of Information From Who?</label>
             <Select id="fl-ask" className="control" value={askerId} onChange={(e) => setAsker(e.target.value)}>
               <option value="">Choose a state</option>
               {askers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
