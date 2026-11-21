@@ -1256,6 +1256,9 @@ function RollCall({ c, act }: { c: Chamber; act: Act }) {
         { label: "Still to Vote", value: n.left },
       ]} />
       {two ? <p className={s.hint}>Two-thirds of the votes cast, so {need} For at the moment. Abstentions count for neither.</p> : t ? <p className={s.hint}>More For than Against, so {need} For at the moment. Abstentions count for neither.</p> : <p className={s.hint}>Needs at least {need} in favour</p>}
+      {closed
+        ? <p className={s.hint}>The vote is recorded, so the ballots can&rsquo;t be changed.</p>
+        : c.delegates.some((d) => ch.isHere(c, d.id) && c.roll[d.id] === "voting") && <p className={s.hint}>States marked Present &amp; Voting can&rsquo;t {t ? "vote Neutral" : "abstain"}.</p>}
       <ul className={s.ballots}>
         {c.delegates.filter((d) => ch.isHere(c, d.id)).map((d) => (
           <li key={d.id} className={s.ballot}>

@@ -433,6 +433,7 @@ p, li, dd, small, figcaption { text-wrap: pretty; }
 }
 /* A disabled control swallows taps; let them land on the tip around it. */
 .tip > :disabled, .tip > [aria-disabled="true"] { pointer-events: none; }
+.tip:has(> :disabled), .tip:has(> [aria-disabled="true"]) { cursor: not-allowed; }
 .tip:hover::after { opacity: 1; translate: 0 0; scale: 1; transition-delay: 500ms; }
 .tip:has(:focus-visible)::after, .tip[data-tip-open]::after, .tip[data-tip-show]::after { opacity: 1; translate: 0 0; scale: 1; transition-delay: 0ms; }
 @media (prefers-reduced-motion: reduce) { .tip::after { translate: none; } }

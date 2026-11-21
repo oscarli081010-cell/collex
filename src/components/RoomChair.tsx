@@ -44,7 +44,7 @@ export function Inbox({ c, act, room, say, refresh }: { c: Chamber; act: Act; ro
     if (next === c) { say(why ?? "That can't be done now."); return; }
     setBusy(a.id);
     // Replayed on a newer copy of the committee if another chair acted first, so it is worked out again from that copy.
-    const changed = await act((x) => (ch.holds(x, a.id) ? x : acceptAsk(x, a, a.id).next));
+    const changed = await act((x) => { if (ch.holds(x, a.id)) return x; const n = acceptAsk(x, a, a.id).next; return n === x ? x : ch.asked(n, a.id); });
     setBusy("");
     // Marked done only once the change is saved and really changed the committee. If it didn't (another chair got there
     // first, or the debate moved on), the request stays for the chair to look at again.

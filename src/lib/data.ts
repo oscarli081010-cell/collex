@@ -107,8 +107,17 @@ export async function getPublished(): Promise<Conference[]> {
 }
 
 /** Every published listing, only what lists, search and the calendars show. */
+// The list goes into every page (the layout reads it), so a failed read falls back to the last list this server got,
+// and a page rendered on request (a delegate's record, say) still opens while the database is briefly unreachable.
+// With no earlier list to fall back on it still throws, so an empty site is never cached.
+let lastSummaries: ConferenceSummary[] | null = null;
 export async function getSummaries(): Promise<ConferenceSummary[]> {
-  return (await published<SummaryRow>(SUMMARY_COLUMNS)).map(summaryFromRow);
+  try {
+    return (lastSummaries = (await published<SummaryRow>(SUMMARY_COLUMNS)).map(summaryFromRow));
+  } catch (e) {
+    if (lastSummaries) return lastSummaries;
+    throw e;
+  }
 }
 
 export async function getBySlug(slug: string): Promise<Conference | null> {

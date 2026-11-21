@@ -154,7 +154,7 @@ export default function Applications({ ctx }: { ctx: ListingCtx }) {
           <div className={h.btnRow}>
             {tip(!canEdit ? whyNot : count("accepted") === 0 ? "Accept someone first" : "", <button type="button" className="button secondary" disabled={!canEdit || count("accepted") === 0} onClick={auto}>Allocate by Preference</button>)}
             <button type="button" className={dirty ? "button" : "button secondary"} disabled={!dirty || busy === "save"} onClick={() => void save()}>{dirty ? `Save ${dirty} ${dirty === 1 ? "Allocation" : "Allocations"}` : "Allocations Saved"}</button>
-            {tip(!canEdit ? whyNot : dirty ? "Save your allocations first" : !unsent ? "Everyone allocated has been emailed" : "", <button type="button" className="button secondary" disabled={!canEdit || !!dirty || !unsent || busy === "mail"} onClick={() => void mail()}>{unsent ? `Email ${unsent} ${unsent === 1 ? "Allocation" : "Allocations"}` : "Allocations Emailed"}</button>)}
+            {tip(!canEdit ? whyNot : dirty ? "Save your allocations first" : !unsent ? "Nobody is waiting for an allocation email" : "", <button type="button" className="button secondary" disabled={!canEdit || !!dirty || !unsent || busy === "mail"} onClick={() => void mail()}>{unsent ? `Email ${unsent} ${unsent === 1 ? "Allocation" : "Allocations"}` : "Allocations Emailed"}</button>)}
             <button type="button" className="button secondary" onClick={download}>{ICONS.publish}Download (CSV)</button>
           </div>
         </>

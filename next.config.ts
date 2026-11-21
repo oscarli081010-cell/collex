@@ -45,7 +45,6 @@ const config: NextConfig = {
   async redirects() {
     return [
       { source: "/guides/chairing-with-chambers", destination: "/guides/chairing-with-committees", permanent: true },
-      { source: "/conferences/template", destination: "/conferences/demo_listing", permanent: false },
     ];
   },
   async headers() {

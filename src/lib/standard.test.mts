@@ -100,6 +100,14 @@ const w0 = () => (w0Last ??= ch.createStandard("S", "T", 60, names, names.map((_
   for (let i = 5; i >= 1; i--) { q = ch.goBack(q, ch.now()); ok(q.log.at(-2)!.text === `a${i - 1}`, `Back ${6 - i} past the cap: ` + q.log.at(-2)?.text); }
   ok(ch.goBack(w, ch.now()).log.map((e) => e.text).join("|") === [...w.log.slice(0, -1).map((e) => e.text), "Went back one step"].join("|"), "small Back");
 }
+{ // a request acted on is remembered, so accepting it twice adds nothing
+  const a0 = w0();
+  const a1 = ch.asked(ch.note(a0, "Point of order"), "ask-1");
+  ok(ch.holds(a1, "ask-1") && !ch.holds(a0, "ask-1") && ch.asked(a1, "ask-1") === a1, "asked is remembered once");
+  let many = a0; for (let i = 0; i < 200; i++) many = ch.asked(many, `k${i}`);
+  ok(many.asked!.length === 80 && ch.holds(many, "k199") && !ch.holds(many, "k0"), "only the latest requests are kept: " + many.asked!.length);
+  ok(ch.normalise(JSON.parse(JSON.stringify(a1)))?.asked?.[0] === "ask-1", "kept through a save");
+}
 // Which refused saves are worth sending again
 ok(ch.savePermanent("23514", 400) && ch.savePermanent("22P02", 400) && ch.savePermanent("P0001", 400) && ch.savePermanent("PGRST202", 404), "permanent errors");
 ok(!ch.savePermanent("", 0) && !ch.savePermanent(undefined, undefined) && !ch.savePermanent("PGRST301", 401) && !ch.savePermanent("PGRST303", 401)

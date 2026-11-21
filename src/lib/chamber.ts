@@ -139,6 +139,8 @@ export type Chamber = {
   hist?: Chamber[];
   /** The times the chair has set for each kind of speech, in seconds; any not set keep the procedure's own. */
   times?: Partial<Record<TimeKey, number>>;
+  /** Delegates' requests already acted on, by id (see asked()). */
+  asked?: string[];
 };
 
 /** The times a committee can set for itself, in the order the settings show them. */
@@ -362,7 +364,10 @@ export function savePermanent(code: string | undefined, status: number | undefin
 
 /** Whether the committee already holds a motion or amendment made with this id: a delegate's request accepted by
     one chair carries the request's id, so a second chair accepting the same request adds nothing. */
-export const holds = (c: Chamber, id: string) => c.amendments.some((a) => a.id === id) || !!c.tr?.motions.some((m) => m.id === id);
+export const holds = (c: Chamber, id: string) => c.amendments.some((a) => a.id === id) || !!c.tr?.motions.some((m) => m.id === id) || !!c.asked?.includes(id);
+/** Mark a delegate's request as acted on. Requests that leave nothing with their id behind (a point, a place on the
+    speakers' list) are remembered here, so a second chair accepting the same one adds nothing. The latest 80 are kept. */
+export const asked = (c: Chamber, id: string): Chamber => (c.asked?.includes(id) ? c : { ...c, asked: [...(c.asked ?? []).slice(-79), id] });
 
 /** Add a line to the minutes. Past LOG_MAX lines the oldest are let go, so the committee can always be saved. */
 export const note = (c: Chamber, text: string): Chamber => {

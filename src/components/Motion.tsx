@@ -23,10 +23,11 @@ export default function Motion() {
     let shown: Element | null = null;
     const hide = () => { shown?.removeAttribute("data-tip-show"); shown = null; };
     const tap = (e: MouseEvent) => {
-      const tip = (e.target as Element | null)?.closest?.(".tip[data-tip]") ?? null;
+      const tip = (e.target as Element | null)?.closest?.('.tip[data-tip]:not([data-tip=""])') ?? null;
       clearTimeout(timer);
       if (shown !== tip) hide();
-      if (!tip) return;
+      // Only where the reason can't be reached another way: around a control that is off, or on a touch screen.
+      if (!tip || !(tip.querySelector(':disabled, [aria-disabled="true"]') || window.matchMedia("(pointer: coarse)").matches)) return;
       tip.setAttribute("data-tip-show", "");
       shown = tip;
       timer = setTimeout(hide, 3500);
