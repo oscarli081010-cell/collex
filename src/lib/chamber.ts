@@ -640,7 +640,7 @@ export function callOpposer(c: Chamber): Chamber {
 export function callAmender(c: Chamber, secs?: number): Chamber {
   // An amendment to the amendment: its mover speaks first.
   const a = c.amendments.find((x) => x.id === (c.amend?.sub?.id ?? c.amend?.id));
-  if (c.step !== "amend" || c.amend?.stage !== "debate" || c.speech || c.debate.run.length || !a || !has(c, a.by)) return c;
+  if (c.step !== "amend" || c.amend?.stage !== "debate" || c.speech || c.debate.run.length || !a || !has(c, a.by) || !isHere(c, a.by)) return c;
   return start(c, a.by, "for", "amender", secs ?? (c.tr?.cauc?.kind === "amend" ? c.tr.cauc.per : timeOf(c, "amender")));
 }
 /** Anyone, on the side the chair names, for the time the chair allots. */
@@ -676,9 +676,10 @@ export function nextCandidate(c: Chamber): Slot | null {
   return c.debate.list.find((s) => s.side === want) ?? c.debate.list.find((s) => s.side !== want) ?? null;
 }
 
-/** What the N key does: the proposer, co-sponsor or opposer at their step, the amendment's proposer first, then the next on the list. */
+/** What the N key does: the next state due its opening statement, the proposer, co-sponsor or opposer at their step, the amendment's proposer first, then the next on the list. */
 export function callNextSpeaker(c: Chamber): Chamber {
   if (c.speech) return c;
+  if (c.step === "statements") { const n = nextStatement(c); return n ? callStatement(c, n) : c; }
   if (c.step === "proposer") return callProposer(c);
   if (c.step === "seconder") return callSeconder(c);
   if (c.step === "opposer") return callOpposer(c);
@@ -1342,19 +1343,8 @@ export function skipExplain(c: Chamber, who: string): Chamber {
   return note(queue.length ? { ...c, explain: { ...e, queue } } : rest, `${nameOf(c, who)} did not explain their vote`);
 }
 
-/* Standard and Custom: dividing the question. Before anyone votes, the chair picks parts of the resolution (operative
+/* Standard and Custom: dividing the question. Before anyone votes, the chair names parts of the resolution (operative
    clauses) to vote on one at a time; a part that fails is struck. Then what remains is voted on as a whole. */
-/** The operative clauses in a resolution's text: numbered lines ("1. Calls upon…"), as short labels. */
-export function operativeClauses(text: string): string[] {
-  const out: string[] = [];
-  for (const line of text.split(/\r?\n/)) {
-    const m = /^\s*(\d{1,2})\s*[.)]\s+(\S.*)$/.exec(line);
-    if (!m) continue;
-    const words = m[2].trim();
-    out.push(`Clause ${m[1]}: ${Array.from(words).length > 50 ? `${Array.from(words).slice(0, 49).join("").trimEnd()}\u2026` : words}`);
-  }
-  return out.slice(0, 20);
-}
 /** The part being voted on now, or null when the vote is on the resolution as a whole (or the question isn't divided). */
 export const divisionPart = (c: Chamber): Part | null => (c.divide && c.divide.at < c.divide.parts.length ? c.divide.parts[c.divide.at] : null);
 /** In words for the minutes, the display and the console: "Part 2 of 3: Clause 4". */

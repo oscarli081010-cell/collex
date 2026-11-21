@@ -48,6 +48,8 @@
 }
 @media (prefers-reduced-motion: reduce) { .preview { transition: none !important; transform: none; } }
 @media (hover: none) { .preview { display: none; } }
+/* On a narrow screen a hidden preview beside the edge still widened the page, so there are none: the list under the calendar has the same details. */
+@media (max-width: 640px) { .preview { display: none; } }
 
 .calBar { position: relative; z-index: 2; display: flex; justify-content: center; align-items: center; gap: 12px 16px; flex-wrap: wrap; }
 

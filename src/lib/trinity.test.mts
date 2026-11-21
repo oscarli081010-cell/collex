@@ -58,6 +58,16 @@ c = ch.yieldToChair(c, id("Brazil"), 1);
 assert.deepEqual(c.tr!.opened, [id("Brazil")]); assert.equal(c.speech, null); assert.equal(c.step, "statements");
 assert.equal(ch.callStatement(c, id("Brazil")).speech, null, "one statement each");
 assert.equal(ch.nextStatement(c), id("Australia"));
+{
+  // N calls the next state due its opening statement: present, alphabetical, not yet heard.
+  const n = ch.callNextSpeaker(c);
+  assert.equal(n.speech!.who, id("Australia")); assert.equal(n.speech!.role, "statement");
+  assert.equal(ch.callNextSpeaker(n), n, "never while someone speaks");
+  const away = ch.markRoll(c, id("Australia"), "absent");
+  assert.equal(ch.callNextSpeaker(away).speech!.who, id("China"), "an absent state is skipped, and Brazil has already spoken");
+  const all = { ...c, tr: { ...c.tr!, opened: c.delegates.map((d) => d.id) } };
+  assert.equal(ch.callNextSpeaker(all), all, "everyone has given theirs: nothing to call");
+}
 c = ch.endStatements(c); assert.equal(c.step, "general");
 assert.ok(c.stats.some((x) => x.kind === "statement" && x.who === id("Brazil") && x.wk === 1));
 

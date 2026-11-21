@@ -23,12 +23,14 @@ test("conferences directory: search narrows and clears", async ({ page }) => {
   await expect(search).toBeVisible();
   await expect(page.getByLabel("Month").first()).toBeAttached();
   await expect(page.getByLabel("Level").first()).toBeAttached();
-  const before = await page.locator('a[href^="/conferences/"]').count();
+  // Only the list itself: the footer links to the demo page whatever the search says.
+  const rows = page.locator('main a[href^="/conferences/"]');
+  const before = await rows.count();
   await search.fill("zzzz-no-such-conference");
-  await expect(page.locator('a[href^="/conferences/"]')).toHaveCount(0);
+  await expect(rows).toHaveCount(0);
   await page.getByRole("button", { name: "Clear search" }).click();
   await expect(search).toHaveValue("");
-  await expect(page.locator('a[href^="/conferences/"]')).toHaveCount(before);
+  await expect(rows).toHaveCount(before);
   expect(errors).toEqual([]);
 });
 
@@ -41,6 +43,9 @@ test("a conference page shows its dates and the .ics download works", async ({ p
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.locator("main")).toContainText(/Key dates|Dates|\d{4}|Date to be announced/i);
   const ics = await request.get(`${path}/calendar.ics`);
+  // A conference with no dates yet has no calendar file (its Add to calendar button is off until dates are announced).
+  const undated = /Date to be announced/i.test(await page.locator("main").innerText());
+  if (undated && ics.status() === 404) return;
   expect(ics.status()).toBe(200);
   expect(ics.headers()["content-type"]).toContain("text/calendar");
   expect(await ics.text()).toMatch(/^BEGIN:VCALENDAR/);

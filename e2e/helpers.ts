@@ -16,8 +16,13 @@ export function watchErrors(page: Page) {
 
 /** The page is no wider than the screen (a pixel of slack for rounding). */
 export async function expectNoSideScroll(page: Page) {
-  const { scroll, view } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, view: window.innerWidth }));
-  expect(scroll, `page is ${scroll}px wide on a ${view}px screen`).toBeLessThanOrEqual(view + 1);
+  const { scroll, view, wide } = await page.evaluate(() => {
+    const view = window.innerWidth;
+    const wide = [...document.querySelectorAll("body *")].filter((e) => e.getBoundingClientRect().right > view + 1).slice(0, 5)
+      .map((e) => `${e.tagName.toLowerCase()}.${String(e.className).slice(0, 40)} right=${Math.round(e.getBoundingClientRect().right)}`);
+    return { scroll: document.documentElement.scrollWidth, view, wide };
+  });
+  expect(scroll, `page is ${scroll}px wide on a ${view}px screen; widest: ${wide.join(" | ")}`).toBeLessThanOrEqual(view + 1);
 }
 
 /** The first listed conference's address (like /conferences/some-slug), or null when the database has none. */

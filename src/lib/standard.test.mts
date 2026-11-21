@@ -7,7 +7,9 @@ let c = ch.createStandard("DISEC", "Autonomous weapons", 60, names, names.map((_
 ok(ch.procedureName(c) === "Standard", "name");
 ok(ch.normalise(JSON.parse(JSON.stringify(c)))?.style === "standard", "normalise keeps style");
 c = ch.startRoll(c); c = ch.markAllRoll(c, "present"); c = ch.beginDebate(c);
-ok(c.step === "statements", "statements after roll: " + c.step); c = ch.endStatements(c); ok(c.step === "general", "general: " + c.step);
+ok(c.step === "statements", "statements after roll: " + c.step);
+ok(ch.callNextSpeaker(c).speech?.who === ch.nextStatement(c) && ch.callNextSpeaker(c).speech?.role === "statement", "N calls the next opening statement");
+c = ch.endStatements(c); ok(c.step === "general", "general: " + c.step);
 c = ch.addDraft(c, "x1", "Draft 1.1"); ok(c.tr!.docs.length === 1, "draft added");
 c = ch.addDraft(c, "x2", "Draft 1.2"); c = ch.removeDraft(c, "x2"); ok(c.tr!.docs.length === 1, "draft removed");
 c = ch.introduceDraft(c, "x1"); ok(c.step === "pick", "introduced: " + c.step);
@@ -196,8 +198,6 @@ const toVote = (custom?: { pass: "simple" | "twothirds" }) => {
 }
 // 10. Dividing the question: each part voted on in turn (a part that fails is struck), then the rest as a whole.
 {
-  ok(ch.operativeClauses("Preamble line\n1. Calls upon all states to act\n2) Requests a report\nNot a clause\n3.Missing space").join("|") === "Clause 1: Calls upon all states to act|Clause 2: Requests a report", "clauses from the text: " + ch.operativeClauses("1. Calls upon all states to act\n2) Requests a report").join("|"));
-  ok(ch.operativeClauses("1. " + "x".repeat(80))[0].endsWith("…"), "long clause shortened");
   let v = toVote();
   ok(ch.canDivide(v), "can divide before anyone votes");
   ok(ch.divideQuestion(v, ["", "  "]) === v, "no parts, no division");
@@ -241,6 +241,9 @@ const toVote = (custom?: { pass: "simple" | "twothirds" }) => {
   a = ch.submitAmendment(a, "am1", "d0", "OC 1", "Replace 'urges' with 'calls upon'", [], "d1");
   a = ch.amendDebate(ch.entertain(a, "am1"), "am1");
   ok(a.amend?.stage === "debate" && ch.subOpen(a), "amendment debated");
+  ok(ch.callAmender(a).speech?.who === "d0", "its proposer is called first");
+  const gone = ch.markRoll(a, "d0", "absent");
+  ok(gone.roll.d0 === "absent" && ch.callAmender(gone) === gone && ch.callNextSpeaker(gone) === gone, "an absent proposer isn't called");
   a = ch.addToList(a, "d4", "for");
   const listBefore = a.debate;
   const clock = a.tr!.cauc;
