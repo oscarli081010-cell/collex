@@ -289,14 +289,13 @@ select.control {
 /* "Log In" shows from the first paint; once the login check is done it may swap for the avatar. The slot keeps the
    width of the button, so the search circle beside it never moves when that happens. */
 .topbarAccount { display: flex; align-items: center; justify-content: flex-end; min-width: 92px; }
-/* A hint set before the first paint (layout.tsx) says someone is probably logged in: until the check finishes, "Log In"
-   is kept in place but hidden, and an empty avatar-sized circle stands in for it, so nothing moves. */
-.topbarAccount { position: relative; }
-html[data-auth="in"] .topbarRight[data-ready="false"] .topbarAccount .button { visibility: hidden; }
-html[data-auth="in"] .topbarRight[data-ready="false"] .topbarAccount::after {
-  content: ""; position: absolute; right: 0; top: 50%; width: 36px; height: 36px; margin-top: -18px; border-radius: 50%; background: var(--surface-2);
-}
-@media (pointer: coarse) { html[data-auth="in"] .topbarRight[data-ready="false"] .topbarAccount::after { width: 44px; height: 44px; margin-top: -22px; } }
+/* Logged in, the slot is only as wide as the avatar, so nothing sits between it and the button beside it. */
+.topbarAccount:has(.avatarLink), html[data-auth="in"] .topbarAccount { min-width: 0; }
+/* A hint set before the first paint (layout.tsx) says someone is probably logged in: until the check finishes, an
+   empty avatar-sized circle stands where the avatar will be, instead of "Log In". */
+html[data-auth="in"] .topbarRight[data-ready="false"] .topbarAccount .button { display: none; }
+html[data-auth="in"] .topbarRight[data-ready="false"] .topbarAccount::after { content: ""; width: 36px; height: 36px; border-radius: 50%; background: var(--surface-2); }
+@media (pointer: coarse) { html[data-auth="in"] .topbarRight[data-ready="false"] .topbarAccount::after { width: 44px; height: 44px; } }
 /* Top bar buttons are pills, like the nav and the search circle. "List a conference" reads as a quiet link until hovered. */
 .topbarRight .button { height: 40px; padding: 0 18px; border-radius: 999px; }
 .topbarRight .button.secondary { background: transparent; border-color: transparent; color: var(--muted); }
