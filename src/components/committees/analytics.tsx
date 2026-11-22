@@ -24,7 +24,7 @@ export function Analytics({ c, say, act, cloudId }: { c: Chamber; say: (t: strin
   const [aat, setAat] = useState(0);
   const t = c.tr;
   const name = (id: string) => ch.nameOf(c, id) || "A removed state";
-  const roleOf = (id: string) => (["proposer", "seconder", "opposer"] as const).filter((k) => c.roles[k] === id).map((k) => ch.ROLE_LABEL[k]);
+  const roleOf = (id: string) => (["proposer", "seconder", "opposer"] as const).filter((k) => c.roles[k] === id).map((k) => ch.roleName(c, k));
   const rows = ch.summary(c).sort((a, b) => b.secs - a.secs || b.speeches - a.speeches || a.name.localeCompare(b.name));
   const feed = [...c.stats].reverse().filter((x) => (!kind || x.kind === kind));
   const sPages = Math.max(1, Math.ceil(rows.length / PER_PAGE));

@@ -31,7 +31,7 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
   const debateOpen = c.step === "amend" && c.amend?.stage === "debate";
   const waiting = ch.waitingAmendments(c);
   const pct = c.timer ? Math.min(100, (left / c.timer.total) * 100) : 0;
-  const askers = sp ? c.delegates.filter((d) => d.id !== sp.who) : [];
+  const askers = sp ? c.delegates.filter((d) => d.id !== sp.who && c.roll[d.id] !== "absent" && !ch.observing(c, d.id)) : []; // a state that is away, or only observing, has no point to ask
   const askerId = asker && askers.some((d) => d.id === asker) ? asker : "";
   const spokeFromList = c.debate.run.length > 1;
   const timeField = <Duration id="fl-secs" label="Time for This Speech" value={callSecs ?? c.speakSecs} min={5} max={3600} onChange={(v, ok) => { setCallBad(!ok); if (ok) setCallSecs(v); }} />;
@@ -124,7 +124,7 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
               <div className={s.pickRow}>
                 <Select id="fl-yto" className="control" value={yTo} onChange={(e) => setYTo(e.target.value)}>
                   <option value="">Yield to another country{sp.left ? ` (adds ${ch.clock(sp.left * 1000)})` : ""}</option>
-                  {c.delegates.filter((d) => d.id !== sp.who && !ch.observing(c, d.id)).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  {c.delegates.filter((d) => d.id !== sp.who && c.roll[d.id] !== "absent" && !ch.observing(c, d.id)).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </Select>
                 <Why why={!yTo && "Choose a country first"}><button type="button" className="button secondary sm" disabled={!yTo} onClick={() => { act((x) => ch.yieldToCountry(x, sp.who, sp.pois, yTo)); setYTo(""); }}>Yield</button></Why>
               </div>
@@ -194,7 +194,7 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
                 <label htmlFor="fl-st" className="sr-only">Call Another State</label>
                 <Select id="fl-st" className="control" value={stWho} onChange={(e) => setStWho(e.target.value)}>
                   <option value="">Call another state first</option>
-                  {c.delegates.filter((d) => !t!.opened.includes(d.id) && !ch.observing(c, d.id)).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  {c.delegates.filter((d) => !t!.opened.includes(d.id) && c.roll[d.id] !== "absent" && !ch.observing(c, d.id)).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </Select>
                 <Why why={!stWho && "Choose a state first"}><button type="button" className="button secondary sm" disabled={!stWho} onClick={() => { act((x) => ch.callStatement(x, stWho)); setStWho(""); }}>Call</button></Why>
               </div>

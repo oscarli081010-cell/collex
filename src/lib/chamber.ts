@@ -1663,6 +1663,9 @@ export function decideMotion(c: Chamber, ruling: Ruling, id: string): Chamber {
   const closed = setMotion({ ...c, poll: null, result }, id, yes ? "passed" : "failed");
   if (!yes) return note(closed, `Motion failed (${tail}): ${p.title}`);
   const done = applyMotion(closed, m);
+  // Passed, but there is nothing to carry out at this moment (a caucus voted for while another is running): it goes
+  // back in the queue, so the chair can put it again instead of having to type it in a second time.
+  if (done === closed && m.kind !== "open" && m.kind !== "resume" && m.kind !== "suspend") return note(setMotion(closed, id, "waiting"), `Motion passed (${tail}): ${p.title}. It could not be carried out now, so it is back in the queue`);
   return note(done === closed ? closed : { ...done, result: done.step === closed.step ? result : null }, `Motion passed (${tail}): ${p.title}${done === closed && m.kind !== "open" && m.kind !== "resume" && m.kind !== "suspend" ? ". It could not be carried out now" : ""}`);
 }
 function applyMotion(c: Chamber, m: Motion): Chamber {

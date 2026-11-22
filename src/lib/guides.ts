@@ -31,7 +31,7 @@ export const GUIDES: Guide[] = [
         "Take votes by placard with the counters, or switch a vote to By Roll Call to record each state’s answer in the minutes. Press Record the Result. Overrule lets the chair set the result, and the minutes say so.",
         "In a Standard or Custom committee, the vote on a resolution lets each state answer For, Against, Abstain or Pass, and mark For or Against With Rights. See Standard procedure.",
         "In a Standard or Custom committee, a state can also move to divide the question. Press Divide the Question before anyone votes. See Standard procedure.",
-        "In a Trinity or Standard committee, press Retake the Roll on the general speakers’ list to start a new session. The earlier roll is kept.",
+        "To start a new session, press Retake the Roll: in a Trinity committee it is on the Choosing a Resolution screen, and in a Standard committee on the general speakers’ list. The earlier roll is kept.",
         "Made a mistake? *The back arrow undoes* your last step, and Ctrl or ⌘ with Z does the same. Press it again to go further back, up to the last 12 steps. With two chairs working, Back only undoes your own last step. If the last change was your co-chair’s, Collex says so and leaves it alone.",
       ] },
       { id: "display", title: "The display", text: [
@@ -100,7 +100,7 @@ export const GUIDES: Guide[] = [
       { id: "closing", title: "Closing and the vote", steps: [
         "After debate closes there is one final unmoderated caucus, then closing speeches: the opposer first, then the co-sponsor, then the proposer.",
         "The vote is by roll call. A resolution passes with *more For than Against*; abstentions, shown as Neutral, count for neither.",
-        "The committee then returns to choose its next resolution. For a new session, such as the next day, press Retake the Roll on the general speakers’ list and the earlier roll is kept.",
+        "The committee then returns to choose its next resolution. For a new session, such as the next day, press Retake the Roll on the Choosing a Resolution screen and the earlier roll is kept.",
       ] },
     ],
   },
