@@ -8,7 +8,11 @@ import s from "../Chambers.module.css";
 import Select from "../Select";
 import Flag from "../Flag";
 import { Why } from "../RoomChair";
+import SearchBox from "../SearchBox";
 import { SWAP, uid, SIDE, type Act, Seg, SideSwitch, CardSide } from "./shared";
+
+/** A name for searching: lower case, without accents, so "cote" finds Côte d'Ivoire. */
+const fold = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
 /* The speakers' list for the amendment in hand: For and Against, in the order they will be called. */
 export function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
@@ -30,7 +34,7 @@ export function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }
         <label htmlFor="ch-add" className="sr-only">Add a State to the List</label>
         <Select id="ch-add" className={`control ${s.addWho}`} value={pick} onChange={(e) => setWho(e.target.value)}>
           <option value="">{options.length ? "Add a state…" : "No one else can join this side"}</option>
-          {options.map((d) => <option key={d.id} value={d.id}>{d.name} · {spokeN[d.id] ? `spoken ${spokeN[d.id]} ${spokeN[d.id] === 1 ? "time" : "times"}` : "not spoken yet"}</option>)}
+          {options.map((d) => <option key={d.id} value={d.id}>{d.name}{spokeN[d.id] ? ` · spoken ${spokeN[d.id]} ${spokeN[d.id] === 1 ? "time" : "times"}` : ""}</option>)}
         </Select>
         {!plain && <SideSwitch side={side} setSide={setSide} />}
         {plain && !!c.tr && <Seg label="Stance" value={stance} onPick={setStance} className={s.sideSeg} items={[{ id: "none", label: "No Side" }, { id: "for", label: SIDE.for }, { id: "against", label: SIDE.against }]} />}
@@ -146,6 +150,7 @@ export function AmendmentForm({ c, act }: { c: Chamber; act: Act }) {
   const [second, setSecond] = useState("");
   const [consensus, setConsensus] = useState(false);
   const [how, setHow] = useState<ch.AmendHow>("amend");
+  const [find, setFind] = useState(""); // narrows the states to tick as signatories
   const t = c.tr;
   // Trinity (2026): a proposer and a seconder, and as many sponsors as possible. A clause already amended needs full consensus.
   const signed = new Set([by, second, ...backers].filter(Boolean)).size;
@@ -153,12 +158,14 @@ export function AmendmentForm({ c, act }: { c: Chamber; act: Act }) {
   const ready = !!by && text.trim().length > 0 && (!t || (!!second && second !== by && (!again || consensus)));
   const why = ready ? null : !by ? "Choose the state it's from" : !text.trim() ? "Describe the amendment" : t && (!second || second === by) ? "Choose a seconder" : "Confirm full consensus for this clause";
   const free = c.delegates.filter((d) => !ch.observing(c, d.id));
+  const q = fold(find);
+  const signable = free.filter((d) => d.id !== by && d.id !== second && (!q || fold(d.name).includes(q)));
   return (
     <section className={`panel ${s.list}`} aria-labelledby="ch-am-add">
       <div className={s.head}>
         <h2 id="ch-am-add" className={s.h2}>Add an Amendment</h2>
       </div>
-      <form className={s.panelBody} onSubmit={(e) => { e.preventDefault(); if (!ready) return; act((x) => ch.submitAmendment(x, uid(), by, clause, text, backers, t ? second : null, consensus, how)); setText(""); setClause(""); setBackers([]); setSecond(""); setConsensus(false); }}>
+      <form className={s.panelBody} onSubmit={(e) => { e.preventDefault(); if (!ready) return; act((x) => ch.submitAmendment(x, uid(), by, clause, text, backers, t ? second : null, consensus, how)); setText(""); setClause(""); setBackers([]); setSecond(""); setConsensus(false); setFind(""); }}>
         <div className={s.two}>
           <div className="field">
             <label htmlFor="am-by" className="sr-only">Amendment from</label>
@@ -188,8 +195,13 @@ export function AmendmentForm({ c, act }: { c: Chamber; act: Act }) {
         </div>
         <fieldset className={s.procedure}>
           <legend>{t ? "Co-sponsors" : "Signatories"}</legend>
+          {/* Enter in the search only searches: it doesn't send the amendment. */}
+          <div onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}>
+            <SearchBox label={t ? "Search the co-sponsors" : "Search the signatories"} placeholder="Search states" value={find} onChange={setFind} />
+          </div>
           <div className={s.backers}>
-            {free.filter((d) => d.id !== by && d.id !== second).map((d) => (
+            {signable.length === 0 && <p className={s.empty}>No states match.</p>}
+            {signable.map((d) => (
               <label key={d.id} className={s.check}>
                 <input type="checkbox" checked={backers.includes(d.id)} onChange={(e) => setBackers((b) => (e.target.checked ? [...b, d.id] : b.filter((x) => x !== d.id)))} />
                 {d.name}

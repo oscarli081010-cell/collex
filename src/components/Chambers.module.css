@@ -165,6 +165,7 @@
 .amendCard[data-live="true"] { border-color: var(--accent); background: var(--accent-soft); }
 .amendText { font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
 .amendMeta { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.backers > .empty { grid-column: 1 / -1; }
 .backers { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 6px; max-height: 220px; overflow-y: auto; }
 .check { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); font-size: 14px; cursor: pointer; user-select: none; transition: background-color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
 .check:hover { background: var(--surface); border-color: var(--line-strong); }
@@ -279,6 +280,17 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dMid { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: clamp(14px, 2.2vw, 30px); min-height: 100dvh; box-sizing: border-box; padding: clamp(130px, 18vh, 200px) var(--edge) clamp(84px, 10vh, 130px); }
 /* Nothing on the screen may be squeezed smaller, or a progress bar disappears. */
 .dMid > * { flex: none; }
+/* With a board of states (the roll, the vote and its result) the middle hangs from a set height rather than sitting in the
+   centre, so a page of fewer states, or the result's heading, never moves the states that are already up. */
+.dMid[data-board] { justify-content: flex-start; padding-top: clamp(140px, 21vh, 240px); }
+/* The one line kept under the vote's figures (the part being voted on, or what was struck), blank when there is none. */
+.dNote1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: min(100%, 1100px); margin-top: calc(var(--group) * 0.4); }
+/* Vote and roll call boards: tighter steps so the page count under the board stays on screen. */
+.dMid[data-board] { gap: clamp(10px, 1.3vw, 20px); }
+.dMid[data-board] .dTallies { margin-top: calc(var(--group) * 0.6); }
+.dMid[data-board] .dNote1 { margin-top: 0; }
+.dMid[data-board] .dBoard { margin-top: 0; }
+.dMid[data-board] .dPages { margin-top: 10px; }
 .dPill { display: inline-flex; align-items: center; justify-content: center; padding: 0.42em 1.2em; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: clamp(18px, min(2.5vw, 3.6vh), 38px); font-weight: 500; line-height: 1.25; max-width: 100%; }
 .dPill[data-side="for"] { background: var(--ok-soft); color: var(--ok); }
 .dPill[data-side="against"] { background: var(--danger-soft); color: var(--danger); }
@@ -302,10 +314,10 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dFlank line, .dDivider line { vector-effect: non-scaling-stroke; }
 .dFlank path, .dFlank circle, .dDivider path, .dDivider circle { stroke: none; }
 .dFlank { width: clamp(44px, 7vw, 130px); }
-.dDivider { width: clamp(150px, 20vw, 320px); margin-block: -0.3em; }
+/* Clear of the descenders above (the g in Choosing), with a little more room before the line of text under it. */
+.dDivider { width: clamp(200px, 27vw, 440px); margin-block: clamp(2px, 0.5vw, 8px) clamp(4px, 0.9vw, 14px); }
 .dFlanked { display: flex; align-items: center; justify-content: center; gap: clamp(10px, 1.3vw, 22px); max-width: 100%; }
 .dFlanked > span { min-width: 0; }
-.dTimeRow { display: flex; align-items: center; justify-content: center; gap: clamp(14px, 2vw, 36px); max-width: 100%; }
 /* Small spaced capitals for the labels: under the figures, over the signatories, and "Up next". */
 .dCaps { font-size: clamp(12px, 1.15vw, 18px); font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .dTallies { --tgap: clamp(28px, 6vw, 96px); margin-top: var(--group); display: flex; gap: var(--tgap); justify-content: center; flex-wrap: wrap; }
@@ -351,7 +363,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dNext li i { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); }
 .dNext li[data-side="against"] i { background: var(--danger); }
 .dNext li[data-plain] i { background: var(--line-strong); }
-.dNext li small { font-size: 0.78em; font-weight: 400; color: var(--muted); }
+.dNext li > img { margin-right: 0 !important; } /* the gap alone sits between the flag and the name */
 .dNote { color: var(--muted); text-align: right; margin-left: auto; }
 .dNote strong { color: var(--ink); font-weight: 500; }
 @media (prefers-reduced-motion: reduce) { .dTrack i { transition: none; } }
@@ -450,7 +462,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 
 /* The welcome: a small slanted "Welcome to" over the committee's name, centred. */
 .dWelcome { display: flex; flex-direction: column; align-items: center; gap: 0.12em; max-width: 100%; margin: 0; font-weight: 400; line-height: 1; }
-.dWelcome span { font-style: italic; font-size: calc(clamp(60px, min(10.4vw, 13vh), 160px) * 0.42); }
+.dWelcome span { font-size: calc(clamp(60px, min(10.4vw, 13vh), 160px) * 0.42); }
 /* A hairline either side of "Welcome to" (only there: a long title's first words carry no lines). */
 .dWelcomeTo span { display: flex; align-items: center; gap: 0.5em; }
 .dWelcomeTo span::before, .dWelcomeTo span::after { content: ""; flex: none; width: clamp(40px, 6vw, 110px); height: 1px; background: var(--line-strong); }
@@ -462,16 +474,17 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 /* A short screen (a 720p projector) gives the middle a little less room above and below, and tighter gaps. */
 @media (max-height: 820px) {
   .dMid { padding-top: clamp(96px, 13vh, 130px); padding-bottom: clamp(72px, 9vh, 100px); gap: clamp(10px, 1.6vw, 20px); }
-  .dDivider { margin-block: -0.5em; }
+  .dMid[data-board] { padding-top: clamp(96px, 13vh, 130px); }
+  .dDivider { margin-block: 0 clamp(2px, 0.6vw, 8px); }
   .dTallies, .dBoard, .dRoles { margin-top: calc(var(--group) * 0.7); }
 }
 /* A narrow window has no room for the flanks beside the time. */
-@media (max-width: 760px) { .dTimeRow > .dFlank { display: none; } }
 @media (max-width: 1100px) {
   .display { grid-template: auto 1fr auto / minmax(0, 1fr); }
   .display > * { grid-area: auto; }
   .dTop { padding-bottom: 8px; }
   .dMid { min-height: auto; padding: 12px var(--edge); }
+  .dMid[data-board] { padding-top: 12px; }
   .dBottom { padding-top: 8px; }
 }
 
@@ -592,7 +605,6 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .labelRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .groupPick { width: min(100%, 260px); height: 40px; }
 .dPages { margin: 18px 0 0; text-align: center; font-size: clamp(14px, 1.5vw, 22px); color: var(--faint); font-variant-numeric: tabular-nums; }
-.whoLead { display: block; font-size: 0.5em; font-style: italic; line-height: 1.1; margin-bottom: 0.1em; color: var(--muted); }
 .seenTag { display: inline-flex; align-items: center; gap: 9px; width: fit-content; font-size: 16px; font-weight: 500; color: var(--ink); }
 .seenTag::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px var(--ok-soft); }
 .seenTag[data-seen="false"]::before { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
@@ -646,17 +658,23 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 /* The back arrow: tucked into the bottom corner of its panel, out of the way of everything in it. */
 .floor, .opening, .welcome { position: relative; }
 /* Two classes, so the global .tip (position: relative) can't put it back in the flow, where it took a grid cell of its own. */
-.undo:global(.tip) { position: absolute; left: 5px; bottom: 5px; z-index: 1; }
-.undo :global(.iconbtn) { position: relative; width: 22px; height: 22px; border-color: transparent; background: transparent; color: var(--muted); }
-.undo :global(.iconbtn):hover:not(:disabled) { background: var(--surface); color: var(--ink); }
-.undo :global(.iconbtn)::after { content: ""; position: absolute; inset: -8px; }
-.undo :global(.iconbtn) svg { width: 13px; height: 13px; }
+/* A full round button with room of its own under the panel's content, so it never sits on top of the text. */
+.floor, .opening, .welcome { padding-bottom: 58px; }
+.undo:global(.tip) { position: absolute; left: 14px; bottom: 14px; z-index: 1; }
+.undo :global(.iconbtn) { position: relative; width: 32px; height: 32px; border-color: var(--line); background: var(--panel); color: var(--muted); }
+.undo :global(.iconbtn):hover:not(:disabled) { background: var(--surface); border-color: var(--line-strong); color: var(--ink); }
+.undo :global(.iconbtn)::after { content: ""; position: absolute; inset: -6px; }
+.undo :global(.iconbtn) svg { width: 16px; height: 16px; }
 /* Whoever has the floor, large. */
 .whoBig { font-size: clamp(40px, 4.8vw, 64px); line-height: 1.02; }
+/* A longer title (The Speakers’ List Is Empty) a size down, so it reads as one line. */
+.whoBig[data-long] { font-size: clamp(30px, 3.2vw, 44px); }
 .subNum { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* The groups under Your Committees are named in the same size as the labels on the Start form beside them. */
 .groupLabel { font-size: 13px; font-weight: 500; }
+/* Try a Practice Committee: its heading and note in the same sizes as the labels and notes on the Start form above it. */
+.practiceNote { font-size: 13px; line-height: 1.5; margin-top: -8px; }
 
 /* Something the chair must read about their changes (replaced by another chair's, or refused), until they dismiss it. */
 .noticeRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

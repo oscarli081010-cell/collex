@@ -121,6 +121,17 @@ export default function Chambers() {
     stepSeen.current = c?.step;
     if (!first && c) scrollToTop();
   }, [c?.step]);
+  // The same when a committee opens from the Committees page (Open Committee at the foot of the form, or one of Your
+  // Committees further down): the console starts at its top, not where the form was scrolled to.
+  // A reload straight into a committee (loading, then the console) is left where the browser puts it.
+  const page = status === "loading" || (cloudId && !c) ? "loading" : !c || home ? "home" : `console|${cloudId ?? "here"}`;
+  const pageSeen = useRef(page);
+  useEffect(() => {
+    if (page === "loading" || pageSeen.current === page) return;
+    const from = pageSeen.current;
+    pageSeen.current = page;
+    if (from === "home") scrollToTop();
+  }, [page]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;

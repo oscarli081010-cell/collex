@@ -281,8 +281,8 @@ export function Setup({ onCreate, signedIn, local }: { onCreate: (c: Chamber, de
           <Why why={why}><button type="submit" className="button lg block" disabled={!!why}>Open Committee</button></Why>
         </form>
         <section className={`panel ${s.setupCard}`} aria-labelledby="cs-practice">
-          <h2 id="cs-practice" className={s.h2}>Try a Practice Committee</h2>
-          <p className="muted">A practice run with a sample topic and 12 member states, in the {PROC_LABEL[proc]} procedure chosen above. It counts as one of your committees.</p>
+          <h2 id="cs-practice" className={s.groupLabel}>Try a Practice Committee</h2>
+          <p className={`muted ${s.practiceNote}`}>A practice run with a sample topic and 12 member states, in the {PROC_LABEL[proc]} procedure chosen above. It counts as one of your committees.</p>
           <button type="button" className="button secondary block" onClick={() => { onCreate(ch.createPractice(proc, Array.from({ length: ch.PRACTICE.states.length }, () => uid()), pass), false); if (supabase) void supabase.rpc("note_chamber_started", { label: ch.PRACTICE.name, procedure: PROC_LABEL[proc] }); }}>Try a Practice Committee</button>
         </section>
         </>}

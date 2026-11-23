@@ -19,7 +19,7 @@ import s from "./Chambers.module.css";
 // What the room sees. Every screen is built the same way, top to bottom: a pill only when it says something the heading
 // doesn't, a big heading in the serif, then the thing to look at (the time, the votes, the signatories or the roll). The
 // display only reads the committee the console keeps and redraws when that changes.
-const icon = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
+const icon = (d: React.ReactNode) => <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
 const Expand = () => icon(<path d="M6 2.5H2.5V6M10 2.5h3.5V6M6 13.5H2.5V10M10 13.5h3.5V10" />);
 const Shrink = () => icon(<path d="M2.5 6H6V2.5M13.5 6H10V2.5M2.5 10H6v3.5M13.5 10H10v3.5" />);
 const Back = () => icon(<path d="M13 8H3M7 4L3 8l4 4" />);
@@ -35,8 +35,8 @@ const Flank = ({ flip }: { flip?: boolean }) => (
   </svg>
 );
 const Divider = () => (
-  <svg className={s.dDivider} viewBox="0 0 320 12" aria-hidden="true">
-    <circle cx="4" cy="6" r="2.2" /><line x1="10" y1="6" x2="150" y2="6" /><path d="M160 0.5 165.5 6 160 11.5 154.5 6Z" /><line x1="170" y1="6" x2="310" y2="6" /><circle cx="316" cy="6" r="2.2" />
+  <svg className={s.dDivider} viewBox="0 0 440 12" aria-hidden="true">
+    <circle cx="4" cy="6" r="2.2" /><line x1="10" y1="6" x2="210" y2="6" /><path d="M220 0.5 225.5 6 220 11.5 214.5 6Z" /><line x1="230" y1="6" x2="430" y2="6" /><circle cx="436" cy="6" r="2.2" />
   </svg>
 );
 /** A label with a flank either side: Signatories, Up next for the closing vote. */
@@ -52,15 +52,6 @@ const fit = (text: string, solo: boolean) => {
   if (solo && n <= 22) return 1.15;
   if (solo && n <= 30) return 0.92;
   return n <= 28 ? 1 : n <= 44 ? 0.78 : n <= 80 ? 0.58 : n <= 160 ? 0.44 : n <= 300 ? 0.34 : 0.28;
-};
-
-/** One screen: an optional pill, a heading, optional lines of text, and whatever there is to look at. */
-/** A long title is set like the welcome: its first words small and slanted over the rest, which stays big. */
-const leadAndBig = (text: string): [string, string] => {
-  const w = text.trim().split(/\s+/);
-  if (w.length < 4 || text.length < 22) return ["", text];
-  const k = Math.floor(w.length / 2);
-  return [w.slice(0, k).join(" "), w.slice(k).join(" ")];
 };
 
 /** Pages of 15 states: the board follows the first state still to be marked, and once every one is marked it turns through the pages. */
@@ -135,19 +126,19 @@ function JoinCode({ cid }: { cid: string }) {
   );
 }
 
-function Screen({ pill, side, heading, pass, lines, foot, children }: {
-  pill?: (string | false | null | undefined)[]; side?: ch.Side; heading?: string; pass?: boolean; lines?: (React.ReactNode | false | null | undefined)[]; foot?: React.ReactNode; children?: React.ReactNode;
+/** One screen: an optional pill, a heading, optional lines of text, and whatever there is to look at. The rule under the
+ *  heading is drawn only when something follows it (a line, the time, the roll, the speakers), and never over a vote's figures. */
+function Screen({ pill, side, heading, k, pass, lines, foot, plain, children }: {
+  pill?: (string | false | null | undefined)[]; side?: ch.Side; heading?: string; k?: number; pass?: boolean; lines?: (React.ReactNode | false | null | undefined)[]; foot?: React.ReactNode; plain?: boolean; children?: React.ReactNode;
 }) {
   const text = (pill ?? []).filter(Boolean).join(" · ");
-  const [lead, big] = leadAndBig(heading ?? "");
   const rows = (lines ?? []).filter(Boolean);
+  const rule = !plain && (rows.length > 0 || !!children);
   return (
     <>
       {text && <Flanked><span className={s.dPill} data-side={side}>{text}</span></Flanked>}
-      {heading && (lead
-        ? <h1 className={`serif ${s.dWelcome}`} data-pass={pass} style={{ "--k": fit(big, !children) } as React.CSSProperties}><span>{lead}</span><b>{big}</b></h1>
-        : <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": fit(heading, !children) } as React.CSSProperties}><Flag name={heading} em />{heading}</h1>)}
-      {heading && <Divider />}
+      {heading && <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": k ?? fit(heading, !children) } as React.CSSProperties}><Flag name={heading} em />{heading}</h1>}
+      {heading && rule && <Divider />}
       {rows.length > 0 && <div className={s.dLines}>{rows.map((r, i) => <p key={i} className={s.dSub}>{r}</p>)}</div>}
       {children}
       {foot && <div className={s.dFoot}>{foot}</div>}
@@ -253,14 +244,14 @@ export default function ChamberDisplay() {
     open.negotiation && open.notes ? "Negotiation Chamber and Notes Open" : open.negotiation ? "Negotiation Chamber Open" : open.notes && "Notes Open",
     open.amendments && "Amendments Open", open.speakers && "Speakers\u2019 List Open",
   ]).filter(Boolean).join(" \u00B7 ") : "";
-  const fullLabel = full ? "Exit full screen" : "Full screen";
+  const fullLabel = full ? "Exit Full Screen" : "Full Screen";
   const tools = (
     <div className={s.dTools}>
       <div className={s.dToolRow}>
         <button type="button" className={s.dBtn} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}{fullLabel}</button>
         <Link href={cloudId ? `/chambers?c=${cloudId}` : "/chambers"} className={s.dBtn}><Back />Console</Link>
       </div>
-      <span className={`${s.dBtn} ${s.dBrand}`}><Mark size={14} /><Wordmark height={11} /></span>
+      <span className={`${s.dBtn} ${s.dBrand}`}><Mark size={16} /><Wordmark height={13} /></span>
     </div>
   );
 
@@ -269,7 +260,7 @@ export default function ChamberDisplay() {
   const subA = c?.amend?.sub ? c.amendments.find((a) => a.id === c.amend!.sub!.id) : undefined;
   const timerView = () => c?.timer && (
     <>
-      <div className={s.dTimeRow}><Flank /><div className={s.dTime} data-state={state} data-over={ch.overtime(c.timer, now) > 0 || undefined} role="timer">{ch.timerText(c.timer, now)}</div><Flank flip /></div>
+      <div className={s.dTime} data-state={state} data-over={ch.overtime(c.timer, now) > 0 || undefined} role="timer">{ch.timerText(c.timer, now)}</div>
       <div className={s.dTrack} data-state={state} aria-hidden="true"><i style={{ width: `${Math.min(100, (left / c.timer.total) * 100)}%` }} /></div>
     </>
   );
@@ -325,7 +316,7 @@ export default function ChamberDisplay() {
       <Screen pill={["Points of Information"]} heading={name(sp.who)} lines={[taken ?? "Raise your placard to ask"]} />
     ) : (
       <Screen pill={[ch.roleName(c, sp.role), sideOf(sp) && SIDE[sp.side]]} side={sideOf(sp)} heading={name(sp.who)}
-        lines={[sp.phase === "after" ? "How do you yield?" : c.step === "amend" && amendment ? (subA ?? amendment).text : null, kLine]}>
+        lines={[sp.phase === "after" ? "How do you yield?" : null, kLine]}>
         {sp.phase === "speech" && timerView()}
       </Screen>
     );
@@ -365,7 +356,7 @@ export default function ChamberDisplay() {
     );
   } else if (c.poll?.kind === "motion") {
     const m = motionOf(c.poll.motion);
-    mid = <Screen pill={m ? ch.motionPill(c, m) : ["Motion"]} heading={m ? ch.motionDetail(c, m) || ch.MOTION_LABEL[m.kind] : c.poll.title}>{votes(c.poll)}</Screen>;
+    mid = <Screen pill={m ? ch.motionPill(c, m) : ["Motion"]} heading={m ? ch.motionDetail(c, m) || ch.MOTION_LABEL[m.kind] : c.poll.title} plain>{votes(c.poll)}</Screen>;
   } else if (c.step === "statements") {
     const next3 = ch.upcomingStatements(c, 3);
     mid = (
@@ -374,13 +365,13 @@ export default function ChamberDisplay() {
   } else if (c.step === "general") {
     const m = c.result?.kind === "motion" ? motionOf(c.result.motion) : undefined;
     mid = c.result?.kind === "motion"
-      ? <Screen pill={m ? ch.motionPill(c, m) : ["Motion"]} heading={c.result.passed ? "Motion Passes" : "Motion Fails"} pass={c.result.passed} lines={[m ? ch.motionDetail(c, m) : c.result.title]}>{votes(c.result)}</Screen>
-      : c.style ? <Screen heading="General Speakers\u2019 List" lines={[ch.nextCandidate(c) ? `Next: ${name(ch.nextCandidate(c)!.id)}` : "The floor is open"]} />
+      ? <Screen pill={m ? ch.motionPill(c, m) : ["Motion"]} heading={c.result.passed ? "Motion Passes" : "Motion Fails"} pass={c.result.passed} lines={[m ? ch.motionDetail(c, m) : c.result.title]} plain>{votes(c.result)}</Screen>
+      : c.style ? <Screen heading={"General Speakers\u2019 List"} lines={[ch.nextCandidate(c) ? `Next: ${name(ch.nextCandidate(c)!.id)}` : "The floor is open"]} />
       : <Screen heading="The Chair Is Choosing a Resolution" />;
   } else if (c.step === "caucus" && c.tr && k?.kind === "mod") {
     mid = (
       <Screen heading={k.topic}>
-        <div className={s.dTimeRow}><Flank /><div className={s.dTime} data-state={kLeft === 0 ? "up" : ch.running(k.clock) ? "running" : "paused"} role="timer">{ch.clock(kLeft)}</div><Flank flip /></div>
+        <div className={s.dTime} data-state={kLeft === 0 ? "up" : ch.running(k.clock) ? "running" : "paused"} role="timer">{ch.clock(kLeft)}</div>
         <div className={s.dTrack} data-state={kLeft === 0 ? "up" : undefined} aria-hidden="true"><i style={{ width: `${k.clock ? Math.min(100, (kLeft / k.clock.total) * 100) : 0}%` }} /></div>
       </Screen>
     );
@@ -389,7 +380,7 @@ export default function ChamberDisplay() {
   } else if (c.step === "amend" && amendment && subA) {
     const subPill = ["Amendment to the Amendment", `from ${name(subA.by)}`];
     mid = c.poll ? (
-      <Screen pill={subPill} heading="Adopt This Amendment to the Amendment?" lines={[`\u201C${subA.text}\u201D`]}>{votes(c.poll)}</Screen>
+      <Screen pill={subPill} heading="Adopt This Amendment to the Amendment?" plain>{votes(c.poll)}</Screen>
     ) : (
       <Screen pill={subPill} heading={`\u201C${subA.text}\u201D`} lines={[`Instead of: \u201C${amendment.text}\u201D`]} />
     );
@@ -399,25 +390,30 @@ export default function ChamberDisplay() {
     // The ruling on whether to debate stays up until the next vote begins (when it failed, that is the vote to adopt, with no votes yet).
     const ruling = r && (stage === "debate" || (stage === "vote" && c.poll && c.poll.yes + c.poll.no + c.poll.abstain === 0)) ? r : null;
     mid = ruling ? (
-      <Screen pill={amendPill(amendment)} heading={ruling.passed ? "Debate Approved" : "Debate Not Approved"} pass={ruling.passed} foot={signatories(amendment)}>
+      <Screen pill={amendPill(amendment)} heading={ruling.passed ? "Debate Approved" : "Debate Not Approved"} pass={ruling.passed} foot={signatories(amendment)} plain>
         {votes(ruling)}
       </Screen>
     ) : c.poll ? (
-      <Screen pill={amendPill(amendment)} heading={stage === "ask" ? "Debate This Amendment?" : "Adopt This Amendment?"} foot={signatories(amendment)}>
+      <Screen pill={amendPill(amendment)} heading={stage === "ask" ? "Debate This Amendment?" : "Adopt This Amendment?"} foot={signatories(amendment)} plain>
         {votes(c.poll)}
       </Screen>
     ) : (
       <Screen pill={amendPill(amendment)} heading={`\u201C${amendment.text}\u201D`} foot={signatories(amendment)} />
     );
   } else if (c.step === "vote" || c.step === "closed") {
+    // The vote and its result are laid out alike, the heading at one size and one line kept for a note, so the states on
+    // the board stay in the same place from the first ballot to the result, and on every page.
     const n = ch.count(c);
-    const done = c.step === "closed" && c.outcome;
+    const o = c.step === "closed" ? c.outcome : null;
     const noun = c.tr ? ch.resNoun(c).replace("resolution", "Resolution") : "Resolution";
+    const struck = o ? (o.struck?.length ? `Struck: ${o.struck.join("; ")}` : null)
+      : ch.divisionPart(c) === null && c.divide?.parts.some((x) => x.result === "failed") ? `Struck: ${c.divide.parts.filter((x) => x.result === "failed").map((x) => x.label).join("; ")}` : null;
+    const note = o ? struck : ch.partText(c) ?? struck;
     mid = (
-      <Screen heading={done ? (c.outcome!.passed ? `${noun} Approved` : `${noun} Not Approved`) : "Roll Call Vote"} pass={done ? c.outcome!.passed : undefined}
-        pill={c.tr && doc ? [doc.title] : undefined}
-        lines={done ? [`${c.outcome!.yes} For · ${c.outcome!.no} Against · ${c.outcome!.abstain} ${c.tr ? "Neutral" : "Abstaining"}${!c.outcome!.passed ? ` · ${c.outcome!.needed} needed` : ""}`, c.outcome!.struck?.length ? `Struck: ${c.outcome!.struck.join("; ")}` : null] : [ch.partText(c), ch.divisionPart(c) === null && c.divide?.parts.some((x) => x.result === "failed") ? `Struck: ${c.divide.parts.filter((x) => x.result === "failed").map((x) => x.label).join("; ")}` : null]}>
-        {c.step === "vote" && votes(n, !!c.tr)}
+      <Screen heading={o ? (o.passed ? `${noun} Passes` : `${noun} Does Not Pass`) : "Roll Call Vote"} k={Math.min(fit(`${noun} Does Not Pass`, false), 0.7)} pass={o ? o.passed : undefined}
+        pill={c.tr && doc ? [doc.title] : undefined} plain>
+        {votes(o ?? n, !!c.tr)}
+        <p className={`${s.dSub} ${s.dNote1}`} title={note ?? undefined}>{note ?? "\u00A0"}</p>
         <VoteBoard c={c} tag={obsTag} />
       </Screen>
     );
@@ -426,14 +422,16 @@ export default function ChamberDisplay() {
   } else if (c.step === "closing") {
     const todo = ch.closingRoles(c).filter((r) => !c.closers.includes(r.id));
     const shown = c.tr ? todo.slice(0, 1) : todo; // Trinity: one at a time, in order
+    // With no opposer the third place still shows, as None, so the room sees there is no one to speak against.
+    const none = !c.tr && shown.length > 0 && !c.roles.opposer;
     mid = (
-      <Screen pill={[c.tr ? "Closing" : "Closing speeches"]} heading={shown.length ? shown.map((r) => name(r.id)).join(" · ") : "The Vote Is Next"}
-        lines={[shown.length ? shown.map((r) => ch.roleName(c, r.role)).join(" · ") : null]} />
+      <Screen pill={[c.tr ? "Closing" : "Closing Speeches"]} heading={shown.length ? [...shown.map((r) => name(r.id)), ...(none ? ["None"] : [])].join(" \u00B7 ") : "The Vote Is Next"}
+        lines={[shown.length ? [...shown.map((r) => ch.roleName(c, r.role)), ...(none ? ["Opposer"] : [])].join(" \u00B7 ") : null]} />
     );
   } else if (c.step === "floor" && c.result?.kind === "amendment" && c.amendments.some((a) => a.id === c.result?.amendment)) {
     const a = c.amendments.find((x) => x.id === c.result!.amendment)!;
     mid = (
-      <Screen pill={amendPill(a)} heading={c.result.passed ? "This Amendment Passes" : "This Amendment Fails"} pass={c.result.passed} foot={signatories(a)}>
+      <Screen pill={amendPill(a)} heading={c.result.passed ? "This Amendment Passes" : "This Amendment Fails"} pass={c.result.passed} foot={signatories(a)} plain>
         {votes(c.result)}
       </Screen>
     );
@@ -444,13 +442,13 @@ export default function ChamberDisplay() {
       ? <Screen pill={[role, c.step === "opposer" ? SIDE.against : SIDE.for]} side={c.step === "opposer" ? "against" : "for"} heading={name(who)} />
       : c.tr
         ? (c.result?.kind === "motion"
-          ? <Screen pill={motionOf(c.result.motion) ? ch.motionPill(c, motionOf(c.result.motion)!) : ["Motion"]} heading={c.result.passed ? "Motion Passes" : "Motion Fails"} pass={c.result.passed} lines={[motionOf(c.result.motion) ? ch.motionDetail(c, motionOf(c.result.motion)!) : c.result.title]}>{votes(c.result)}</Screen>
+          ? <Screen pill={motionOf(c.result.motion) ? ch.motionPill(c, motionOf(c.result.motion)!) : ["Motion"]} heading={c.result.passed ? "Motion Passes" : "Motion Fails"} pass={c.result.passed} lines={[motionOf(c.result.motion) ? ch.motionDetail(c, motionOf(c.result.motion)!) : c.result.title]} plain>{votes(c.result)}</Screen>
           : <Screen heading={`${ch.resNoun(c).replace("resolution", "Resolution")} Debate`} lines={[doc?.title]} />)
         : (() => { // Evatt: the speakers' list on the resolution comes first; amendments only when no one is listed
           const up = ch.nextCandidate(c);
           if (up) return <Screen pill={["Speakers\u2019 List", SIDE[up.side]]} side={up.side} heading={name(up.id)} lines={["Next to speak"]} />;
           if (c.amendments.some((a) => a.status === "waiting")) return <Screen heading="Amendments" lines={["Send amendments to the chair's desk"]} />;
-          return <Screen heading="Speakers\u2019 List" lines={["Raise your placard to be added", "Send amendments to the chair's desk"]} />;
+          return <Screen heading={"Speakers\u2019 List"} lines={["Raise your placard to be added", "Send amendments to the chair's desk"]} />;
         })();
   }
 
@@ -468,13 +466,13 @@ export default function ChamberDisplay() {
         {openNow ? <span className={`${s.dBtn} ${s.dStatus}`} role="status">{openNow}</span> : <span className={s.dGap} />}
         {tools}
       </div>
-      <main id="top" className={s.dMid}>{mid}</main>
+      <main id="top" className={s.dMid} data-board={(!!c && !c.speech && !c.tr?.reply && !c.explain?.who && (c.step === "roll" || c.step === "vote" || c.step === "closed")) || undefined}>{mid}</main>
       <div className={s.dBottom}>
         <div className={s.dNext}>
           {c && ordered.length > 0 && (
             <>
               <span className={s.dCaps}>Up next</span>
-              <ol>{ordered.map((x) => <li key={x.id} data-side={c && (ch.sided(c) || x.stance) ? x.side : undefined} data-plain={(c && !ch.sided(c) && !x.stance) || undefined}><i /><Flag name={name(x.id)} em /><span className={s.dNextName} title={name(x.id)}>{ch.shortName(name(x.id))}</span>{c && (ch.sided(c) || x.stance) && <small>{SIDE[x.side]}</small>}</li>)}</ol>
+              <ol>{ordered.map((x) => <li key={x.id} data-side={c && (ch.sided(c) || x.stance) ? x.side : undefined} data-plain={(c && !ch.sided(c) && !x.stance) || undefined}><i /><Flag name={name(x.id)} em /><span className={s.dNextName} title={name(x.id)}>{ch.shortName(name(x.id))}</span></li>)}</ol>
             </>
           )}
         </div>

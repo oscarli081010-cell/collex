@@ -86,12 +86,12 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
   else if (c.step === "floor") { // Evatt: the speakers' list on the resolution comes first; amendments only when no one is listed
     if (next) { title = name(next.id); sub = "Next on the speakers\u2019 list"; }
     else if (waiting.length) { title = "Amendments"; sub = `${waiting.length} waiting`; }
-    else { title = "Speakers\u2019 List"; sub = "Add states to the speakers\u2019 list, For or Against"; }
+    else { title = "The Speakers\u2019 List Is Empty"; }
   }
   else if (c.step === "closing") { title = t ? "Closing" : "Closing speeches"; sub = t && !c.closers.length ? "Final caucus, then the closing speeches" : ""; }
   else if (c.step === "vote") { title = "Roll Call Vote"; sub = ch.partText(c) ?? ""; }
   else if (c.step === "ended") { title = "Committee Ended"; sub = "The analytics are still here."; }
-  else if (c.step === "closed") { title = c.outcome?.passed ? (t ? `${ch.resNoun(c).replace("resolution", "Resolution")} Approved` : "Resolution Approved") : (t ? `${ch.resNoun(c).replace("resolution", "Resolution")} Not Approved` : "Resolution Not Approved"); sub = c.outcome ? `${c.outcome.yes} for, ${c.outcome.no} against, ${c.outcome.abstain} abstaining` : ""; }
+  else if (c.step === "closed") { title = `${t ? ch.resNoun(c).replace("resolution", "Resolution") : "Resolution"} ${c.outcome?.passed ? "Passes" : "Does Not Pass"}`; sub = c.outcome ? `${c.outcome.yes} for, ${c.outcome.no} against, ${c.outcome.abstain} abstaining` : ""; }
   else if (c.step === "amend" && c.amend?.stage === "read") { title = `Amendment from ${name(amendment?.by ?? null)}`; sub = [amendment?.how && HOW[amendment.how], amendment?.clause].filter(Boolean).join(" \u00B7 ") || "Read it to the council"; }
   else if (c.step === "amend" && c.amend?.stage === "ask") { title = "Debate This Amendment?"; }
   else if (c.step === "amend" && c.amend?.stage === "vote") { title = "Adopt This Amendment?"; }
@@ -100,11 +100,20 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
   else if (debateOpen) {
     if (!c.debate.run.length) { title = name(amendment?.by ?? null); sub = "Speaks first on their amendment"; }
     else if (next) { title = name(next.id); sub = "Next on the speakers' list"; }
-    else { title = "The Speakers' List Is Empty"; sub = spokeFromList ? "Everyone listed has spoken. Vote on the amendment." : "Add states to the speakers' list, For or Against"; }
+    else { title = "The Speakers\u2019 List Is Empty"; sub = spokeFromList ? "Everyone listed has spoken. Vote on the amendment." : ""; }
   }
 
   const sideless = !!t && sp && !sp.stance && !ch.sided(c) && (sp.role === "speaker" || sp.role === "statement"); // a general speaker or a statement takes no side
   const chipSide: Side | null = sp ? (sideless ? null : sp.side) : debateOpen && !sp && c.debate.run.length && next ? next.side : null;
+
+  // Down to the speakers' list, with its picker ready, for a chair who isn't sure where states are added.
+  const toList = () => {
+    const pick = document.getElementById("ch-add");
+    const box = pick?.closest("section");
+    if (!pick || !box) return;
+    box.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    pick.focus({ preventScroll: true });
+  };
 
   const actions = (() => {
     if (sp) {
@@ -378,7 +387,7 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
           </div>
           {!first && (
             <>
-              <button type="button" className={sm} aria-expanded={anyOpen} onClick={() => setAnyOpen((v) => !v)}>Call a State That Isn&apos;t on the List</button>
+              <button type="button" className={sm} aria-expanded={anyOpen} onClick={() => setAnyOpen((v) => !v)}>Call a State</button>
               {anyOpen && (
                 <div className={s.anyBox}>
                   <div className={s.pickRow}>
@@ -394,6 +403,7 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
               )}
             </>
           )}
+          {!first && !next && <button type="button" className="button secondary block" onClick={toList}>Add to Speakers&apos; List</button>}
         </>
       );
     }
@@ -410,7 +420,7 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
             {chipSide && <span className={s.chip} data-side={chipSide}>{SIDE[chipSide]}</span>}
           </div>
         )}
-        <h2 className={`serif ${s.who} ${s.whoBig}`}>{typeof title === "string" && c.delegates.some((d) => d.name === title) ? <><Flag name={title} em />{title}</> : typeof title === "string" && title.split(" ").length >= 4 && title.length >= 22 ? <><span className={s.whoLead}>{title.split(" ").slice(0, Math.floor(title.split(" ").length / 2)).join(" ")}</span>{title.split(" ").slice(Math.floor(title.split(" ").length / 2)).join(" ")}</> : title}</h2>
+        <h2 className={`serif ${s.who} ${s.whoBig}`} data-long={(typeof title === "string" && title.length > 18) || undefined}>{typeof title === "string" && c.delegates.some((d) => d.name === title) ? <><Flag name={title} em />{title}</> : title}</h2>
         {sub && <p className={s.sub}>{sub}</p>}
         {sp && points && between && (
           <p className={s.sub}><strong className={s.subNum}>{sp.pois}</strong> {sp.pois === 1 ? "Point" : "Points"} of Information taken</p>
