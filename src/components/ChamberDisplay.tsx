@@ -244,14 +244,15 @@ export default function ChamberDisplay() {
     open.negotiation && open.notes ? "Negotiation Chamber and Notes Open" : open.negotiation ? "Negotiation Chamber Open" : open.notes && "Notes Open",
     open.amendments && "Amendments Open", open.speakers && "Speakers\u2019 List Open",
   ]).filter(Boolean).join(" \u00B7 ") : "";
+  // Two round buttons with only an icon each; the name appears on hover or focus.
   const fullLabel = full ? "Exit Full Screen" : "Full Screen";
   const tools = (
     <div className={s.dTools}>
       <div className={s.dToolRow}>
-        <button type="button" className={s.dBtn} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}{fullLabel}</button>
-        <Link href={cloudId ? `/chambers?c=${cloudId}` : "/chambers"} className={s.dBtn}><Back />Console</Link>
+        <span className="tip" data-tip={fullLabel}><button type="button" className={`${s.dBtn} ${s.dRound}`} aria-label={fullLabel} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}</button></span>
+        <span className="tip" data-tip="Console"><Link href={cloudId ? `/chambers?c=${cloudId}` : "/chambers"} className={`${s.dBtn} ${s.dRound}`} aria-label="Console"><Back /></Link></span>
       </div>
-      <span className={`${s.dBtn} ${s.dBrand}`}><Mark size={16} /><Wordmark height={13} /></span>
+      <span className={`${s.dBtn} ${s.dBrand}`}><Mark size={14} /><Wordmark height={11} /></span>
     </div>
   );
 
