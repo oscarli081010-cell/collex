@@ -60,7 +60,7 @@ export default function Committees({ ctx }: { ctx: ListingCtx }) {
                   </div>
                   {s ? (
                     <>
-                      <span className={h.note}>{STEP[s.step] ?? s.step}{s.tr?.cauc ? ` · ${s.tr.cauc.kind === "mod" ? "Moderated caucus" : "Unmoderated caucus"}` : ""}</span>
+                      <span className={h.note}>{STEP[s.step] ?? s.step}{s.tr?.cauc ? ` · ${s.tr.cauc.kind === "mod" ? "Moderated Caucus" : "Unmoderated Caucus"}` : ""}</span>
                       <span className={h.roomWho}>{who || (s.poll ? "Voting" : s.tr?.cauc?.topic || s.topic || "–")}</span>
                       {left !== null && s.step !== "ended" && s.step !== "closed" && <span className={h.roomTime}>{ch.clock(left)}</span>}
                       <span className={h.roomFacts}>

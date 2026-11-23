@@ -5,6 +5,7 @@ import * as ch from "@/lib/chamber";
 import type { Chamber, Side } from "@/lib/chamber";
 import { usePill } from "../usePill";
 import IconButton, { ICONS } from "../IconButton";
+import { Why } from "../RoomChair";
 import s from "../Chambers.module.css";
 
 const svg = (d: React.ReactNode) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
@@ -115,14 +116,17 @@ export function Undo({ c, act }: { c: Chamber; act: Act }) {
 
 // Two or three choices in one pill, with a highlight that slides to the one picked like every other tab control on the site.
 export function Seg<T extends string>({ items, value, onPick, label, className, disabled }: {
-  items: { id: T; label: string; off?: boolean }[]; value: T | null | undefined; onPick: (id: T) => void; label: string; className?: string; disabled?: boolean;
+  items: { id: T; label: string; off?: boolean; why?: string }[]; value: T | null | undefined; onPick: (id: T) => void; label: string; className?: string; disabled?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const pill = usePill(box, '[aria-pressed="true"]', value ?? "");
   return (
     <div ref={box} className={`${s.seg3} ${className ?? ""}`} role="group" aria-label={label}>
       <span ref={pill} className={`t-pill ${s.segPill}`} aria-hidden="true" />
-      {items.map((i) => <button key={i.id} type="button" data-v={i.id} aria-pressed={value === i.id} disabled={disabled || i.off} onClick={() => onPick(i.id)}>{i.label}</button>)}
+      {items.map((i) => {
+        const b = <button key={i.id} type="button" data-v={i.id} aria-pressed={value === i.id} disabled={disabled || i.off} onClick={() => onPick(i.id)}>{i.label}</button>;
+        return i.off && i.why && !disabled ? <Why key={i.id} why={i.why}>{b}</Why> : b;
+      })}
     </div>
   );
 }

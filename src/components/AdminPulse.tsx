@@ -121,6 +121,16 @@ export function AdminVisitors() {
 }
 
 /** Faults the site's pages reported, newest first, with the stack folded away and a two-click clear. */
+// What an error means, in plain words, for the kinds that come up. Anything else shows its own message.
+const KINDS: [RegExp, string][] = [
+  [/React error #418|React error #423|React error #425|Hydration failed|didn.t match the client/i, "The page drew a little differently in the visitor’s browser than on the server, so the browser redrew it. Visitors don’t see anything wrong."],
+  [/ChunkLoadError|Failed to load chunk|Loading chunk|Loading CSS chunk/i, "A visitor had the page open while a new version of Collex went live, so a piece of the old version was gone. Reloading the page fixes it, and nothing needs doing."],
+  [/Failed to fetch|NetworkError|Load failed|network error/i, "The visitor’s internet dropped while the page was loading something. Nothing needs doing."],
+  [/ResizeObserver loop/i, "A harmless browser warning about layout. Nothing needs doing."],
+  [/Minified React error #\d+/i, "Something on this page broke while it was being drawn. The technical details say where."],
+];
+const meaning = (message: string) => KINDS.find(([re]) => re.test(message))?.[1];
+
 export function AdminErrors({ errors, error, say, reload, query }: { errors: ClientError[]; error: boolean; say: (t: string) => void; reload: () => void; query: string }) {
   const [armed, setArmed] = useState(false);
   useEffect(() => { if (!armed) return; const t = setTimeout(() => setArmed(false), 3000); return () => clearTimeout(t); }, [armed]);
@@ -141,6 +151,7 @@ export function AdminErrors({ errors, error, say, reload, query }: { errors: Cli
   return (
     <>
       <div className={p.toolbar}>
+        <p className={p.intro}>Problems visitors’ browsers ran into on Collex, grouped by kind. Most need nothing doing. Clear them once you’ve read them.</p>
         <button type="button" className={`button secondary ${p.danger}`} data-armed={armed || undefined} onClick={clear}>{armed ? "Click Again to Clear" : "Clear the Errors"}</button>
       </div>
       {shown.length === 0 ? (
@@ -153,8 +164,13 @@ export function AdminErrors({ errors, error, say, reload, query }: { errors: Cli
               {shown.map((e) => (
                 <tr key={e.id}>
                   <td>
-                    <span className={p.msg}>{e.message}</span>
-                    {e.stack && <details className={p.details}><summary>Stack</summary><pre className={p.stack}>{e.stack}</pre></details>}
+                    <span className={p.msg}>{meaning(e.message) ?? e.message}</span>
+                    {(meaning(e.message) || e.stack) && (
+                      <details className={p.details}>
+                        <summary>Technical Details</summary>
+                        <pre className={p.stack}>{meaning(e.message) ? `${e.message}${e.stack ? `\n\n${e.stack}` : ""}` : e.stack}</pre>
+                      </details>
+                    )}
                   </td>
                   <td className={p.page}>{e.path}</td>
                   <td className={p.num}>{e.count}</td>

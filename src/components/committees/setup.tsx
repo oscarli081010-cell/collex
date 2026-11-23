@@ -276,7 +276,6 @@ export function Setup({ onCreate, signedIn, local }: { onCreate: (c: Chamber, de
             <span id="sc-dev">Delegates Follow</span>
             <Seg label="How delegates follow the committee" value={devices ? "on" : "off"} className={s.sideSeg} onPick={(v) => setDevices(v === "on")}
               items={[{ id: "off", label: "On the Display" }, { id: "on", label: "On Their Own Devices" }]} />
-            <small aria-live="polite">{devices ? "Delegates get a code to follow, ask for the floor, vote and pass notes." : "No phones or laptops needed."}</small>
           </div>
           <Why why={why}><button type="submit" className="button lg block" disabled={!!why}>Open Committee</button></Why>
         </form>

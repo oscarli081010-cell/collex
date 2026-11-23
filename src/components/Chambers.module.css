@@ -36,7 +36,7 @@
 }
 
 .manage { display: flex; flex-direction: column; gap: 16px; }
-.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 @media (max-width: 860px) { .pair { grid-template-columns: minmax(0, 1fr); } }
 
 .floor, .list, .side, .log, .share, .notice, .opening { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
@@ -646,7 +646,6 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .setupCard > .emptyCard { margin-top: 0; padding-block: 36px; }
 
 /* A vote taken by placard or by roll call; the chairs' marks. */
-.pollMode { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
 .scoreBox { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); gap: 14px; }
 .scoreGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 14px 20px; }
 .scoreGrid label { display: flex; justify-content: space-between; gap: 10px; }
@@ -668,7 +667,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 /* Whoever has the floor, large. */
 .whoBig { font-size: clamp(40px, 4.8vw, 64px); line-height: 1.02; }
 /* A longer title (The Speakers’ List Is Empty) a size down, so it reads as one line. */
-.whoBig[data-long] { font-size: clamp(30px, 3.2vw, 44px); }
+.whoLead { display: block; font-size: 0.5em; font-style: italic; line-height: 1.1; margin-bottom: 0.1em; color: var(--muted); }
 .subNum { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* The groups under Your Committees are named in the same size as the labels on the Start form beside them. */
@@ -703,3 +702,6 @@ details > summary.head::-webkit-details-marker { display: none; }
 .keys > div { display: grid; grid-template-columns: 7.5em 1fr; gap: 12px; align-items: baseline; }
 .keys dt kbd { font: inherit; font-size: 13px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--surface); white-space: nowrap; }
 .keys dd { margin: 0; color: var(--muted); }
+/* A choice a state can't make (Present and Voting can't abstain): greyed, with its reason on hover. */
+.seg3 button:disabled:not([aria-pressed="true"]) { opacity: 0.4; }
+.seg3 > :global(.tip) { display: grid; }

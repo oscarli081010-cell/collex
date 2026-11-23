@@ -81,7 +81,7 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
   else if (c.step === "proposer") { title = name(c.roles.proposer); sub = t ? `Introduces the ${ch.resNoun(c).toLowerCase()}` : "Proposes the resolution"; }
   else if (c.step === "seconder") { title = name(c.roles.seconder); sub = t ? `Speaks as ${ch.roleName(c, "seconder").toLowerCase()}` : "Seconds the resolution"; }
   else if (c.step === "opposer") { title = name(c.roles.opposer); sub = t ? `Speaks against the ${ch.resNoun(c).toLowerCase()}` : "Speaks against the resolution"; }
-  else if (c.step === "caucus") { title = k?.kind === "mod" ? "Moderated caucus" : k?.kind === "final" ? "Final unmoderated caucus" : t ? "Unmoderated caucus" : "Caucus"; sub = k?.kind === "mod" ? k.topic : ""; }
+  else if (c.step === "caucus") { title = k?.kind === "mod" ? "Moderated Caucus" : k?.kind === "final" ? "Final Unmoderated Caucus" : t ? "Unmoderated Caucus" : "Caucus"; sub = k?.kind === "mod" ? k.topic : ""; }
   else if (c.step === "floor" && t) { title = `${ch.resNoun(c).replace("resolution", "Resolution")} Debate`; sub = ch.currentDoc(c)?.title ?? ""; }
   else if (c.step === "floor") { // Evatt: the speakers' list on the resolution comes first; amendments only when no one is listed
     if (next) { title = name(next.id); sub = "Next on the speakers\u2019 list"; }
@@ -233,12 +233,12 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
           return (
             <>
               {perField}
-              {firstUp ? <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, firstUp.id, firstUp.side))}>Call {name(firstUp.id)}</button> : <p className={s.hint}>Add states to the speakers&apos; list as they raise their hands.</p>}
+              {firstUp && <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, firstUp.id, firstUp.side))}>Call {name(firstUp.id)}</button>}
+              <button type="button" className="button secondary" onClick={toList}>Add States to Speakers&apos; List</button>
               {extend}
               <div className={s.btnRow}>
                 <button type="button" className={ch.canCloseMod(c) ? "button secondary sm" : "button secondary sm"} onClick={() => act(ch.endCaucus)}>End Caucus</button>
               </div>
-              <p className={s.hint}>{c.debate.run.length < 3 ? `A motion to close it can be heard after the last three speakers. ${c.debate.run.length} so far.` : "A motion to close it can be heard now."}</p>
             </>
           );
         }
@@ -353,7 +353,8 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
             ? <Why why={amAway && `${name(amBy)} is marked absent`}><button type="button" className="button" disabled={amAway} onClick={() => act((x) => ch.callAmender(x))}>Call {name(amBy)} to Speak</button></Why>
             : follow
               ? <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, follow.id, follow.side))}>Call {name(follow.id)}</button>
-              : <p className={s.hint}>Add states to the speakers&apos; list as they raise their hands.</p>}
+              : null}
+          <button type="button" className="button secondary" onClick={toList}>Add States to Speakers&apos; List</button>
           {extend}
           {subA ? (
             <>
@@ -403,7 +404,7 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
               )}
             </>
           )}
-          {!first && !next && <button type="button" className="button secondary block" onClick={toList}>Add to Speakers&apos; List</button>}
+          {!first && !next && <button type="button" className="button secondary block" onClick={toList}>Add States to Speakers&apos; List</button>}
         </>
       );
     }
@@ -420,7 +421,7 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
             {chipSide && <span className={s.chip} data-side={chipSide}>{SIDE[chipSide]}</span>}
           </div>
         )}
-        <h2 className={`serif ${s.who} ${s.whoBig}`} data-long={(typeof title === "string" && title.length > 18) || undefined}>{typeof title === "string" && c.delegates.some((d) => d.name === title) ? <><Flag name={title} em />{title}</> : title}</h2>
+        <h2 className={`serif ${s.who} ${s.whoBig}`}>{typeof title === "string" && c.delegates.some((d) => d.name === title) ? <><Flag name={title} em />{title}</> : typeof title === "string" && title.split(" ").length >= 4 && title.length >= 22 ? <><span className={s.whoLead}>{title.split(" ").slice(0, Math.floor(title.split(" ").length / 2)).join(" ")}</span>{title.split(" ").slice(Math.floor(title.split(" ").length / 2)).join(" ")}</> : title}</h2>
         {sub && <p className={s.sub}>{sub}</p>}
         {sp && points && between && (
           <p className={s.sub}><strong className={s.subNum}>{sp.pois}</strong> {sp.pois === 1 ? "Point" : "Points"} of Information taken</p>

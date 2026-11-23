@@ -94,7 +94,7 @@ function VoteBoard({ c, tag }: { c: ch.Chamber; tag: (id: string) => React.React
       <div className={s.dBoard}>
         {here.slice(at * PER, (at + 1) * PER).map((d) => {
           const b = c.ballots[d.id];
-          return <div key={d.id} className={s.dSeat} data-b={b}><Seat name={d.name} />{tag(d.id) ?? (b && <em>{c.tr && b === "abstain" ? "Neutral" : BALLOT_WORD[b]}</em>)}</div>;
+          return <div key={d.id} className={s.dSeat} data-b={b}><Seat name={d.name} />{tag(d.id) ?? (b && <em>{BALLOT_WORD[b]}</em>)}</div>;
         })}
       </div>
       <Pages at={at} pages={pages} />
@@ -133,7 +133,7 @@ function Screen({ pill, side, heading, k, pass, lines, foot, plain, children }: 
 }) {
   const text = (pill ?? []).filter(Boolean).join(" · ");
   const rows = (lines ?? []).filter(Boolean);
-  const rule = !plain && (rows.length > 0 || !!children);
+  const rule = !plain && rows.length === 0 && !!children; // the rule sits only over the timer or a board, never between a heading and its lines
   return (
     <>
       {text && <Flanked><span className={s.dPill} data-side={side}>{text}</span></Flanked>}
@@ -232,7 +232,7 @@ export default function ChamberDisplay() {
     return () => document.removeEventListener("fullscreenchange", onFull);
   }, []);
 
-  const now = useNow(ch.running(c?.timer ?? null) || ch.running(c?.tr?.cauc?.clock ?? null) || (!!c?.tr && Object.keys(c.tr.observers).length > 0));
+  const now = useNow(ch.running(c?.timer ?? null) || ch.running(c?.tr?.cauc?.clock ?? null));
   const left = c?.timer ? ch.remaining(c.timer, now) : 0;
   const state = !c?.timer ? "none" : left === 0 ? "up" : c.timer.endsAt === null ? "paused" : left <= 10_000 ? "low" : "running";
   useChime(c ?? null, now);
@@ -283,7 +283,7 @@ export default function ChamberDisplay() {
     </div>
   );
   const amendPill = (a: ch.Amendment) => ["Amendment", a.how && { strike: "Strike", amend: "Amend", add: "Add" }[a.how], a.clause, `from ${name(a.by)}`];
-  const votes = (r: { yes: number; no: number; abstain: number }, neutral = false) => tallies([["For", r.yes], ["Against", r.no], [neutral ? "Neutral" : "Abstain", r.abstain]]);
+  const votes = (r: { yes: number; no: number; abstain: number }) => tallies([["For", r.yes], ["Against", r.no], ["Abstain", r.abstain]]);
   const motionOf = (id?: string) => (c && id ? c.tr?.motions.find((m) => m.id === id) : undefined);
   const k = c?.tr?.cauc ?? null;
   const kLeft = k?.clock ? ch.remaining(k.clock, now) : 0;
@@ -300,9 +300,6 @@ export default function ChamberDisplay() {
     ) : status === "loading" || cloudId ? null : (
       <Screen heading="Nothing to Show Yet" lines={["Open a committee in the console, then keep this window open beside it."]} />
     );
-  } else if (c.tr?.reply) {
-    const r = c.tr.reply;
-    mid = <Screen pill={["Right of reply"]} heading={name(r.by)} lines={[r.to ? `Against ${name(r.to)}` : null]}>{timerView()}</Screen>;
   } else if (c.speech) {
     const sp = c.speech;
     const kLine = c.tr && k?.kind === "mod" && c.step === "caucus" ? `${k.topic} \u00B7 ${ch.clock(kLeft)} left` : c.tr && c.step === "amend" && k?.clock ? `Caucus ${ch.clock(kLeft)} left` : null;
@@ -412,7 +409,7 @@ export default function ChamberDisplay() {
     mid = (
       <Screen heading={o ? (o.passed ? `${noun} Passes` : `${noun} Does Not Pass`) : "Roll Call Vote"} k={Math.min(fit(`${noun} Does Not Pass`, false), 0.7)} pass={o ? o.passed : undefined}
         pill={c.tr && doc ? [doc.title] : undefined} plain>
-        {votes(o ?? n, !!c.tr)}
+        {votes(o ?? n)}
         <p className={`${s.dSub} ${s.dNote1}`} title={note ?? undefined}>{note ?? "\u00A0"}</p>
         <VoteBoard c={c} tag={obsTag} />
       </Screen>
@@ -466,7 +463,7 @@ export default function ChamberDisplay() {
         {openNow ? <span className={`${s.dBtn} ${s.dStatus}`} role="status">{openNow}</span> : <span className={s.dGap} />}
         {tools}
       </div>
-      <main id="top" className={s.dMid} data-board={(!!c && !c.speech && !c.tr?.reply && !c.explain?.who && (c.step === "roll" || c.step === "vote" || c.step === "closed")) || undefined}>{mid}</main>
+      <main id="top" className={s.dMid} data-board={(!!c && !c.speech && !c.explain?.who && (c.step === "roll" || c.step === "vote" || c.step === "closed")) || undefined}>{mid}</main>
       <div className={s.dBottom}>
         <div className={s.dNext}>
           {c && ordered.length > 0 && (

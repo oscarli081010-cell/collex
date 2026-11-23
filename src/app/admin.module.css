@@ -20,7 +20,7 @@
 }
 .tabs button[aria-selected="true"] { color: var(--ink); font-weight: 500; }
 .tabPill { top: 4px; bottom: 4px; border-radius: 8px; background: var(--panel); box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.1); }
-.count { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 11.5px; font-weight: 600; display: inline-grid; place-items: center; }
+.count { flex: none; box-sizing: border-box; white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 11.5px; font-weight: 600; display: inline-grid; place-items: center; }
 
 .stack { display: flex; flex-direction: column; gap: 16px; }
 .actions { display: inline-flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
@@ -118,7 +118,7 @@
 .bulkLead { display: flex; align-items: center; gap: 8px; flex: none; }
 .bulkLead :global(.iconbtn) { width: 36px; height: 36px; }
 .bulkCount { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 13.5px; font-weight: 500; white-space: nowrap; }
-.bulkCount b { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bulkCount b { flex: none; box-sizing: border-box; white-space: nowrap; display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .bulkRule { flex: none; width: 1px; height: 24px; background: var(--line-strong); }
 .bulkActions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .bulk :global(.button) { height: 38px; padding: 0 14px; font-size: 13.5px; }

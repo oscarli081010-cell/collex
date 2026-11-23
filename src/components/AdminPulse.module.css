@@ -5,8 +5,10 @@
 .bar { cursor: default; }
 .page { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
-.toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.toolbar { display: flex; justify-content: flex-end; align-items: center; gap: 16px; margin-bottom: 12px; }
+.intro { margin: 0 auto 0 0; font-size: 14px; color: var(--muted); max-width: 60ch; }
 .toolbar button { width: auto; }
+@media (max-width: 640px) { .toolbar { flex-direction: column; align-items: stretch; } .toolbar button { width: 100%; } }
 .msg { overflow-wrap: anywhere; font-weight: 500; }
 .details { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
 .details summary { cursor: pointer; }

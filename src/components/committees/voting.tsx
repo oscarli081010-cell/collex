@@ -21,9 +21,6 @@ export function PollBox({ c, act }: { c: Chamber; act: Act }) {
   const byRoll = !!p.ballots;
   return (
     <>
-      <Seg label="How the vote is taken" value={byRoll ? "roll" : "placard"} className={s.pollMode}
-        items={[{ id: "placard", label: "By Placard" }, { id: "roll", label: "By Roll Call" }]}
-        onPick={(m) => { if ((m === "roll") !== byRoll) act((x) => ch.pollByRoll(x, m === "roll")); }} />
       <div className={s.counters}>
         {([["yes", "For"], ["no", "Against"], ["abstain", "Abstain"]] as const).map(([k, label]) => (
           <div key={k} className={s.counter} data-kind={k}>
@@ -90,20 +87,20 @@ export function RollCall({ c, act }: { c: Chamber; act: Act }) {
       <Stats label="Votes So Far" bar items={[
         { label: "For", value: n.yes, tone: "ok" },
         { label: "Against", value: n.no, tone: "bad" },
-        { label: t ? "Neutral" : "Abstain", value: n.abstain },
+        { label: "Abstain", value: n.abstain },
         { label: "Still to Vote", value: n.left },
       ]} />
       {two ? <p className={s.hint}>Two-thirds of the votes cast, so {need} For at the moment. Abstentions count for neither.</p> : t ? <p className={s.hint}>More For than Against, so {need} For at the moment. Abstentions count for neither.</p> : <p className={s.hint}>Needs at least {need} in favour</p>}
       {closed
         ? <p className={s.hint}>The vote is recorded, so the ballots can&rsquo;t be changed.</p>
-        : c.delegates.some((d) => ch.isHere(c, d.id) && c.roll[d.id] === "voting") && <p className={s.hint}>States marked Present &amp; Voting can&rsquo;t {t ? "vote Neutral" : "abstain"}.</p>}
+        : c.delegates.some((d) => ch.isHere(c, d.id) && c.roll[d.id] === "voting") && <p className={s.hint}>States marked Present &amp; Voting can&rsquo;t abstain.</p>}
       {c.style ? <Answers c={c} act={act} closed={closed} /> : (
       <ul className={s.ballots}>
         {c.delegates.filter((d) => ch.isHere(c, d.id)).map((d) => (
           <li key={d.id} className={s.ballot}>
             <span className={s.cname2}><Flag name={d.name} />{d.name}</span>
             <Seg label={`Vote of ${d.name}`} value={c.ballots[d.id]} disabled={closed} className={s.ballotSeg}
-              items={[{ id: "for", label: "For" }, { id: "against", label: "Against" }, { id: "abstain", label: t ? "Neutral" : "Abstain", off: c.roll[d.id] === "voting" }]}
+              items={[{ id: "for", label: "For" }, { id: "against", label: "Against" }, { id: "abstain", label: "Abstain", off: c.roll[d.id] === "voting", why: "Present and Voting, so For or Against only" }]}
               onPick={(b) => act((x) => ch.cast(x, d.id, c.ballots[d.id] === b ? null : (b as Ballot)))} />
           </li>
         ))}

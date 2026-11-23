@@ -68,16 +68,27 @@ export default function Motion() {
 
   // Tips for screen readers (see above), and Escape to put one away without moving the pointer or focus.
   useEffect(() => {
-    const sweep = (root: ParentNode) => root.querySelectorAll(TIPS).forEach(describeTip);
+    // A part of the page drawn on the server is taken over by React (hydrated) a moment after this runs, and streamed parts
+    // arrive later still. Adding the note before then makes React find markup it did not draw and throw (React error 418,
+    // the hydration errors in Admin). So a tip React does not have yet is left, and looked at again shortly.
+    const hydrated = (el: Element) => Object.keys(el).some((k) => k.startsWith("__reactFiber$"));
+    let later: ReturnType<typeof setTimeout> | undefined;
+    let tries = 0;
+    const describe = (tip: Element) => {
+      if (hydrated(tip)) { describeTip(tip); return true; }
+      if (!later && tries < 40) later = setTimeout(() => { later = undefined; tries++; if (sweep(document)) tries = 0; }, 250);
+      return false;
+    };
+    const sweep = (root: ParentNode) => [...root.querySelectorAll(TIPS)].map(describe).every(Boolean);
     sweep(document);
     const watch = new MutationObserver((list) => {
       for (const m of list) {
-        if (m.type === "attributes") { const tip = (m.target as Element).closest(".tip"); if (tip) describeTip(tip); continue; }
+        if (m.type === "attributes") { const tip = (m.target as Element).closest(".tip"); if (tip) describe(tip); continue; }
         m.addedNodes.forEach((n) => {
           if (n.nodeType !== 1) return;
           const el = n as Element;
           if (el.hasAttribute("data-tip-note")) return;
-          if (el.matches(TIPS)) describeTip(el);
+          if (el.matches(TIPS)) describe(el);
           sweep(el);
         });
       }
@@ -98,7 +109,7 @@ export default function Motion() {
     document.addEventListener("keydown", key);
     document.addEventListener("pointerout", reset);
     document.addEventListener("focusout", reset);
-    return () => { watch.disconnect(); document.removeEventListener("keydown", key); document.removeEventListener("pointerout", reset); document.removeEventListener("focusout", reset); };
+    return () => { clearTimeout(later); watch.disconnect(); document.removeEventListener("keydown", key); document.removeEventListener("pointerout", reset); document.removeEventListener("focusout", reset); };
   }, []);
 
   // Phones don't hover and a disabled button can't be focused, so tapping a tip shows its reason for a few seconds.

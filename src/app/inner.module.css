@@ -234,7 +234,7 @@
 .next { display: flex; flex-direction: column; gap: 10px; counter-reset: n; margin: 4px 0 8px; text-align: left; }
 .next li { counter-increment: n; display: flex; gap: 12px; align-items: baseline; color: var(--muted); }
 .next li::before {
-  content: counter(n); flex: none; width: 24px; height: 24px; border-radius: 50%; display: inline-grid; place-items: center;
+  content: counter(n); flex: none; box-sizing: border-box; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center;
   background: var(--surface); color: var(--ink); font-size: 12.5px; font-weight: 500; transform: translateY(-1px);
 }
 .wide { grid-column: 1 / -1; }

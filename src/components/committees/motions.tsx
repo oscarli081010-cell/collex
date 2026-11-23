@@ -142,10 +142,11 @@ export function Documents({ c, act }: { c: Chamber; act: Act }) {
               </span>
               {!c.style && <span className={s.seenTag} data-seen={d.seen}>{d.seen ? "Seen" : "Unseen"}</span>}
               {d.link && <a className={s.docLink} href={d.link} target="_blank" rel="noopener noreferrer">Open the document</a>}
-              <span className={s.kActions}>
-                {!d.result && t.current !== d.id && <Why why={c.step !== "general" ? "Only from the general speakers' list" : c.speech ? "Wait until the speech is over" : !!c.poll && "Finish the vote that's open first"}><button type="button" className="button secondary sm" disabled={c.step !== "general" || !!c.speech || !!c.poll} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce</button></Why>}
-                {c.style && !d.result && t.current !== d.id && <button type="button" className="button secondary sm" onClick={() => act((x) => ch.removeDraft(x, d.id))}>Remove</button>}
-              </span>
+              {c.style && !d.result && t.current !== d.id && (
+                <span className={s.kActions}>
+                  <button type="button" className="button secondary sm" onClick={() => act((x) => ch.removeDraft(x, d.id))}>Remove</button>
+                </span>
+              )}
             </li>
           ))}
         </ul>
@@ -157,78 +158,6 @@ export function Documents({ c, act }: { c: Chamber; act: Act }) {
           <Why why={!title.trim() && "Type a title first"}><button type="submit" className="button secondary" disabled={!title.trim()}>Add</button></Why>
         </form>
       )}
-    </section>
-  );
-}
-
-/* Trinity Grammar MUN: points, rights of reply and the honorary observer. */
-export function ChairTools({ c, act, now }: { c: Chamber; act: Act; now: number }) {
-  const t = c.tr!;
-  const [by, setBy] = useState("");
-  const [to, setTo] = useState("");
-  const [obs, setObs] = useState("");
-  const name = (id: string | null) => ch.nameOf(c, id);
-  const toId = to || c.speech?.who || "";
-  const active = Object.keys(t.observers).filter((id) => ch.observing(c, id, now) && c.delegates.some((d) => d.id === id));
-  return (
-    <section className={`panel ${s.list}`} aria-labelledby="ch-tools">
-      <div className={s.head}>
-        <h2 id="ch-tools" className={s.h2}>Chair&apos;s Tools</h2>
-      </div>
-      <div className={s.panelBody}>
-        <fieldset className={s.procedure}>
-          <legend>Right of Reply</legend>
-          {t.reply ? (
-            <>
-              <p className={s.hint}>{name(t.reply.by)} has {ch.REPLY_SECS} seconds{t.reply.to ? `, then ${name(t.reply.to)} answers` : ""}. No questions.</p>
-              <div className={s.sortRow}>
-                {(["apologised", "withdrew", "refused"] as const).map((o) => <button key={o} type="button" className="button secondary sm" onClick={() => act((x) => ch.finishReply(x, o))}>{o === "apologised" ? "Apologised" : o === "withdrew" ? "Withdrew" : "Refused"}</button>)}
-                <button type="button" className="button secondary sm" onClick={() => act((x) => ch.finishReply(x, null))}>No Answer</button>
-              </div>
-            </>
-          ) : (
-            <div className={s.two}>
-              <Select id="rr-by" className="control" value={by} onChange={(e) => setBy(e.target.value)}>
-                <option value="">Who claims it?</option>
-                {c.delegates.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </Select>
-              <Select id="rr-to" className="control" value={toId} onChange={(e) => setTo(e.target.value)}>
-                <option value="">Against whom?</option>
-                {c.delegates.filter((d) => d.id !== by).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </Select>
-              <Why why={!by ? "Choose who claims it first" : by === toId && "Choose a different state to reply to"}><button type="button" className="button secondary" disabled={!by || by === toId} onClick={() => { act((x) => ch.startReply(x, by, toId || null)); setBy(""); setTo(""); }}>Start the 20 Seconds</button></Why>
-            </div>
-          )}
-        </fieldset>
-        <fieldset className={s.procedure}>
-          <legend>Honorary Observer</legend>
-          <div className={s.pickRow}>
-            <Select id="ob-who" className="control" value={obs} onChange={(e) => setObs(e.target.value)}>
-              <option value="">Which state?</option>
-              {c.delegates.filter((d) => !ch.observing(c, d.id, now) && c.speech?.who !== d.id).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </Select>
-            <Why why={!obs && "Choose a state first"}><button type="button" className="button secondary sm" disabled={!obs} onClick={() => { act((x) => ch.setObserver(x, obs)); setObs(""); }}>5 Minutes</button></Why>
-          </div>
-          {active.length > 0 && (
-            <ul className={s.queue}>
-              {active.map((id) => {
-                const left = ch.observerLeft(c, id, now);
-                return (
-                  <li key={id} className={s.card}>
-                    <span className={s.cardTop}>
-                      <span className={s.kSigner}>{name(id)}<small>honorary observer</small></span>
-                      <span className={s.obsClock} data-low={left < 60000 || undefined}>{ch.clock(left)}</span>
-                    </span>
-                    <span className={s.kActions}>
-                      <button type="button" className={`button secondary sm ${s.kDanger}`} onClick={() => act((x) => ch.endObserver(x, id))}>End Observation</button>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </fieldset>
-      </div>
     </section>
   );
 }

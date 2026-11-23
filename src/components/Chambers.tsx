@@ -37,7 +37,7 @@ import { Rail, Welcome, RollCallOpen, Pick, TrinityPick } from "./committees/ope
 import { Floor } from "./committees/floor";
 import { Lists, AmendmentForm, AmendmentQueue } from "./committees/amendments";
 import { RollCall } from "./committees/voting";
-import { Motions, Documents, ChairTools } from "./committees/motions";
+import { Motions, Documents } from "./committees/motions";
 import { Resolutions, RollPanel, Shortcuts, OfflineNote, Sound, DisplaySounds, Times, Background, Share } from "./committees/settings";
 import { Analytics } from "./committees/analytics";
 
@@ -63,7 +63,7 @@ export default function Chambers() {
   const offline = useOfflineReady();
 
   const clockRun = ch.running(c?.tr?.cauc?.clock ?? null);
-  const now = useNow(ch.running(c?.timer ?? null) || clockRun || (!!c?.tr && Object.keys(c.tr.observers).length > 0));
+  const now = useNow(ch.running(c?.timer ?? null) || clockRun);
   const left = c?.timer ? ch.remaining(c.timer, now) : 0;
   const state = !c?.timer ? "none" : left === 0 ? "up" : c.timer.endsAt !== null ? "running" : "paused";
 
@@ -216,7 +216,7 @@ export default function Chambers() {
 
   const inDebate = c.step === "caucus" || c.step === "floor" || c.step === "amend";
   const t = c.tr;
-  const trWork = !!t && c.step !== "welcome" && c.step !== "roll" && c.step !== "ended"; // the motions, documents and chair's tools
+  const trWork = !!t && c.step !== "welcome" && c.step !== "roll" && c.step !== "ended"; // the motions and documents
   const amendOpen = t ? ch.amendmentsOpen(c) : inDebate; // the same rule as the pill on the display
 
   return (
@@ -266,7 +266,6 @@ export default function Chambers() {
           {(c.step === "vote" || c.step === "closed" || c.step === "ended") && <RollCall c={c} act={act} />}
           {trWork && (ch.motionsOpen(c) || c.poll?.kind === "motion" || t.motions.some((m) => m.status === "waiting")) && <Motions c={c} act={act} />}
           {trWork && c.step !== "statements" && <Documents c={c} act={act} />}
-          {trWork && (!c.style || !!t.reply) && <ChairTools c={c} act={act} now={now} />}
           {c.step !== "welcome" && c.step !== "roll" && <RollPanel c={c} act={act} />}
         </div>
       ) : view === "share" ? (

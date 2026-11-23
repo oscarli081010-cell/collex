@@ -95,11 +95,11 @@ export const GUIDES: Guide[] = [
         "Any state may raise a motion: a moderated caucus (a topic, a total time and a time per speaker), an unmoderated caucus, an extension (at most twice, and no longer than the caucus was), closing a moderated caucus, or closing debate.",
         "The chair puts motions in order and each is voted on by placard.",
         "An amendment needs a proposer and a seconder, and gathers as many signatories as it can. A clause that has already been amended needs full consensus to be amended again. An amendment’s debate runs like a moderated caucus: ten minutes in all, a minute each.",
-        "A right of reply is 20 seconds. When delegates have devices, a point of order, personal privilege or procedural inquiry sent from a device is logged in the minutes once the chair accepts it.",
+        "When delegates have devices, a point of order, personal privilege or procedural inquiry sent from a device is logged in the minutes once the chair accepts it.",
       ] },
       { id: "closing", title: "Closing and the vote", steps: [
         "After debate closes there is one final unmoderated caucus, then closing speeches: the opposer first, then the co-sponsor, then the proposer.",
-        "The vote is by roll call. A resolution passes with *more For than Against*; abstentions, shown as Neutral, count for neither.",
+        "The vote is by roll call. A resolution passes with *more For than Against*; abstentions count for neither.",
         "The committee then returns to choose its next resolution. For a new session, such as the next day, press Retake the Roll on the Choosing a Resolution screen and the earlier roll is kept.",
       ] },
     ],
@@ -124,7 +124,6 @@ export const GUIDES: Guide[] = [
         "The chair calls the next state on the list. A speech is as long as the time per speaker the committee was given, which the chairs can change in Settings.",
         "After a speech the speaker yields. They can yield to Points of Information, to the chair, or to another country, which speaks next and gets the time left added to its own.",
         "A Point of Information is a short question. The chair picks the state, which has 30 seconds to ask. The speaker has 30 seconds to reply. Points are taken one at a time until the chair ends them. There are none in closing speeches.",
-        "A state that has been insulted can claim a right of reply: 20 seconds, then the chair hears the other state. The chair can also make a state an honorary observer for five minutes, which keeps it from speaking or signing.",
         "A point of order, personal privilege or inquiry is the chair’s to answer on the spot. When delegates have devices, one sent from a device is logged in the minutes once the chair accepts it.",
       ] },
       { id: "caucus", title: "Caucuses", steps: [

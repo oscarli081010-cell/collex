@@ -344,7 +344,7 @@ export function normalise(x: unknown): Chamber | null {
     && o.roll && typeof o.roll === "object" && o.roles && Array.isArray(o.closers) && Array.isArray(o.amendments) && o.ballots && typeof o.ballots === "object";
   const fixRoll = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v === "abstain" ? "present" : v])) as Record<string, Attend>;
   // `by` and `what` belong only on the steps kept for Back (see remember): never on the committee itself.
-  if (ok) return { ...untagged(o as Chamber), roll: fixRoll(o.roll as Record<string, string>), tr: o.rules === "trinity" ? { ...(o.tr as Trin), cauc: (o.tr as Trin).cauc ?? null, saved: (o.tr as Trin).saved ?? null, current: (o.tr as Trin).current ?? null, bonus: (o.tr as Trin).bonus ?? null, stash: (o.tr as Trin).stash ?? null, reply: (o.tr as Trin).reply ?? null, finalDone: !!(o.tr as Trin).finalDone } : null, stats: Array.isArray(o.stats) ? o.stats : [], background: validBackground(o.background) ? o.background : null, backgroundStrength: typeof o.backgroundStrength === "number" ? Math.min(100, Math.max(20, o.backgroundStrength)) : 55, ...("backgroundAt" in o ? { backgroundAt: Array.isArray(o.backgroundAt) && o.backgroundAt.length === 2 && o.backgroundAt.every((n) => typeof n === "number" && n >= 0 && n <= 100) ? [o.backgroundAt[0] as number, o.backgroundAt[1] as number] as [number, number] : undefined } : {}), amendments: (o.amendments as Amendment[]).map((a, i) => ({ ...a, at: a.at ?? i })) };
+  if (ok) return { ...untagged(o as Chamber), roll: fixRoll(o.roll as Record<string, string>), ...(o.rules === "trinity" && (o.tr as Trin).reply ? { timer: (o.tr as Trin).stash ?? null } : {}), tr: o.rules === "trinity" ? { ...(o.tr as Trin), cauc: (o.tr as Trin).cauc ?? null, saved: (o.tr as Trin).saved ?? null, current: (o.tr as Trin).current ?? null, bonus: (o.tr as Trin).bonus ?? null, stash: null, reply: null, observers: {}, finalDone: !!(o.tr as Trin).finalDone } : null, stats: Array.isArray(o.stats) ? o.stats : [], background: validBackground(o.background) ? o.background : null, backgroundStrength: typeof o.backgroundStrength === "number" ? Math.min(100, Math.max(20, o.backgroundStrength)) : 55, ...("backgroundAt" in o ? { backgroundAt: Array.isArray(o.backgroundAt) && o.backgroundAt.length === 2 && o.backgroundAt.every((n) => typeof n === "number" && n >= 0 && n <= 100) ? [o.backgroundAt[0] as number, o.backgroundAt[1] as number] as [number, number] : undefined } : {}), amendments: (o.amendments as Amendment[]).map((a, i) => ({ ...a, at: a.at ?? i })) };
   const old = o.delegates as { id: string; name: string }[];
   const resolution = String(o.topic ?? "").trim() || String(o.resolution?.title ?? "").trim();
   const fresh = create(String(o.name ?? "Committee"), resolution, Number(o.speakSecs) || 120, [], []);
@@ -758,7 +758,7 @@ function enterCaucus(c: Chamber, secs: number, after: Step, label: string, kind:
 // The debate on a resolution starts with a caucus: Evatt's is the chair's to set; Trinity's is 5 minutes.
 const openingCaucus = (c: Chamber) => {
   if (!c.tr) return enterCaucus(c, CAUCUS_SECS, "floor", "Caucus");
-  const next = enterCaucus(c, TR.intro, "floor", "Unmoderated caucus");
+  const next = enterCaucus(c, TR.intro, "floor", "Unmoderated Caucus");
   return next.tr?.cauc ? { ...next, tr: { ...next.tr, cauc: { ...next.tr.cauc, intro: true } } } : next;
 };
 /** The chair sets how long the caucus is before it starts. */
@@ -767,7 +767,7 @@ export function setCaucusSecs(c: Chamber, secs: number): Chamber {
   if (c.tr) { // an unmoderated caucus is at most 20 minutes; the others are fixed
     const k = c.tr.cauc;
     if (!k || k.kind !== "unmod" || (k.kind === "unmod" && secs > TR.maxCaucus)) return c;
-    return { ...c, timer: timerFor(c.timer?.label ?? "Unmoderated caucus", secs), tr: { ...c.tr, cauc: { ...k, total: secs } } };
+    return { ...c, timer: timerFor(c.timer?.label ?? "Unmoderated Caucus", secs), tr: { ...c.tr, cauc: { ...k, total: secs } } };
   }
   return { ...c, timer: timerFor(c.timer?.label ?? "Caucus", secs) };
 }
@@ -778,7 +778,7 @@ export function callCaucus(c: Chamber, secs: number): Chamber {
     const final = c.step === "closing";
     const ok = c.step === "floor" || c.step === "amend" || c.step === "general" || (final && !c.closers.length && !c.tr.finalDone);
     if (!ok || (c.step === "amend" && c.amend?.stage === "debate") || !Number.isInteger(secs) || secs < 5 || secs > TR.maxCaucus) return c; // an amendment's debate is already a moderated caucus
-    return enterCaucus({ ...c, result: null, tr: final ? { ...c.tr, finalDone: true } : c.tr }, secs, c.step, final ? "Final unmoderated caucus" : "Unmoderated caucus", final ? "final" : "unmod");
+    return enterCaucus({ ...c, result: null, tr: final ? { ...c.tr, finalDone: true } : c.tr }, secs, c.step, final ? "Final Unmoderated Caucus" : "Unmoderated Caucus", final ? "final" : "unmod");
   }
   if (c.step !== "floor" && c.step !== "amend") return c;
   return enterCaucus({ ...c, result: null }, secs, c.step, "Caucus");
