@@ -90,10 +90,6 @@
 .h2 { font-size: 17px; font-weight: 500; }
 /* One list under the other: the panel is only half the page wide, and a name needs room beside its four buttons. */
 .sides { display: flex; flex-direction: column; gap: 14px; }
-/* Across the whole width, For and Against sit side by side. */
-.wideList .sides { flex-direction: row; }
-.wideList .sideCol { flex: 1 1 0; }
-@media (max-width: 720px) { .wideList .sides { flex-direction: column; } }
 .sideCol { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .sideHead { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 500; }
 .queue { display: flex; flex-direction: column; gap: 6px; }

@@ -450,7 +450,7 @@ export default function ChamberDisplay() {
           const up = ch.nextCandidate(c);
           if (up) return <Screen pill={["Speakers\u2019 List", SIDE[up.side]]} side={up.side} heading={name(up.id)} lines={["Next to speak"]} />;
           if (c.amendments.some((a) => a.status === "waiting")) return <Screen heading="Amendments" lines={["Send amendments to the chair's desk"]} />;
-          return <Screen ornate heading={"Speakers\u2019 List"} lines={["Raise your placard to be added", "Send amendments to the chair's desk"]} />;
+          return <Screen ornate heading={"Speakers\u2019 List"} lines={["Send a note to the chair's desk to be added", "Send amendments to the chair's desk"]} />;
         })();
   }
 

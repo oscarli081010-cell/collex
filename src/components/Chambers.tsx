@@ -261,7 +261,7 @@ export default function Chambers() {
             : c.step === "roll" ? <RollCallOpen c={c} act={act} />
             : c.step === "pick" ? (t ? <TrinityPick c={c} act={act} /> : <Pick c={c} act={act} />)
             : <Floor c={c} act={act} left={left} now={now} state={state} toggle={toggle} />}
-          {(t ? ch.listOpen(c) : inDebate && ch.listOpen(c)) && <Lists c={c} act={act} wide />}
+          {(t ? ch.listOpen(c) : inDebate && ch.listOpen(c)) && <Lists c={c} act={act} />}
           {amendOpen && <div className={s.pair}><AmendmentForm c={c} act={act} /><AmendmentQueue c={c} act={act} /></div>}
           {(c.step === "vote" || c.step === "closed" || c.step === "ended") && <RollCall c={c} act={act} />}
           {trWork && (ch.motionsOpen(c) || c.poll?.kind === "motion" || t.motions.some((m) => m.status === "waiting")) && <Motions c={c} act={act} />}

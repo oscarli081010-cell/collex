@@ -15,7 +15,7 @@ import { SWAP, uid, SIDE, type Act, Seg, SideSwitch, CardSide } from "./shared";
 const fold = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
 /* The speakers' list for the amendment in hand: For and Against, in the order they will be called. */
-export function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }) {
+export function Lists({ c, act }: { c: Chamber; act: Act }) {
   const [who, setWho] = useState("");
   const [side, setSide] = useState<Side>("for");
   const [stance, setStance] = useState<"none" | Side>("none"); // the general list and a moderated caucus: whether the state speaks For or Against
@@ -71,36 +71,23 @@ export function Lists({ c, act, wide }: { c: Chamber; act: Act; wide?: boolean }
     </>
   );
 
-  // Trinity: the way to add a state on the left, the list on the right, like the amendments.
-  if (c.tr) {
-    return (
-      <div className={s.pair}>
-        <section className={`panel ${s.list}`} aria-labelledby="ch-list-add">
-          <div className={s.head}>
-            <h2 id="ch-list-add" className={s.h2}>Add to the {heading}</h2>
-          </div>
-          <div className={s.panelBody}>{form}</div>
-        </section>
-        <section className={`panel ${s.list}`} aria-labelledby="ch-list">
-          <div className={s.head}>
-            <h2 id="ch-list" className={s.h2}>{heading}</h2>
-            <span className="badge">{c.debate.list.length}</span>
-          </div>
-          {lists}
-        </section>
-      </div>
-    );
-  }
-
+  // The way to add a state on the left, the list on the right, like the amendments, in every procedure.
   return (
-    <section className={`panel ${s.list} ${wide ? s.wideList : ""}`} aria-labelledby="ch-list">
-      <div className={s.head}>
-        <h2 id="ch-list" className={s.h2}>{heading}</h2>
-        <span className="badge">{c.debate.list.length}</span>
-      </div>
-      {form}
-      {lists}
-    </section>
+    <div className={s.pair}>
+      <section className={`panel ${s.list}`} aria-labelledby="ch-list-add">
+        <div className={s.head}>
+          <h2 id="ch-list-add" className={s.h2}>Add to the {heading}</h2>
+        </div>
+        <div className={s.panelBody}>{form}</div>
+      </section>
+      <section className={`panel ${s.list}`} aria-labelledby="ch-list">
+        <div className={s.head}>
+          <h2 id="ch-list" className={s.h2}>{heading}</h2>
+          <span className="badge">{c.debate.list.length}</span>
+        </div>
+        {lists}
+      </section>
+    </div>
   );
 }
 
