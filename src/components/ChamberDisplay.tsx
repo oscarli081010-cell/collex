@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import * as ch from "@/lib/chamber";
-import { Mark, Wordmark } from "@/lib/brand";
+import { Wordmark } from "@/lib/brand";
+import { flagCode } from "@/lib/flags";
 import { isId, useChamber } from "@/lib/useChamber";
 import { useAuth } from "./AuthProvider";
 import { useNow } from "./Chambers";
@@ -43,8 +44,8 @@ const leadAndBig = (text: string): [string, string] => {
   return [w.slice(0, k).join(" "), w.slice(k).join(" ")];
 };
 
-/** Pages of 20 states: the board follows the first state still to be marked, and once every one is marked it turns through the pages. */
-const PER = 20;
+/** Pages of 15 states: the board follows the first state still to be marked, and once every one is marked it turns through the pages. */
+const PER = 15;
 function usePage(n: number, first: number) {
   const pages = Math.max(1, Math.ceil(n / PER));
   const [turn, setTurn] = useState(0);
@@ -56,22 +57,24 @@ function usePage(n: number, first: number) {
   return { pages, at: pages < 2 ? 0 : first !== -1 ? Math.floor(first / PER) : turn % pages };
 }
 const Pages = ({ at, pages }: { at: number; pages: number }) => (pages > 1 ? <p className={s.dPages} aria-live="polite">{at + 1} / {pages}</p> : null);
-/** A state's name on a tile: the short form where there is one, the full name on hover, and an ellipsis if it is still too long. */
-const Seat = ({ name }: { name: string }) => <span className={s.dSeatName} title={name}>{ch.shortName(name)}</span>;
+/** A state's name on a tile: its flag first (a dot where it has none), the short form of the name where there is one, the full name on hover, and an ellipsis if it is still too long. */
+const Seat = ({ name }: { name: string }) => <>{flagCode(name) ? <Flag name={name} size={22} /> : <i />}<span className={s.dSeatName} title={name}>{ch.shortName(name)}</span></>;
+/** How a state was marked, short enough for a tile: the tallies above spell the letters out. */
+const ATTEND_SHORT: Record<ch.Attend, string> = { voting: "P & V", present: "P", absent: "A" };
 
-/** The roll call as pages of 20 states. */
+/** The roll call as pages of 15 states. */
 function RollBoard({ c, tag }: { c: ch.Chamber; tag: (id: string) => React.ReactNode }) {
   const { at, pages } = usePage(c.delegates.length, c.delegates.findIndex((d) => !c.roll[d.id]));
   return (
     <>
       <div className={s.dBoard}>
-        {c.delegates.slice(at * PER, (at + 1) * PER).map((d) => <div key={d.id} className={s.dSeat} data-a={c.roll[d.id]}><i /><Seat name={d.name} />{tag(d.id) ?? (c.roll[d.id] && <em title={ch.ATTEND_LABEL[c.roll[d.id]]}>{c.roll[d.id] === "voting" ? "P & V" : ch.ATTEND_LABEL[c.roll[d.id]]}</em>)}</div>)}
+        {c.delegates.slice(at * PER, (at + 1) * PER).map((d) => <div key={d.id} className={s.dSeat} data-a={c.roll[d.id]}><Seat name={d.name} />{tag(d.id) ?? (c.roll[d.id] && <em title={ch.ATTEND_LABEL[c.roll[d.id]]}>{ATTEND_SHORT[c.roll[d.id]]}</em>)}</div>)}
       </div>
       <Pages at={at} pages={pages} />
     </>
   );
 }
-/** The vote as pages of 20 states present, each ballot in words as well as colour. */
+/** The vote as pages of 15 states present, each ballot in words as well as colour. */
 const BALLOT_WORD: Record<ch.Ballot, string> = { for: "For", against: "Against", abstain: "Abstain" };
 function VoteBoard({ c, tag }: { c: ch.Chamber; tag: (id: string) => React.ReactNode }) {
   const here = c.delegates.filter((d) => ch.isHere(c, d.id));
@@ -81,7 +84,7 @@ function VoteBoard({ c, tag }: { c: ch.Chamber; tag: (id: string) => React.React
       <div className={s.dBoard}>
         {here.slice(at * PER, (at + 1) * PER).map((d) => {
           const b = c.ballots[d.id];
-          return <div key={d.id} className={s.dSeat} data-b={b}><i /><Seat name={d.name} />{tag(d.id) ?? (b && <em>{c.tr && b === "abstain" ? "Neutral" : BALLOT_WORD[b]}</em>)}</div>;
+          return <div key={d.id} className={s.dSeat} data-b={b}><Seat name={d.name} />{tag(d.id) ?? (b && <em>{c.tr && b === "abstain" ? "Neutral" : BALLOT_WORD[b]}</em>)}</div>;
         })}
       </div>
       <Pages at={at} pages={pages} />
@@ -192,8 +195,15 @@ function useChime(c: ch.Chamber | null, now: number) {
     if (c?.chime?.end && (crossed(0) || crossed(-10_000)) && first(`${key}|${crossed(0) ? "end" : "over"}`)) { tone(880, 0, 0.6, 0.3); tone(660, 0.28, 0.8, 0.3); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, rem]);
-  const turnOn = want && !ready ? () => { void make()?.resume(); } : null;
-  return turnOn;
+  // Browsers only play sound after a click or key on the page: the first one on the display, wherever it lands, turns the sound on.
+  useEffect(() => {
+    if (!want || ready) return;
+    const on = () => { void make()?.resume(); };
+    document.addEventListener("pointerdown", on);
+    document.addEventListener("keydown", on);
+    return () => { document.removeEventListener("pointerdown", on); document.removeEventListener("keydown", on); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [want, ready]);
 }
 
 export default function ChamberDisplay() {
@@ -214,7 +224,7 @@ export default function ChamberDisplay() {
   const now = useNow(ch.running(c?.timer ?? null) || ch.running(c?.tr?.cauc?.clock ?? null) || (!!c?.tr && Object.keys(c.tr.observers).length > 0));
   const left = c?.timer ? ch.remaining(c.timer, now) : 0;
   const state = !c?.timer ? "none" : left === 0 ? "up" : c.timer.endsAt === null ? "paused" : left <= 10_000 ? "low" : "running";
-  const turnSoundOn = useChime(c ?? null, now);
+  useChime(c ?? null, now);
 
   if (!mounted) return null; // the saved committee is only known in the browser
 
@@ -223,14 +233,15 @@ export default function ChamberDisplay() {
     open.negotiation && open.notes ? "Negotiation Chamber and Notes Open" : open.negotiation ? "Negotiation Chamber Open" : open.notes && "Notes Open",
     open.amendments && "Amendments Open", open.speakers && "Speakers\u2019 List Open",
   ]).filter(Boolean).join(" \u00B7 ") : "";
+  // Two round buttons with only an icon each; the name appears on hover or focus, the way a disabled button's reason does.
+  const fullLabel = full ? "Exit full screen" : "Full screen";
   const tools = (
     <div className={s.dTools}>
       <div className={s.dToolRow}>
-        <button type="button" className={s.dBtn} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}{full ? "Exit full screen" : "Full screen"}</button>
-        <Link href={cloudId ? `/chambers?c=${cloudId}` : "/chambers"} className={s.dBtn}><Back />Console</Link>
-        {turnSoundOn && <button type="button" className={s.dBtn} onClick={turnSoundOn}>Turn Sound On</button>}
+        <span className="tip" data-tip={fullLabel}><button type="button" className={`${s.dBtn} ${s.dRound}`} aria-label={fullLabel} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}</button></span>
+        <span className="tip" data-tip="Console"><Link href={cloudId ? `/chambers?c=${cloudId}` : "/chambers"} className={`${s.dBtn} ${s.dRound}`} aria-label="Console"><Back /></Link></span>
       </div>
-      <span className={`${s.dBtn} ${s.dBrand}`}>Powered by <Mark size={17} /><Wordmark height={13} /></span>
+      <span className={s.dWord}><Wordmark height={13} /></span>
     </div>
   );
 
@@ -322,7 +333,7 @@ export default function ChamberDisplay() {
     const n = ch.rollCount(c);
     mid = (
       <Screen heading="Roll Call">
-        {tallies([["Present & Voting", n.voting], ["Present", n.present], ["Absent", n.absent]])}
+        {tallies([["Present & Voting (P & V)", n.voting], ["Present (P)", n.present], ["Absent (A)", n.absent]])}
         <RollBoard c={c} tag={obsTag} />
       </Screen>
     );

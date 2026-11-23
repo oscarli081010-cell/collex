@@ -10,6 +10,20 @@ import { useAuth } from "./AuthProvider";
 import IconButton, { ConfirmIconButton, ICONS } from "./IconButton";
 import { PageSkeleton } from "./Skeleton";
 import PanelTabs from "./PanelTabs";
+
+/** Back to the top of the page in about a quarter of a second, easing out; straight there when motion is reduced. */
+function scrollToTop() {
+  const from = window.scrollY;
+  if (from < 8) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { window.scrollTo(0, 0); return; }
+  const t0 = performance.now();
+  const step = (t: number) => {
+    const k = Math.min(1, (t - t0) / 260);
+    window.scrollTo(0, from * (1 - (1 - Math.pow(1 - k, 3))));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 import { useToast } from "./useToast";
 import s from "./Chambers.module.css";
 import { useChairRoom } from "@/lib/useRoom";
@@ -98,6 +112,15 @@ export default function Chambers() {
   };
   const keys = useRef({ toggle, callNext, endNow, yieldNow, backNow });
   keys.current = { toggle, callNext, endNow, yieldNow, backNow };
+  // A button that moves the committee on to its next screen (Begin Debate, Start the Speeches, Record the Result)
+  // may be far down a long page: the new screen is brought to the top, quickly, so the chair never has to scroll back.
+  const stepSeen = useRef(c?.step);
+  useEffect(() => {
+    if (stepSeen.current === c?.step) return;
+    const first = stepSeen.current === undefined;
+    stepSeen.current = c?.step;
+    if (!first && c) scrollToTop();
+  }, [c?.step]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
@@ -253,11 +276,13 @@ export default function Chambers() {
         <div id="chv-panel-settings" role="tabpanel" aria-labelledby="chv-tab-settings" className={s.manage}>
           {t && !c.style && <Resolutions c={c} act={act} />}
           <Times c={c} act={act} />
-          <Sound />
-          <DisplaySounds c={c} act={act} />
+          <div className={s.pairTop}>
+            <Sound />
+            <DisplaySounds c={c} act={act} />
+          </div>
           <Shortcuts />
-          <OfflineNote st={offline} />
           <Background c={c} act={act} say={say} userId={session?.user.id} />
+          <OfflineNote st={offline} />
         </div>
       )}
       {node}

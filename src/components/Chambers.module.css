@@ -188,7 +188,9 @@
 .pbadge { display: inline-grid; place-items: center; height: 22px; padding: 0 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 500; }
 button.pbadge { height: 30px; padding: 0 12px; border: 1px dashed var(--line-strong); background: transparent; color: var(--faint); cursor: pointer; }
 button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); color: var(--accent); }
-.ballots { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); column-gap: 28px; }
+/* Alphabetical lists read down each column, then on to the next, like a printed roll. */
+.ballots { columns: 380px; column-gap: 28px; }
+.ballot { break-inside: avoid; }
 .tally { display: flex; gap: 8px; flex-wrap: wrap; }
 .banner { padding: 16px; border-radius: 12px; font-size: 15px; line-height: 1.5; background: var(--surface); }
 .banner[data-pass="true"] { background: var(--ok-soft); color: var(--ok); }
@@ -244,10 +246,14 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dTop { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 16px; align-self: start; padding: var(--edge) var(--edge) 0; z-index: 2; pointer-events: none; }
 .dTop > * { pointer-events: auto; }
 @media (max-width: 1100px) { .dTop { grid-template-columns: 1fr auto; } .dTop > .dStatus { grid-column: 1 / -1; grid-row: 2; justify-self: center; } .dGap { display: none; } }
-/* The display's own buttons, with "Powered by Collex" under them at the same width. */
-.dTools { display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 0; justify-self: end; }
+/* The display's own buttons, round with only an icon (the name on hover), and "Collex" written under them. */
+.dTools { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; justify-self: end; }
 .dToolRow { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }
-.dTools > .dBrand { justify-content: center; }
+.dRound { width: 44px; padding: 0; justify-content: center; }
+.dRound svg { width: 18px; height: 18px; }
+.dToolRow > :global(.tip)::after { right: auto; left: 50%; translate: -50% 4px; }
+.dToolRow > :global(.tip):hover::after, .dToolRow > :global(.tip):has(:focus-visible)::after { translate: -50% 0; }
+.dWord { display: flex; justify-content: center; color: var(--muted); cursor: default; }
 /* A phone held upright: the committee's name keeps the full width, with the buttons under it. */
 @media (max-width: 640px) {
   .dTop { grid-template-columns: minmax(0, 1fr); }
@@ -303,9 +309,12 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dRole b { padding: 0.3em 1em; border-radius: 999px; background: var(--surface); font-size: clamp(22px, 2.6vw, 40px); font-weight: 500; min-width: 4.5em; text-align: center; }
 .dRole b[data-empty="true"] { color: var(--faint); }
 .dTally b { font-size: clamp(64px, min(11vw, 15vh), 170px); font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
-.dBoard { margin-top: var(--group); display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 16vw, 230px), 1fr)); gap: clamp(8px, 1vw, 14px); width: min(100%, 1400px); }
-.dSeat { display: flex; align-items: center; gap: 10px; padding: clamp(8px, 1vw, 14px) clamp(10px, 1.2vw, 16px); border-radius: 12px; background: var(--surface); font-size: clamp(15px, 1.6vw, 22px); font-weight: 500; text-align: left; border: 1px solid transparent; }
+/* The roll and the vote: tiles read down each column, then the next, in alphabetical order; 15 to a page. */
+.dBoard { margin-top: var(--group); columns: clamp(170px, 18vw, 260px); column-gap: clamp(8px, 1vw, 14px); width: min(100%, 1400px); }
+.dSeat { display: flex; align-items: center; gap: 10px; margin-bottom: clamp(8px, 1vw, 14px); break-inside: avoid; padding: clamp(8px, 1vw, 14px) clamp(10px, 1.2vw, 16px); border-radius: 12px; background: var(--surface); font-size: clamp(15px, 1.6vw, 22px); font-weight: 500; text-align: left; border: 1px solid transparent; }
 .dSeat i { flex: none; width: clamp(10px, 1vw, 14px); height: clamp(10px, 1vw, 14px); border-radius: 50%; background: var(--line-strong); }
+/* The flag sits level with the name, with the same gap as the dot it stands in for. */
+.dSeat > :global(.flag) { margin-right: 0; }
 .dSeat[data-b="for"] { background: var(--ok-soft); color: var(--ok); }
 .dSeat[data-b="for"] i { background: var(--ok); }
 .dSeat[data-b="against"] { background: var(--danger-soft); color: var(--danger); }
@@ -420,11 +429,8 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dId { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
 /* The committee's name in a pill like the buttons opposite: the same height and shape, with the name in ink. */
 .dBig { cursor: default; color: var(--ink); font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-.dBrand { gap: 7px; font-size: 13px; color: var(--faint); cursor: default; }
-.dBrand svg { color: var(--muted); }
 .dBig:hover { color: var(--ink); background: color-mix(in srgb, var(--panel) 70%, transparent); border-color: var(--line); }
-.dBrand:hover { color: inherit; background: color-mix(in srgb, var(--panel) 70%, transparent); border-color: var(--line); }
-.dBig:active, .dBrand:active { transform: none; }
+.dBig:active { transform: none; }
 
 /* The welcome: a small slanted "Welcome to" over the committee's name, centred. */
 .dWelcome { display: flex; flex-direction: column; align-items: center; gap: 0.12em; max-width: 100%; margin: 0; font-weight: 400; line-height: 1; }
@@ -573,6 +579,9 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .pair2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 @media (max-width: 860px) { .pair2 { grid-template-columns: minmax(0, 1fr); } }
 .pair2 > .share > :last-child { margin-top: auto; }
+/* Sound and Display Sounds side by side in Settings, each keeping its own height. */
+.pairTop { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .pairTop { grid-template-columns: minmax(0, 1fr); } }
 .codeActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .codeActions :global(.button) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
 .joinForm { display: flex; flex-direction: column; gap: 18px; }
@@ -640,6 +649,10 @@ details > summary.head { cursor: pointer; list-style: none; }
 details > summary.head::-webkit-details-marker { display: none; }
 .hint[data-tone="warn"] { color: var(--warn); }
 .hint[data-tone="ok"] { color: var(--ok); }
+/* Whether the console opens without wifi: one quiet line at the foot of Settings, with a dot that goes green when it will. */
+.offlineLine { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+.offlineLine::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); }
+.offlineLine[data-tone="ok"]::before { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
 /* Keyboard shortcuts, in Settings. */
 .keys { display: grid; gap: 8px; margin: 0; }
 .keys > div { display: grid; grid-template-columns: 7.5em 1fr; gap: 12px; align-items: baseline; }

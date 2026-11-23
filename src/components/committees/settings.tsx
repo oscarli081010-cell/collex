@@ -75,12 +75,9 @@ export function Shortcuts() {
 export function OfflineNote({ st }: { st: OfflineState }) {
   if (st === "none") return null;
   return (
-    <section className={`panel ${s.share}`} aria-labelledby="st-offline">
-      <h2 id="st-offline" className={s.h2}>Without Wifi</h2>
-      <p className={s.hint} role="status" data-tone={st === "ready" ? "ok" : undefined}>
-        {st === "ready" ? "Ready to work without wifi" : st === "checking" ? "Checking\u2026" : "Open this page once with wifi to use it offline"}
-      </p>
-    </section>
+    <p className={s.offlineLine} role="status" data-tone={st === "ready" ? "ok" : undefined}>
+      {st === "ready" ? "Ready to work without wifi" : st === "checking" ? "Checking whether this page works without wifi\u2026" : "Open this page once with wifi to use it offline"}
+    </p>
   );
 }
 
