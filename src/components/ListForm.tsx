@@ -561,7 +561,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
           hint={coverPhoto.shown ? "Leave empty to use the cover photo." : undefined} />
       </Section>
       {/* In a listing's Edit tab this card stays at the foot of the screen while the form scrolls, so saving is always in reach. */}
-      <div className={`panel ${card.card} ${edit ? lf.bar : ""}`}>
+      <div className={edit ? lf.bar : `panel ${card.card}`}>
         <div className={`field ${edit ? lf.barInner : ""}`}>
           {/* Agreed when the listing was first sent, so not asked again on every edit. */}
           {!edit && (
@@ -593,9 +593,11 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
           <button type="submit" className={`button lg ${edit ? lf.save : auth.submit}`} disabled={busy}>
             <span key={String(busy)} className="t-swap">{edit ? (busy ? "Saving…" : again ? "Send for Review Again" : "Update") : busy ? "Sending…" : "Send for Review"}</span>
           </button>
-          <small className={`muted ${edit ? lf.barNote : ""}`} style={{ textAlign: "center" }}>
-            <span className={s.req} aria-hidden="true">*</span> is required{!edit && <> <span aria-hidden="true">&middot;</span> The Collex team will review it before it goes live</>}
-          </small>
+          {!edit && (
+            <small className="muted" style={{ textAlign: "center" }}>
+              <span className={s.req} aria-hidden="true">*</span> is required <span aria-hidden="true">&middot;</span> The Collex team will review it before it goes live
+            </small>
+          )}
         </div>
       </div>
     </form>

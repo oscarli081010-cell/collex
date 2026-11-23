@@ -173,6 +173,8 @@ export function ApplyOnCollex({ c }: { c: Conference }) {
 }
 
 /* On a listing Collex added: its organisers ask to take it over. An admin checks the claim. */
+const CLAIM_WHY = "Collex added this listing from public information. Run this conference?";
+
 export function ClaimListing({ c }: { c: Conference }) {
   const { session } = useAuth();
   const { say, node } = useToast();
@@ -199,10 +201,15 @@ export function ClaimListing({ c }: { c: Conference }) {
   };
   return (
     <div style={{ padding: "12px 0 14px", borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 10 }}>
-      <p className="muted" style={{ fontSize: 13 }}>Collex added this listing from public information. {sent ? "Your claim is with us; we’ll email you." : "Run this conference?"}</p>
-      {!sent && (session
-        ? <button type="button" className="button secondary sm" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "Close" : "Claim This Listing"}</button>
-        : <Link href={`/login?next=${encodeURIComponent(`/conferences/${c.slug}`)}`} className="button secondary sm">Log in to Claim It</Link>)}
+      {sent
+        ? <p className="muted" style={{ fontSize: 13 }}>Your claim is with us; we’ll email you.</p>
+        // Why there's a claim button, on hover rather than as a line of text above it.
+        : <span className="tip" data-tip={CLAIM_WHY} data-tip-align="start" style={{ display: "flex" }}>
+            {session
+              ? <button type="button" className="button secondary sm block" aria-expanded={open} aria-describedby="claim-why" onClick={() => setOpen(!open)}>{open ? "Close" : "Claim This Listing"}</button>
+              : <Link href={`/login?next=${encodeURIComponent(`/conferences/${c.slug}`)}`} className="button secondary sm block" aria-describedby="claim-why">Log in to Claim It</Link>}
+            <span id="claim-why" className="sr-only">{CLAIM_WHY}</span>
+          </span>}
       {open && (
         <form className={`t-reveal ${h.form}`} onSubmit={submit} noValidate aria-label={`Claim ${c.name}`}>
           <label className="field"><span>Your role</span><input name="role" className="control" maxLength={80} placeholder="Secretary-General" /></label>

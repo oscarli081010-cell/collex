@@ -9,6 +9,8 @@ import { forgetChamber, isId, useChamber } from "@/lib/useChamber";
 import { useAuth } from "./AuthProvider";
 import IconButton, { ConfirmIconButton, ICONS } from "./IconButton";
 import { PageSkeleton } from "./Skeleton";
+import { Gavel } from "./Drawings";
+import board from "./board.module.css";
 import PanelTabs from "./PanelTabs";
 
 /** Back to the top of the page in about a quarter of a second, easing out; straight there when motion is reduced. */
@@ -152,13 +154,13 @@ export default function Chambers() {
   if (cloudId && (status === "signin" || status === "denied")) {
     return (
       <main id="top" className={`container ${s.setup}`}>
-        <div className={`panel ${s.notice}`}>
-          <h1 className={`serif ${s.name}`}>{status === "signin" ? "Log in to open this committee" : "This committee isn't shared with you"}</h1>
+        {/* The standard empty box: the drawing, a serif title, a muted line and the way on. */}
+        <div className={`${board.empty} ${s.gate}`}>
+          <Gavel />
+          <h1 className={board.emptyTitle}>{status === "signin" ? "Log in to open this committee" : "This committee isn’t shared with you"}</h1>
           <p className="muted">{status === "signin" ? "Shared committees are for the chairs who were added to them. Log in with the account they added." : "Ask the person who runs it to add the email on your Collex account."}</p>
-          <div className="btnStack">
-            {status === "signin" && <Link href="/login" className="button">Log In</Link>}
-            <Link href="/chambers?tab=yours" className="button secondary">Your Committees</Link>
-          </div>
+          {status === "signin" && <Link href="/login" className="button">Log In</Link>}
+          <Link href="/chambers?tab=yours" className={`button ${status === "signin" ? "secondary" : ""}`}>Your Committees</Link>
         </div>
       </main>
     );
