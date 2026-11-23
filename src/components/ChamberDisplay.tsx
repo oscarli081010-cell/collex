@@ -127,17 +127,21 @@ function JoinCode({ cid }: { cid: string }) {
 }
 
 /** One screen: an optional pill, a heading, optional lines of text, and whatever there is to look at. The rule under the
- *  heading is drawn only when something follows it (a line, the time, the roll, the speakers), and never over a vote's figures. */
-function Screen({ pill, side, heading, k, pass, lines, foot, plain, children }: {
-  pill?: (string | false | null | undefined)[]; side?: ch.Side; heading?: string; k?: number; pass?: boolean; lines?: (React.ReactNode | false | null | undefined)[]; foot?: React.ReactNode; plain?: boolean; children?: React.ReactNode;
+ *  heading is drawn only when something follows it (a line, the time, the roll, the speakers), and never over a vote's figures.
+ *  `ornate` (the speakers' list) puts a flank either side of the heading and the rule under it, over its lines too. */
+function Screen({ pill, side, heading, k, pass, lines, foot, plain, ornate, children }: {
+  pill?: (string | false | null | undefined)[]; side?: ch.Side; heading?: string; k?: number; pass?: boolean; lines?: (React.ReactNode | false | null | undefined)[]; foot?: React.ReactNode; plain?: boolean; ornate?: boolean; children?: React.ReactNode;
 }) {
   const text = (pill ?? []).filter(Boolean).join(" · ");
   const rows = (lines ?? []).filter(Boolean);
-  const rule = !plain && rows.length === 0 && !!children; // the rule sits only over the timer or a board, never between a heading and its lines
+  const rule = ornate || (!plain && rows.length === 0 && !!children); // the rule sits only over the timer or a board, never between a heading and its lines
   return (
     <>
       {text && <Flanked><span className={s.dPill} data-side={side}>{text}</span></Flanked>}
-      {heading && <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": k ?? fit(heading, !children) } as React.CSSProperties}><Flag name={heading} em />{heading}</h1>}
+      {heading && (() => {
+        const h = <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": k ?? fit(heading, !children) } as React.CSSProperties}><Flag name={heading} em />{heading}</h1>;
+        return ornate ? <div className={s.dHRow}><Flank />{h}<Flank flip /></div> : h;
+      })()}
       {heading && rule && <Divider />}
       {rows.length > 0 && <div className={s.dLines}>{rows.map((r, i) => <p key={i} className={s.dSub}>{r}</p>)}</div>}
       {children}
@@ -364,7 +368,7 @@ export default function ChamberDisplay() {
     const m = c.result?.kind === "motion" ? motionOf(c.result.motion) : undefined;
     mid = c.result?.kind === "motion"
       ? <Screen pill={m ? ch.motionPill(c, m) : ["Motion"]} heading={c.result.passed ? "Motion Passes" : "Motion Fails"} pass={c.result.passed} lines={[m ? ch.motionDetail(c, m) : c.result.title]} plain>{votes(c.result)}</Screen>
-      : c.style ? <Screen heading={"General Speakers\u2019 List"} lines={[ch.nextCandidate(c) ? `Next: ${name(ch.nextCandidate(c)!.id)}` : "The floor is open"]} />
+      : c.style ? <Screen ornate heading={"General Speakers\u2019 List"} lines={[ch.nextCandidate(c) ? `Next: ${name(ch.nextCandidate(c)!.id)}` : "The floor is open"]} />
       : <Screen heading="The Chair Is Choosing a Resolution" />;
   } else if (c.step === "caucus" && c.tr && k?.kind === "mod") {
     mid = (
@@ -446,7 +450,7 @@ export default function ChamberDisplay() {
           const up = ch.nextCandidate(c);
           if (up) return <Screen pill={["Speakers\u2019 List", SIDE[up.side]]} side={up.side} heading={name(up.id)} lines={["Next to speak"]} />;
           if (c.amendments.some((a) => a.status === "waiting")) return <Screen heading="Amendments" lines={["Send amendments to the chair's desk"]} />;
-          return <Screen heading={"Speakers\u2019 List"} lines={["Raise your placard to be added", "Send amendments to the chair's desk"]} />;
+          return <Screen ornate heading={"Speakers\u2019 List"} lines={["Raise your placard to be added", "Send amendments to the chair's desk"]} />;
         })();
   }
 

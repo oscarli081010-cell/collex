@@ -322,6 +322,9 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dDivider { width: clamp(200px, 27vw, 440px); margin-block: clamp(2px, 0.5vw, 8px) clamp(4px, 0.9vw, 14px); }
 .dFlanked { display: flex; align-items: center; justify-content: center; gap: clamp(10px, 1.3vw, 22px); max-width: 100%; }
 .dFlanked > span { min-width: 0; }
+/* A heading with a flank either side: the speakers’ list. */
+.dHRow { display: flex; align-items: center; justify-content: center; gap: clamp(14px, 2vw, 36px); max-width: 100%; }
+.dHRow > h1 { min-width: 0; }
 /* Small spaced capitals for the labels: under the figures, over the signatories, and "Up next". */
 .dCaps { font-size: clamp(12px, 1.15vw, 18px); font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .dTallies { --tgap: clamp(28px, 6vw, 96px); margin-top: var(--group); display: flex; gap: var(--tgap); justify-content: center; flex-wrap: wrap; }
