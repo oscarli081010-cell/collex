@@ -311,18 +311,14 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dTrack[data-state="up"] i { background: var(--danger); }
 .dTrack::before, .dTrack::after { content: ""; position: absolute; top: -0.45em; bottom: -0.45em; width: 1px; background: var(--line-strong); left: calc(-1 * clamp(12px, 1.4vw, 22px)); }
 .dTrack::after { left: auto; right: calc(-1 * clamp(12px, 1.4vw, 22px)); }
-/* The ornaments: hairlines in the line colour, diamonds and dots in a faded accent. The strokes stay 1.5px at any size. */
-.dFlank, .dDivider { flex: none; height: auto; fill: color-mix(in srgb, var(--accent) 55%, transparent); stroke: var(--line-strong); stroke-width: 1.5px; overflow: visible; }
-.dFlank line, .dDivider line { vector-effect: non-scaling-stroke; }
-.dFlank path, .dFlank circle, .dDivider path, .dDivider circle { stroke: none; }
-.dFlank { width: clamp(44px, 7vw, 130px); }
+/* The ornament: a hairline in the line colour, the diamond and dots in a faded accent. The strokes stay 1.5px at any size. */
+.dDivider { flex: none; height: auto; fill: color-mix(in srgb, var(--accent) 55%, transparent); stroke: var(--line-strong); stroke-width: 1.5px; overflow: visible; }
+.dDivider line { vector-effect: non-scaling-stroke; }
+.dDivider path, .dDivider circle { stroke: none; }
 /* Clear of the descenders above (the g in Choosing), with a little more room before the line of text under it. */
 .dDivider { width: clamp(200px, 27vw, 440px); margin-block: clamp(2px, 0.5vw, 8px) clamp(4px, 0.9vw, 14px); }
 .dFlanked { display: flex; align-items: center; justify-content: center; gap: clamp(10px, 1.3vw, 22px); max-width: 100%; }
 .dFlanked > span { min-width: 0; }
-/* A heading with a flank either side: the speakers’ list. */
-.dHRow { display: flex; align-items: center; justify-content: center; gap: clamp(14px, 2vw, 36px); max-width: 100%; }
-.dHRow > h1 { min-width: 0; }
 /* Small spaced capitals for the labels: under the figures, over the signatories, and "Up next". */
 .dCaps { font-size: clamp(12px, 1.15vw, 18px); font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .dTallies { --tgap: clamp(28px, 6vw, 96px); margin-top: var(--group); display: flex; gap: var(--tgap); justify-content: center; flex-wrap: wrap; }

@@ -25,23 +25,16 @@ const Shrink = () => icon(<path d="M2.5 6H6V2.5M13.5 6H10V2.5M2.5 10H6v3.5M13.5 
 const Back = () => icon(<path d="M13 8H3M7 4L3 8l4 4" />);
 const SIDE = { for: "In Favour", against: "Against" } as const;
 
-/* The display's ornaments, like the rules on a printed programme: a hairline ending in a small diamond either side of a
-   pill, the timer or a label, and a dot, line, diamond, line, dot under every heading. Drawn in the line colour, the
-   diamonds in a faded accent, so they sit behind whatever the room is reading. */
-const Flank = ({ flip }: { flip?: boolean }) => (
-  <svg className={s.dFlank} viewBox="0 0 130 12" aria-hidden="true" style={flip ? { transform: "scaleX(-1)" } : undefined}>
-    <line x1="10" y1="6" x2="130" y2="6" />
-    <path d="M6 1.5 10.5 6 6 10.5 1.5 6Z" />
-  </svg>
-);
+/* The display's ornament, like the rule on a printed programme: a dot, line, diamond, line, dot under a heading. Drawn in
+   the line colour, the diamond in a faded accent, so it sits behind whatever the room is reading. */
 const Divider = () => (
   <svg className={s.dDivider} viewBox="0 0 440 12" aria-hidden="true">
     <circle cx="4" cy="6" r="2.2" /><line x1="10" y1="6" x2="210" y2="6" /><path d="M220 0.5 225.5 6 220 11.5 214.5 6Z" /><line x1="230" y1="6" x2="430" y2="6" /><circle cx="436" cy="6" r="2.2" />
   </svg>
 );
-/** A label with a flank either side: Signatories, Up next for the closing vote. */
+/** A centred label: the pill, Signatories, Up next for the closing vote. */
 const Flanked = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={`${s.dFlanked} ${className ?? ""}`}><Flank /><span>{children}</span><Flank flip /></div>
+  <div className={`${s.dFlanked} ${className ?? ""}`}><span>{children}</span></div>
 );
 
 // A long heading (an amendment's own words, say) steps down in size so it always fits the screen.
@@ -128,7 +121,7 @@ function JoinCode({ cid }: { cid: string }) {
 
 /** One screen: an optional pill, a heading, optional lines of text, and whatever there is to look at. The rule under the
  *  heading is drawn only when something follows it (a line, the time, the roll, the speakers), and never over a vote's figures.
- *  `ornate` (the speakers' list) puts a flank either side of the heading and the rule under it, over its lines too. */
+ *  `ornate` (the speakers' list) puts the rule under the heading over its lines too. */
 function Screen({ title, pill, side, heading, k, pass, lines, foot, plain, ornate, children }: {
   title?: string; pill?: (string | false | null | undefined)[]; side?: ch.Side; heading?: string; k?: number; pass?: boolean; lines?: (React.ReactNode | false | null | undefined)[]; foot?: React.ReactNode; plain?: boolean; ornate?: boolean; children?: React.ReactNode;
 }) {
@@ -139,10 +132,7 @@ function Screen({ title, pill, side, heading, k, pass, lines, foot, plain, ornat
     <>
       {title && <p className={`serif ${s.dTitle}`}>{title}</p>}
       {text && <Flanked><span className={s.dPill} data-side={side}>{text}</span></Flanked>}
-      {heading && (() => {
-        const h = <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": k ?? fit(heading, !children) } as React.CSSProperties}><Flag name={heading} em />{heading}</h1>;
-        return ornate ? <div className={s.dHRow}><Flank />{h}<Flank flip /></div> : h;
-      })()}
+      {heading && <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": k ?? fit(heading, !children) } as React.CSSProperties}><Flag name={heading} em />{heading}</h1>}
       {heading && rule && <Divider />}
       {rows.length > 0 && <div className={s.dLines}>{rows.map((r, i) => <p key={i} className={s.dSub}>{r}</p>)}</div>}
       {children}
