@@ -279,7 +279,8 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 @media (max-width: 520px) { .dBtn { padding: 0 14px; } }
 
 /* Every screen is built the same way: a pill, a heading in the serif, lines of ordinary text, then what to look at. */
-.dMid { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: clamp(14px, 2.2vw, 30px); min-height: 100dvh; box-sizing: border-box; padding: clamp(104px, 13vh, 150px) var(--edge); }
+/* More room above than below, so the middle sits a little under the true centre and clear of the top bar. */
+.dMid { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: clamp(14px, 2.2vw, 30px); min-height: 100dvh; box-sizing: border-box; padding: clamp(130px, 18vh, 200px) var(--edge) clamp(70px, 8vh, 110px); }
 /* Nothing on the screen may be squeezed smaller, or a progress bar disappears. */
 .dMid > * { flex: none; }
 .dPill { display: inline-flex; align-items: center; justify-content: center; padding: 0.42em 1.2em; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: clamp(18px, min(2.5vw, 3.6vh), 38px); font-weight: 500; line-height: 1.25; max-width: 100%; }
