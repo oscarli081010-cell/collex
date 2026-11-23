@@ -73,16 +73,12 @@ export function Analytics({ c, say, act, cloudId }: { c: Chamber; say: (t: strin
             </table>
           </div>
           {sPages > 1 && <Pager at={sp} pages={sPages} go={setSat} label="By State Pages" />}
-          {t && (() => {
-            const rep = t.replies;
-            return (
-              <Stats label="Chair's Totals" items={[
-                { label: "Motions Passed", value: t.motions.filter((m) => m.status === "passed").length, tone: "ok" },
-                { label: "Motions Failed", value: t.motions.filter((m) => m.status === "failed").length, tone: "bad" },
-                { label: "Rights of Reply", value: rep.length },
-              ]} />
-            );
-          })()}
+          {t && (
+            <Stats label="Chair's Totals" items={[
+              { label: "Motions Passed", value: t.motions.filter((m) => m.status === "passed").length, tone: "ok" },
+              { label: "Motions Failed", value: t.motions.filter((m) => m.status === "failed").length, tone: "bad" },
+            ]} />
+          )}
         </div>
       ) : (
         <div id="cha-panel-activity" role="tabpanel" aria-labelledby="cha-tab-activity" className={s.panelBody}>
