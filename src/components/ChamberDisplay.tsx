@@ -129,14 +129,15 @@ function JoinCode({ cid }: { cid: string }) {
 /** One screen: an optional pill, a heading, optional lines of text, and whatever there is to look at. The rule under the
  *  heading is drawn only when something follows it (a line, the time, the roll, the speakers), and never over a vote's figures.
  *  `ornate` (the speakers' list) puts a flank either side of the heading and the rule under it, over its lines too. */
-function Screen({ pill, side, heading, k, pass, lines, foot, plain, ornate, children }: {
-  pill?: (string | false | null | undefined)[]; side?: ch.Side; heading?: string; k?: number; pass?: boolean; lines?: (React.ReactNode | false | null | undefined)[]; foot?: React.ReactNode; plain?: boolean; ornate?: boolean; children?: React.ReactNode;
+function Screen({ title, pill, side, heading, k, pass, lines, foot, plain, ornate, children }: {
+  title?: string; pill?: (string | false | null | undefined)[]; side?: ch.Side; heading?: string; k?: number; pass?: boolean; lines?: (React.ReactNode | false | null | undefined)[]; foot?: React.ReactNode; plain?: boolean; ornate?: boolean; children?: React.ReactNode;
 }) {
   const text = (pill ?? []).filter(Boolean).join(" · ");
   const rows = (lines ?? []).filter(Boolean);
   const rule = ornate || (!plain && rows.length === 0 && !!children); // the rule sits only over the timer or a board, never between a heading and its lines
   return (
     <>
+      {title && <p className={`serif ${s.dTitle}`}>{title}</p>}
       {text && <Flanked><span className={s.dPill} data-side={side}>{text}</span></Flanked>}
       {heading && (() => {
         const h = <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": k ?? fit(heading, !children) } as React.CSSProperties}><Flag name={heading} em />{heading}</h1>;
@@ -287,7 +288,7 @@ export default function ChamberDisplay() {
       <ul>{a.backers.map((id) => <li key={id}>{name(id)}</li>)}</ul>
     </div>
   );
-  const amendPill = (a: ch.Amendment) => ["Amendment", a.how && { strike: "Strike", amend: "Amend", add: "Add" }[a.how], a.clause, `from ${name(a.by)}`];
+  const amendPill = (a: ch.Amendment) => [a.how && { strike: "Strike", amend: "Amend", add: "Add" }[a.how], a.clause, `from ${name(a.by)}`];
   const votes = (r: { yes: number; no: number; abstain: number }) => tallies([["For", r.yes], ["Against", r.no], ["Abstain", r.abstain]]);
   const motionOf = (id?: string) => (c && id ? c.tr?.motions.find((m) => m.id === id) : undefined);
   const k = c?.tr?.cauc ?? null;
@@ -380,11 +381,11 @@ export default function ChamberDisplay() {
   } else if (c.step === "caucus") {
     mid = <Screen heading={k?.kind === "final" ? "Final Unmoderated Caucus" : c.tr ? "Unmoderated Caucus" : "Caucus"}>{timerView()}</Screen>;
   } else if (c.step === "amend" && amendment && subA) {
-    const subPill = ["Amendment to the Amendment", `from ${name(subA.by)}`];
+    const subPill = [`from ${name(subA.by)}`];
     mid = c.poll ? (
-      <Screen pill={subPill} heading="Adopt This Amendment to the Amendment?" plain>{votes(c.poll)}</Screen>
+      <Screen title="Amendment to the Amendment" pill={subPill} heading="Adopt This Amendment to the Amendment?" plain>{votes(c.poll)}</Screen>
     ) : (
-      <Screen pill={subPill} heading={`\u201C${subA.text}\u201D`} lines={[`Instead of: \u201C${amendment.text}\u201D`]} />
+      <Screen title="Amendment to the Amendment" pill={subPill} heading={`\u201C${subA.text}\u201D`} lines={[`Instead of: \u201C${amendment.text}\u201D`]} />
     );
   } else if (c.step === "amend" && amendment) {
     const stage = c.amend?.stage;
@@ -392,15 +393,15 @@ export default function ChamberDisplay() {
     // The ruling on whether to debate stays up until the next vote begins (when it failed, that is the vote to adopt, with no votes yet).
     const ruling = r && (stage === "debate" || (stage === "vote" && c.poll && c.poll.yes + c.poll.no + c.poll.abstain === 0)) ? r : null;
     mid = ruling ? (
-      <Screen pill={amendPill(amendment)} heading={ruling.passed ? "Debate Approved" : "Debate Not Approved"} pass={ruling.passed} foot={signatories(amendment)} plain>
+      <Screen title="Amendment" pill={amendPill(amendment)} heading={ruling.passed ? "Debate Approved" : "Debate Not Approved"} pass={ruling.passed} foot={signatories(amendment)} plain>
         {votes(ruling)}
       </Screen>
     ) : c.poll ? (
-      <Screen pill={amendPill(amendment)} heading={stage === "ask" ? "Debate This Amendment?" : "Adopt This Amendment?"} foot={signatories(amendment)} plain>
+      <Screen title="Amendment" pill={amendPill(amendment)} heading={stage === "ask" ? "Debate This Amendment?" : "Adopt This Amendment?"} foot={signatories(amendment)} plain>
         {votes(c.poll)}
       </Screen>
     ) : (
-      <Screen pill={amendPill(amendment)} heading={`\u201C${amendment.text}\u201D`} foot={signatories(amendment)} />
+      <Screen title="Amendment" pill={amendPill(amendment)} heading={`\u201C${amendment.text}\u201D`} foot={signatories(amendment)} />
     );
   } else if (c.step === "vote" || c.step === "closed") {
     // The vote and its result are laid out alike, the heading at one size and one line kept for a note, so the states on
@@ -433,7 +434,7 @@ export default function ChamberDisplay() {
   } else if (c.step === "floor" && c.result?.kind === "amendment" && c.amendments.some((a) => a.id === c.result?.amendment)) {
     const a = c.amendments.find((x) => x.id === c.result!.amendment)!;
     mid = (
-      <Screen pill={amendPill(a)} heading={c.result.passed ? "This Amendment Passes" : "This Amendment Fails"} pass={c.result.passed} foot={signatories(a)} plain>
+      <Screen title="Amendment" pill={amendPill(a)} heading={c.result.passed ? "This Amendment Passes" : "This Amendment Fails"} pass={c.result.passed} foot={signatories(a)} plain>
         {votes(c.result)}
       </Screen>
     );
