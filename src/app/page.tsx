@@ -45,9 +45,9 @@ export default function Home() {
           <p className={styles.lead}>Upcoming conferences, dates and links, <span className={styles.aura}>on one calendar.</span></p>
           <div className={styles.heroActions}>
             <a href="#upcoming" className="button lg">See What&rsquo;s On</a>
-            <Link href="/list" className="button secondary lg">List a Conference</Link>
-            <Link href="/start" className={`link ${styles.start}`}>New to MUN? Start Here</Link>
+            <Link href="/list" className={styles.quiet}>List a Conference <span aria-hidden="true">&rarr;</span></Link>
           </div>
+          <p className={styles.start}>New to MUN? <Link href="/start" className="link">Start here</Link></p>
         </Reveal>
         <div className={styles.heroPic}>
           {/* Sized for the column it sits in, in the smallest format each browser can show; loaded first, with its

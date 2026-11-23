@@ -25,8 +25,12 @@
   animation: auraIn 900ms var(--ease-smooth-out) 500ms forwards;
 }
 @keyframes auraIn { to { background-size: 100% 100%; } }
-.heroActions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
-.start { padding-inline: 6px; }
+.heroActions { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+/* The second action is a quiet link beside the one button, its arrow nudging on hover. */
+.quiet { font-size: 15px; font-weight: 500; color: var(--ink); display: inline-flex; gap: 6px; align-items: center; }
+.quiet span { transition: transform var(--duration-quick) var(--ease-smooth-out); }
+.quiet:hover span { transform: translateX(3px); }
+.start { margin-top: -8px; font-size: 14px; color: var(--muted); }
 
 .heroPic { position: relative; }
 .heroImg {
