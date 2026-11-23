@@ -247,19 +247,22 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dTop > * { pointer-events: auto; }
 @media (max-width: 1100px) { .dTop { grid-template-columns: 1fr auto; } .dTop > .dStatus { grid-column: 1 / -1; grid-row: 2; justify-self: center; } .dGap { display: none; } }
 /* The display's own buttons, round with only an icon (the name on hover), and "Collex" written under them. */
-.dTools { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; justify-self: end; }
-.dToolRow { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }
+.dTools { display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 0; width: fit-content; justify-self: end; }
+.dToolRow { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
 .dRound { width: 44px; padding: 0; justify-content: center; }
-.dRound svg { width: 18px; height: 18px; }
+.dRound svg { width: 20px; height: 20px; flex: none; stroke-width: 1.75; }
 .dToolRow > :global(.tip)::after { right: auto; left: 50%; translate: -50% 4px; }
 .dToolRow > :global(.tip):hover::after, .dToolRow > :global(.tip):has(:focus-visible)::after { translate: -50% 0; }
-.dWord { display: flex; justify-content: center; color: var(--muted); cursor: default; }
+/* "Collex" with its mark, in a pill as wide as the two buttons above it. */
+.dBrand { height: 34px; padding: 0; gap: 5px; justify-content: center; color: var(--muted); cursor: default; }
+.dBrand svg { flex: none; }
+.dBrand:hover { color: var(--muted); background: color-mix(in srgb, var(--panel) 70%, transparent); border-color: var(--line); }
+.dBrand:active { transform: none; }
 /* A phone held upright: the committee's name keeps the full width, with the buttons under it. */
 @media (max-width: 640px) {
   .dTop { grid-template-columns: minmax(0, 1fr); }
   .dTop > .dStatus { grid-row: 3; }
-  .dTools { justify-self: stretch; }
-  .dToolRow > * { flex: 1 1 0; justify-content: center; }
+  .dTools { justify-self: start; }
 }
 /* Quiet pills for the display's own controls: they stay out of the way of what the room is reading. */
 .dBtn {

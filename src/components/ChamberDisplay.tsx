@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import * as ch from "@/lib/chamber";
-import { Wordmark } from "@/lib/brand";
+import { Mark, Wordmark } from "@/lib/brand";
 import { flagCode } from "@/lib/flags";
 import { isId, useChamber } from "@/lib/useChamber";
 import { useAuth } from "./AuthProvider";
@@ -241,7 +241,7 @@ export default function ChamberDisplay() {
         <span className="tip" data-tip={fullLabel}><button type="button" className={`${s.dBtn} ${s.dRound}`} aria-label={fullLabel} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}</button></span>
         <span className="tip" data-tip="Console"><Link href={cloudId ? `/chambers?c=${cloudId}` : "/chambers"} className={`${s.dBtn} ${s.dRound}`} aria-label="Console"><Back /></Link></span>
       </div>
-      <span className={s.dWord}><Wordmark height={13} /></span>
+      <span className={`${s.dBtn} ${s.dBrand}`}><Mark size={14} /><Wordmark height={11} /></span>
     </div>
   );
 
