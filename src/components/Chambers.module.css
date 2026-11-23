@@ -249,10 +249,6 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 /* The display's own buttons, round with only an icon (the name on hover), and "Collex" written under them. */
 .dTools { display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 0; width: fit-content; justify-self: end; }
 .dToolRow { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
-.dRound { width: 44px; padding: 0; justify-content: center; }
-.dRound svg { width: 20px; height: 20px; flex: none; stroke-width: 1.75; }
-.dToolRow > :global(.tip)::after { right: auto; left: 50%; translate: -50% 4px; }
-.dToolRow > :global(.tip):hover::after, .dToolRow > :global(.tip):has(:focus-visible)::after { translate: -50% 0; }
 /* "Collex" with its mark, in a pill as wide as the two buttons above it. */
 .dBrand { height: 34px; padding: 0; gap: 5px; justify-content: center; color: var(--muted); cursor: default; }
 .dBrand svg { flex: none; }
@@ -280,7 +276,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 
 /* Every screen is built the same way: a pill, a heading in the serif, lines of ordinary text, then what to look at. */
 /* More room above than below, so the middle sits a little under the true centre and clear of the top bar. */
-.dMid { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: clamp(14px, 2.2vw, 30px); min-height: 100dvh; box-sizing: border-box; padding: clamp(130px, 18vh, 200px) var(--edge) clamp(70px, 8vh, 110px); }
+.dMid { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: clamp(14px, 2.2vw, 30px); min-height: 100dvh; box-sizing: border-box; padding: clamp(130px, 18vh, 200px) var(--edge) clamp(84px, 10vh, 130px); }
 /* Nothing on the screen may be squeezed smaller, or a progress bar disappears. */
 .dMid > * { flex: none; }
 .dPill { display: inline-flex; align-items: center; justify-content: center; padding: 0.42em 1.2em; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: clamp(18px, min(2.5vw, 3.6vh), 38px); font-weight: 500; line-height: 1.25; max-width: 100%; }
@@ -295,21 +291,37 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .dTime[data-state="paused"] { color: var(--muted); }
 .dTime[data-state="low"] { color: var(--warn); }
 .dTime[data-state="up"] { color: var(--danger); }
-.dTrack { width: min(100%, 900px); height: clamp(8px, 1vw, 14px); border-radius: 999px; background: var(--surface); overflow: hidden; }
-.dTrack i { display: block; height: 100%; background: var(--accent); transition: width 200ms linear; }
-.dTime[data-state="up"] ~ .dTrack i { background: var(--danger); }
-.dTallies { margin-top: var(--group); display: flex; gap: clamp(28px, 6vw, 96px); justify-content: center; flex-wrap: wrap; }
-.dTally { display: flex; flex-direction: column; align-items: center; gap: 0.15em; min-width: clamp(150px, 20vw, 340px); }
-.dTally span { font-size: clamp(18px, 2.1vw, 30px); color: var(--muted); font-weight: 500; }
+/* The bar of time left, with a small cap at either end like a printed rule. */
+.dTrack { position: relative; width: min(100%, 900px); height: clamp(8px, 1vw, 14px); border-radius: 999px; background: var(--surface); }
+.dTrack i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width 200ms linear; }
+.dTrack[data-state="up"] i { background: var(--danger); }
+.dTrack::before, .dTrack::after { content: ""; position: absolute; top: -0.45em; bottom: -0.45em; width: 1px; background: var(--line-strong); left: calc(-1 * clamp(12px, 1.4vw, 22px)); }
+.dTrack::after { left: auto; right: calc(-1 * clamp(12px, 1.4vw, 22px)); }
+/* The ornaments: hairlines in the line colour, diamonds and dots in a faded accent. The strokes stay 1.5px at any size. */
+.dFlank, .dDivider { flex: none; height: auto; fill: color-mix(in srgb, var(--accent) 55%, transparent); stroke: var(--line-strong); stroke-width: 1.5px; overflow: visible; }
+.dFlank line, .dDivider line { vector-effect: non-scaling-stroke; }
+.dFlank path, .dFlank circle, .dDivider path, .dDivider circle { stroke: none; }
+.dFlank { width: clamp(44px, 7vw, 130px); }
+.dDivider { width: clamp(150px, 20vw, 320px); margin-block: -0.3em; }
+.dFlanked { display: flex; align-items: center; justify-content: center; gap: clamp(10px, 1.3vw, 22px); max-width: 100%; }
+.dFlanked > span { min-width: 0; }
+.dTimeRow { display: flex; align-items: center; justify-content: center; gap: clamp(14px, 2vw, 36px); max-width: 100%; }
+/* Small spaced capitals for the labels: under the figures, over the signatories, and "Up next". */
+.dCaps { font-size: clamp(12px, 1.15vw, 18px); font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.dTallies { --tgap: clamp(28px, 6vw, 96px); margin-top: var(--group); display: flex; gap: var(--tgap); justify-content: center; flex-wrap: wrap; }
+.dTally { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.4em; min-width: clamp(150px, 20vw, 340px); }
+.dTally span { font-size: clamp(12px, 1.15vw, 18px); font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+/* Between two figures: a hairline with a diamond at its middle, sitting in the gap. */
+.dTallySep { position: absolute; left: calc(-0.5 * var(--tgap)); top: 12%; bottom: 12%; width: 1px; background: var(--line-strong); }
+.dTallySep::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; translate: -50% -50%; rotate: 45deg; background: color-mix(in srgb, var(--accent) 55%, transparent); }
 /* The states that signed an amendment: tiles under a label, like the votes. */
-.dSigs { display: flex; flex-direction: column; align-items: center; gap: 0.5em; max-width: min(100%, 1300px); }
-.dSigs > span { font-size: clamp(18px, 2.1vw, 30px); color: var(--muted); font-weight: 500; }
+.dSigs { display: flex; flex-direction: column; align-items: center; gap: 0.7em; max-width: min(100%, 1300px); }
 .dSigs ul { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(8px, 1vw, 14px); }
 .dSigs li { padding: 0.3em 0.9em; border-radius: 999px; background: var(--surface); font-size: clamp(16px, min(2vw, 3.2vh), 30px); font-weight: 500; }
 /* The three chosen speakers: a label over a tile, like the signatories. */
 .dRoles { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(20px, 4vw, 64px); margin-top: var(--group); }
 .dRole { display: flex; flex-direction: column; align-items: center; gap: 0.5em; }
-.dRole > span { font-size: clamp(18px, 2.1vw, 30px); color: var(--muted); font-weight: 500; }
+.dRole > span { font-size: clamp(12px, 1.15vw, 18px); font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .dRole b { padding: 0.3em 1em; border-radius: 999px; background: var(--surface); font-size: clamp(22px, 2.6vw, 40px); font-weight: 500; min-width: 4.5em; text-align: center; }
 .dRole b[data-empty="true"] { color: var(--faint); }
 .dTally b { font-size: clamp(64px, min(11vw, 15vh), 170px); font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -439,11 +451,22 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 /* The welcome: a small slanted "Welcome to" over the committee's name, centred. */
 .dWelcome { display: flex; flex-direction: column; align-items: center; gap: 0.12em; max-width: 100%; margin: 0; font-weight: 400; line-height: 1; }
 .dWelcome span { font-style: italic; font-size: calc(clamp(60px, min(10.4vw, 13vh), 160px) * 0.42); }
+/* A hairline either side of "Welcome to" (only there: a long title's first words carry no lines). */
+.dWelcomeTo span { display: flex; align-items: center; gap: 0.5em; }
+.dWelcomeTo span::before, .dWelcomeTo span::after { content: ""; flex: none; width: clamp(40px, 6vw, 110px); height: 1px; background: var(--line-strong); }
 .dWelcome[data-pass="true"] b { color: var(--ok); }
 .dWelcome[data-pass="false"] b { color: var(--danger); }
 .dWelcome b { font-weight: 400; font-size: calc(clamp(60px, min(10.4vw, 13vh), 160px) * var(--k, 1)); line-height: 0.95; overflow-wrap: anywhere; }
 
 /* On a narrow window the top bar takes two rows and would sit on top of the middle, so there it goes back to taking its own space above it. */
+/* A short screen (a 720p projector) gives the middle a little less room above and below, and tighter gaps. */
+@media (max-height: 820px) {
+  .dMid { padding-top: clamp(96px, 13vh, 130px); padding-bottom: clamp(72px, 9vh, 100px); gap: clamp(10px, 1.6vw, 20px); }
+  .dDivider { margin-block: -0.5em; }
+  .dTallies, .dBoard, .dRoles { margin-top: calc(var(--group) * 0.7); }
+}
+/* A narrow window has no room for the flanks beside the time. */
+@media (max-width: 760px) { .dTimeRow > .dFlank { display: none; } }
 @media (max-width: 1100px) {
   .display { grid-template: auto 1fr auto / minmax(0, 1fr); }
   .display > * { grid-area: auto; }

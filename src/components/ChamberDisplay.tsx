@@ -25,6 +25,25 @@ const Shrink = () => icon(<path d="M2.5 6H6V2.5M13.5 6H10V2.5M2.5 10H6v3.5M13.5 
 const Back = () => icon(<path d="M13 8H3M7 4L3 8l4 4" />);
 const SIDE = { for: "In Favour", against: "Against" } as const;
 
+/* The display's ornaments, like the rules on a printed programme: a hairline ending in a small diamond either side of a
+   pill, the timer or a label, and a dot, line, diamond, line, dot under every heading. Drawn in the line colour, the
+   diamonds in a faded accent, so they sit behind whatever the room is reading. */
+const Flank = ({ flip }: { flip?: boolean }) => (
+  <svg className={s.dFlank} viewBox="0 0 130 12" aria-hidden="true" style={flip ? { transform: "scaleX(-1)" } : undefined}>
+    <line x1="10" y1="6" x2="130" y2="6" />
+    <path d="M6 1.5 10.5 6 6 10.5 1.5 6Z" />
+  </svg>
+);
+const Divider = () => (
+  <svg className={s.dDivider} viewBox="0 0 320 12" aria-hidden="true">
+    <circle cx="4" cy="6" r="2.2" /><line x1="10" y1="6" x2="150" y2="6" /><path d="M160 0.5 165.5 6 160 11.5 154.5 6Z" /><line x1="170" y1="6" x2="310" y2="6" /><circle cx="316" cy="6" r="2.2" />
+  </svg>
+);
+/** A label with a flank either side: Signatories, Up next for the closing vote. */
+const Flanked = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <div className={`${s.dFlanked} ${className ?? ""}`}><Flank /><span>{children}</span><Flank flip /></div>
+);
+
 // A long heading (an amendment's own words, say) steps down in size so it always fits the screen.
 // A heading with nothing else on the screen is bigger still.
 const fit = (text: string, solo: boolean) => {
@@ -124,10 +143,11 @@ function Screen({ pill, side, heading, pass, lines, foot, children }: {
   const rows = (lines ?? []).filter(Boolean);
   return (
     <>
-      {text && <span className={s.dPill} data-side={side}>{text}</span>}
+      {text && <Flanked><span className={s.dPill} data-side={side}>{text}</span></Flanked>}
       {heading && (lead
         ? <h1 className={`serif ${s.dWelcome}`} data-pass={pass} style={{ "--k": fit(big, !children) } as React.CSSProperties}><span>{lead}</span><b>{big}</b></h1>
         : <h1 className={`serif ${s.dH}`} data-pass={pass} style={{ "--k": fit(heading, !children) } as React.CSSProperties}><Flag name={heading} em />{heading}</h1>)}
+      {heading && <Divider />}
       {rows.length > 0 && <div className={s.dLines}>{rows.map((r, i) => <p key={i} className={s.dSub}>{r}</p>)}</div>}
       {children}
       {foot && <div className={s.dFoot}>{foot}</div>}
@@ -233,13 +253,12 @@ export default function ChamberDisplay() {
     open.negotiation && open.notes ? "Negotiation Chamber and Notes Open" : open.negotiation ? "Negotiation Chamber Open" : open.notes && "Notes Open",
     open.amendments && "Amendments Open", open.speakers && "Speakers\u2019 List Open",
   ]).filter(Boolean).join(" \u00B7 ") : "";
-  // Two round buttons with only an icon each; the name appears on hover or focus, the way a disabled button's reason does.
   const fullLabel = full ? "Exit full screen" : "Full screen";
   const tools = (
     <div className={s.dTools}>
       <div className={s.dToolRow}>
-        <span className="tip" data-tip={fullLabel}><button type="button" className={`${s.dBtn} ${s.dRound}`} aria-label={fullLabel} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}</button></span>
-        <span className="tip" data-tip="Console"><Link href={cloudId ? `/chambers?c=${cloudId}` : "/chambers"} className={`${s.dBtn} ${s.dRound}`} aria-label="Console"><Back /></Link></span>
+        <button type="button" className={s.dBtn} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}>{full ? <Shrink /> : <Expand />}{fullLabel}</button>
+        <Link href={cloudId ? `/chambers?c=${cloudId}` : "/chambers"} className={s.dBtn}><Back />Console</Link>
       </div>
       <span className={`${s.dBtn} ${s.dBrand}`}><Mark size={14} /><Wordmark height={11} /></span>
     </div>
@@ -250,19 +269,25 @@ export default function ChamberDisplay() {
   const subA = c?.amend?.sub ? c.amendments.find((a) => a.id === c.amend!.sub!.id) : undefined;
   const timerView = () => c?.timer && (
     <>
-      <div className={s.dTime} data-state={state} data-over={ch.overtime(c.timer, now) > 0 || undefined} role="timer">{ch.timerText(c.timer, now)}</div>
-      <div className={s.dTrack} aria-hidden="true"><i style={{ width: `${Math.min(100, (left / c.timer.total) * 100)}%` }} /></div>
+      <div className={s.dTimeRow}><Flank /><div className={s.dTime} data-state={state} data-over={ch.overtime(c.timer, now) > 0 || undefined} role="timer">{ch.timerText(c.timer, now)}</div><Flank flip /></div>
+      <div className={s.dTrack} data-state={state} aria-hidden="true"><i style={{ width: `${Math.min(100, (left / c.timer.total) * 100)}%` }} /></div>
     </>
   );
+  // The figures, with a hairline and a diamond between each pair.
   const tallies = (labels: [string, number][]) => (
     <div className={s.dTallies}>
-      {labels.map(([label, n]) => <div key={label} className={s.dTally}><span>{label}</span><b>{n}</b></div>)}
+      {labels.map(([label, n], i) => (
+        <div key={label} className={s.dTally}>
+          {i > 0 && <i className={s.dTallySep} aria-hidden="true" />}
+          <b>{n}</b><span>{label}</span>
+        </div>
+      ))}
     </div>
   );
   // The states that signed an amendment, as a row of tiles under a small label.
   const signatories = (a?: ch.Amendment) => a && a.backers.length > 0 && (
     <div className={s.dSigs}>
-      <span>Signatories</span>
+      <Flanked className={s.dCaps}>Signatories</Flanked>
       <ul>{a.backers.map((id) => <li key={id}>{name(id)}</li>)}</ul>
     </div>
   );
@@ -313,10 +338,11 @@ export default function ChamberDisplay() {
     const k = n <= 6 ? 2.0 : n <= 10 ? 1.7 : n <= 16 ? 1.3 : n <= 24 ? 1 : n <= 40 ? 0.7 : 0.5;
     mid = (
       <>
-        <h1 className={`serif ${s.dWelcome}`} style={{ "--k": k } as React.CSSProperties}>
+        <h1 className={`serif ${s.dWelcome} ${s.dWelcomeTo}`} style={{ "--k": k } as React.CSSProperties}>
           <span>Welcome to</span>
           <b>{c.name}</b>
         </h1>
+        <Divider />
       </>
     );
   } else if (c.step === "pick") {
@@ -343,7 +369,7 @@ export default function ChamberDisplay() {
   } else if (c.step === "statements") {
     const next3 = ch.upcomingStatements(c, 3);
     mid = (
-      <Screen heading="Opening Statements" foot={next3.length > 0 && <div className={s.dSigs}><span>Up next</span><ul>{next3.map((id) => <li key={id}>{name(id)}</li>)}</ul></div>} />
+      <Screen heading="Opening Statements" foot={next3.length > 0 && <div className={s.dSigs}><Flanked className={s.dCaps}>Up next</Flanked><ul>{next3.map((id) => <li key={id}>{name(id)}</li>)}</ul></div>} />
     );
   } else if (c.step === "general") {
     const m = c.result?.kind === "motion" ? motionOf(c.result.motion) : undefined;
@@ -354,8 +380,8 @@ export default function ChamberDisplay() {
   } else if (c.step === "caucus" && c.tr && k?.kind === "mod") {
     mid = (
       <Screen heading={k.topic}>
-        <div className={s.dTime} data-state={kLeft === 0 ? "up" : ch.running(k.clock) ? "running" : "paused"} role="timer">{ch.clock(kLeft)}</div>
-        <div className={s.dTrack} aria-hidden="true"><i style={{ width: `${k.clock ? Math.min(100, (kLeft / k.clock.total) * 100) : 0}%` }} /></div>
+        <div className={s.dTimeRow}><Flank /><div className={s.dTime} data-state={kLeft === 0 ? "up" : ch.running(k.clock) ? "running" : "paused"} role="timer">{ch.clock(kLeft)}</div><Flank flip /></div>
+        <div className={s.dTrack} data-state={kLeft === 0 ? "up" : undefined} aria-hidden="true"><i style={{ width: `${k.clock ? Math.min(100, (kLeft / k.clock.total) * 100) : 0}%` }} /></div>
       </Screen>
     );
   } else if (c.step === "caucus") {
@@ -447,7 +473,7 @@ export default function ChamberDisplay() {
         <div className={s.dNext}>
           {c && ordered.length > 0 && (
             <>
-              <span>Up next</span>
+              <span className={s.dCaps}>Up next</span>
               <ol>{ordered.map((x) => <li key={x.id} data-side={c && (ch.sided(c) || x.stance) ? x.side : undefined} data-plain={(c && !ch.sided(c) && !x.stance) || undefined}><i /><Flag name={name(x.id)} em /><span className={s.dNextName} title={name(x.id)}>{ch.shortName(name(x.id))}</span>{c && (ch.sided(c) || x.stance) && <small>{SIDE[x.side]}</small>}</li>)}</ol>
             </>
           )}
