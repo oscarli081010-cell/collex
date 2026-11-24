@@ -176,7 +176,7 @@ function Sent({ email, kind, onBack }: { email: string; kind: "signup" | "reset"
           <small key={String(checking)} className="t-swap muted">{checking ? "Checking…" : "The code works for an hour."}</small>
         </div>
       )}
-      <p className={s.spam}>Not there? Check your spam folder. It comes from {SENDER}.</p>
+      <p className={s.spam}>Not there? Check your spam folder. It comes from {SENDER}.{kind === "signup" && <> If you already have an account, <NextLink path="/login" className="link">log in</NextLink> instead.</>}</p>
       <div className="btnStack one">
         <button className="button secondary lg" onClick={resend}>Send It Again</button>
         <button className="button secondary lg" onClick={onBack}>Use a Different Email</button>
@@ -257,8 +257,8 @@ export function SignupForm() {
     });
     setBusy(false);
     if (error) return setErrors({ form: friendly(error.message) });
-    // Supabase hides whether an email is taken: an existing account comes back with no identities.
-    if (data.user && data.user.identities?.length === 0) { setErrors({ email: "That email already has an account. Log in instead." }); return focusFirstInvalid(form); }
+    // Supabase hides whether an email is taken (an existing account comes back with no identities), and so does this
+    // page: both get the same "check your email" screen, so nobody can test which emails have an account.
     setSent(v("email"));
   }
 
