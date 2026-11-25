@@ -3,7 +3,7 @@
   position: relative;
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: center;
   min-height: calc(100svh - 73px); /* the first screen is the hero alone */
-  padding-block: 48px 96px;
+  padding-block: 16px 176px; /* weighted to the bottom so the block sits a little above centre */
   align-content: center; row-gap: 40px;
 }
 /* An announcement, when there is one, sits centred above both columns. */
