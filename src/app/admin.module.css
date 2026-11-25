@@ -1,7 +1,40 @@
 .wrap { width: 100%; display: flex; flex-direction: column; gap: 28px; }
-/* The band leaves its own space underneath, so the tabs sit closer to it than the rest do to each other. */
-.tabsRow { margin-top: -8px; }
+/* The sections. On a wide screen a sidebar in three named groups that follows you down the page, like the conference
+   editor's section list; on a narrower one a single row of chips that scrolls sideways. */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; margin-top: -8px; }
+.pane { min-width: 0; }
+.side { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: 0 -2px; }
+.side::-webkit-scrollbar { display: none; }
+.group, .groupList { display: contents; }
+.groupList { list-style: none; margin: 0; padding: 0; }
+.groupList li { flex: none; }
+.groupName { display: none; }
+.sideLink {
+  display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  border: 1px solid var(--line-strong); background: var(--panel); color: var(--muted); font: inherit; font-size: 14px;
+  transition: background-color var(--duration-quick), color var(--duration-quick), border-color var(--duration-quick);
+}
+.sideLink:hover { color: var(--ink); }
+.sideLink[aria-current="true"] { background: var(--ink); border-color: var(--ink); color: var(--panel); }
+.sideLink:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (pointer: coarse) { .sideLink { height: 44px; } }
 
+@media (min-width: 1040px) {
+  .layout { grid-template-columns: 200px minmax(0, 1fr); column-gap: 40px; align-items: start; }
+  .side {
+    position: sticky; top: 104px; flex-direction: column; gap: 22px; overflow: visible; padding: 0; margin: 0;
+    max-height: calc(100svh - 128px); overflow-y: auto;
+  }
+  .group { display: flex; flex-direction: column; gap: 4px; }
+  .groupList { display: flex; flex-direction: column; gap: 2px; }
+  .groupName { display: block; padding: 0 12px 4px; font-size: 12.5px; color: var(--faint); }
+  .sideLink {
+    width: 100%; justify-content: space-between; height: 38px; padding: 0 10px 0 12px; border: 0; border-radius: 8px; background: none; font-size: 14.5px; text-align: left;
+    border-left: 2px solid transparent; border-top-left-radius: 2px; border-bottom-left-radius: 2px;
+  }
+  .sideLink:hover { background: var(--surface); }
+  .sideLink[aria-current="true"] { background: var(--surface); color: var(--ink); font-weight: 500; border-left-color: var(--accent); }
+}
 /* Sliding tabs, all the same width across the page. On a phone they keep a fixed width each and scroll sideways. */
 .tabs {
   position: relative; display: grid; grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr)); gap: 2px; padding: 4px;

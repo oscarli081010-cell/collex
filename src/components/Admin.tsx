@@ -8,12 +8,11 @@ import SearchBox from "./SearchBox";
 import { Placard } from "./Drawings";
 import Verified from "./Verified";
 import IconButton, { ConfirmIconButton, ICONS } from "./IconButton";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { coverPosition, coverUrl, formatDate, webUrl } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
 import { refreshSite } from "@/lib/refresh";
 import { useAuth } from "./AuthProvider";
-import { usePill } from "./usePill";
 import PageBand from "./PageBand";
 import { useToast } from "./useToast";
 import auth from "@/app/auth.module.css";
@@ -46,9 +45,14 @@ const LOG_TONE: Record<string, string> = { approved: "ok", rejected: "bad", unpu
 const LOG_WORDS: Record<string, string> = { submitted: "listed", "started a chamber": "started a committee", "shared a chamber": "shared a committee" };
 
 const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-const TABS = ["Review", "Conferences", "Reports", "Committees", "Announcements", "Users", "Visitors", "Errors", "Health", "Audit Log"] as const;
 const REASON: Record<string, string> = { details: "Wrong or out of date", link: "Broken link", inappropriate: "Shouldn\u2019t be here", changed: "Links changed after approval", other: "Something else" };
-type Tab = (typeof TABS)[number];
+type Tab = "Review" | "Conferences" | "Reports" | "Committees" | "Announcements" | "Users" | "Visitors" | "Errors" | "Health" | "Audit Log";
+// The sidebar, in three groups: what's listed, who's here, and how the site is doing.
+const GROUPS: { name: string; tabs: Tab[] }[] = [
+  { name: "Listings", tabs: ["Review", "Conferences", "Reports"] },
+  { name: "People", tabs: ["Users", "Committees"] },
+  { name: "Site", tabs: ["Announcements", "Visitors", "Errors", "Health", "Audit Log"] },
+];
 const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Rejected", unpublished: "Taken down" };
 
 const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
@@ -83,11 +87,9 @@ export default function Admin() {
   // A conference delete waiting for a yes: what goes with it is counted first, and taking it down is offered instead.
   const [del, setDel] = useState<{ ids: string[]; name: string; apps: number | null; regs: number | null; counted: boolean; live: number } | null>(null);
   const { say, node } = useToast();
-  const tabsRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   // Public pages pick up the change now, and so does this tab's copy of them.
   const published = () => refreshSite().then(() => router.refresh());
-  const pill = usePill(tabsRef, '[aria-selected="true"]', `${tab}${profile?.is_admin}`);
 
   const load = useCallback(async () => {
     if (!supabase) return;
@@ -245,17 +247,25 @@ export default function Admin() {
         { label: "Open Reports", value: reports === null ? "…" : String(openReports.length) },
         { label: "Users", value: users === null ? "…" : String(users.length) },
       ]} />
-      <nav className={s.tabsRow} aria-label="Admin sections">
-        <div ref={tabsRef} className={s.tabs} role="tablist" style={{ "--n": TABS.length } as React.CSSProperties}>
-          <span ref={pill} className={`t-pill ${s.tabPill}`} aria-hidden="true" />
-          {TABS.map((t) => (
-            <button key={t} role="tab" aria-selected={tab === t} onClick={() => { clearSel(); setTab(t); }}>
-              {t}{counts[t] ? <span className={s.count}>{counts[t]}</span> : null}
-            </button>
-          ))}
-        </div>
+      <div className={s.layout}>
+      <nav className={s.side} aria-label="Admin sections">
+        {GROUPS.map((g) => (
+          <div key={g.name} className={s.group}>
+            <p className={s.groupName}>{g.name}</p>
+            <ul className={s.groupList}>
+              {g.tabs.map((t) => (
+                <li key={t}>
+                  <button type="button" className={s.sideLink} aria-current={tab === t ? "true" : undefined} onClick={() => { clearSel(); setTab(t); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                    <span>{t}</span>{counts[t] ? <span className={s.count}>{counts[t]}</span> : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </nav>
 
+      <div className={s.pane}>
       {rows === null ? <RowsSkeleton rows={4} height={72} /> : (
         <div key={tab} className="t-reveal">
           {searchFor[tab] && (tab !== "Conferences" || others.length > 0) && (tab !== "Reports" || (reports ?? []).length > 0) && (tab !== "Audit Log" || log!.length > 0) && (tab !== "Committees" || (chambers ?? []).length > 0) && (tab !== "Errors" || ((errors ?? []).length > 0 && !errorsFailed)) && (
@@ -427,6 +437,8 @@ export default function Admin() {
           ))}
         </div>
       )}
+      </div>
+      </div>
       {bulkOn && (
         <div className={s.bulk} role="region" aria-label="Bulk actions">
           <div className={s.bulkLead}>
