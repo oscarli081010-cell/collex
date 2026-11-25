@@ -129,3 +129,11 @@ export async function getBySlug(slug: string): Promise<Conference | null> {
   if (error) throw new Error(`Loading conference "${slug}" failed: ${error.message}`);
   return data ? fromRow(data as Row) : null;
 }
+
+/** The announcement showing at the top of the home page, if any. A failed read shows none rather than breaking the page. */
+export async function getSiteNotice(): Promise<import("@/components/SiteNotice").Notice | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from("site_notices").select("id, body, link_label, link_url, audience").eq("active", true).limit(1).maybeSingle();
+  if (error || !data) return null;
+  return data as import("@/components/SiteNotice").Notice;
+}

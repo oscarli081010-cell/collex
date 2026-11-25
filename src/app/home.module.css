@@ -12,7 +12,9 @@
   transition: color var(--duration-quick);
 }
 .scrollCue:hover { color: var(--ink); }
-.scrollCue svg { animation: cue 1.8s var(--ease-in-out, ease-in-out) 2; /* a few nudges, then still */ }
+.scrollCue { animation: cueIn 800ms var(--ease-smooth-out) 1700ms backwards; } /* opacity only: it is centred by a transform */
+@keyframes cueIn { from { opacity: 0; } }
+.scrollCue svg { animation: cue 1.8s var(--ease-in-out, ease-in-out) 2.2s 2; /* once it has arrived, a few nudges, then still */ }
 @keyframes cue { 50% { transform: translateY(4px); } }
 .heroText { display: flex; flex-direction: column; gap: 24px; align-items: flex-start; }
 .title { font-size: clamp(48px, 6.2vw, 88px); line-height: 0.98; letter-spacing: -0.02em; max-width: 12ch; }
@@ -22,21 +24,61 @@
   font-style: italic; color: var(--ink);
   background: linear-gradient(transparent 62%, var(--accent-soft) 62%, var(--accent-soft) 92%, transparent 92%);
   background-size: 0% 100%; background-repeat: no-repeat;
-  animation: auraIn 900ms var(--ease-smooth-out) 500ms forwards;
+  animation: auraIn 900ms var(--ease-smooth-out) 1600ms forwards;
 }
 @keyframes auraIn { to { background-size: 100% 100%; } }
-.heroActions { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
-/* The second action is a quiet link beside the one button, its arrow nudging on hover. */
-.quiet { font-size: 15px; font-weight: 500; color: var(--ink); display: inline-flex; gap: 6px; align-items: center; }
-.quiet span { transition: transform var(--duration-quick) var(--ease-smooth-out); }
-.quiet:hover span { transform: translateX(3px); }
-.start { margin-top: -8px; font-size: 14px; color: var(--muted); }
+.start { margin-top: -6px; font-size: 14px; color: var(--muted); }
+.dotSep { margin: 0 10px; color: var(--faint); }
+.nowrap { white-space: nowrap; }
+
+/* The search: one wide field with a round go button, the hero's one action. */
+.search { position: relative; display: flex; align-items: center; width: min(100%, 520px); margin-top: 6px; }
+.search input {
+  width: 100%; height: 56px; padding: 0 64px 0 48px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--panel); color: var(--ink); font: inherit; font-size: 16px;
+  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.04), 0 10px 28px -18px rgba(var(--shadow-rgb), 0.2);
+  transition: border-color var(--duration-fast) var(--ease-smooth-out), box-shadow var(--duration-fast) var(--ease-smooth-out);
+}
+.search input::placeholder { color: var(--faint); }
+.search input::-webkit-search-cancel-button { appearance: none; display: none; }
+.search input:hover { border-color: var(--line-strong); }
+.search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft), 0 10px 28px -18px rgba(var(--shadow-rgb), 0.2); }
+.searchIcon { position: absolute; left: 17px; color: var(--faint); pointer-events: none; transition: color var(--duration-fast); }
+.search:focus-within .searchIcon { color: var(--accent); }
+.searchGo {
+  position: absolute; right: 8px; display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 10px;
+  background: var(--ink); color: var(--on-ink); cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-smooth-out);
+}
+.searchGo:hover { background: var(--accent); }
+.searchGo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.searchGo svg { transition: transform var(--duration-fast) var(--ease-smooth-out); }
+.searchGo:hover svg { transform: translateX(2px); }
+
+/* The first screen arriving, once: the headline types itself out with a caret, then the line under it, the search and
+   the links rise in after it, while the photo opens out and the next-conference card settles on top. Each piece only
+   holds its start pose until its moment (fill: backwards), so nothing stays pinned and hovers behave normally after. */
+.word { white-space: nowrap; }
+.ch { position: relative; opacity: 0; animation: chIn 90ms linear var(--d) forwards; }
+@keyframes chIn { to { opacity: 1; } }
+.ch::after {
+  content: ""; position: absolute; left: 100%; top: 0.12em; bottom: 0.04em; width: 2px; margin-left: 1px; border-radius: 1px;
+  background: var(--accent); opacity: 0; animation: caretOn 34ms steps(1) var(--d);
+}
+@keyframes caretOn { from, to { opacity: 1; } }
+.chLast::after { animation: caretEnd 1500ms steps(1) var(--d) forwards; }
+@keyframes caretEnd { 0%, 30% { opacity: 1; } 31%, 55% { opacity: 0; } 56%, 80% { opacity: 1; } 81%, 100% { opacity: 0; } }
+.in { animation: heroIn 800ms var(--ease-smooth-out) var(--at, 0ms) backwards; }
+@keyframes heroIn { from { opacity: 0; transform: translateY(12px); filter: blur(4px); } }
 
 .heroPic { position: relative; }
 .heroImg {
   position: relative; display: block; aspect-ratio: 4 / 3; border-radius: 16px; overflow: hidden;
   background: var(--accent); isolation: isolate;
+  animation: picIn 1300ms var(--ease-smooth-out) 120ms backwards;
 }
+/* The photo opens out from a slightly smaller frame; it is on screen from the first paint, only clipped. */
+@keyframes picIn { from { clip-path: inset(7% 7% 7% 7% round 22px); } to { clip-path: inset(0 round 16px); } }
 /* The photo drifts slowly across the frame, like a camera panning the hall. */
 .heroImg img {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 40%;
@@ -55,11 +97,14 @@
   background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
   box-shadow: 0 18px 44px rgba(var(--shadow-rgb), 0.12);
   font-size: 14px;
-  animation: nextIn var(--duration-very-slow) var(--ease-smooth-out) 200ms both;
-  transition: transform var(--duration-fast) var(--ease-smooth-out), box-shadow var(--duration-fast) var(--ease-smooth-out);
+  animation: nextIn 900ms var(--ease-smooth-out) 850ms backwards;
+  transition: box-shadow 420ms var(--ease-smooth-out), border-color 420ms var(--ease-smooth-out);
 }
-.nextCard:hover { transform: translateY(-3px); box-shadow: 0 22px 52px rgba(var(--shadow-rgb), 0.16); }
-@keyframes nextIn { from { transform: translateY(12px); } }
+/* Hover deepens the shadow and firms the edge; the card itself stays put. */
+.nextCard:hover { border-color: var(--line-strong); box-shadow: 0 24px 56px rgba(var(--shadow-rgb), 0.17); }
+.nextName { transition: color 420ms var(--ease-smooth-out); }
+.nextCard:hover .nextName { color: var(--accent); }
+@keyframes nextIn { from { opacity: 0; transform: translateY(14px); filter: blur(4px); } }
 .nextLabel { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
 .nextName { font-size: 28px; line-height: 1.1; }
 
@@ -71,7 +116,9 @@
 .section { padding-top: var(--space-section); }
 
 @media (prefers-reduced-motion: reduce) {
-  .heroImg, .heroImg img, .nextCard, .scrollCue svg { animation: none; }
+  .heroImg, .heroImg img, .nextCard, .scrollCue, .scrollCue svg, .in, .ch, .ch::after { animation: none; }
+  .ch { opacity: 1; }
+  .ch::after { display: none; }
   .aura { animation: none; background-size: 100% 100%; }
 }
 @media (max-width: 980px) {

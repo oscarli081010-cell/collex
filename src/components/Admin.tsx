@@ -24,6 +24,7 @@ import { AdminClaims } from "./HubExtras";
 import AdminChambers, { type AdminChamber } from "./AdminChambers";
 import { AdminVisitors, AdminErrors, type ClientError } from "./AdminPulse";
 import AdminHealth from "./AdminHealth";
+import AdminNotices from "./AdminNotices";
 
 type Row = {
   id: string; slug: string; status: string; name: string; host: string; start_date: string | null; end_date: string | null;
@@ -40,12 +41,12 @@ type Log = { id: number; at: string; actor_email: string; action: string; target
 
 const LOG_PER_PAGE = 10;
 // The dot's colour for what happened, as on a listing's own audit log.
-const LOG_TONE: Record<string, string> = { approved: "ok", rejected: "bad", unpublished: "warn", reopened: "warn", submitted: "accent", "removed organiser": "bad", "left organisers": "warn", deleted: "bad", "created an account": "ok", "started a chamber": "accent", "shared a chamber": "accent" };
+const LOG_TONE: Record<string, string> = { approved: "ok", rejected: "bad", unpublished: "warn", reopened: "warn", submitted: "accent", "removed organiser": "bad", "left organisers": "warn", deleted: "bad", "created an account": "ok", "started a chamber": "accent", "shared a chamber": "accent", "hid an announcement": "warn", "deleted an announcement": "bad" };
 // What the log says for each action: a person listing a conference reads as "listed".
 const LOG_WORDS: Record<string, string> = { submitted: "listed", "started a chamber": "started a committee", "shared a chamber": "shared a committee" };
 
 const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-const TABS = ["Review", "Conferences", "Reports", "Committees", "Users", "Visitors", "Errors", "Health", "Audit Log"] as const;
+const TABS = ["Review", "Conferences", "Reports", "Committees", "Announcements", "Users", "Visitors", "Errors", "Health", "Audit Log"] as const;
 const REASON: Record<string, string> = { details: "Wrong or out of date", link: "Broken link", inappropriate: "Shouldn\u2019t be here", changed: "Links changed after approval", other: "Something else" };
 type Tab = (typeof TABS)[number];
 const STATUS: Record<string, string> = { pending: "In review", published: "Live", rejected: "Rejected", unpublished: "Taken down" };
@@ -67,7 +68,7 @@ export default function Admin() {
   const [errorsFailed, setErrorsFailed] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   // One search per tab, so switching tabs keeps what you typed in each.
-  const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Reports: "", Committees: "", Users: "", Visitors: "", Errors: "", Health: "", "Audit Log": "" });
+  const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Reports: "", Committees: "", Announcements: "", Users: "", Visitors: "", Errors: "", Health: "", "Audit Log": "" });
   // A new search starts on the first page of the audit log.
   const auditFind = find["Audit Log"];
   useEffect(() => { setLogPage(0); }, [auditFind]);
@@ -222,7 +223,7 @@ export default function Admin() {
   const others = rows?.filter((r) => r.status !== "pending") ?? [];
   // Tab counts are always the totals; the search only narrows what the open tab shows.
   const openReports = (reports ?? []).filter((r) => r.status === "open");
-  const counts: Record<Tab, number | null> = { Review: pending.length, Conferences: others.length, Reports: openReports.length, Committees: chambers?.length ?? null, Users: users?.length ?? null, Visitors: null, Errors: errors?.length ?? null, Health: null, "Audit Log": null };
+  const counts: Record<Tab, number | null> = { Review: pending.length, Conferences: others.length, Reports: openReports.length, Committees: chambers?.length ?? null, Announcements: null, Users: users?.length ?? null, Visitors: null, Errors: errors?.length ?? null, Health: null, "Audit Log": null };
   const q = find[tab].trim().toLowerCase();
   const has = (...parts: (string | null | undefined)[]) => !q || parts.join(" ").toLowerCase().includes(q);
   const shownConfs = others.filter((r) => has(r.name, r.host, r.venue, STATUS[r.status]) && (statusFilter === "any" || r.status === statusFilter));
@@ -362,6 +363,8 @@ export default function Admin() {
           ))}
 
           {tab === "Committees" && <AdminChambers chambers={chambers ?? []} error={chambersError} say={say} reload={load} query={find.Committees} />}
+
+          {tab === "Announcements" && <AdminNotices say={say} />}
 
           {tab === "Visitors" && <AdminVisitors />}
 

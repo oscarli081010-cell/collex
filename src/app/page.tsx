@@ -3,7 +3,9 @@ import Link from "next/link";
 import UpcomingBoard from "@/components/UpcomingBoard";
 import MiniCalendar from "@/components/MiniCalendar";
 import NextCard from "@/components/NextCard";
-import Reveal from "@/components/Reveal";
+import HeroSearch from "@/components/HeroSearch";
+import SiteNotice from "@/components/SiteNotice";
+import { getSiteNotice } from "@/lib/data";
 import styles from "./home.module.css";
 
 // The title and description come from the layout; the home page just names its own address.
@@ -33,22 +35,45 @@ const ORGANIZATION = {
 const HERO = (ext: string) => [640, 960, 1440].map((w) => `/img/general-assembly-${w}.${ext} ${w}w`).join(", ");
 const HERO_SIZES = "(max-width: 980px) calc(100vw - 40px), 620px";
 
-export default function Home() {
+// The headline types itself out once as the page arrives: each letter has its own moment (spaces keep theirs, so the
+// rhythm reads like typing), and a caret rides along and blinks out at the end. Pure CSS, so the words are in the page
+// from the start for search engines; screen readers read the heading's label, not letter by letter.
+const STEP = 34;
+const TYPE_FROM = 220;
+function typed(text: string, from: number, last = false) {
+  let i = from;
+  const words = text.split(" ");
+  return words.map((w, wi) => {
+    const chars = [...w].map((ch, ci) => {
+      const end = last && wi === words.length - 1 && ci === w.length - 1;
+      const el = <span key={ci} className={`${styles.ch} ${end ? styles.chLast : ""}`} style={{ "--d": `${TYPE_FROM + i * STEP}ms` } as React.CSSProperties}>{ch}</span>;
+      i++;
+      return el;
+    });
+    i++; // the space
+    return <span key={wi}>{w && <span className={styles.word}>{chars}</span>}{wi < words.length - 1 ? " " : null}</span>;
+  });
+}
+
+export default async function Home() {
+  const notice = await getSiteNotice();
   return (
     <main id="top">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify([SITE, ORGANIZATION]) }} />
       <section className={`container ${styles.hero}`}>
-        <Reveal className={styles.heroText}>
-          <h1 className={`serif ${styles.title}`}>
-            Sydney Model UN, <em>in one place.</em>
+        <div className={styles.heroText}>
+          {notice && <div className={styles.in} style={{ "--at": "60ms" } as React.CSSProperties}><SiteNotice notice={notice} /></div>}
+          <h1 className={`serif ${styles.title}`} aria-label="Sydney Model UN, in one place.">
+            <span aria-hidden="true">{typed("Sydney Model UN, ", 0)}<em>{typed("in one place.", 17, true)}</em></span>
           </h1>
-          <p className={styles.lead}>Upcoming conferences, dates and links, <span className={styles.aura}>on one calendar.</span></p>
-          <div className={styles.heroActions}>
-            <a href="#upcoming" className="button lg">See What&rsquo;s On</a>
-            <Link href="/list" className={styles.quiet}>List a Conference <span aria-hidden="true">&rarr;</span></Link>
-          </div>
-          <p className={styles.start}>New to MUN? <Link href="/start" className="link">Start here</Link></p>
-        </Reveal>
+          <p className={`${styles.lead} ${styles.in}`} style={{ "--at": "1050ms" } as React.CSSProperties}>Upcoming conferences, dates and links, <span className={styles.aura}>on one calendar.</span></p>
+          <div className={styles.in} style={{ "--at": "1170ms", width: "100%" } as React.CSSProperties}><HeroSearch /></div>
+          <p className={`${styles.start} ${styles.in}`} style={{ "--at": "1290ms" } as React.CSSProperties}>
+            <span className={styles.nowrap}>New to MUN? <Link href="/start" className="link">Start here</Link></span>
+            <span className={styles.dotSep} aria-hidden="true">·</span>
+            <span className={styles.nowrap}>Running one? <Link href="/list" className="link">List it free</Link></span>
+          </p>
+        </div>
         <div className={styles.heroPic}>
           {/* Sized for the column it sits in, in the smallest format each browser can show; loaded first, with its
               space held by the frame's aspect ratio so nothing moves when it arrives. */}
