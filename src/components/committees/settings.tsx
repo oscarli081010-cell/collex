@@ -76,7 +76,7 @@ export function OfflineNote({ st }: { st: OfflineState }) {
   if (st === "none") return null;
   return (
     <p className={s.offlineLine} role="status" data-tone={st === "ready" ? "ok" : undefined}>
-      {st === "ready" ? "Ready to work without wifi" : st === "checking" ? "Checking whether this page works without wifi\u2026" : "Open this page once with wifi to use it offline"}
+      {st === "ready" ? "Ready to work without wifi on this laptop. Other devices catch up once it\u2019s back online." : st === "checking" ? "Checking whether this page works without wifi\u2026" : "Open this page once with wifi so this laptop can run it offline"}
     </p>
   );
 }

@@ -48,8 +48,10 @@ export const GUIDES: Guide[] = [
         "A seated delegate can ask for the floor, raise a point, propose a motion, hand in or sign an amendment, vote, and pass notes. *Nothing a delegate sends changes the committee by itself.* Each request waits in From Delegates’ Devices at the top of the Manage tab until you accept or dismiss it, so your ruling stays final. Chairs can read every note.",
       ] },
       { id: "offline", title: "Working without wifi", text: [
-        "Open the console once with wifi first, on the laptop you will use. Then go to Settings: under Without Wifi it says *Ready to work without wifi* when that laptop has kept everything it needs. If it says to open the page once with wifi, do that before the day.",
-        "With no connection the console says Offline, and sends your changes when you are back online.",
+        "Open the console once with wifi first, on the laptop you will use. Then go to Settings: at the bottom it says *Ready to work without wifi on this laptop* when that laptop has kept everything it needs. If it says to open the page once with wifi, do that before the day.",
+        "If the connection drops, that laptop keeps running the committee and says Offline. Your changes are saved on it and sent when it reconnects. The display, opened on the same laptop, keeps up with you.",
+        "*Other devices don’t.* Every device syncs through Collex, so with no connection a second chair’s laptop and the delegates’ phones can’t see your changes until both ends are back online. Working without wifi is a backup for a dropped connection, not a way to run the room. If the school wifi is unreliable, run the main laptop from a phone hotspot.",
+        "If two chairs change the committee while offline, both sets of changes are combined when they reconnect. The exception: a chair who reloads the page while offline loses their unsent changes if the other chair’s arrive first, and is told so.",
       ] },
       { id: "more", title: "Keep learning", text: [
         "For rulings, keeping time and marking on any procedure, read How to chair a committee. Unsure of a word? See the MUN glossary.",

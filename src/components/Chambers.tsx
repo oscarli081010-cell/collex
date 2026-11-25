@@ -248,7 +248,7 @@ export default function Chambers() {
           <IconButton label="Dismiss" icon={ICONS.close} onClick={clearNotice} />
         </div>
       )}
-      {status === "offline" && <p className={s.result} data-pass="false" role="alert">Offline, changes will send when you&rsquo;re back.</p>}
+      {status === "offline" && <p className={s.result} data-pass="false" role="alert">Offline. Your changes are saved on this laptop and send when you&rsquo;re back. Other devices won&rsquo;t see them until then.</p>}
 
       <div className="sr-only" role="status" aria-live="polite">{live}</div>
 

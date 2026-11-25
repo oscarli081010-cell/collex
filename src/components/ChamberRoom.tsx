@@ -143,7 +143,7 @@ function Seat({ cid, userId, say }: { cid: string; userId: string; say: (t: stri
         </div>
         <Link href="/chambers?tab=yours" className={`button secondary ${s.topBtn}`}>{ICONS.leave}Committees</Link>
       </header>
-      {status === "offline" && <p className={s.result} data-pass="false" role="alert">Offline: what you see may be out of date.</p>}
+      {status === "offline" && <p className={s.result} data-pass="false" role="alert">Offline: you won&rsquo;t see the chairs&rsquo; changes until you&rsquo;re back online.</p>}
       {lastAll && <p className={r.announce} role="status"><strong>From the chairs</strong>{lastAll.body}</p>}
 
       <PanelTabs idPrefix="rm" label="Your Seat" tab={tab} setTab={setTab}
