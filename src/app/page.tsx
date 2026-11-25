@@ -61,8 +61,8 @@ export default async function Home() {
     <main id="top">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify([SITE, ORGANIZATION]) }} />
       <section className={`container ${styles.hero}`}>
+        {notice && <div className={`${styles.noticeRow} ${styles.in}`} style={{ "--at": "60ms" } as React.CSSProperties}><SiteNotice notice={notice} /></div>}
         <div className={styles.heroText}>
-          {notice && <div className={styles.in} style={{ "--at": "60ms" } as React.CSSProperties}><SiteNotice notice={notice} /></div>}
           <h1 className={`serif ${styles.title}`} aria-label="Sydney Model UN, in one place.">
             <span aria-hidden="true">{typed("Sydney Model UN, ", 0)}<em>{typed("in one place.", 17, true)}</em></span>
           </h1>
