@@ -369,10 +369,8 @@
   .hero > :nth-child(4) { animation-delay: 270ms; }
   .hero > :nth-child(5) { animation-delay: 360ms; }
   .hero > :nth-child(6) { animation-delay: 450ms; }
-  @media (hover: hover) {
-    .title[data-wave] .ch { animation: chWave 720ms var(--ease-smooth-out) calc(var(--i) * 26ms); }
-    .title[data-wave] em .ch { animation-name: chWave, chGlow; animation-duration: 720ms, 720ms; }
-  }
+  .title[data-wave] .ch { animation: chWave 720ms var(--ease-smooth-out) calc(var(--i) * 26ms); }
+  .title[data-wave] em .ch { animation-name: chWave, chGlow; animation-duration: 720ms, 720ms; }
   .scrollCue svg { animation: cueNudge 1.8s var(--ease-in-out, ease-in-out) 1.6s 2; }
 
   @supports (animation-timeline: view()) {
