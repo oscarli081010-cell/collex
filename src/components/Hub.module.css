@@ -69,9 +69,11 @@
 .switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .switch, .switch::after { transition: none; } }
 
-/* The account page with its side menu (AccountNav): the menu on the left of the tabs and cards on a wide screen, a row
-   of chips above them on a narrow one, like a listing's sections. */
+/* The account page with its side menu (AccountNav): on a wide screen the tabs and cards sit in the middle of the page
+   with the menu at the left edge (the empty third column matches the first, so the middle stays centred); on a narrow
+   one the menu is a row of chips above them, like a listing's sections. */
 .accountWork { display: grid; grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 1040px) {
-  .accountWork { grid-template-columns: 188px minmax(0, 640px); column-gap: 40px; align-items: start; }
+  .accountWork { grid-template-columns: minmax(188px, 1fr) minmax(0, 640px) minmax(0, 1fr); column-gap: 40px; align-items: start; }
+  .accountWork > :first-child { width: 188px; }
 }
