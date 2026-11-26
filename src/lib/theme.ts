@@ -1,11 +1,11 @@
 export type Theme = "light" | "dark" | "system";
-// Light is the standard whatever the device is set to; dark only when someone picks it. ("system" is still a stored
-// value from before, and now means light.)
-export const THEMES: Theme[] = ["light", "dark"];
+// Light is where everyone starts, whatever the device is set to. Dark, or following the device (System), is a choice
+// made in Account.
+export const THEMES: Theme[] = ["light", "dark", "system"];
 const KEY = "collex-theme";
 
 /** Runs in <head> before first paint so a dark-mode account never flashes light. */
-export const themeBootScript = `try{if(localStorage.getItem("${KEY}")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}`;
+export const themeBootScript = `try{var t=localStorage.getItem("${KEY}");if(t==="dark"||t==="system")document.documentElement.dataset.theme=t}catch(e){}`;
 
 /**
  * Applies a theme and remembers it on this device. The change is a cross-fade of the whole page (a view transition),
@@ -13,7 +13,7 @@ export const themeBootScript = `try{if(localStorage.getItem("${KEY}")==="dark")d
  * flashed. A browser without view transitions just switches at once.
  */
 export function applyTheme(choice: Theme, animate = true) {
-  const theme: Theme = choice === "dark" ? "dark" : "light";
+  const theme: Theme = THEMES.includes(choice) ? choice : "light";
   const root = document.documentElement;
   if (root.dataset.theme === theme) return;
   const swap = () => {

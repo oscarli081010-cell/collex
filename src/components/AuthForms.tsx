@@ -563,7 +563,7 @@ export function AccountView() {
       <div id="account-panel-profile" role="tabpanel" aria-labelledby="account-tab-profile" hidden={tab !== "profile"} className={`t-stagger ${s.panelStack}`}>
         <section id="account-appearance" className={`panel ${s.card}`} style={{ "--i": 0 } as React.CSSProperties}>
           <h2 className={s.cardTitle}>Appearance</h2>
-          <ThemePicker userId={session.user.id} initial={profile?.theme === "dark" ? "dark" : "light"} onSaved={(ok) => { if (!ok) say("Couldn't save that. It still applies on this device."); }} />
+          <ThemePicker userId={session.user.id} initial={profile?.theme ?? "light"} onSaved={(ok) => { if (!ok) say("Couldn't save that. It still applies on this device."); }} />
         </section>
 
         <form id="account-profile" noValidate className={`panel ${s.card}`} onSubmit={saveProfile} style={{ "--i": 1 } as React.CSSProperties}>
