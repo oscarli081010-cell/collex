@@ -1,5 +1,6 @@
 :root {
-  --bg: #f6f3ee;
+  --bg: #fafafa;
+  --bar: #f4f2ed; /* the top bar, a shade warmer than the page */
   --panel: #ffffff;
   --surface: #f3f1ec;
   --line: #e6e2d9;
@@ -14,7 +15,7 @@
   --on-accent: #ffffff;
   --on-ink: #ffffff;
   --ink-hover: #2a2c33;
-  --glass: rgba(246, 243, 238, 0.94);
+  --glass: rgba(250, 250, 250, 0.94);
   --row-hover: #fdfcf9;
   --shadow-rgb: 21, 22, 26;
   --danger: #b4232c;
@@ -40,6 +41,7 @@
 /* Dark theme: chosen in account settings, or following the device when set to System. */
 :root[data-theme="dark"] {
   --bg: #121316;
+  --bar: #121316;
   --panel: #1a1b1f;
   --surface: #23252b;
   --surface-2: #2d3037;
@@ -69,6 +71,7 @@
 @media (prefers-color-scheme: dark) {
   :root[data-theme="system"] {
     --bg: #121316;
+    --bar: #121316;
     --panel: #1a1b1f;
     --surface: #23252b;
     --surface-2: #2d3037;
@@ -230,8 +233,9 @@ select.control {
 /* Top bar */
 .topbar {
   position: sticky; top: 0; z-index: 30;
-  background: var(--bg); /* solid: the page scrolls under it and must not show through */
+  background: var(--bar); /* solid: the page scrolls under it and must not show through */
   border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.1);
 }
 .topbarInner { display: flex; align-items: center; gap: 40px; height: 72px; }
 .wordmark { display: inline-flex; align-items: center; color: var(--ink); line-height: 1; border-radius: 6px; }
