@@ -239,6 +239,9 @@ select.control {
   --on-bar: #ffffff; --on-bar-muted: rgba(255, 255, 255, 0.74); --on-bar-soft: rgba(255, 255, 255, 0.14); --on-bar-line: rgba(255, 255, 255, 0.24);
 }
 .topbarInner > :not(.navlinks) :focus-visible, .topbarInner > :focus-visible, .navTrigger:focus-visible { outline-color: var(--on-bar); }
+/* The bar's height, for anything that fills the window below it. */
+:root { --topbar-h: 72px; }
+@media (max-width: 820px) { :root { --topbar-h: 64px; } }
 .topbarInner { display: flex; align-items: center; gap: 40px; height: 72px; }
 .wordmark { display: inline-flex; align-items: center; color: var(--on-bar, var(--ink)); --accent: var(--on-bar, #213a73); line-height: 1; border-radius: 6px; }
 @media (pointer: coarse) { .wordmark { min-height: 44px; } }

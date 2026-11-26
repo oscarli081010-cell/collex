@@ -127,9 +127,8 @@
    top bar; the notice, if there is one, sits in the top row a third of the way down from the bar. */
 .hero {
   position: relative; display: grid; grid-template-rows: 1fr auto auto auto 1fr; justify-items: center; row-gap: 22px;
-  text-align: center; min-height: calc(100svh - var(--hero-bar, 73px)); padding-block: 0;
+  text-align: center; min-height: calc(100svh - var(--topbar-h, 72px)); padding-block: 0;
 }
-@media (max-width: 900px) { .hero { --hero-bar: 65px; } }
 /* Stretchy space around the block keeps it centred. With a notice, the notice sits a third of the way from the top bar
    to the headline: one share of space above it, two below it (the notice's row takes those two, the pill at its top),
    and three under the block to balance. */
@@ -396,7 +395,7 @@
     .stagePhone { animation: phoneUp linear both; animation-timeline: --stage; animation-range: cover 0% cover 50%; }
     /* The statement holds the screen while it lights up (each word's range is set on the word itself). */
     .statement { height: 190svh; padding: 0; }
-    .statementHold { position: sticky; top: 0; height: 100svh; display: grid; place-items: center; }
+    .statementHold { position: sticky; top: var(--topbar-h, 72px); height: calc(100svh - var(--topbar-h, 72px)); display: grid; place-items: center; } /* centred in what the bar leaves showing */
     .w { animation: wordLit linear both; animation-timeline: --st; }
     .strike { animation: strike linear both; animation-timeline: --st; animation-range: contain 78% contain 88%; }
     .chipIcon, .chipText { animation: chipDim linear both; animation-timeline: --st; animation-range: contain 78% contain 90%; }
