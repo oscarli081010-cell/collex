@@ -7,7 +7,7 @@ import IconButton, { ICONS } from "./IconButton";
 import s from "@/app/inner.module.css";
 import Select from "./Select";
 
-// Row-by-row editors for a listing's committees, secretariat and roles needed: add, remove and reorder, each row a set of labelled fields,
+// Row-by-row editors for a listing's committees, secretariat and key dates: add, remove and reorder, each row a set of labelled fields,
 // including that committee's background guide (a link, or a PDF uploaded to Collex).
 // Works by keyboard (focus follows a moved row) and by touch.
 
@@ -218,43 +218,13 @@ export function SecretariatEditor({ rows, setRows, upload }: { rows: Secretariat
   );
 }
 
-// ---- Roles needed: help the conference is looking for ----
+// ---- Roles already stored on a listing: no longer edited here, but passed through so saving does not wipe them ----
 
 export type RoleRow = { kind: RoleKind; title: string; note: string; url: string; key: string };
 export const roleRows = (list: Partial<Role>[] | null | undefined): RoleRow[] =>
   (list ?? []).filter((r) => ROLE_KINDS.some((k) => k.id === r.kind))
     .map((r) => ({ kind: r.kind!, title: r.title ?? "", note: r.note ?? "", url: r.url ?? "", key: key() }));
 export const toRoles = (rows: RoleRow[]): Role[] => rows.map((r) => ({ kind: r.kind, title: r.title.trim(), note: r.note.trim(), url: r.url.trim() || null }));
-/** An apply link that isn't a plain web address. */
-export const badRole = (r: RoleRow) => r.url.trim() !== "" && !webUrl(r.url);
-
-export function RolesEditor({ rows, setRows }: { rows: RoleRow[]; setRows: Dispatch<SetStateAction<RoleRow[]>> }) {
-  return (
-    <Rows<RoleRow>
-      id="role" rows={rows} setRows={setRows} addLabel="Add a Role" max={12} noun="roles"
-      label={(r, i) => r.title.trim() || ROLE_KINDS.find((k) => k.id === r.kind)?.label || `role ${i + 1}`}
-      make={() => ({ kind: "chair", title: "", note: "", url: "", key: key() })}
-      render={(r, i, set) => {
-        const bad = badRole(r);
-        return <>
-          <label>
-            <span>Kind of help</span>
-            <Select id={`role-${i}-first`} className="control" value={r.kind} onChange={(e) => set({ kind: e.target.value as RoleKind })}>
-              {ROLE_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
-            </Select>
-          </label>
-          <label><span>Title</span><input className="control" value={r.title} maxLength={80} placeholder="For example, Head chair" onChange={(e) => set({ title: e.target.value })} /></label>
-          <label className={s.editWide}><span>What you need</span><textarea className="control" value={r.note} maxLength={400} rows={3} onChange={(e) => set({ note: e.target.value })} /></label>
-          <label className={`${s.editWide} ${bad ? s.invalid : ""}`}>
-            <span>Apply link</span>
-            <input id={`role-${i}-url`} className="control" type="url" value={r.url} maxLength={500} placeholder="Leave blank to be contacted by email" aria-invalid={bad} onChange={(e) => set({ url: e.target.value })} />
-            {bad && <small className={s.error}>Use a full link starting with https://</small>}
-          </label>
-        </>;
-      }}
-    />
-  );
-}
 
 // ---- Key dates: registration opens, papers due, conference day ----
 

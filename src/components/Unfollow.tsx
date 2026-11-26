@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import s from "@/app/auth.module.css";
 
-// The page behind every email's unsubscribe link: following a conference, a conference's own emails, role alerts and
+// The page behind every email's unsubscribe link: following a conference, a conference's own emails, role alerts (no longer sent) and
 // the weekly digest all use https://collex.au/unfollow?t=<token>, and no login is needed. A button press (not just
 // opening the link) unsubscribes, so email scanners that open links can't do it by accident. Mail apps' one-click
 // unsubscribe goes to /api/unfollow instead.
@@ -16,7 +16,7 @@ function doneText(d: Done) {
   switch (d.kind) {
     case "follow": return `You won't get emails about ${name} any more. You can follow it again from its page.`;
     case "conference": return `You won't get emails from the organisers of ${name} any more.`;
-    case "roles": return "You won't get role alerts any more. You can turn them on again on the Roles page.";
+    case "roles": return "You won't get those alerts any more.";
     case "digest": return "You won't get the weekly email any more. You can turn it on again from your account.";
   }
 }

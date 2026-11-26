@@ -13,7 +13,7 @@ import { forgetListing, warmActivity, type EditingData } from "@/lib/listingData
 import { shrinkPhoto, uploadPhoto } from "@/lib/photo";
 import { isoToSydney, sydneyToIso } from "@/lib/schedule";
 import { useAuth } from "./AuthProvider";
-import { badGuide, badRole, CommitteesEditor, committeeRows, firstRepeat, KeyDatesEditor, keyDateRows, RolesEditor, roleRows, ScheduleEditor, scheduleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toKeyDates, toRoles, toSchedule, toSecretariat, type CommitteeRow, type KeyDateRow, type RoleRow, type ScheduleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
+import { badGuide, CommitteesEditor, committeeRows, firstRepeat, KeyDatesEditor, keyDateRows, roleRows, ScheduleEditor, scheduleRows, SecretariatEditor, secretariatRows, strayGuides, toCommittees, toGuides, toKeyDates, toRoles, toSchedule, toSecretariat, type CommitteeRow, type KeyDateRow, type RoleRow, type ScheduleRow, type SecretariatRow, type UploadGuide } from "./RowEditors";
 import Section from "./listing/Section";
 import { loadForm } from "./listing/loadForm";
 import { impactOf, moveAllocations, norm, type Impact } from "./listing/committeeImpact";
@@ -137,7 +137,7 @@ const OPENS: Record<string, string> = { delegation_opens: "delegation_opens_at",
 export const FORM_SECTIONS = [
   { id: "sec-details", label: "Details" }, { id: "sec-overview", label: "Overview" }, { id: "sec-keydates", label: "Key dates" },
   { id: "sec-schedule", label: "Schedule" }, { id: "sec-committees", label: "Committees" },
-  { id: "sec-secretariat", label: "Secretariat" }, { id: "sec-roles", label: "Help wanted" }, { id: "sec-photos", label: "Photos" },
+  { id: "sec-secretariat", label: "Secretariat" }, { id: "sec-photos", label: "Photos" },
 ];
 
 // The form a conference is listed with. On its own it is the page for a new listing; given a listing, it is that
@@ -174,6 +174,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
   const thumbPhoto = usePhoto(editRow?.thumb_path, (m) => setErrors(({ thumb: _, ...rest }) => (m ? { ...rest, thumb: m } : rest)), touch);
   const [committees, setCommittees] = useState<CommitteeRow[]>([]);
   const [secretariat, setSecretariat] = useState<SecretariatRow[]>(() => secretariatRows());
+  // Roles already on a listing ride along untouched: the form no longer edits them.
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [keyDates, setKeyDates] = useState<KeyDateRow[]>(() => keyDateRows());
   const [schedule, setSchedule] = useState<ScheduleRow[]>([]);
@@ -232,7 +233,6 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
   const firstRepeated = firstRepeat(committees) >= 0 ? firstRepeat(committees) : firstTaken;
   // A listing that was sent back or taken down is saved and sent for review again in one step.
   const again = Boolean(edit && (edit.status === "rejected" || edit.status === "unpublished"));
-  const firstBadRole = roles.findIndex(badRole);
 
   // On the new-listing page the form has its own toast; in a listing's workspace, the workspace's.
   const toast = useToast();
@@ -297,8 +297,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     else if (firstTaken >= 0) out.committees = "This name belongs to a committee you removed. Save the removal first, then rename.";
     if (committees.some((r) => r.uploading)) out.guides = "Wait for the PDF to finish uploading.";
     else if (firstBadGuide >= 0) out.guides = "Fix the guide link marked below.";
-    if (firstBadRole >= 0) out.roles = "Fix the apply link marked below.";
-    else if (committees.some((r) => r.guide.trim() && !r.name.trim())) out.guides = "Name the committee a guide belongs to.";
+    if (committees.some((r) => r.guide.trim() && !r.name.trim())) out.guides = "Name the committee a guide belongs to.";
     return out;
   };
 
@@ -334,7 +333,6 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
       confirmed.current = "";
       const el = (first === "committees" ? document.getElementById(`committee-${firstRepeated}-first`)
         : first === "guides" ? document.getElementById(firstBadGuide >= 0 ? `committee-${firstBadGuide}-guide` : "committee-0-first")
-        : first === "roles" ? document.getElementById(`role-${firstBadRole}-url`)
         : first === "cover" || first === "thumb" ? document.getElementById(`f-${first}`) : form.elements.namedItem(first)) as HTMLElement | null;
       el?.focus({ preventScroll: true });
       el?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -546,13 +544,6 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
         <fieldset className="field">
           <legend className="sr-only">Secretariat</legend>
           <SecretariatEditor rows={secretariat} setRows={(a) => { touch(); setSecretariat(a); }} upload={(file) => uploadPhoto(file, session!.user.id)} />
-        </fieldset>
-      </Section>
-      <Section id="sec-roles" title="Help wanted">
-        <fieldset className="field">
-          <legend className="sr-only">Help wanted</legend>
-          {errors.roles && <small key="err" className={`t-reveal ${s.error}`}>{errors.roles}</small>}
-          <RolesEditor rows={roles} setRows={(a) => { touch(); setRoles(a); if (errors.roles) setErrors(({ roles: _, ...rest }) => rest); }} />
         </fieldset>
       </Section>
       <Section id="sec-photos" title="Photos">

@@ -58,3 +58,6 @@
 .viewBtn:hover { color: var(--ink); }
 .viewIcon { display: inline-flex; }
 @media (max-width: 420px) { .viewBtn { padding: 0 12px !important; font-size: 18px; } }
+
+/* The Month | Year switch and stepper sit just under the page band, with room before the grid. */
+.bar { margin-bottom: 22px; }

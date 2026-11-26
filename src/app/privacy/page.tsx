@@ -7,16 +7,30 @@ export const metadata: Metadata = { alternates: { canonical: "/privacy" }, title
 
 const mail = <a href={`mailto:${CONTACT}`}>{CONTACT}</a>;
 
+const SECTIONS = [
+  { id: "who-runs-collex", label: "Who runs Collex" },
+  { id: "what-we-collect-and-why", label: "What we collect and why" },
+  { id: "who-can-see-what", label: "Who can see what" },
+  { id: "emails-we-send", label: "Emails we send" },
+  { id: "where-it-is-kept-and-who-handles-it", label: "Where it is kept and who handles it" },
+  { id: "how-long-we-keep-it", label: "How long we keep it" },
+  { id: "your-choices", label: "Your choices" },
+  { id: "students-under-18", label: "Students under 18" },
+  { id: "security", label: "Security" },
+  { id: "changes-to-this-policy", label: "Changes to this policy" },
+  { id: "complaints", label: "Complaints" },
+];
+
 export default function Privacy() {
   return (
-    <LegalPage path="/privacy" title="Privacy policy" lead="What Collex collects, why, who can see it, and how to change or delete it. We follow the Australian Privacy Principles in the Privacy Act 1988 (Cth).">
-      <section>
+    <LegalPage path="/privacy" title="Privacy" accent="policy" sections={SECTIONS} lead="What Collex collects, why, who can see it, and how to change or delete it. We follow the Australian Privacy Principles in the Privacy Act 1988 (Cth).">
+      <section id="who-runs-collex">
         <h2>Who runs Collex</h2>
         <p>Collex (collex.au) is a free calendar of Model United Nations conferences in Sydney, with tools for running them. It is run by Oscar Li, from Sydney, New South Wales, Australia. In this policy, &ldquo;we&rdquo; means Collex.</p>
         <p>To ask anything about your information, email {mail}.</p>
       </section>
 
-      <section>
+      <section id="what-we-collect-and-why">
         <h2>What we collect and why</h2>
         <p>Anyone can read the conference pages without an account. What we collect depends on what you do.</p>
 
@@ -27,13 +41,13 @@ export default function Privacy() {
           <li>Your school or university, only if you add it.</li>
           <li>If you sign in with Google, Google tells us your name and email address. Google&rsquo;s sign-in record can include other profile details, but we don&rsquo;t use your Google picture.</li>
           <li>A profile photo, only if you add one.</li>
-          <li>Your settings: light, dark or system display, whether the weekly email is on, whether your delegate record is public, and which kinds of role you want alerts about.</li>
+          <li>Your settings: light, dark or system display, whether the weekly email is on and whether your delegate record is public.</li>
         </ul>
 
         <h3>Applying to or registering for a conference</h3>
         <p>Some conferences take applications or registrations on Collex.</p>
         <ul>
-          <li><strong>An application</strong> (as a delegate, a chair or for a role) holds the name, school or university, year, committee and country choices, experience and note you enter. We add its status, the committee and country you are given, whether you have confirmed your place, and when you were checked in.</li>
+          <li><strong>An application</strong> (as a delegate or a chair) holds the name, school or university, year, committee and country choices, experience and note you enter. We add its status, the committee and country you are given, whether you have confirmed your place, and when you were checked in.</li>
           <li><strong>A delegation registration</strong> holds the school or university, a contact name and email, the number of delegates and any note.</li>
         </ul>
         <p>We use these so the conference&rsquo;s organisers can decide, allocate places and contact you. You can change an application while it is waiting for an answer. If you withdraw an application, it stays on record as withdrawn and the organisers are emailed that you withdrew. If you withdraw a registration, it is deleted.</p>
@@ -71,7 +85,7 @@ export default function Privacy() {
         <p>Nothing is sent to an analytics or advertising company. We use no advertising, tracking pixels or social media embeds, and we do not build profiles of visitors. Our <Link href="/cookies">cookies policy</Link> lists what is kept in your browser.</p>
       </section>
 
-      <section>
+      <section id="who-can-see-what">
         <h2>Who can see what</h2>
         <ul>
           <li><strong>You</strong> can see your account, your applications and registrations, your check-in codes, and marks released to you.</li>
@@ -85,7 +99,7 @@ export default function Privacy() {
         <p>We do not sell your information.</p>
       </section>
 
-      <section>
+      <section id="emails-we-send">
         <h2>Emails we send</h2>
         <p>Emails about conferences and committees come from hello@collex.au. We do not send advertising or newsletters.</p>
         <h3>About your account, or something you did or are part of</h3>
@@ -105,13 +119,12 @@ export default function Privacy() {
           <li><strong>Follow updates</strong>: when a conference you follow opens delegate registration or chair applications, or releases background guides.</li>
           <li><strong>Reminders</strong> to followers before a conference&rsquo;s key dates (3 days and 1 day before) and before it begins (7 days and 1 day before).</li>
           <li><strong>Emails from a conference&rsquo;s organisers</strong> to its applicants, accepted delegates or chairs, registered schools or followers. A conference can send at most five a day. Unsubscribing stops every email from that conference&rsquo;s organisers, including ones about your place, so keep an eye on its page.</li>
-          <li><strong>Role alerts</strong> about new roles, if you set them up.</li>
           <li><strong>The weekly email</strong> about Sydney MUN. It is off unless you turn it on from your <Link href="/account">account page</Link>. It goes out on Monday mornings, only when there is something to say.</li>
         </ul>
         <p>Unsubscribing from follow updates or reminders unfollows that conference. If a conference lists a plain email address as its contact, replies to its decisions, allocations and organiser emails go to its organisers.</p>
       </section>
 
-      <section>
+      <section id="where-it-is-kept-and-who-handles-it">
         <h2>Where it is kept and who handles it</h2>
         <ul>
           <li><strong>Supabase</strong> runs our database, sign-in and file storage. Your information and files are kept in its Sydney data centre. The small Supabase programs that send our emails may run outside Australia while they work.</li>
@@ -122,7 +135,7 @@ export default function Privacy() {
         <p>Our fonts are part of the site itself, so no font company learns about your visit.</p>
       </section>
 
-      <section>
+      <section id="how-long-we-keep-it">
         <h2>How long we keep it</h2>
         <ul>
           <li><strong>Your account</strong>: until you delete it.</li>
@@ -137,7 +150,7 @@ export default function Privacy() {
         <p>Our providers keep their own short-term logs under their own rules. Deleted information can stay in backup copies for a while before those are replaced.</p>
       </section>
 
-      <section>
+      <section id="your-choices">
         <h2>Your choices</h2>
         <ul>
           <li><strong>See and correct.</strong> Change your name, school, photo and password on your <Link href="/account">account page</Link>. Change an application while it is waiting, or withdraw it. To see or correct anything else, email {mail}.</li>
@@ -163,24 +176,24 @@ export default function Privacy() {
         </ul>
       </section>
 
-      <section>
+      <section id="students-under-18">
         <h2>Students under 18</h2>
         <p>Most people on Collex are high school students. If you are under 18, check with a parent or guardian before you create an account; the sign-up form asks you to confirm that they said yes. We only ask for what an account needs, the school field is optional, and your delegate record stays private unless you switch it on.</p>
         <p>Don&rsquo;t put other students&rsquo; personal details, such as phone numbers or photos where they can be recognised, in a listing, a note or a file unless they have agreed.</p>
         <p>A parent, guardian or teacher can email {mail} to ask us to correct or delete a student&rsquo;s information or account. We may need to check who is asking first. Our page <Link href="/teachers">for teachers and parents</Link> explains more.</p>
       </section>
 
-      <section>
+      <section id="security">
         <h2>Security</h2>
         <p>Every connection to Collex is encrypted. Database rules decide what each account can read, so you see only your own details and what your role lets you see. Passwords are stored hashed, and committee files are private to the committee. No system is perfectly secure, and we cannot promise yours never will be exposed. If a breach is likely to cause someone serious harm, we will tell the people affected.</p>
       </section>
 
-      <section>
+      <section id="changes-to-this-policy">
         <h2>Changes to this policy</h2>
         <p>If we change this policy, we will post the new version here and update the date at the top.</p>
       </section>
 
-      <section>
+      <section id="complaints">
         <h2>Complaints</h2>
         <p>If you think we have mishandled your information, email {mail} first, and we will reply within 30 days. If you are not happy with our answer, you can complain to the Office of the Australian Information Commissioner at <a href="https://www.oaic.gov.au">oaic.gov.au</a> or on 1300 363 992.</p>
       </section>

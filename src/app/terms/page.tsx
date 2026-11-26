@@ -7,20 +7,40 @@ export const metadata: Metadata = { alternates: { canonical: "/terms" }, title: 
 
 const mail = <a href={`mailto:${CONTACT}`}>{CONTACT}</a>;
 
+const SECTIONS = [
+  { id: "what-collex-is", label: "What Collex is" },
+  { id: "not-affiliated-with-the-united-nations", label: "Not affiliated with the United Nations" },
+  { id: "your-account", label: "Your account" },
+  { id: "listing-a-conference", label: "Listing a conference" },
+  { id: "conferences-are-run-by-their-organisers", label: "Conferences are run by their organisers" },
+  { id: "applying-and-registering", label: "Applying and registering" },
+  { id: "running-a-conference-on-collex", label: "Running a conference on Collex" },
+  { id: "committees-and-delegates-devices", label: "Committees and delegates’ devices" },
+  { id: "uploads", label: "Uploads" },
+  { id: "your-delegate-record", label: "Your delegate record" },
+  { id: "fair-use-of-the-site", label: "Fair use of the site" },
+  { id: "content-on-collex", label: "Content on Collex" },
+  { id: "availability", label: "Availability" },
+  { id: "your-rights-and-our-liability", label: "Your rights and our liability" },
+  { id: "ending-your-account", label: "Ending your account" },
+  { id: "law", label: "Law" },
+  { id: "changes", label: "Changes" },
+];
+
 export default function Terms() {
   return (
-    <LegalPage path="/terms" title="Terms of use" lead="The rules for using Collex. By using the site or creating an account, you agree to them.">
-      <section>
+    <LegalPage path="/terms" title="Terms of" accent="use" sections={SECTIONS} lead="The rules for using Collex. By using the site or creating an account, you agree to them.">
+      <section id="what-collex-is">
         <h2>What Collex is</h2>
         <p>Collex (collex.au) is a free calendar of Model United Nations conferences in Sydney, with tools for running them. It is run by Oscar Li, from Sydney, New South Wales, Australia. In these terms, &ldquo;we&rdquo; means Collex. Conference organisers list their conferences, and we review each listing before it is published.</p>
       </section>
 
-      <section>
+      <section id="not-affiliated-with-the-united-nations">
         <h2>Not affiliated with the United Nations</h2>
         <p>Collex is independent. It is not affiliated with, endorsed by or connected to the United Nations, or to any school, university or conference listed on it. &ldquo;Model United Nations&rdquo; describes a type of student event.</p>
       </section>
 
-      <section>
+      <section id="your-account">
         <h2>Your account</h2>
         <ul>
           <li>Give your real name and an email address you can access.</li>
@@ -31,7 +51,7 @@ export default function Terms() {
         </ul>
       </section>
 
-      <section>
+      <section id="listing-a-conference">
         <h2>Listing a conference</h2>
         <ul>
           <li>Only list a conference you help organise, or one its organisers have allowed you to list.</li>
@@ -43,12 +63,12 @@ export default function Terms() {
         </ul>
       </section>
 
-      <section>
+      <section id="conferences-are-run-by-their-organisers">
         <h2>Conferences are run by their organisers</h2>
         <p>Collex does not run, host or check the conferences listed on it. Registration, fees, refunds, safety and everything at the event are the organisers&rsquo; responsibility. Confirm dates and details with the organisers before you rely on them.</p>
       </section>
 
-      <section>
+      <section id="applying-and-registering">
         <h2>Applying and registering</h2>
         <ul>
           <li>Some conferences take applications or delegation registrations on Collex. Only enter details that are true, and only register a delegation you are allowed to speak for.</li>
@@ -58,7 +78,7 @@ export default function Terms() {
         </ul>
       </section>
 
-      <section>
+      <section id="running-a-conference-on-collex">
         <h2>Running a conference on Collex</h2>
         <p>If you list a conference or help run one, you will see information about the students who apply or register. You agree to:</p>
         <ul>
@@ -70,7 +90,7 @@ export default function Terms() {
         <p>Emails to applicants, schools or followers go through Collex. A conference can send up to five a day, with a subject of up to 120 characters and a message of up to 3,000. Keep them about the conference. Anyone can unsubscribe from a conference&rsquo;s emails in one click, and we will not send to them again.</p>
       </section>
 
-      <section>
+      <section id="committees-and-delegates-devices">
         <h2>Committees and delegates&rsquo; devices</h2>
         <ul>
           <li>Chairs can run a committee on Collex and, if they choose, let delegates join from their own devices with a code.</li>
@@ -80,7 +100,7 @@ export default function Terms() {
         </ul>
       </section>
 
-      <section>
+      <section id="uploads">
         <h2>Uploads</h2>
         <ul>
           <li>Only upload photos, guides and files you have the right to share, and photos of people only if they have agreed.</li>
@@ -90,12 +110,12 @@ export default function Terms() {
         </ul>
       </section>
 
-      <section>
+      <section id="your-delegate-record">
         <h2>Your delegate record</h2>
         <p>Your record of the conferences that accepted you is private until you switch it on from your account page. Once it is on, anyone with the link can see your name, school and those conferences, with your role, committee and country. You can switch it off at any time.</p>
       </section>
 
-      <section>
+      <section id="fair-use-of-the-site">
         <h2>Fair use of the site</h2>
         <p>Do not:</p>
         <ul>
@@ -112,33 +132,33 @@ export default function Terms() {
         <p>We may suspend or close an account that breaks these terms.</p>
       </section>
 
-      <section>
+      <section id="content-on-collex">
         <h2>Content on Collex</h2>
         <p>The Collex name, design and text belong to Collex. Listings belong to the people who sent them. Photographs by others are used under their licences and credited at the foot of each page.</p>
       </section>
 
-      <section>
+      <section id="availability">
         <h2>Availability</h2>
         <p>Collex is free. We work to keep it running and accurate, but we may change, pause or stop features at any time, and we cannot promise it will always be available or free of errors.</p>
       </section>
 
-      <section>
+      <section id="your-rights-and-our-liability">
         <h2>Your rights and our liability</h2>
         <p>Nothing in these terms takes away rights you have under the Australian Consumer Law or other laws that cannot be excluded.</p>
         <p>Apart from those rights, and as far as the law allows, Collex is not liable for any loss that comes from relying on a listing, from a conference itself, or from the site being unavailable. Where our liability cannot be excluded but can be limited, it is limited to supplying the service again.</p>
       </section>
 
-      <section>
+      <section id="ending-your-account">
         <h2>Ending your account</h2>
         <p>You can stop using Collex at any time. Delete your account yourself from your <Link href="/account">account page</Link>, or email {mail} and we will do it. Committees you own are deleted with it, and conferences you listed stay on the calendar unless you ask us to remove them. Our <Link href="/privacy">privacy policy</Link> explains what happens to your information.</p>
       </section>
 
-      <section>
+      <section id="law">
         <h2>Law</h2>
         <p>These terms are governed by the laws of New South Wales, Australia, and its courts can hear any dispute about them.</p>
       </section>
 
-      <section>
+      <section id="changes">
         <h2>Changes</h2>
         <p>If we change these terms, we will post the new version here and update the date at the top. Questions go to {mail}.</p>
       </section>

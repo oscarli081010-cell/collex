@@ -70,12 +70,13 @@
 
 .empty {
   margin-top: 28px; /* the same room under the search bar as a month's rows get */
-  border: 1px dashed var(--line-strong); border-radius: var(--radius);
-  padding: 44px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px;
+  border: 0; border-radius: var(--radius); background: var(--surface);
+  padding: 32px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px;
 }
-.empty .button { margin-top: 10px; width: min(100%, 320px); }
-.empty .drawing { margin-bottom: 4px; }
-.emptyTitle { font-family: var(--serif); font-size: 28px; line-height: 1.1; text-wrap: balance; }
+.empty p { max-width: 44ch; font-size: 14px; text-wrap: balance; }
+.empty .button { margin-top: 12px; width: min(100%, 280px); }
+.empty .drawing { width: 72px; height: auto; margin-bottom: 6px; opacity: 0.55; }
+.empty .emptyTitle { font-family: var(--serif); font-size: 21px; line-height: 1.2; color: var(--ink); text-wrap: balance; }
 .pastLink { margin-top: 32px; font-size: 14.5px; }
 
 /* Mini calendar: the heading and the answer on the left, the month on the right. On a phone they stack, with

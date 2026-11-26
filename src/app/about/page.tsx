@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CONTACT } from "@/components/Footer";
 import PageBand from "@/components/PageBand";
+import SectionNav from "@/components/SectionNav";
 import s from "@/components/LegalPage.module.css";
 
 export const metadata: Metadata = { alternates: { canonical: "/about" },
@@ -9,23 +10,26 @@ export const metadata: Metadata = { alternates: { canonical: "/about" },
   description: "Why Collex exists, who runs it, who it is for, how listings are reviewed and what Verified means. Free for every conference and delegate.",
 };
 
+const SECTIONS = [
+  { id: "why", label: "About Collex" },
+  { id: "who", label: "Who runs it" },
+  { id: "reviews", label: "How listings are reviewed" },
+  { id: "verified", label: "What Verified means" },
+  { id: "independent", label: "Independent" },
+  { id: "contact", label: "Contact" },
+];
+
 export default function About() {
   return (
     <main id="top" className="container">
       <PageBand title="About" accent="us" />
       <div className={`${s.page} ${s.afterBand}`}>
-      <nav className={s.side} aria-label="About">
-        <ul>
-          <li><a href="#why">About Collex</a></li>
-          <li><a href="#who">Who runs it</a></li>
-          <li><a href="#reviews">How listings are reviewed</a></li>
-          <li><a href="#verified">What Verified means</a></li>
-          <li><a href="#contact">Contact</a></li>
-          <li><Link href="/list">List a conference</Link></li>
-          <li><Link href="/privacy">Privacy policy</Link></li>
-        </ul>
-        <p className={s.contact}>Say hello <a href={`mailto:${CONTACT}`} className="link">{CONTACT}</a></p>
-      </nav>
+      <SectionNav
+        label="About"
+        sections={SECTIONS}
+        links={[{ href: "/list", label: "List a conference" }, { href: "/privacy", label: "Privacy policy" }]}
+        foot={<p className={s.contact}>Say hello <a href={`mailto:${CONTACT}`} className="link">{CONTACT}</a></p>}
+      />
       <article className={s.body}>
         <section id="why">
           <h2>Why it exists</h2>
@@ -55,7 +59,7 @@ export default function About() {
           <p>Listings without the badge are still reviewed before they go live. They may have been sent by someone else involved, such as a delegate or teacher, so check the details with the conference if something matters.</p>
         </section>
 
-        <section>
+        <section id="independent">
           <h2>Independent</h2>
           <p>Collex is independent. It is not affiliated with, endorsed by or connected to the United Nations, or to any school, university or conference listed on it.</p>
         </section>

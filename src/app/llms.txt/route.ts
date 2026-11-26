@@ -18,7 +18,6 @@ export async function GET() {
     "- [Calendar](https://collex.au/calendar): conferences month by month",
     "- [Conferences](https://collex.au/conferences): upcoming conferences with hosts and dates",
     "- [Guides](https://collex.au/guides): short guides for chairs, delegates and organisers",
-    "- [Open roles](https://collex.au/roles): help that conferences are looking for, such as chairs and press",
     "- [Committees](https://collex.au/chambers): run a committee from one laptop: roll call, speakers' list, timers, motions, amendments and votes",
     "- [Past conferences](https://collex.au/past): conferences that have already run",
     "- [About](https://collex.au/about): why Collex exists and how listings work",

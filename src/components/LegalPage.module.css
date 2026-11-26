@@ -5,6 +5,8 @@
 /* Under a page band, which already spaces itself from the top bar. */
 .afterBand { padding-top: 0; }
 .afterBand .body > section:first-child { padding-top: 0; }
+.contact { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+/* The plain side menu still used by Start here and For teachers (the others use SectionNav). */
 .side { position: sticky; top: 112px; align-self: start; display: flex; flex-direction: column; gap: 28px; }
 .side ul { display: flex; flex-direction: column; gap: 2px; }
 .side a:not(:global(.link)) {
@@ -14,12 +16,7 @@
 }
 .side a:not(:global(.link)):hover { color: var(--ink); background: var(--surface); }
 .side a[aria-current="page"] { color: var(--ink); font-weight: 500; background: var(--surface); }
-.contact { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
-
-.head { padding-bottom: 36px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
-.title { font-size: clamp(44px, 5.6vw, 72px); }
-.lead { margin-top: 18px; font-size: 18px; line-height: 1.55; color: var(--ink); max-width: 56ch; }
-.updated { margin-top: 14px; font-size: 13px; color: var(--muted); }
+.updated { font-size: 13px; color: var(--muted); }
 
 .body { font-size: 16px; line-height: 1.7; }
 .body section { padding-top: 40px; }
@@ -42,12 +39,15 @@
 .table th { font-size: 13px; font-weight: 500; color: var(--muted); }
 .table code { font-size: 13px; padding: 2px 6px; border-radius: 6px; background: var(--surface); word-break: break-all; }
 
-@media (max-width: 860px) {
-  .page { grid-template-columns: 1fr; gap: 32px; }
-  .side { position: static; }
+/* Below the width where the side menu becomes a column, one column: the menu's chips, then the text. */
+@media (max-width: 1039px) {
+  .page { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .side { position: static; margin-bottom: 32px; }
   .side ul { flex-direction: row; flex-wrap: wrap; gap: 6px; }
   .side a:not(:global(.link)) { margin-left: 0; border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; }
-  .contact { display: none; }
+  .side .contact { display: none; }
+}
+@media (max-width: 860px) {
   .table thead { display: none; }
   .table tr { display: grid; padding: 12px 0; border-bottom: 1px solid var(--line); }
   .table td { border: 0; padding: 2px 0; }

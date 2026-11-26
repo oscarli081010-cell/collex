@@ -18,7 +18,8 @@ import { META_ICONS } from "./MetaIcons";
 import PanelTabs from "./PanelTabs";
 import { usePill } from "./usePill";
 import { useToast } from "./useToast";
-import { AccountSettings } from "./AccountSections";
+import { AccountNav, AccountSettings } from "./AccountSections";
+import h from "./Hub.module.css";
 import s from "@/app/auth.module.css";
 
 const friendly = (msg: string) =>
@@ -522,6 +523,8 @@ export function AccountView() {
       ],
       aside: <button className={`button secondary ${s.logout}`} onClick={signOut}>{ICONS.leave}Log Out</button>,
     }}>
+    <div className={h.accountWork}>
+    <AccountNav tab={tab} />
     <div className={s.account}>
 
       {recovering && (
@@ -533,12 +536,12 @@ export function AccountView() {
       {/* Both stay mounted, so the counts above are right and a half-typed form survives a trip to the other tab.
           Each panel's entrance replays whenever it is shown again. */}
       <div id="account-panel-profile" role="tabpanel" aria-labelledby="account-tab-profile" hidden={tab !== "profile"} className={`t-stagger ${s.panelStack}`}>
-        <section className={`panel ${s.card}`} style={{ "--i": 0 } as React.CSSProperties}>
+        <section id="account-appearance" className={`panel ${s.card}`} style={{ "--i": 0 } as React.CSSProperties}>
           <h2 className={s.cardTitle}>Appearance</h2>
           <ThemePicker userId={session.user.id} initial={profile?.theme ?? "light"} onSaved={(ok) => { if (!ok) say("Couldn't save that. It still applies on this device."); }} />
         </section>
 
-        <form noValidate className={`panel ${s.card}`} onSubmit={saveProfile} style={{ "--i": 1 } as React.CSSProperties}>
+        <form id="account-profile" noValidate className={`panel ${s.card}`} onSubmit={saveProfile} style={{ "--i": 1 } as React.CSSProperties}>
           <h2 className={s.cardTitle}>Profile</h2>
           <Field label="Full name" error={fieldErr.name}><input name="name" className="control" maxLength={120} autoComplete="name" defaultValue={profile?.full_name ?? ""} key={profile?.full_name} onChange={() => fieldErr.name && setFieldErr({})} /></Field>
           <div className="field"><span>School or University</span><SchoolPicker defaultValue={profile?.school ?? ""} /></div>
@@ -547,7 +550,7 @@ export function AccountView() {
           </button>
         </form>
 
-        <form ref={pwRef} noValidate className={`panel ${s.card} ${recovering ? s.highlight : ""}`} onSubmit={savePassword} style={{ "--i": 2 } as React.CSSProperties}>
+        <form id="account-password" ref={pwRef} noValidate className={`panel ${s.card} ${recovering ? s.highlight : ""}`} onSubmit={savePassword} style={{ "--i": 2 } as React.CSSProperties}>
           <h2 className={s.cardTitle}>Password</h2>
           <Field label="New password" error={fieldErr.password} hint="At least 8 characters"><Password name="password" label="New password" autoComplete="new-password" onChange={() => fieldErr.password && setFieldErr({})} /></Field>
           <button className="button block" disabled={busy === "password"}>
@@ -561,6 +564,7 @@ export function AccountView() {
         <ConferencesTab userId={session.user.id} onListings={onListings} onInvites={setInvites} />
       </div>
       {node}
+    </div>
     </div>
     </Banded>
   );

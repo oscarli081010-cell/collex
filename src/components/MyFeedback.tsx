@@ -26,7 +26,7 @@ export default function MyFeedback() {
   }, []);
   if (!rows.length) return null;
   return (
-    <section className={`panel ${s.card}`} aria-labelledby="feedback-h">
+    <section id="account-feedback" className={`panel ${s.card}`} aria-labelledby="feedback-h">
       <div>
         <h2 id="feedback-h" className={s.title}>Feedback From Your Chairs</h2>
       </div>

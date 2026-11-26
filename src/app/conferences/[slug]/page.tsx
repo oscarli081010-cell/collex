@@ -3,9 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ViewTransition, type ReactNode } from "react";
 import { formatDate, formatRange, isPast, monogram, NA, shown, template, type Conference, type ScheduleItem } from "@/lib/conferences";
-import RoleCard, { applyFor } from "@/components/RoleCard";
 import ReportProblem from "@/components/ReportProblem";
-import roleStyles from "@/components/Roles.module.css";
 import { getBySlug, getSummaries } from "@/lib/data";
 import Photo from "@/components/Photo";
 import Announcements from "@/components/Announcements";
@@ -145,11 +143,8 @@ export default async function ConferencePage({ params }: Props) {
   const c = await getBySlug((await params).slug);
   if (!c) notFound();
   const past = isPast(c);
-  // The secretariat comes before the ways to get involved.
-  const hasRoles = Boolean(c.roles?.length) && !past;
   const tabs = [
     ["overview", "Overview"], ["dates", "Key dates"], ["schedule", "Schedule"], ["committees", "Committees"], ["guides", "Background guides"], ["secretariat", "Secretariat"],
-    ...(hasRoles ? [["roles", "Get involved"] as const] : []),
   ] as const;
 
   return (
@@ -321,15 +316,6 @@ export default async function ConferencePage({ params }: Props) {
                 </div>
               )}
             </section>
-
-            {hasRoles && (
-              <section id="roles" className={s.block}>
-                <h2 className={s.h2}>Get involved</h2>
-                <div className={`t-stagger ${roleStyles.pageGrid}`}>
-                  {c.roles!.map((r, i) => <div key={i} style={{ "--i": i } as React.CSSProperties}><RoleCard role={r} apply={applyFor(r, c)} /></div>)}
-                </div>
-              </section>
-            )}
           </div>
 
           <aside className={`panel ${s.facts}`} aria-label="At a glance">
@@ -346,7 +332,6 @@ export default async function ConferencePage({ params }: Props) {
                 <div key={k} className={s.fact}><dt>{k}</dt><dd>{v}</dd></div>
               ))}
             </dl>
-            {!c.isTemplate && <p className="muted" style={{ fontSize: 13, padding: "12px 0 14px", borderTop: "1px solid var(--line)" }}>Going with a school? <Link className="link" href={`/conferences/${c.slug}/sign-off`}>Print a Permission Sheet</Link></p>}
             <ClaimListing c={c} />
             {c.id && !c.isTemplate && <div className={reportStyles.wrap}><ReportProblem id={c.id} name={c.name} /></div>}
           </aside>

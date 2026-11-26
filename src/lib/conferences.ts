@@ -2,7 +2,7 @@
 
 export type Level = "High school" | "University" | "Open";
 
-/** What a conference can ask for help with. The ids are the only kinds the database accepts. */
+/** Kinds of help a listing's stored roles can name. The Open Roles page is switched off; the data stays. */
 export const ROLE_KINDS = [
   { id: "chair", label: "Chair" },
   { id: "crisis", label: "Crisis staff" },
@@ -76,7 +76,7 @@ export type Conference = {
   interestUrl?: string | null;
   /** The organisers take registrations on Collex (their listing's Manage tab) rather than through their own form. */
   collexRegistration?: boolean;
-  /** The organisers take applications from individuals (delegates, chairs, people for open roles) on Collex. */
+  /** The organisers take applications from individuals (delegates and chairs) on Collex. */
   collexApplications?: boolean;
   /** Collex added this listing and nobody runs it yet, so its organisers can claim it. */
   claimable?: boolean;

@@ -11,6 +11,7 @@ import YearCalendar from "./YearCalendar";
 import CalendarViewToggle from "./CalendarViewToggle";
 import PageBand, { nextUp } from "./PageBand";
 import IconButton, { ICONS } from "./IconButton";
+import picker from "./MonthPicker.module.css";
 import board from "./board.module.css";
 import s from "@/app/inner.module.css";
 
@@ -61,15 +62,14 @@ export default function SeasonCalendar() {
           { label: "Conferences", value: String(total) },
           nextUp(conferences),
         ]}
-      >
-        <div className={s.calBar}>
-          <CalendarViewToggle mode={mode} onChange={setMode} />
-          {mode === "month"
-            ? <MonthPicker value={view} onChange={(v, d) => { setDir(d); setView(v); }} />
-            : <YearPicker year={y} onChange={(ny, d) => { setDir(d); setView({ y: ny, m }); }} />}
-        </div>
-      </PageBand>
-
+        tight
+      />
+      <div className={`${s.calBar} ${picker.bar}`}>
+        <CalendarViewToggle mode={mode} onChange={setMode} />
+        {mode === "month"
+          ? <MonthPicker value={view} onChange={(v, d) => { setDir(d); setView(v); }} />
+          : <YearPicker year={y} onChange={(ny, d) => { setDir(d); setView({ y: ny, m }); }} />}
+      </div>
 
       {/* Says the month (or the year) aloud whenever it changes. */}
       <p className="sr-only" role="status" aria-live="polite">{mode === "year" ? y : `${MONTHS[m]} ${y}`}</p>

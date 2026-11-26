@@ -50,6 +50,10 @@ const config: NextConfig = {
     return [
       { source: "/guides/chairing-with-chambers", destination: "/guides/chairing-with-committees", permanent: true },
       { source: "/compare", destination: "/conferences", permanent: false },
+      // Open Roles is switched off for now: old emails and links land on the conference list.
+      { source: "/roles", destination: "/conferences", permanent: false },
+      // The school permission sheet is retired: printed copies that link to it land on the conference page.
+      { source: "/conferences/:slug/sign-off", destination: "/conferences/:slug", permanent: false },
     ];
   },
   async headers() {

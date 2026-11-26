@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PageBand from "@/components/PageBand";
-import Breadcrumbs, { breadcrumbJsonLd } from "@/components/Breadcrumbs";
+import { breadcrumbJsonLd } from "@/components/Breadcrumbs";
 import GuideNav from "@/components/GuideNav";
 import { GUIDES, guideBySlug, type Guide } from "@/lib/guides";
 import { emph } from "@/lib/emph";
@@ -57,10 +57,9 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
   return (
     <main id="top" tabIndex={-1} className="container">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify([article, breadcrumbJsonLd(trail)]) }} />
-      <Breadcrumbs trail={trail} />
       <PageBand centre title={g.title} accent={g.accent} figures={[{ label: "For", value: g.for }, { label: "Read", value: `${g.minutes} min` }]} />
       <div className={`${s.page} ${s.afterBand}`}>
-        <GuideNav className={s.side} label={name} sections={g.sections} chairs={g.for === "Chairs"} />
+        <GuideNav label={name} sections={g.sections} chairs={g.for === "Chairs"} />
         <article className={`${s.body} ${gs.guide}`}>
           <p className={gs.intro}>{g.lead}</p>
           {g.sections.map((x) => (

@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { CONTACT } from "./Footer";
+import PageBand from "./PageBand";
+import SectionNav, { type Jump } from "./SectionNav";
 import s from "./LegalPage.module.css";
 
-export const UPDATED = "22 November 2026";
+export const UPDATED = "26 November 2026";
 
 const PAGES = [
   { href: "/privacy", label: "Privacy policy" },
@@ -10,28 +11,26 @@ const PAGES = [
   { href: "/cookies", label: "Cookies policy" },
 ];
 
-// Shared frame for the legal pages: the three pages listed on the left, the text on the right.
-export default function LegalPage({ path, title, lead, children }: { path: string; title: string; lead: string; children: React.ReactNode }) {
+// Shared frame for the legal pages: the headline band, then the page's sections and the three pages listed on the
+// left, with the text on the right.
+export default function LegalPage({ path, title, accent, lead, sections, children }: {
+  path: string; title: string; accent?: string; lead: string; sections: Jump[]; children: React.ReactNode;
+}) {
   return (
-    <main id="top" className={`container ${s.page}`}>
-      <nav className={s.side} aria-label="Legal">
-        <ul>
-          {PAGES.map((p) => (
-            <li key={p.href}>
-              <Link href={p.href} aria-current={p.href === path ? "page" : undefined}>{p.label}</Link>
-            </li>
-          ))}
-        </ul>
-        <p className={s.contact}>Questions? <a href={`mailto:${CONTACT}`} className="link">{CONTACT}</a></p>
-      </nav>
-      <article className={s.body}>
-        <header className={s.head}>
-          <h1 className={`serif ${s.title}`}>{title}</h1>
-          <p className={s.lead}>{lead}</p>
+    <main id="top" className="container">
+      <PageBand title={title} accent={accent} lead={lead} />
+      <div className={`${s.page} ${s.afterBand}`}>
+        <SectionNav
+          sections={sections}
+          links={PAGES.map((p) => ({ ...p, current: p.href === path }))}
+          linksLabel="Legal"
+          foot={<p className={s.contact}>Questions? <a href={`mailto:${CONTACT}`} className="link">{CONTACT}</a></p>}
+        />
+        <article className={s.body}>
           <p className={s.updated}>Last updated {UPDATED}</p>
-        </header>
-        {children}
-      </article>
+          {children}
+        </article>
+      </div>
     </main>
   );
 }

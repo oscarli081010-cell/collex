@@ -6,10 +6,18 @@ import s from "@/components/LegalPage.module.css";
 
 export const metadata: Metadata = { alternates: { canonical: "/cookies" }, title: "Cookies policy · Collex", description: "Collex sets no cookies. Every item it keeps in your browser, what it is for, how long it lasts and how to remove it." };
 
+const SECTIONS = [
+  { id: "what-we-keep-in-your-browser", label: "What we keep in your browser" },
+  { id: "how-we-count-visits", label: "How we count visits" },
+  { id: "why-there-is-no-cookie-banner", label: "Why there is no cookie banner" },
+  { id: "removing-them", label: "Removing them" },
+  { id: "more", label: "More" },
+];
+
 export default function Cookies() {
   return (
-    <LegalPage path="/cookies" title="Cookies policy" lead="Collex sets no cookies. It keeps a few items in your browser's own storage for features you use, and one tab marker that lets us count visits without tracking you.">
-      <section>
+    <LegalPage path="/cookies" title="Cookies" accent="policy" sections={SECTIONS} lead="Collex sets no cookies. It keeps a few items in your browser's own storage for features you use, and one tab marker that lets us count visits without tracking you.">
+      <section id="what-we-keep-in-your-browser">
         <h2>What we keep in your browser</h2>
         <p>Instead of cookies, Collex uses your browser&rsquo;s own storage. These items stay on your device. They are never used for advertising or to follow you around.</p>
         <table className={s.table}>
@@ -82,22 +90,22 @@ export default function Cookies() {
         <p>Deleting your account from the account page also removes every item starting with <code>collex:</code> from the browser you use to do it.</p>
       </section>
 
-      <section>
+      <section id="how-we-count-visits">
         <h2>How we count visits</h2>
         <p>When you open a page, your browser tells our database the page&rsquo;s address (without anything after a &ldquo;?&rdquo;) and whether it is the first page in this tab. We add one to that page&rsquo;s count for the day. No IP address, account or device identifier is stored with the count, and no cookie is used. The database provider receives your IP address with the request, as it does for any request, but we don&rsquo;t keep it.</p>
       </section>
 
-      <section>
+      <section id="why-there-is-no-cookie-banner">
         <h2>Why there is no cookie banner</h2>
         <p>Every item above is there for something you asked for: staying logged in, keeping your settings, or running a committee without wifi. The tab marker holds no identifier and is gone when you close the tab. There are no advertising or tracking cookies, nothing is sent to an analytics or advertising company, and Collex uses no tracking pixels or third-party embeds. The site&rsquo;s fonts are served from collex.au itself, so no font company learns about your visit. If that ever changes, we will ask for your consent first and update this page.</p>
       </section>
 
-      <section>
+      <section id="removing-them">
         <h2>Removing them</h2>
         <p>Log out to remove the sign-in item and the copies of shared committees. To remove everything, clear the site data for collex.au in your browser&rsquo;s settings. That also removes a committee kept only in this browser, so share it first if you want to keep it. The site still works afterwards; you will just need to log in again.</p>
       </section>
 
-      <section>
+      <section id="more">
         <h2>More</h2>
         <p>Our <Link href="/privacy">privacy policy</Link> explains how we handle the rest of your information. Questions go to <a href={`mailto:${CONTACT}`}>{CONTACT}</a>.</p>
       </section>

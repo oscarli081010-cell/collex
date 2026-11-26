@@ -222,7 +222,6 @@ export const GUIDES: Guide[] = [
       ] },
       { id: "middle", title: "One to three months out", steps: [
         "Open chair applications first, then delegate registration. Turn on registrations or applications on Collex, or link your own form.",
-        "Post the roles you need help with, such as press, photography and tech, so they appear on the Open Roles page.",
         "Write the background guides and upload them to the listing. Everyone following the conference is emailed when they appear.",
         "Add your key dates. Followers are reminded three days and one day before each.",
       ] },

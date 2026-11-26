@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { MyAllocation, MyApplications } from "./HubExtras";
 import MyFeedback from "./MyFeedback";
+import SectionNav, { type Jump } from "./SectionNav";
 import { useRouter } from "next/navigation";
 import { CONTACT } from "./Footer";
 import h from "./Hub.module.css";
@@ -68,7 +69,7 @@ function Invites({ onAccepted, onCount }: { onAccepted: () => void; onCount: (n:
 
   if (invites.length === 0) return node;
   return (
-    <section className={`panel ${s.card} ${s.highlight}`} style={{ "--i": 0 } as React.CSSProperties} aria-labelledby="invites-h">
+    <section id="account-invites" className={`panel ${s.card} ${s.highlight}`} style={{ "--i": 0 } as React.CSSProperties} aria-labelledby="invites-h">
       <h2 id="invites-h" className={s.cardTitle}>{invites.length === 1 ? "An invite" : "Invites"} to help run a listing</h2>
       <ul className={s.inviteList}>
         {invites.map((i) => (
@@ -140,7 +141,7 @@ function Saved() {
   const upcoming = list.filter((c) => !isPast(c, today));
   const clashing = upcoming.filter((c) => clashesOf(c, upcoming, today).length > 0);
   return (
-    <section className={`panel ${s.card}`} style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="saved-h">
+    <section id="account-saved" className={`panel ${s.card}`} style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="saved-h">
       <div>
         <h2 id="saved-h" className={s.cardTitle}>Saved</h2>
       </div>
@@ -185,7 +186,7 @@ function ListingsLink({ userId, version, onCount }: { userId: string; version: n
   const rows = useMyListings(userId, version);
   useEffect(() => { if (rows) onCount(rows.length); }, [rows, onCount]);
   return (
-    <section className={`panel ${s.card}`} style={{ "--i": 2 } as React.CSSProperties} aria-labelledby="listings-h">
+    <section id="account-listings" className={`panel ${s.card}`} style={{ "--i": 2 } as React.CSSProperties} aria-labelledby="listings-h">
       <div>
         <h2 id="listings-h" className={s.cardTitle}>Your conferences</h2>
         <p className="muted">
@@ -199,6 +200,36 @@ function ListingsLink({ userId, version, onCount }: { userId: string; version: n
   );
 }
 
+// The account page's side menu: the cards of the open tab (Profile or Conferences), marked as you scroll. Some cards
+// only appear once their data has loaded (an invite, an allocation, feedback), so the menu lists the cards that are in
+// the open tab right now: each card with an id, named by its heading.
+export function AccountNav({ tab }: { tab: string }) {
+  const [sections, setSections] = useState<Jump[]>([]);
+  useEffect(() => {
+    const panel = document.getElementById(`account-panel-${tab}`);
+    if (!panel) return;
+    let key = "", frame = 0;
+    const read = () => {
+      const list: Jump[] = [];
+      for (const el of Array.from(panel.children)) {
+        const h2 = el.id ? el.querySelector("h2") : null;
+        if (!h2) continue;
+        // The heading's own words, without a count beside them.
+        const label = Array.from(h2.childNodes).filter((n) => n.nodeType === Node.TEXT_NODE).map((n) => n.textContent).join("").trim();
+        if (label) list.push({ id: el.id, label });
+      }
+      const next = list.map((x) => `${x.id}:${x.label}`).join("|");
+      if (next !== key) { key = next; setSections(list); }
+    };
+    read();
+    const mo = new MutationObserver(() => { cancelAnimationFrame(frame); frame = requestAnimationFrame(read); });
+    mo.observe(panel, { childList: true, subtree: true, characterData: true });
+    return () => { cancelAnimationFrame(frame); mo.disconnect(); };
+  }, [tab]);
+  if (!sections.length) return <div />;
+  return <SectionNav label="Sections of your account" sections={sections} />;
+}
+
 // The account page's settings beyond the profile: the weekly email and deleting the account. Rendered on the Profile
 // tab, after the password form.
 export function AccountSettings({ userId }: { userId: string }) {
@@ -210,8 +241,9 @@ export function AccountSettings({ userId }: { userId: string }) {
   );
 }
 
-// The Monday email about the week in Sydney MUN. Off unless the person turns it on. If the setting can't be read
-// (the column isn't there yet, or the database is unreachable) the box stays off and says why.
+// The Monday email about the week in Sydney MUN. Off unless the person turns it on, with a switch that saves as soon as
+// it is flipped. If the setting can't be read (the column isn't there yet, or the database is unreachable) the switch
+// stays off and greyed, and says why.
 function WeeklyEmail({ userId }: { userId: string }) {
   const [on, setOn] = useState<boolean | null>(null);
   const [broken, setBroken] = useState(false);
@@ -222,26 +254,32 @@ function WeeklyEmail({ userId }: { userId: string }) {
     supabase.from("profiles").select("digest").eq("id", userId).maybeSingle()
       .then(({ data, error }) => { if (error) setBroken(true); else setOn(Boolean((data as { digest?: boolean } | null)?.digest)); });
   }, [userId]);
+  useEffect(() => {
+    if (msg !== "Saved") return;
+    const t = setTimeout(() => setMsg(""), 2000);
+    return () => clearTimeout(t);
+  }, [msg]);
   const change = async (next: boolean) => {
     if (!supabase) return;
     setBusy(true); setOn(next); setMsg("");
     const { error } = await supabase.rpc("set_digest", { turn_on: next });
     setBusy(false);
     if (error) { setOn(!next); setMsg("That didn\u2019t save. Try again."); return; }
-    setMsg(next ? "On. The next one comes on Monday." : "Off. You won\u2019t get it any more.");
+    setMsg("Saved");
   };
-  const box = (
-    <label className="check">
-      <input type="checkbox" checked={Boolean(on)} disabled={broken || on === null || busy} onChange={(e) => void change(e.target.checked)} />
-      <span>Send me the weekly email</span>
-    </label>
+  const toggle = (
+    <button type="button" id="digest-switch" role="switch" aria-checked={Boolean(on)} className={h.switch}
+      disabled={broken || on === null || busy} onClick={() => void change(!on)} />
   );
   return (
-    <section className={`panel ${s.card}`} style={{ "--i": 3 } as React.CSSProperties} aria-labelledby="digest-h">
+    <section id="account-weekly-email" className={`panel ${s.card}`} style={{ "--i": 3 } as React.CSSProperties} aria-labelledby="digest-h">
       <h2 id="digest-h" className={s.cardTitle}>Weekly Email</h2>
-      <p className="muted">This week in Sydney MUN: new conferences, closing dates and open roles. Sent on Mondays. Off by default.</p>
-      <div className="field">{broken ? <span className="tip" data-tip="The weekly email can’t be changed right now" data-tip-align="start">{box}</span> : box}</div>
-      {msg && <p className="muted" role="status">{msg}</p>}
+      <p className="muted">This week in Sydney MUN: new conferences and closing dates. Sent on Mondays.</p>
+      <div className={h.setting}>
+        <label htmlFor="digest-switch">Send me the weekly email</label>
+        <span className={msg === "Saved" ? h.saved : h.err} role="status">{msg}</span>
+        {broken ? <span className="tip" data-tip="The weekly email can’t be changed right now">{toggle}</span> : toggle}
+      </div>
     </section>
   );
 }
@@ -314,7 +352,7 @@ function DeleteAccount({ userId }: { userId: string }) {
     router.push("/");
   };
   return (
-    <section className={`panel ${s.card}`} style={{ "--i": 4 } as React.CSSProperties} aria-labelledby="delete-h">
+    <section id="account-delete" className={`panel ${s.card}`} style={{ "--i": 4 } as React.CSSProperties} aria-labelledby="delete-h">
       <h2 id="delete-h" className={s.cardTitle}>Delete My Account</h2>
       <div className={h.note}>
         <p>This deletes, straight away and for good:</p>

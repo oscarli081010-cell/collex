@@ -1,0 +1,284 @@
+/* The preview home page. Site colours, fonts and spacing come from globals.css; the few new tokens here are the device
+   frames and the dark Committees band. Motion is transform and opacity only, driven by the scroll where the browser can
+   (scroll-driven animations), with a one-off fade-up as the fallback (ScrollFx) and none at all with reduced motion. */
+
+.page {
+  overflow-x: clip; /* clip, not hidden: hidden would stop the sticky phone from sticking */
+  --bezel: #0d0e11;
+  --bezel-edge: #2a2c32;
+  --alu-1: #efeee9;
+  --alu-2: #d4d1ca;
+  --alu-3: #aeaba3;
+  --stage: #0f1830;
+  --stage-2: #1b2a57;
+  --stage-ink: #f3f2ee;
+  --stage-muted: rgba(243, 242, 238, 0.66);
+  --stage-line: rgba(255, 255, 255, 0.1);
+  --stage-tile: rgba(255, 255, 255, 0.045);
+  --stage-accent: #a9bdf0;
+}
+:global(:root[data-theme="dark"]) .page { --alu-1: #5a5c63; --alu-2: #3b3d43; --alu-3: #24262b; --bezel-edge: #34363d; --stage: #0c1226; --stage-2: #18244b; }
+@media (prefers-color-scheme: dark) {
+  :global(:root[data-theme="system"]) .page { --alu-1: #5a5c63; --alu-2: #3b3d43; --alu-3: #24262b; --bezel-edge: #34363d; --stage: #0c1226; --stage-2: #18244b; }
+}
+
+/* Each screenshot has a light and a dark copy; only the one for the current theme is shown (and so loaded). */
+.onDark { display: none !important; }
+:global(:root[data-theme="dark"]) .onLight { display: none !important; }
+:global(:root[data-theme="dark"]) .onDark { display: block !important; }
+@media (prefers-color-scheme: dark) {
+  :global(:root[data-theme="system"]) .onLight { display: none !important; }
+  :global(:root[data-theme="system"]) .onDark { display: block !important; }
+}
+
+/* ---------- Devices ---------- */
+.device { container-type: inline-size; width: 100%; }
+.shot { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+
+.laptop { position: relative; }
+.lid {
+  position: relative; margin-inline: 5.5%; padding: 1.5cqw 1.5cqw 2.2cqw;
+  background: var(--bezel); border-radius: 2.2cqw 2.2cqw 0 0;
+  box-shadow: inset 0 0 0 0.16cqw var(--bezel-edge);
+}
+.lid::before { /* the camera */
+  content: ""; position: absolute; top: 0.55cqw; left: 50%; width: 0.45cqw; height: 0.45cqw; border-radius: 50%;
+  background: #24262c; transform: translateX(-50%);
+}
+.lidScreen { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 0.35cqw; background: var(--bg); }
+.base {
+  position: relative; height: 1.7cqw;
+  background: linear-gradient(180deg, var(--alu-1), var(--alu-2) 58%, var(--alu-3));
+  border-radius: 0.3cqw 0.3cqw 1.6cqw 1.6cqw / 0.3cqw 0.3cqw 1.1cqw 1.1cqw;
+  box-shadow: 0 2.6cqw 4.4cqw -1.8cqw rgba(var(--shadow-rgb), 0.42);
+}
+.base::before { /* the thumb notch */
+  content: ""; position: absolute; left: 50%; top: 0; width: 13%; height: 42%; transform: translateX(-50%);
+  border-radius: 0 0 0.9cqw 0.9cqw; background: linear-gradient(var(--alu-3), var(--alu-2)); opacity: 0.55;
+}
+
+.phone {
+  padding: 3.3cqw; background: var(--bezel); border-radius: 15cqw;
+  box-shadow: inset 0 0 0 0.7cqw var(--bezel-edge), 0 6cqw 12cqw -5cqw rgba(var(--shadow-rgb), 0.5);
+}
+.phoneScreen { position: relative; aspect-ratio: 390 / 844; overflow: hidden; border-radius: 11.8cqw; background: var(--bg); isolation: isolate; }
+.island {
+  position: absolute; z-index: 2; top: 2.4cqw; left: 50%; width: 27cqw; height: 7.4cqw; transform: translateX(-50%);
+  border-radius: 99px; background: #000;
+}
+
+.screen {
+  padding: 0.9cqw; background: var(--bezel); border-radius: 1.3cqw;
+  box-shadow: inset 0 0 0 0.12cqw var(--bezel-edge), 0 3cqw 7cqw -2cqw rgba(0, 0, 0, 0.6);
+}
+.screenInner { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 0.45cqw; background: var(--bg); }
+
+/* ---------- Hero ---------- */
+.hero {
+  display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center;
+  padding-top: clamp(48px, 7.5vh, 96px);
+}
+.title { font-size: clamp(48px, 7.6vw, 116px); line-height: 0.95; letter-spacing: -0.025em; max-width: 15ch; }
+.title em, .h2 em, .stepTitle em, .endTitle em { font-style: italic; color: var(--accent); }
+.lead { font-size: clamp(18px, 1.6vw, 22px); line-height: 1.45; color: var(--muted); max-width: 34ch; }
+.heroSearch { display: flex; justify-content: center; width: min(100%, 520px); margin-top: 8px; }
+.heroLinks { display: flex; gap: 12px; align-items: center; font-size: 14px; color: var(--faint); margin-top: -4px; }
+
+.stage { margin-top: clamp(56px, 6vw, 80px); perspective: 2400px; view-timeline: --stage block; }
+.stageInner { position: relative; width: min(100%, 1100px); margin: 0 auto; }
+.stageLaptop { transform-origin: 50% 100%; }
+.stagePhone { position: absolute; right: -1.5%; bottom: -5%; width: 22%; }
+
+/* ---------- Statement ---------- */
+.statement { padding-block: clamp(120px, 18vw, 240px) 0; }
+.statementText {
+  max-width: 22ch; margin: 0 auto; text-align: center;
+  font-size: clamp(30px, 4.4vw, 60px); line-height: 1.12; letter-spacing: -0.015em;
+}
+.word { display: inline-block; }
+
+/* ---------- Sections ---------- */
+.section { padding-top: clamp(120px, 14vw, 200px); }
+.head { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.kicker { font-size: 15px; font-weight: 500; color: var(--accent); }
+.h2 { font-size: clamp(42px, 6.2vw, 88px); line-height: 0.98; letter-spacing: -0.022em; max-width: 14ch; }
+.headLead { max-width: 40ch; color: var(--muted); font-size: clamp(17px, 1.5vw, 20px); line-height: 1.45; }
+
+/* ---------- The tour: a phone that stays while the steps pass ---------- */
+.tourGrid {
+  --pw: min(300px, calc((100svh - 150px) * 0.44));
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(40px, 6vw, 96px);
+  margin-top: clamp(24px, 4vw, 56px);
+}
+.steps { display: flex; flex-direction: column; }
+.step {
+  display: flex; flex-direction: column; justify-content: center; gap: 14px;
+  min-height: 80svh; max-width: 30rem; width: 100%; margin-left: auto;
+  transition: opacity 600ms var(--ease-smooth-out);
+}
+.steps[data-live] .step:not([data-on]) { opacity: 0.2; }
+.stepTitle { font-size: clamp(34px, 3.6vw, 54px); line-height: 1.02; letter-spacing: -0.015em; }
+.stepText { max-width: 34ch; color: var(--muted); font-size: 17px; line-height: 1.5; }
+.stepShot { display: none; }
+.tourStage { position: relative; }
+.tourSticky { position: sticky; top: calc(36px + 50svh - var(--pw) * 1.1); width: var(--pw); margin: 0 auto; }
+.tourShot {
+  position: absolute; inset: 0; opacity: 0; transform: scale(1.04);
+  transition: opacity 600ms var(--ease-smooth-out), transform 900ms var(--ease-smooth-out);
+}
+.tourShot[data-on] { opacity: 1; transform: none; }
+/* The Follow button, ringed when the last step is on. */
+.ring {
+  position: absolute; z-index: 1; left: 4.4%; top: 63.7%; width: 64.6%; height: 6.1%; border-radius: 999px;
+  box-shadow: 0 0 0 2px var(--accent), 0 0 0 8px var(--accent-soft);
+  opacity: 0; transform: scale(1.12); pointer-events: none;
+  transition: opacity 400ms var(--ease-smooth-out), transform 700ms var(--ease-smooth-out);
+}
+.ringOn { opacity: 1; transform: none; }
+
+/* ---------- Coming up ---------- */
+.nextHead { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.nextHead .h2 { max-width: none; }
+.nextRow {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 18px; align-items: baseline; gap: 24px;
+  padding: 28px 0; border-bottom: 1px solid var(--line);
+}
+.nextName { font-size: clamp(26px, 3vw, 40px); line-height: 1.05; transition: color var(--duration-fast) var(--ease-smooth-out); }
+.nextWhen { color: var(--muted); font-size: 15px; font-variant-numeric: tabular-nums; }
+.nextArrow { align-self: center; color: var(--faint); transition: transform var(--duration-fast) var(--ease-smooth-out), color var(--duration-fast); }
+.nextRow:hover .nextName, .nextRow:focus-visible .nextName { color: var(--accent); }
+.nextRow:hover .nextArrow { transform: translateX(4px); color: var(--accent); }
+
+/* ---------- Committees: the dark band ---------- */
+.pro { padding-top: clamp(120px, 14vw, 200px); }
+.proPanel {
+  margin-inline: clamp(8px, 1.4vw, 20px); padding-block: clamp(80px, 10vw, 140px);
+  border-radius: clamp(24px, 3vw, 40px); overflow: clip; color: var(--stage-ink);
+  background: radial-gradient(70% 50% at 50% 0%, var(--stage-2), transparent 72%), var(--stage);
+  transform-origin: 50% 0;
+}
+.proHead .kicker, .proHead .h2 em { color: var(--stage-accent); }
+.proLead { max-width: 38ch; color: var(--stage-muted); font-size: clamp(17px, 1.5vw, 20px); line-height: 1.45; }
+
+.duo {
+  position: relative; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: end;
+  margin: clamp(56px, 7vw, 96px) auto 0; max-width: 1120px; view-timeline: --duo block;
+}
+.duo figure { margin: 0; }
+.duo figcaption { margin-top: 14px; font-size: 13px; color: var(--stage-muted); }
+.duoScreen { grid-column: 3 / 13; grid-row: 1; align-self: start; }
+.duoScreen figcaption { text-align: right; }
+.duoLaptop { position: relative; z-index: 1; grid-column: 1 / 8; grid-row: 1; margin-bottom: -9%; }
+.duoLaptop figcaption { text-align: center; }
+
+.bento { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; max-width: 1120px; margin: clamp(96px, 11vw, 150px) auto 0; }
+.tile {
+  display: flex; flex-direction: column; gap: 10px; min-height: 260px; padding: clamp(24px, 2.6vw, 36px);
+  border: 1px solid var(--stage-line); border-radius: 22px; background: var(--stage-tile);
+}
+.tileWide { grid-column: span 2; }
+.tileArt { margin-bottom: auto; padding-bottom: 28px; color: var(--stage-accent); }
+.icon { display: block; }
+.key {
+  display: inline-grid; place-items: center; width: 60px; height: 60px; border-radius: 14px;
+  border: 1px solid var(--stage-line); background: rgba(255, 255, 255, 0.07); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+  font-size: 24px; font-weight: 500; color: var(--stage-ink);
+}
+.big { display: block; font-size: 76px; line-height: 0.8; color: var(--stage-ink); }
+.tileTitle { font-size: 17px; font-weight: 500; color: var(--stage-ink); }
+.tileText { max-width: 40ch; font-size: 15px; line-height: 1.5; color: var(--stage-muted); }
+
+.proActions { display: flex; flex-direction: column; align-items: center; gap: 18px; margin-top: clamp(56px, 6vw, 80px); }
+.proButton { background: var(--stage-ink); border-color: var(--stage-ink); color: #0f1830; min-width: 220px; }
+.proButton:hover { background: #ffffff; border-color: #ffffff; }
+.proLink { font-size: 15px; font-weight: 500; color: var(--stage-ink); opacity: 0.8; transition: opacity var(--duration-quick); }
+.proLink:hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- Your conferences ---------- */
+.organise {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(24px, 3vw, 40px);
+  margin-top: clamp(56px, 7vw, 88px); border-top: 1px solid var(--line);
+}
+.orgItem { display: flex; flex-direction: column; gap: 10px; padding-top: 28px; }
+.orgNum { font-size: 44px; line-height: 1; color: var(--accent); }
+.orgTitle { margin-top: 12px; font-size: 17px; font-weight: 500; }
+.orgText { color: var(--muted); font-size: 15px; line-height: 1.5; }
+.orgMore { margin-top: 48px; text-align: center; }
+
+/* ---------- The end ---------- */
+.end { padding-bottom: clamp(80px, 10vw, 140px); }
+.endBand { padding-block: clamp(64px, 9vw, 120px); }
+.endTitle { font-size: clamp(40px, 5.6vw, 76px); line-height: 1; letter-spacing: -0.02em; }
+.endNote { color: var(--muted); font-size: 14px; }
+
+/* ---------- Motion ---------- */
+@keyframes up { from { opacity: 0; transform: translateY(24px); } }
+@keyframes upNow { from { transform: translateY(14px); } }
+@keyframes rise { from { opacity: 0; transform: translateY(48px); } to { opacity: 1; transform: none; } }
+@keyframes lid { from { transform: rotateX(16deg) scale(0.9) translateY(24px); } to { transform: none; } }
+@keyframes phoneUp { from { transform: translateY(34%); } to { transform: none; } }
+@keyframes wordOn { from { opacity: 0.14; } to { opacity: 1; } }
+@keyframes panelIn { from { transform: scale(0.93); } to { transform: none; } }
+@keyframes screenIn { from { transform: translateY(10%) scale(0.92); opacity: 0.4; } to { transform: none; opacity: 1; } }
+@keyframes laptopIn { from { transform: translateY(26%); } to { transform: none; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The first screen arriving, once, on load. The headline is on screen from the first paint and only moves. */
+  .hero > * { animation: up 900ms var(--ease-smooth-out) backwards; }
+  .hero > .title { animation-name: upNow; }
+  .hero > :nth-child(2) { animation-delay: 90ms; }
+  .hero > :nth-child(3) { animation-delay: 180ms; }
+  .hero > :nth-child(4) { animation-delay: 270ms; }
+
+  @supports (animation-timeline: view()) {
+    /* The laptop opens flat and the phone rises past it as the stage scrolls up to the middle of the window. */
+    .stageLaptop { animation: lid linear both; animation-timeline: --stage; animation-range: cover 0% cover 48%; }
+    .stagePhone { animation: phoneUp linear both; animation-timeline: --stage; animation-range: cover 0% cover 50%; }
+    /* Each line of the statement lights up as it crosses the lower half of the window. */
+    .word { animation: wordOn linear both; animation-timeline: view(); animation-range: cover 22% cover 44%; }
+    /* Headings, rows and tiles rise in as they enter. */
+    .page [data-rise] { animation: rise linear both; animation-timeline: view(); animation-range: entry 0% entry 90%; }
+    /* The dark band grows to full width as it arrives, and its two screens come together. */
+    .proPanel { animation: panelIn linear both; animation-timeline: view(); animation-range: entry 0px entry 520px; }
+    .duoScreen { animation: screenIn linear both; animation-timeline: --duo; animation-range: cover 0% cover 45%; }
+    .duoLaptop { animation: laptopIn linear both; animation-timeline: --duo; animation-range: cover 0% cover 52%; }
+  }
+  @supports not (animation-timeline: view()) {
+    .stageInner { animation: up 1100ms var(--ease-smooth-out) 300ms backwards; }
+    :global(html.pfx) .page [data-rise] { transition: opacity 900ms var(--ease-smooth-out), transform 900ms var(--ease-smooth-out); }
+    :global(html.pfx) .page [data-wait]:not([data-in]) { opacity: 0; transform: translateY(32px); }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .step, .tourShot, .ring { transition: none; }
+}
+
+/* ---------- Narrower screens ---------- */
+@media (max-width: 1000px) {
+  .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .organise { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .tourGrid { grid-template-columns: 1fr; gap: 0; }
+  .tourStage { display: none; }
+  .step { min-height: 0; max-width: none; margin: 0; align-items: center; text-align: center; padding-block: 48px; }
+  .steps[data-live] .step:not([data-on]) { opacity: 1; }
+  .stepText { margin-inline: auto; }
+  .stepShot { display: block; width: min(250px, 66vw); margin-top: 28px; }
+  .duoScreen { grid-column: 1 / 13; }
+  .duoScreen figcaption { display: none; }
+  .duoLaptop { grid-column: 1 / 10; grid-row: 2; margin: -14% 0 0 -2%; }
+  .duoLaptop figcaption { display: none; }
+}
+@media (max-width: 640px) {
+  .stagePhone { width: 30%; right: -2%; bottom: -10%; }
+  .nextRow { grid-template-columns: minmax(0, 1fr) 18px; gap: 6px 16px; padding: 22px 0; }
+  .nextWhen { grid-row: 2; }
+  .nextArrow { grid-row: 1 / 3; grid-column: 2; }
+  .bento { grid-template-columns: 1fr; }
+  .tileWide { grid-column: auto; }
+  .tile { min-height: 0; padding: 22px; }
+  .organise { grid-template-columns: 1fr; gap: 0; }
+  .orgItem { padding-block: 24px; border-bottom: 1px solid var(--line); }
+  .orgItem:last-child { border-bottom: 0; }
+}

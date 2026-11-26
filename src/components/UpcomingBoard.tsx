@@ -18,7 +18,7 @@ const writeMonth = (month: string) => {
 };
 
 // Search and filter the upcoming conferences, grouped by month. Finished ones move to Past conferences.
-// With `band`, the search sits inside the page's headline panel (Conferences page).
+// With `band`, the page's headline panel sits above the search (Conferences page).
 export default function UpcomingBoard({ band = false }: { band?: boolean }) {
   const today = todayInSydney();
   const conferences = useConferences().filter((c) => !isPast(c, today));
@@ -100,10 +100,10 @@ export default function UpcomingBoard({ band = false }: { band?: boolean }) {
             { label: "Host schools", value: String(new Set(conferences.map((c) => c.host)).size) },
             nextUp(conferences),
           ]}
-        >
-          {toolbar}
-        </PageBand>
-      ) : toolbar}
+          tight
+        />
+      ) : null}
+      {toolbar}
 
       {/* Only while searching or filtering: how many match, and a way back. */}
       {filtered && (

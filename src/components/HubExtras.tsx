@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ROLE_KINDS, type Conference, type RoleKind } from "@/lib/conferences";
+import type { Conference } from "@/lib/conferences";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
 import { conferencesById, guideFor, nextDate } from "./allocation";
@@ -15,63 +15,10 @@ import board from "./board.module.css";
 import ci from "./CheckIn.module.css";
 import au from "@/app/auth.module.css";
 import h from "./Hub.module.css";
-import rs from "./Roles.module.css";
 
 type Say = (t: string) => void;
 const send = () => { supabase?.functions.invoke("mailer").catch(() => {}); };
 const day = (iso: string | null) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : "");
-
-/* Roles page: an email when a conference lists new roles of the kinds you choose. */
-export function RoleAlerts() {
-  const { ready, session } = useAuth();
-  const [kinds, setKinds] = useState<RoleKind[]>([]);
-  const [saved, setSaved] = useState<RoleKind[] | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-  useEffect(() => {
-    if (!session || !supabase) return;
-    const off = new URLSearchParams(location.search).get("alerts") === "off";
-    (async () => {
-      if (off) { await supabase!.rpc("set_role_alert", { alert_kinds: null }); setMsg("Role alerts are off."); }
-      const { data } = await supabase!.from("role_alerts").select("kinds").maybeSingle();
-      const k = ((data?.kinds as RoleKind[] | undefined) ?? []);
-      setSaved(k); setKinds(k);
-    })();
-  }, [session]);
-  const save = async (next: RoleKind[]) => {
-    if (!supabase) return;
-    setBusy(true);
-    const { error } = await supabase.rpc("set_role_alert", { alert_kinds: next.length ? next : null });
-    setBusy(false);
-    if (error) { setMsg("That didn’t save. Try again."); return; }
-    setSaved(next); setKinds(next);
-    setMsg(next.length ? "Saved. We’ll email you when a conference lists one." : "Role alerts are off.");
-  };
-  const same = saved !== null && saved.length === kinds.length && saved.every((k) => kinds.includes(k));
-  return (
-    <section className={`panel ${h.card}`} aria-labelledby="ra-h" style={{ marginBottom: 20 }}>
-      <div className={h.head}><h2 id="ra-h" className={h.h2}>Role Alerts</h2></div>
-      <p className={h.note}>Get an email when a conference starts looking for the kinds of help you choose.</p>
-      {!ready ? null : !session ? <div className="btnStack one"><Link href="/login?next=%2Froles" className="button block">Log in to Set an Alert</Link></div> : (
-        <>
-          <div className={rs.chips} role="group" aria-label="Kinds of role">
-            {ROLE_KINDS.map((k) => {
-              const on = kinds.includes(k.id);
-              return (
-                <button key={k.id} type="button" className={rs.chip} aria-pressed={on} onClick={() => setKinds(on ? kinds.filter((x) => x !== k.id) : [...kinds, k.id])}>
-                  {on && <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" /></svg>}
-                  {k.label}
-                </button>
-              );
-            })}
-          </div>
-          <button type="button" className="button block" disabled={busy || same} onClick={() => void save(kinds)}>{same && kinds.length ? "Alert Saved" : kinds.length ? "Save Alert" : saved?.length ? "Turn Alerts Off" : "Choose at Least One"}</button>
-          {msg && <p className={h.note} role="status">{msg}</p>}
-        </>
-      )}
-    </section>
-  );
-}
 
 type Claim = { id: string; conference: string; slug: string; name: string; email: string; role: string; proof: string; status: string; created_at: string };
 
@@ -140,12 +87,12 @@ export function MyApplications({ userId }: { userId: string }) {
   };
   const url = typeof location === "undefined" ? "" : `${location.origin}/delegates/${userId}`;
   return (
-    <section className={`panel ${au.card}`} aria-labelledby="myapps-h">
+    <section id="account-applications" className={`panel ${au.card}`} aria-labelledby="myapps-h">
       <div>
         <h2 id="myapps-h" className={au.cardTitle}>Your applications</h2>
       </div>
       {rows !== null && rows.length === 0 && (
-        <div className={board.empty}><Gavel /><p className={board.emptyTitle}>No applications yet</p><p className="muted">Apply to chair or take a role at a conference and it shows here.</p><Link href="/roles" className="button secondary">See Open Roles</Link></div>
+        <div className={board.empty}><Gavel /><p className={board.emptyTitle}>No applications yet</p><p className="muted">Apply to a conference as a delegate or chair and it shows here.</p><Link href="/conferences" className="button secondary">Find a Conference</Link></div>
       )}
       {rows && rows.length > 0 && (
         <ul className={h.rows}>
@@ -224,7 +171,7 @@ export function MyAllocation({ userId }: { userId: string }) {
 
   if (!rows || rows.length === 0) return null;
   return (
-    <section className={`panel ${au.card}`} aria-labelledby="alloc-h">
+    <section id="account-allocation" className={`panel ${au.card}`} aria-labelledby="alloc-h">
       <h2 id="alloc-h" className={au.cardTitle}>My allocation</h2>
       <ul className={h.rows}>
         {rows.map((a) => {
