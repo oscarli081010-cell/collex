@@ -384,9 +384,23 @@ export function AccountTabs({ tab, setTab, invites = 0 }: { tab: AccountTab; set
   return <PanelTabs tabs={tabs} tab={tab} setTab={setTab} label="Account" idPrefix="account" />;
 }
 
-// The account picture. Hover (or focus) it to change it; on a touch screen the camera is always showing.
-export function AvatarEditor({ userId, url, initials, onChange, onError }: { userId: string; url: string | null; initials: string; onChange: (url: string) => Promise<void>; onError: (m: string) => void }) {
+// The account picture. Hover (or focus) it to change it; on a touch screen the camera is always showing. With a photo
+// set, "Remove photo" sits underneath: the first press asks again, the second goes back to the initials.
+export function AvatarEditor({ userId, url, initials, onChange, onError }: { userId: string; url: string | null; initials: string; onChange: (url: string | null) => Promise<void>; onError: (m: string) => void }) {
   const [busy, setBusy] = useState(false);
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!armed) return;
+    const t = setTimeout(() => setArmed(false), 4000);
+    return () => clearTimeout(t);
+  }, [armed]);
+  const remove = async () => {
+    if (!armed) return setArmed(true);
+    setArmed(false);
+    setBusy(true);
+    await onChange(null);
+    setBusy(false);
+  };
   const pick = async (file: File | undefined) => {
     if (!file) return;
     setBusy(true);
@@ -395,6 +409,7 @@ export function AvatarEditor({ userId, url, initials, onChange, onError }: { use
     setBusy(false);
   };
   return (
+    <div className={s.avatarBox}>
     <label className={s.avatarEdit} data-busy={busy || undefined}>
       <span className={s.avatar} aria-hidden="true">
         {/* eslint-disable-next-line @next/next/no-img-element -- the account photo */}
@@ -407,6 +422,12 @@ export function AvatarEditor({ userId, url, initials, onChange, onError }: { use
       <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} aria-label="Change your profile picture"
         onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
     </label>
+    {url && (
+      <button type="button" className={`${s.textBtn} ${s.avatarRemove}`} data-armed={armed || undefined} disabled={busy} onClick={() => void remove()} onBlur={() => setArmed(false)}>
+        {armed ? "Press again to remove" : "Remove photo"}
+      </button>
+    )}
+    </div>
   );
 }
 
@@ -506,10 +527,14 @@ export function AccountView() {
     <Banded band={{
       title: name,
       media: <AvatarEditor userId={session.user.id} url={profile?.avatar_url ?? null} initials={initials} onChange={async (url) => {
+        const old = profile?.avatar_url ?? null;
         const { error } = await supabase!.from("profiles").update({ avatar_url: url }).eq("id", session.user.id);
-        if (error) return say("Couldn't save the photo. Try again.");
+        if (error) return say(url ? "Couldn't save the photo. Try again." : "Couldn't remove the photo. Try again.");
+        // The old picture's file goes too, when it is one this account uploaded (photos/<your id>/...).
+        const mine = old?.split("/storage/v1/object/public/photos/")[1];
+        if (mine?.startsWith(`${session.user.id}/`) && old !== url) void supabase!.storage.from("photos").remove([decodeURIComponent(mine)]);
         await refresh();
-        say("Photo updated");
+        say(url ? "Photo updated" : "Photo removed");
       }} onError={say} />,
       lead: (
         <ul className={s.identity}>
