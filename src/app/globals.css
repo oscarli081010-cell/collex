@@ -1,5 +1,5 @@
 :root {
-  --bg: #fafafa;
+  --bg: #f6f3ee;
   --panel: #ffffff;
   --surface: #f3f1ec;
   --line: #e6e2d9;
@@ -14,7 +14,7 @@
   --on-accent: #ffffff;
   --on-ink: #ffffff;
   --ink-hover: #2a2c33;
-  --glass: rgba(250, 250, 250, 0.94);
+  --glass: rgba(246, 243, 238, 0.94);
   --row-hover: #fdfcf9;
   --shadow-rgb: 21, 22, 26;
   --danger: #b4232c;
