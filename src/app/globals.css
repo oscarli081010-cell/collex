@@ -2,10 +2,10 @@
   --bg: #f4f2ed;
   --bar: var(--accent); /* the top bar: Collex navy, with everything on it in white */
   --panel: #ffffff;
-  --surface: #f3f1ec;
+  --surface: #ece9e2; /* a step darker than the page, so tab tracks and fills keep their edge */
   --line: #e6e2d9;
   --line-strong: #d3cdc0;
-  --surface-2: #ebe7df;
+  --surface-2: #e4dfd5;
   --ink: #15161a;
   --muted: #5f626a;
   --faint: #63666e;
