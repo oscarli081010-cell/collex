@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { formatRange, todayInSydney } from "@/lib/conferences";
 import { useConferences } from "@/components/ConferencesContext";
-import s from "@/app/preview/home/home.module.css";
+import s from "./home.module.css";
 
 // The next few conferences, from the same list the calendar uses: a name and its dates per line, nothing more.
 export default function NextUp() {

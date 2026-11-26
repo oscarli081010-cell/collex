@@ -2,17 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Phone, Shot } from "./Devices";
-import s from "@/app/preview/home/home.module.css";
+import s from "./home.module.css";
 
-// Finding a conference, in four steps. On a wide screen the phone stays put while the words scroll past it, and its
+// Finding a conference, in three steps. On a wide screen the phone stays put while the words scroll past it, and its
 // screen changes to match the step in the middle of the window. On a phone each step carries its own picture.
 const STEPS = [
   { kicker: "Calendar", title: "Every conference,", accent: "one calendar.", text: "Month by month or the whole year, so dates are easy to see and hard to clash.", shot: "phone-calendar", alt: "The Collex calendar for April 2027 on a phone" },
-  { kicker: "Conference pages", title: "A page", accent: "for each.", text: "Dates, host, venue, committees and the links to apply, in the same clear format. Some take applications right on Collex.", shot: "phone-conference", alt: "A conference page on Collex, on a phone" },
-  { kicker: "Search", title: "Find it", accent: "from any page.", text: "Type a conference or a school into the search at the top of the site.", shot: "phone-search", alt: "Searching Collex for 2027 on a phone" },
+  { kicker: "Conference pages", title: "A page", accent: "for each.", text: "Dates, host, venue, committees and how to apply. Some take applications right on Collex.", shot: "phone-conference", alt: "A conference page on Collex, on a phone" },
   { kicker: "Follow", title: "Never miss", accent: "a deadline.", text: "Follow a conference to hear when applications open, with a reminder before each key date.", shot: "phone-conference", alt: "The Follow button on a conference page" },
 ];
-const FOLLOW = 3;
+const FOLLOW = 2;
 const SIZES = "(max-width: 900px) 240px, 320px";
 
 export default function Tour() {

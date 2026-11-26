@@ -8,7 +8,7 @@ import { Placard } from "@/components/Drawings";
 import PageBand, { nextUp } from "@/components/PageBand";
 import Select from "@/components/Select";
 import s from "@/components/board.module.css";
-import g from "@/app/preview/conferences/conferences.module.css";
+import g from "./conferences.module.css";
 import ConferenceCard from "./ConferenceCard";
 
 // Keeps ?month= in the address, so a filtered grid can be shared or bookmarked.
@@ -26,9 +26,10 @@ export default function ConferenceGrid() {
   const [q, setQ] = useState("");
   const [level, setLevel] = useState("any");
   const [month, setMonth] = useState("any");
-  // ?q= prefills the search; ?month=2027-03 picks a month.
+  // ?q= prefills the search; ?month=2027-03 picks a month. Read once in the browser: the page is static, so the server can't.
   useEffect(() => {
     const p = new URLSearchParams(location.search);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-off read of the address after hydration
     if (p.get("q")) setQ(p.get("q")!);
     if (/^\d{4}-\d{2}$/.test(p.get("month") ?? "")) setMonth(p.get("month")!);
   }, []);
