@@ -120,10 +120,16 @@
 /* ---------- Hero ---------- */
 /* The first screen is the hero alone, its block centred in the window, with the scroll cue at the bottom. */
 .hero {
-  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
-  text-align: center; min-height: calc(100svh - 73px); padding-block: 40px 120px;
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 22px;
+  text-align: center; min-height: calc(100svh - 73px); padding-block: 0 120px;
 }
-.noticeRow { max-width: 100%; margin-bottom: 22px; }
+/* Stretchy space around the block keeps it centred. With a notice, the notice sits a third of the way from the top bar
+   to the headline: one share of space above it, two below it (the notice's row takes those two, the pill at its top),
+   and three under the block to balance. */
+.hero::before { content: ""; flex: 3 0 0; }
+.hero::after { content: ""; flex: 3 0 0; }
+.hero:has(> .noticeRow)::before { flex-grow: 1; margin-bottom: -22px; } /* the gaps around the notice cancelled, so the shares are exact */
+.noticeRow { max-width: 100%; margin-bottom: -22px; flex: 2 0 auto; display: flex; flex-direction: column; justify-content: flex-start; }
 .title { font-size: clamp(48px, 7.6vw, 116px); line-height: 0.95; letter-spacing: -0.025em; max-width: 15ch; cursor: default; }
 .word { white-space: nowrap; }
 .ch { display: inline-block; }
