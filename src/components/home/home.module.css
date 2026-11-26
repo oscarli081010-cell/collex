@@ -305,12 +305,6 @@
 .tileWide { grid-column: span 2; }
 .tileArt { margin-bottom: auto; padding-bottom: 28px; color: var(--stage-accent); }
 .icon { display: block; }
-.key {
-  display: inline-grid; place-items: center; width: 60px; height: 60px; border-radius: 14px;
-  border: 1px solid var(--stage-line); background: rgba(255, 255, 255, 0.07); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.35);
-  font-size: 24px; font-weight: 500; color: var(--stage-ink);
-}
-.big { display: block; font-size: 76px; line-height: 0.8; color: var(--stage-ink); }
 .tileTitle { font-size: 17px; font-weight: 500; color: var(--stage-ink); }
 .tileText { max-width: 40ch; font-size: 15px; line-height: 1.5; color: var(--stage-muted); }
 
