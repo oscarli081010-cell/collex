@@ -71,13 +71,13 @@ export default async function Home() {
           <Link href="/list" className="link">List a Conference</Link>
         </p>
         {/* A quiet nudge that there is more below; it fades as soon as the page moves. */}
-        <a href="#why" className={s.scrollCue}>
+        <a href="#devices" className={s.scrollCue}>
           Scroll
           <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </a>
       </section>
 
-      <div className={`container ${s.stage}`}>
+      <div id="devices" className={`container ${s.stage}`}>
         <div className={s.stageInner}>
           <Laptop bodyClassName={s.stageBody} lidClassName={s.stageLid}>
             <Shot name="laptop-calendar" alt="The Collex calendar, showing April 2027" kind="laptop" sizes="(max-width: 1280px) 80vw, 900px" priority />

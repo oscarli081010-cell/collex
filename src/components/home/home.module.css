@@ -128,7 +128,7 @@
 /* The scroll cue: small and quiet under the links; it nudges twice once the page has arrived, and fades out as soon as
    the page moves (where the browser can tie it to the scroll). */
 .scrollCue {
-  display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: clamp(8px, 3vh, 28px);
+  display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: clamp(28px, 7vh, 72px);
   font-size: 13px; color: var(--faint); transition: color var(--duration-quick);
 }
 .scrollCue:hover { color: var(--ink); }
@@ -184,7 +184,7 @@
 .search:focus-within .searchGo { background: var(--accent); }
 .search:focus-within .searchGo svg { transform: translateX(2px); }
 
-.stage { margin-top: clamp(48px, 5vw, 72px); view-timeline: --stage block; }
+.stage { margin-top: clamp(48px, 5vw, 72px); view-timeline: --stage block; scroll-margin-top: 88px; }
 .stageInner { position: relative; width: min(100%, 1100px); margin: 0 auto; }
 .stagePhone { position: absolute; right: 2%; bottom: 4%; width: 19%; }
 

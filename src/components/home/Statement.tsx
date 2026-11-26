@@ -46,7 +46,7 @@ function Words({ parts, from }: { parts: Part[]; from: number }) {
 
 export default function Statement() {
   return (
-    <section id="why" className={s.statement} aria-label="Why Collex">
+    <section className={s.statement} aria-label="Why Collex">
       <div className={s.statementHold}>
         <p className={`container serif ${s.statementText}`}>
           <span className={s.line}><Words parts={FIRST} from={0} /></span>{" "}
