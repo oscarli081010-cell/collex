@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Laptop, Shot } from "./Devices";
+import Model3D from "./Model3D";
 import s from "./home.module.css";
 
 // Finding a conference, in three steps. On a wide screen the laptop stays put while the words scroll past it, and its
@@ -41,7 +42,7 @@ export default function Tour() {
             <h3 className={`serif ${s.stepTitle}`}>{st.title} <em>{st.accent}</em></h3>
             <p className={s.stepText}>{st.text}</p>
             <div className={s.stepShot}>
-              <Laptop bodyClassName={s.tourBody}>
+              <Laptop bodyClassName={s.tourBody} model={<Model3D kind="laptop" screen={{ shot: st.shot, ring: i === FOLLOW }} label={st.alt} />}>
                 <Shot name={st.shot} alt={st.alt} kind="laptop" sizes={SIZES} />
                 {i === FOLLOW && <span className={`${s.ring} ${s.ringOn}`} aria-hidden="true" />}
               </Laptop>
@@ -51,7 +52,7 @@ export default function Tour() {
       </ol>
       <div className={s.tourStage} aria-hidden="true">
         <div className={s.tourSticky}>
-          <Laptop bodyClassName={s.tourBody} lidClassName={s.tourLid}>
+          <Laptop bodyClassName={s.tourBody} lidClassName={s.tourLid} model={<Model3D kind="laptop" screen={{ shot: STEPS[on].shot, ring: on === FOLLOW }} />}>
             {STEPS.map((st, i) => (i === FOLLOW ? null : (
               <div key={i} className={s.tourShot} data-on={on === i || (i === 1 && on === FOLLOW) ? "" : undefined}>
                 <Shot name={st.shot} alt="" kind="laptop" sizes={SIZES} />

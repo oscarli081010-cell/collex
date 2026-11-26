@@ -1,7 +1,8 @@
 import Image from "next/image";
 import s from "./home.module.css";
 
-// Device frames drawn in CSS around real Collex screenshots. Each screen comes in a light and a dark copy; the page shows
+// Device frames drawn in CSS around real Collex screenshots. A laptop or phone can also take a `model` (Model3D), the
+// real 3D model drawn over the CSS one, which then hides once the model is showing. Each screen comes in a light and a dark copy; the page shows
 // the one that matches the theme (the other is display: none, so a lazy image never loads it).
 
 const LAPTOP = { w: 1600, h: 1000 };
@@ -19,7 +20,7 @@ export function Shot({ name, alt, kind, sizes, priority }: { name: string; alt: 
 
 /** A laptop seen from above and to one side: the lid with its screen, standing on a deck with a keyboard and trackpad.
  *  Drawn with CSS 3D transforms, so it is one set of flat planes the browser tilts; no model, no images but the screen. */
-export function Laptop({ children, className, bodyClassName, lidClassName }: { children: React.ReactNode; className?: string; bodyClassName?: string; lidClassName?: string }) {
+export function Laptop({ children, className, bodyClassName, lidClassName, model }: { children: React.ReactNode; className?: string; bodyClassName?: string; lidClassName?: string; model?: React.ReactNode }) {
   return (
     <div className={`${s.device} ${s.l3} ${className ?? ""}`}>
       <div className={`${s.l3Body} ${bodyClassName ?? ""}`}>
@@ -32,12 +33,13 @@ export function Laptop({ children, className, bodyClassName, lidClassName }: { c
           <div className={s.l3Screen}>{children}<span className={s.l3Glare} aria-hidden="true" /></div>
         </div>
       </div>
+      {model}
     </div>
   );
 }
 
 /** A phone. The screenshot starts below the status bar, so the camera pill never covers the page's own header. */
-export function Phone({ children, className }: { children: React.ReactNode; className?: string }) {
+export function Phone({ children, className, model }: { children: React.ReactNode; className?: string; model?: React.ReactNode }) {
   return (
     <div className={`${s.device} ${className ?? ""}`}>
       <div className={s.phone}>
@@ -50,6 +52,7 @@ export function Phone({ children, className }: { children: React.ReactNode; clas
           <span className={s.island} aria-hidden="true" />
         </div>
       </div>
+      {model}
     </div>
   );
 }

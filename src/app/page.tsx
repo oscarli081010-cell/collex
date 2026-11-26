@@ -7,6 +7,7 @@ import Tour from "@/components/home/Tour";
 import NextUp from "@/components/home/NextUp";
 import Search from "@/components/home/Search";
 import HeroTitle from "@/components/home/HeroTitle";
+import Model3D from "@/components/home/Model3D";
 import Statement from "@/components/home/Statement";
 import { Laptop, Phone, Screen, Shot } from "@/components/home/Devices";
 import s from "@/components/home/home.module.css";
@@ -80,10 +81,10 @@ export default async function Home() {
 
       <div id="devices" className={`container ${s.stage}`}>
         <div className={s.stageInner}>
-          <Laptop bodyClassName={s.stageBody} lidClassName={s.stageLid}>
+          <Laptop bodyClassName={s.stageBody} lidClassName={s.stageLid} model={<Model3D kind="laptop" screen={{ shot: "laptop-calendar" }} label="The Collex calendar, showing April 2027, on a laptop" />}>
             <Shot name="laptop-calendar" alt="The Collex calendar, showing April 2027" kind="laptop" sizes="(max-width: 1280px) 80vw, 900px" priority />
           </Laptop>
-          <Phone className={s.stagePhone}>
+          <Phone className={s.stagePhone} model={<Model3D kind="phone" screen={{ shot: "phone-scmun" }} label="The Sydney Collegiate MUN page on Collex, on a phone" />}>
             <Shot name="phone-scmun" alt="The Sydney Collegiate MUN page on Collex, on a phone" kind="phone" sizes="(max-width: 900px) 30vw, 260px" />
           </Phone>
         </div>
@@ -184,6 +185,10 @@ export default async function Home() {
           </div>
           <p className={s.endNote}>Free for every conference and every delegate.</p>
         </div>
+        {/* The 3D devices are Ranguel's models, shared under CC BY 4.0, which asks for this line. */}
+        <p className={s.credit}>
+          3D models: <a href="https://sketchfab.com/3d-models/macbook-neo-f3dd26684f114b1baffd1b0800876627" className="link" rel="noopener noreferrer" target="_blank">MacBook Neo</a> and <a href="https://sketchfab.com/3d-models/iphone-18-pro-max-00c7189b1cb84cc79dc4d919400f3f03" className="link" rel="noopener noreferrer" target="_blank">iPhone 18 Pro Max</a> by Ranguel, <a href="https://creativecommons.org/licenses/by/4.0/" className="link" rel="noopener noreferrer license" target="_blank">CC BY 4.0</a>, modified.
+        </p>
       </section>
     </main>
   );

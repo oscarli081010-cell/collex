@@ -32,7 +32,11 @@
 }
 
 /* ---------- Devices ---------- */
-.device { container-type: inline-size; width: 100%; }
+.device { position: relative; container-type: inline-size; width: 100%; }
+/* The 3D model's canvas, over the CSS device and a little past it; Model3D sizes and places it. Once it is drawing, the
+   CSS device hides (but keeps its size and its scroll animations, which the model reads). */
+.model { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+.device[data-model] > :not(.model) { visibility: hidden; }
 .shot { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
 
 /* The laptop: flat planes in 3D. The lid stands on the back edge of the deck, leaning back a little; the deck lies flat
@@ -336,6 +340,7 @@
 .endBand { padding-block: clamp(64px, 9vw, 120px); }
 .endTitle { font-size: clamp(40px, 5.6vw, 76px); line-height: 1; letter-spacing: -0.02em; }
 .endNote { color: var(--muted); font-size: 14px; }
+.credit { margin-top: 32px; text-align: center; color: var(--muted); font-size: 12px; }
 .endBand .memberOnly { display: none; }
 :global(html[data-auth="in"]) .endBand .guestOnly { display: none; }
 :global(html[data-auth="in"]) .endBand .memberOnly { display: inline-flex; }
