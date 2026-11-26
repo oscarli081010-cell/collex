@@ -565,6 +565,8 @@ function EditConference({ r, onDone }: { r: Row; onDone: (saved: boolean) => voi
   const { session } = useAuth();
   const [cover, setCover] = useState<File | null>(null);
   const [thumb, setThumb] = useState<File | null>(null);
+  // A saved photo marked to go: cleared (with where it was framed) when the edit is saved, unless a new file replaces it.
+  const [drop, setDrop] = useState({ cover: false, thumb: false });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setV((x) => ({ ...x, [k]: e.target.value }));
@@ -582,7 +584,9 @@ function EditConference({ r, onDone }: { r: Row; onDone: (saved: boolean) => voi
       if (upError) { setErr("The photo didn't upload. Try again."); return null; }
       return path;
     };
-    const photos: { cover_path?: string; thumb_path?: string } = {};
+    const photos: Record<string, string | null> = {};
+    if (drop.cover && !cover) Object.assign(photos, { cover_path: null, cover_x: null, cover_y: null });
+    if (drop.thumb && !thumb) Object.assign(photos, { thumb_path: null, thumb_x: null, thumb_y: null });
     if (cover) { const path = await upload(cover); if (!path) return setBusy(false); photos.cover_path = path; }
     if (thumb) { const path = await upload(thumb); if (!path) return setBusy(false); photos.thumb_path = path; }
     const patch = {
@@ -617,12 +621,14 @@ function EditConference({ r, onDone }: { r: Row; onDone: (saved: boolean) => voi
       <div className="field">
         <label htmlFor={`ec-${r.id}-cover`}>Cover Photo</label>
         <input id={`ec-${r.id}-cover`} className="control" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setCover(e.target.files?.[0] ?? null)} />
-        <p className="muted">{cover ? cover.name : r.cover_path ? "A photo is set. Choose a file to replace it." : "JPG, PNG or WebP, up to 5 MB."}</p>
+        <p className="muted">{cover ? cover.name : r.cover_path ? (drop.cover ? "The photo will be removed when you save." : "A photo is set. Choose a file to replace it.") : "JPG, PNG or WebP, up to 5 MB."}</p>
+        {r.cover_path && !cover && <button type="button" className="link" style={{ alignSelf: "flex-start" }} onClick={() => setDrop((d) => ({ ...d, cover: !d.cover }))}>{drop.cover ? "Keep Photo" : "Remove Photo"}</button>}
       </div>
       <div className="field">
         <label htmlFor={`ec-${r.id}-thumb`}>Photo in the Lists</label>
         <input id={`ec-${r.id}-thumb`} className="control" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setThumb(e.target.files?.[0] ?? null)} />
-        <p className="muted">{thumb ? thumb.name : r.thumb_path ? "A photo is set. Choose a file to replace it." : "A logo or square photo for the lists. Without one, the lists use the cover."}</p>
+        <p className="muted">{thumb ? thumb.name : r.thumb_path ? (drop.thumb ? "The photo will be removed when you save." : "A photo is set. Choose a file to replace it.") : "A logo or square photo for the lists. Without one, the lists use the cover."}</p>
+        {r.thumb_path && !thumb && <button type="button" className="link" style={{ alignSelf: "flex-start" }} onClick={() => setDrop((d) => ({ ...d, thumb: !d.thumb }))}>{drop.thumb ? "Keep Photo" : "Remove Photo"}</button>}
       </div>
       {err && <p className="muted" role="alert" style={{ color: "var(--danger)" }}>{err}</p>}
       <div className={s.actions} style={{ justifyContent: "flex-start" }}>
