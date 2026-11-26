@@ -118,21 +118,25 @@
 .screenInner { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 0.45cqw; background: var(--bg); }
 
 /* ---------- Hero ---------- */
+/* The first screen is the hero alone, its block centred in the window, with the scroll cue at the bottom. */
 .hero {
-  display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center;
-  padding-top: clamp(76px, 13vh, 150px);
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  text-align: center; min-height: calc(100svh - 73px); padding-block: 40px 120px;
 }
-.noticeRow { max-width: 100%; margin-bottom: 6px; }
-.title { font-size: clamp(48px, 7.6vw, 116px); line-height: 0.95; letter-spacing: -0.025em; max-width: 15ch; }
+.noticeRow { max-width: 100%; margin-bottom: 22px; }
+.title { font-size: clamp(48px, 7.6vw, 116px); line-height: 0.95; letter-spacing: -0.025em; max-width: 15ch; cursor: default; }
+.word { white-space: nowrap; }
+.ch { display: inline-block; }
 .title em, .h2 em, .stepTitle em, .endTitle em { font-style: italic; color: var(--accent); }
 /* The scroll cue: small and quiet under the links; it nudges twice once the page has arrived, and fades out as soon as
    the page moves (where the browser can tie it to the scroll). */
 .scrollCue {
-  display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: clamp(28px, 7vh, 72px);
+  position: absolute; left: 0; right: 0; bottom: clamp(24px, 4vh, 40px); width: max-content; margin-inline: auto;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
   font-size: 13px; color: var(--faint); transition: color var(--duration-quick);
 }
 .scrollCue:hover { color: var(--ink); }
-.heroSearch { display: flex; justify-content: center; width: min(100%, 520px); margin-top: 8px; }
+.heroSearch { display: flex; justify-content: center; width: min(100%, 520px); margin-top: 28px; }
 .heroLinks { display: flex; gap: 12px; align-items: center; font-size: 14px; color: var(--faint); margin-top: -4px; }
 
 /* The search. At rest a quiet field; on focus it lifts, an accent ring grows in around it, a soft glow gathers
@@ -353,6 +357,10 @@
 @property --lid-close { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
 @keyframes tourLidOpen { from { --lid-open: -80deg; } to { --lid-open: 0deg; } }
 @keyframes tourLidClose { from { --lid-close: 0deg; } to { --lid-close: -80deg; } }
+/* Hovering the headline sends a wave through it, letter by letter: each one lifts and settles, and the accented words
+   brighten as it passes. */
+@keyframes chWave { 0%, 100% { transform: none; } 40% { transform: translateY(-0.09em) rotate(-2deg); } }
+@keyframes chGlow { 40% { color: color-mix(in oklab, var(--accent) 72%, var(--bg)); text-shadow: 0 0.06em 0.3em var(--accent-soft); } }
 @keyframes cueNudge { 50% { transform: translateY(4px); } }
 @keyframes cueOut { to { opacity: 0; } }
 @keyframes duoTurn { from { transform: rotateX(-36deg) rotateY(34deg); } to { transform: rotateX(-18deg) rotateY(18deg); } }
@@ -367,6 +375,10 @@
   .hero > :nth-child(4) { animation-delay: 270ms; }
   .hero > :nth-child(5) { animation-delay: 360ms; }
   .hero > :nth-child(6) { animation-delay: 450ms; }
+  @media (hover: hover) {
+    .title:hover .ch { animation: chWave 720ms var(--ease-smooth-out) calc(var(--i) * 26ms); }
+    .title:hover em .ch { animation-name: chWave, chGlow; animation-duration: 720ms, 720ms; }
+  }
   .scrollCue svg { animation: cueNudge 1.8s var(--ease-in-out, ease-in-out) 1.6s 2; }
 
   @supports (animation-timeline: view()) {

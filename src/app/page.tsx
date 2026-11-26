@@ -53,6 +53,17 @@ const ORGANISE = [
   { n: "04", title: "Every room, live", text: "Link each committee to the conference and follow them all from one page." },
 ];
 
+// The headline, letter by letter, so a hover can send a wave through it. Words stay whole (no break inside a word).
+function letters(text: string, from: number) {
+  let i = from;
+  return text.split(" ").map((w, wi, all) => (
+    <span key={wi}>
+      <span className={s.word}>{[...w].map((ch) => <span key={i} className={s.ch} style={{ "--i": i++ } as React.CSSProperties}>{ch}</span>)}</span>
+      {wi < all.length - 1 ? (i++, " ") : null}
+    </span>
+  ));
+}
+
 export default async function Home() {
   const notice = await getSiteNotice();
   return (
@@ -63,7 +74,9 @@ export default async function Home() {
       {/* The first screen: the admin's notice if there is one, the line, the search, and the two devices underneath. */}
       <section className={`container ${s.hero}`}>
         {notice && <div className={s.noticeRow}><SiteNotice notice={notice} /></div>}
-        <h1 className={`serif ${s.title}`}>Sydney Model UN, <em>in one place.</em></h1>
+        <h1 className={`serif ${s.title}`} aria-label="Sydney Model UN, in one place.">
+          <span aria-hidden="true">{letters("Sydney Model UN,", 0)} <em>{letters("in one place.", 16)}</em></span>
+        </h1>
         <div className={s.heroSearch}><Search /></div>
         <p className={s.heroLinks}>
           <Link href="/start" className="link">New to MUN?</Link>
