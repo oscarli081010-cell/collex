@@ -125,7 +125,13 @@
 .noticeRow { max-width: 100%; margin-bottom: 6px; }
 .title { font-size: clamp(48px, 7.6vw, 116px); line-height: 0.95; letter-spacing: -0.025em; max-width: 15ch; }
 .title em, .h2 em, .stepTitle em, .endTitle em { font-style: italic; color: var(--accent); }
-.lead { font-size: clamp(18px, 1.6vw, 22px); line-height: 1.45; color: var(--muted); max-width: 34ch; }
+/* The scroll cue: small and quiet under the links; it nudges twice once the page has arrived, and fades out as soon as
+   the page moves (where the browser can tie it to the scroll). */
+.scrollCue {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: clamp(8px, 3vh, 28px);
+  font-size: 13px; color: var(--faint); transition: color var(--duration-quick);
+}
+.scrollCue:hover { color: var(--ink); }
 .heroSearch { display: flex; justify-content: center; width: min(100%, 520px); margin-top: 8px; }
 .heroLinks { display: flex; gap: 12px; align-items: center; font-size: 14px; color: var(--faint); margin-top: -4px; }
 
@@ -215,9 +221,8 @@
 
 /* ---------- The tour: a phone that stays while the steps pass ---------- */
 .tourGrid {
-  --pw: min(300px, calc((100svh - 150px) * 0.44));
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(40px, 6vw, 96px);
-  margin-top: clamp(24px, 4vw, 56px);
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(32px, 4vw, 64px);
+  margin-top: clamp(24px, 4vw, 56px); view-timeline: --tour block;
 }
 .steps { display: flex; flex-direction: column; }
 .step {
@@ -230,7 +235,8 @@
 .stepText { max-width: 34ch; color: var(--muted); font-size: 17px; line-height: 1.5; }
 .stepShot { display: none; }
 .tourStage { position: relative; }
-.tourSticky { position: sticky; top: calc(36px + 50svh - var(--pw) * 1.1); width: var(--pw); margin: 0 auto; }
+.tourSticky { position: sticky; top: calc(36px + 50svh - 19vw); width: 100%; }
+.tourBody { width: 86%; }
 .tourShot {
   position: absolute; inset: 0; opacity: 0; transform: scale(1.04);
   transition: opacity 600ms var(--ease-smooth-out), transform 900ms var(--ease-smooth-out);
@@ -238,7 +244,7 @@
 .tourShot[data-on] { opacity: 1; transform: none; }
 /* The Follow button, ringed when the last step is on. */
 .ring {
-  position: absolute; z-index: 1; left: 4.4%; top: 63.7%; width: 64.6%; height: 6.1%; border-radius: 999px;
+  position: absolute; z-index: 1; left: 70.28%; top: 54.16%; width: 13.06%; height: 4.89%; border-radius: 999px;
   box-shadow: 0 0 0 2px var(--accent), 0 0 0 8px var(--accent-soft);
   opacity: 0; transform: scale(1.12); pointer-events: none;
   transition: opacity 400ms var(--ease-smooth-out), transform 700ms var(--ease-smooth-out);
@@ -246,7 +252,8 @@
 .ringOn { opacity: 1; transform: none; }
 
 /* ---------- Coming up ---------- */
-.nextHead { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.nextHead { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.nextHead > a { font-size: clamp(16px, 1.4vw, 19px); white-space: nowrap; }
 .nextHead .h2 { max-width: none; }
 .nextRow {
   display: grid; grid-template-columns: minmax(0, 1fr) auto 18px; align-items: baseline; gap: 24px;
@@ -267,6 +274,8 @@
   transform-origin: 50% 0;
 }
 .proHead .kicker, .proHead .h2 em { color: var(--stage-accent); }
+.tourPanel .kicker, .tourPanel .stepTitle em { color: var(--stage-accent); }
+.tourPanel .stepText { color: var(--stage-muted); }
 .proLead { max-width: 38ch; color: var(--stage-muted); font-size: clamp(17px, 1.5vw, 20px); line-height: 1.45; }
 
 .duo {
@@ -323,6 +332,9 @@
 .endBand { padding-block: clamp(64px, 9vw, 120px); }
 .endTitle { font-size: clamp(40px, 5.6vw, 76px); line-height: 1; letter-spacing: -0.02em; }
 .endNote { color: var(--muted); font-size: 14px; }
+.endBand .memberOnly { display: none; }
+:global(html[data-auth="in"]) .endBand .guestOnly { display: none; }
+:global(html[data-auth="in"]) .endBand .memberOnly { display: inline-flex; }
 
 /* ---------- Motion ---------- */
 @keyframes up { from { opacity: 0; transform: translateY(24px); } }
@@ -337,6 +349,12 @@
 @keyframes panelIn { from { transform: scale(0.93); } to { transform: none; } }
 @keyframes screenIn { from { transform: translateY(10%) scale(0.92); opacity: 0.4; } to { transform: none; opacity: 1; } }
 @keyframes laptopIn { from { transform: translateY(26%); } to { transform: none; } }
+@property --lid-open { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@property --lid-close { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@keyframes tourLidOpen { from { --lid-open: -80deg; } to { --lid-open: 0deg; } }
+@keyframes tourLidClose { from { --lid-close: 0deg; } to { --lid-close: -80deg; } }
+@keyframes cueNudge { 50% { transform: translateY(4px); } }
+@keyframes cueOut { to { opacity: 0; } }
 @keyframes duoTurn { from { transform: rotateX(-36deg) rotateY(34deg); } to { transform: rotateX(-18deg) rotateY(18deg); } }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -348,6 +366,8 @@
   .hero > :nth-child(3) { animation-delay: 180ms; }
   .hero > :nth-child(4) { animation-delay: 270ms; }
   .hero > :nth-child(5) { animation-delay: 360ms; }
+  .hero > :nth-child(6) { animation-delay: 450ms; }
+  .scrollCue svg { animation: cueNudge 1.8s var(--ease-in-out, ease-in-out) 1.6s 2; }
 
   @supports (animation-timeline: view()) {
     /* The laptop turns towards you and its lid opens as the stage scrolls up; the phone rises past it. */
@@ -355,7 +375,7 @@
     .stageLid { animation: lidOpen linear both; animation-timeline: --stage; animation-range: cover 0% cover 46%; }
     .stagePhone { animation: phoneUp linear both; animation-timeline: --stage; animation-range: cover 0% cover 50%; }
     /* The statement holds the screen while it lights up (each word's range is set on the word itself). */
-    .statement { height: 280svh; padding: 0; }
+    .statement { height: 190svh; padding: 0; }
     .statementHold { position: sticky; top: 0; height: 100svh; display: grid; place-items: center; }
     .w { animation: wordLit linear both; animation-timeline: --st; }
     .strike { animation: strike linear both; animation-timeline: --st; animation-range: contain 78% contain 88%; }
@@ -367,6 +387,15 @@
     .duoScreen { animation: screenIn linear both; animation-timeline: --duo; animation-range: cover 0% cover 45%; }
     .duoLaptop { animation: laptopIn linear both; animation-timeline: --duo; animation-range: cover 0% cover 52%; }
     .duoBody { animation: duoTurn linear both; animation-timeline: --duo; animation-range: cover 0% cover 55%; }
+    /* The tour laptop opens as the steps come up and closes as they go: two angles added together, each on its own
+       stretch of the scroll, so neither holds the other back. */
+    .tourLid {
+      transform: rotateX(calc(8deg + var(--lid-open) + var(--lid-close)));
+      animation: tourLidOpen linear both, tourLidClose linear both;
+      animation-timeline: --tour, --tour;
+      animation-range: entry 0% entry 55%, exit 0% exit 45%;
+    }
+    .scrollCue { animation: cueOut linear both; animation-timeline: scroll(root); animation-range: 0px 160px; }
   }
   @supports not (animation-timeline: view()) {
     .stageInner { animation: up 1100ms var(--ease-smooth-out) 300ms backwards; }
@@ -392,7 +421,7 @@
   .step { min-height: 0; max-width: none; margin: 0; align-items: center; text-align: center; padding-block: 48px; }
   .steps[data-live] .step:not([data-on]) { opacity: 1; }
   .stepText { margin-inline: auto; }
-  .stepShot { display: block; width: min(250px, 66vw); margin-top: 28px; }
+  .stepShot { display: block; width: min(100%, 560px); margin-top: 20px; }
   .duoScreen { grid-column: 1 / 13; }
   .duoScreen figcaption { display: none; }
   .duoLaptop { grid-column: 1 / 11; grid-row: 2; }

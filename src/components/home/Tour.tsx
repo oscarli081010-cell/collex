@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Phone, Shot } from "./Devices";
+import { Laptop, Shot } from "./Devices";
 import s from "./home.module.css";
 
-// Finding a conference, in three steps. On a wide screen the phone stays put while the words scroll past it, and its
-// screen changes to match the step in the middle of the window. On a phone each step carries its own picture.
+// Finding a conference, in three steps. On a wide screen the laptop stays put while the words scroll past it, and its
+// screen changes to match the step in the middle of the window; its lid opens as the steps arrive and closes as they
+// leave. On a phone each step carries its own picture. The example conference is Sydney Collegiate MUN.
 const STEPS = [
-  { kicker: "Calendar", title: "Every conference,", accent: "one calendar.", text: "Month by month or the whole year, so dates are easy to see and hard to clash.", shot: "phone-calendar", alt: "The Collex calendar for April 2027 on a phone" },
-  { kicker: "Conference pages", title: "A page", accent: "for each.", text: "Dates, host, venue, committees and how to apply. Some take applications right on Collex.", shot: "phone-conference", alt: "A conference page on Collex, on a phone" },
-  { kicker: "Follow", title: "Never miss", accent: "a deadline.", text: "Follow a conference to hear when applications open, with a reminder before each key date.", shot: "phone-conference", alt: "The Follow button on a conference page" },
+  { kicker: "Calendar", title: "Every conference,", accent: "one calendar.", text: "Month by month or the whole year, so dates are easy to see and hard to clash.", shot: "laptop-calendar", alt: "The Collex calendar for April 2027" },
+  { kicker: "Conference pages", title: "A page", accent: "for each.", text: "Dates, host, venue, committees and how to apply. Some take applications right on Collex.", shot: "laptop-conference", alt: "The Sydney Collegiate MUN page on Collex" },
+  { kicker: "Follow", title: "Never miss", accent: "a deadline.", text: "Follow a conference to hear when applications open, with a reminder before each key date.", shot: "laptop-conference", alt: "The Follow button on the Sydney Collegiate MUN page" },
 ];
 const FOLLOW = 2;
-const SIZES = "(max-width: 900px) 240px, 320px";
+const SIZES = "(max-width: 900px) 92vw, 640px";
 
 export default function Tour() {
   const [on, setOn] = useState(0);
@@ -40,24 +41,24 @@ export default function Tour() {
             <h3 className={`serif ${s.stepTitle}`}>{st.title} <em>{st.accent}</em></h3>
             <p className={s.stepText}>{st.text}</p>
             <div className={s.stepShot}>
-              <Phone>
-                <Shot name={st.shot} alt={st.alt} kind="phone" sizes={SIZES} />
+              <Laptop bodyClassName={s.tourBody}>
+                <Shot name={st.shot} alt={st.alt} kind="laptop" sizes={SIZES} />
                 {i === FOLLOW && <span className={`${s.ring} ${s.ringOn}`} aria-hidden="true" />}
-              </Phone>
+              </Laptop>
             </div>
           </li>
         ))}
       </ol>
       <div className={s.tourStage} aria-hidden="true">
         <div className={s.tourSticky}>
-          <Phone>
+          <Laptop bodyClassName={s.tourBody} lidClassName={s.tourLid}>
             {STEPS.map((st, i) => (i === FOLLOW ? null : (
               <div key={i} className={s.tourShot} data-on={on === i || (i === 1 && on === FOLLOW) ? "" : undefined}>
-                <Shot name={st.shot} alt="" kind="phone" sizes={SIZES} />
+                <Shot name={st.shot} alt="" kind="laptop" sizes={SIZES} />
               </div>
             )))}
             <span className={`${s.ring} ${on === FOLLOW ? s.ringOn : ""}`} />
-          </Phone>
+          </Laptop>
         </div>
       </div>
     </div>

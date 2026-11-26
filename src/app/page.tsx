@@ -64,13 +64,17 @@ export default async function Home() {
       <section className={`container ${s.hero}`}>
         {notice && <div className={s.noticeRow}><SiteNotice notice={notice} /></div>}
         <h1 className={`serif ${s.title}`}>Sydney Model UN, <em>in one place.</em></h1>
-        <p className={s.lead}>Every conference on one calendar, a page for each, and free tools to run them.</p>
         <div className={s.heroSearch}><Search /></div>
         <p className={s.heroLinks}>
           <Link href="/start" className="link">New to MUN?</Link>
           <span aria-hidden="true">·</span>
           <Link href="/list" className="link">List a Conference</Link>
         </p>
+        {/* A quiet nudge that there is more below; it fades as soon as the page moves. */}
+        <a href="#why" className={s.scrollCue}>
+          Scroll
+          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </a>
       </section>
 
       <div className={`container ${s.stage}`}>
@@ -79,19 +83,24 @@ export default async function Home() {
             <Shot name="laptop-calendar" alt="The Collex calendar, showing April 2027" kind="laptop" sizes="(max-width: 1280px) 80vw, 900px" priority />
           </Laptop>
           <Phone className={s.stagePhone}>
-            <Shot name="phone-conference" alt="A conference page on Collex, on a phone" kind="phone" sizes="(max-width: 900px) 30vw, 260px" />
+            <Shot name="phone-scmun" alt="The Sydney Collegiate MUN page on Collex, on a phone" kind="phone" sizes="(max-width: 900px) 30vw, 260px" />
           </Phone>
         </div>
       </div>
 
       <Statement />
 
-      <section className={`container ${s.section}`} aria-labelledby="find-h">
-        <header className={s.head} data-rise>
-          <p className={s.kicker}>For delegates and teachers</p>
-          <h2 id="find-h" className={`serif ${s.h2}`}>Know what’s on, <em>and when.</em></h2>
-        </header>
-        <Tour />
+      {/* Finding a conference: a dark band like Committees, with a laptop that stays while the steps pass. */}
+      <section className={s.pro} aria-labelledby="find-h">
+        <div className={`${s.proPanel} ${s.tourPanel}`}>
+          <div className="container">
+            <header className={`${s.head} ${s.proHead}`} data-rise>
+              <p className={s.kicker}>For delegates and teachers</p>
+              <h2 id="find-h" className={`serif ${s.h2}`}>Know what’s on, <em>and when.</em></h2>
+            </header>
+            <Tour />
+          </div>
+        </div>
       </section>
 
       <section className={`container ${s.section} ${s.nextSection}`} aria-labelledby="next-h">
@@ -168,7 +177,9 @@ export default async function Home() {
           <h2 id="end-h" className={`serif ${s.endTitle}`}>Find your next <em>conference.</em></h2>
           <div className="calloutActions">
             <Link href="/conferences" className="button">Search Conferences</Link>
-            <Link href="/signup" className="button secondary">Create an Account</Link>
+            {/* Signed in (the layout marks the page before it paints), the second button goes to the account instead. */}
+            <Link href="/signup" className={`button secondary ${s.guestOnly}`}>Create an Account</Link>
+            <Link href="/account" className={`button secondary ${s.memberOnly}`}>Your Account</Link>
           </div>
           <p className={s.endNote}>Free for every conference and every delegate.</p>
         </div>

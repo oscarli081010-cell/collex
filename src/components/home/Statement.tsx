@@ -10,8 +10,8 @@ const FIRST: Part[] = ["Dates,", "committees", "and", "the", "links", "to", "app
 const SECOND: Part[] = ["No", "more", "hunting", "through", { chip: "school websites", icon: "web" }, "and", { chip: "group chats", icon: "chat", tail: "." }];
 
 const COUNT = FIRST.length + SECOND.length;
-const START = 4; // where the first word starts lighting, as a share of the time the page holds still
-const SPAN = 68; // over how much of it the words light up
+const START = 2; // where the first word starts lighting, as a share of the time the page holds still
+const SPAN = 66; // over how much of it the words light up
 const range = (i: number) => {
   const a = START + (i / COUNT) * SPAN;
   return { animationRange: `contain ${a.toFixed(1)}% contain ${(a + 9).toFixed(1)}%` };
@@ -46,7 +46,7 @@ function Words({ parts, from }: { parts: Part[]; from: number }) {
 
 export default function Statement() {
   return (
-    <section className={s.statement} aria-label="Why Collex">
+    <section id="why" className={s.statement} aria-label="Why Collex">
       <div className={s.statementHold}>
         <p className={`container serif ${s.statementText}`}>
           <span className={s.line}><Words parts={FIRST} from={0} /></span>{" "}
