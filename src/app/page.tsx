@@ -131,7 +131,7 @@ export default async function Home() {
                 <figcaption>On the projector</figcaption>
               </figure>
               <figure className={s.duoLaptop}>
-                <Laptop bodyClassName={s.duoBody}>
+                <Laptop bodyClassName={s.duoBody} model={<Model3D kind="laptop" screen={{ shot: "laptop-console" }} label="The Committees console, with Kenya speaking, on a laptop" />}>
                   <Shot name="laptop-console" alt="The Committees console: a General Assembly in general debate, with Kenya speaking" kind="laptop" sizes="(max-width: 900px) 80vw, 620px" />
                 </Laptop>
                 <figcaption>On your laptop</figcaption>
