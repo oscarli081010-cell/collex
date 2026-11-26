@@ -5,6 +5,9 @@
   transition: border-color var(--duration-quick), color var(--duration-quick), background-color var(--duration-quick);
 }
 .trigger:hover { border-color: var(--line-strong); color: var(--ink); }
+/* In the navy top bar it is a see-through white circle, like the menu button beside it on a phone. */
+:global(.topbar) .trigger { background: var(--on-bar-soft); border-color: var(--on-bar-line); color: var(--on-bar); }
+:global(.topbar) .trigger:hover { background: rgba(255, 255, 255, 0.22); border-color: rgba(255, 255, 255, 0.36); }
 .kbd {
   display: inline-flex; align-items: center; height: 22px; padding: 0 7px; border-radius: 6px;
   background: var(--surface); border: 1px solid var(--line); font: 500 11.5px/1 var(--sans); color: var(--muted);

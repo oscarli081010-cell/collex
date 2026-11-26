@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 // The colour of the phone's address bar, to match the page in each theme.
 export const viewport: Viewport = {
   // The site always shows its light theme, so the address bar matches it whatever the device is set to.
-  themeColor: "#f4f2ed",
+  themeColor: "#213a73",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

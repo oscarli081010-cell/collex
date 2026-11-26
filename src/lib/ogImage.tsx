@@ -23,7 +23,7 @@ export async function ogImage({ title, italic, lines, footer, photo, pill }: {
 
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", background: "#fafafa", color: "#15161a", fontFamily: "Inter" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", background: "#f4f2ed", color: "#15161a", fontFamily: "Inter" }}>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "64px 72px" }}>
           <svg viewBox="3 5 203 77" width={140} height={53}>
             <path d={C_PATH} fill="#15161a" />

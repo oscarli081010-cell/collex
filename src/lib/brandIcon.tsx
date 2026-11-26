@@ -8,7 +8,7 @@ export function brandIcon(size: number, rounded: boolean) {
       <div
         style={{
           width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center",
-          background: "#fafafa", borderRadius: rounded ? size * 0.22 : 0,
+          background: "#f4f2ed", borderRadius: rounded ? size * 0.22 : 0,
         }}
       >
         <Mark size={size * 0.74} color="#213a73" />
