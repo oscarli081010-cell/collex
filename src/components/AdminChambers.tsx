@@ -141,10 +141,10 @@ export default function AdminChambers({ chambers, error, say, reload, query }: {
                     <small>{x.summary.topic || "No topic"}</small>
                   </td>
                   <td><strong>{x.owner_name || "No name"}</strong><small>{x.owner_email}</small></td>
-                  <td><strong>{w.step}</strong><small>{w.proc} · {x.summary.delegates ?? 0} states</small></td>
-                  <td>{ago(x.updated_at)}</td>
+                  <td className={c.lines}><strong>{w.step}</strong><small>{w.proc}</small><small>{x.summary.delegates ?? 0} {(x.summary.delegates ?? 0) === 1 ? "state" : "states"}</small></td>
+                  <td className={c.when}>{ago(x.updated_at)}</td>
                   <td className={s.right}>
-                    <div className={s.actions}>
+                    <div className={`${s.actions} ${c.grid2}`}>
                       <IconButton label={x.my_role === "admin" || x.my_role === "owner" ? `Open the console for ${x.name}` : `Join ${x.name} as Admin and open its console`} tip={x.my_role === "admin" || x.my_role === "owner" ? "Open console" : "Enter as Admin"} icon={ENTER} onClick={() => void enter(x)} />
                       <IconButton label={open === x.id ? `Hide ${x.name}` : `Look inside ${x.name}`} tip="Look inside" icon={ICONS.view} pressed={open === x.id} onClick={() => toggle(x)} />
                       <IconButton label={`Edit ${x.name}`} tip="Edit" icon={ICONS.edit} onClick={() => startEdit(x)} />

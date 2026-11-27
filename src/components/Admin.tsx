@@ -44,7 +44,6 @@ const LOG_TONE: Record<string, string> = { approved: "ok", rejected: "bad", unpu
 // What the log says for each action: a person listing a conference reads as "listed".
 const LOG_WORDS: Record<string, string> = { submitted: "listed", "started a chamber": "started a committee", "shared a chamber": "shared a committee" };
 
-const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const REASON: Record<string, string> = { details: "Wrong or out of date", link: "Broken link", inappropriate: "Shouldn\u2019t be here", changed: "Links changed after approval", other: "Something else" };
 type Tab = "Review" | "Conferences" | "Reports" | "Committees" | "Announcements" | "Users" | "Visitors" | "Errors" | "Health" | "Audit Log";
 // The sidebar, in three groups: what's listed, who's here, and how the site is doing.
@@ -70,7 +69,6 @@ export default function Admin() {
   const [chambersError, setChambersError] = useState(false);
   const [errors, setErrors] = useState<ClientError[] | null>(null);
   const [errorsFailed, setErrorsFailed] = useState(false);
-  const [editing, setEditing] = useState<string | null>(null);
   // One search per tab, so switching tabs keeps what you typed in each.
   const [find, setFind] = useState<Record<Tab, string>>({ Review: "", Conferences: "", Reports: "", Committees: "", Announcements: "", Users: "", Visitors: "", Errors: "", Health: "", "Audit Log": "" });
   // A new search starts on the first page of the audit log.
@@ -320,7 +318,9 @@ export default function Admin() {
                       <td className={s.right}>
                         <div className={s.actions}>
                           {r.status === "published" && <IconButton label={`View ${r.name}`} icon={ICONS.view} href={`/conferences/${r.slug}`} />}
-                          <IconButton label={`Edit ${r.name}`} tip="Edit" icon={ICONS.edit} pressed={editing === r.id} onClick={() => setEditing(editing === r.id ? null : r.id)} />
+                          {r.status === "published" || r.status === "pending"
+                            ? <IconButton label={`Edit ${r.name}`} tip="Edit listing" icon={ICONS.edit} href={`/list?edit=${r.id}`} />
+                            : <IconButton label={`Edit ${r.name}`} tip="Only a listing in review or live can be edited" icon={ICONS.edit} disabled />}
                           <IconButton label={r.verified ? `Remove ${r.name}'s Verified badge` : `Verify ${r.name}`} icon={ICONS.verify} pressed={r.verified} onClick={() => setVerified(r)} />
                           {r.status === "published"
                             ? <IconButton label={`Take down ${r.name}`} icon={ICONS.hide} onClick={() => setStatus(r, "unpublished")} />
@@ -329,7 +329,6 @@ export default function Admin() {
                         </div>
                       </td>
                     </tr>
-                    {editing === r.id && <tr><td colSpan={5} className={s.editCell}><EditConference r={r} onDone={(saved) => { setEditing(null); if (saved) { say("Saved"); load(); published(); } }} /></td></tr>}
                     </Fragment>
                   ))}
                 </tbody>
@@ -554,89 +553,5 @@ function ReviewCard({ r, i, picked, onPick, onApprove, onReject }: { r: Row; i: 
         </div>
       </div>
     </article>
-  );
-}
-
-
-/** An admin's edit of a listing: the main details, saved straight to the conference and recorded in the audit log. */
-function EditConference({ r, onDone }: { r: Row; onDone: (saved: boolean) => void }) {
-  const [v, setV] = useState({
-    name: r.name, host: r.host, venue: r.venue, start_date: r.start_date ?? "", end_date: r.end_date ?? "", level: r.level ?? "", contact: r.contact, fee: r.fee,
-    overview: r.overview, delegation_url: r.delegation_url ?? "", chair_url: r.chair_url ?? "", interest_url: r.interest_url ?? "",
-  });
-  const { session } = useAuth();
-  const [cover, setCover] = useState<File | null>(null);
-  const [thumb, setThumb] = useState<File | null>(null);
-  // A saved photo marked to go: cleared (with where it was framed) when the edit is saved, unless a new file replaces it.
-  const [drop, setDrop] = useState({ cover: false, thumb: false });
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setV((x) => ({ ...x, [k]: e.target.value }));
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (v.name.trim().length < 2) return setErr("A listing needs a name.");
-    setBusy(true); setErr("");
-    // The cover and the photo in the lists (a logo, say) go up the same way, each into the admin's own folder.
-    const upload = async (file: File): Promise<string | null> => {
-      const ext = COVER_TYPES[file.type];
-      if (!ext) { setErr("Use a JPG, PNG or WebP photo."); return null; }
-      if (file.size > 5 * 1024 * 1024) { setErr("That photo is over 5 MB."); return null; }
-      const path = `${session!.user.id}/${crypto.randomUUID()}.${ext}`;
-      const { error: upError } = await supabase!.storage.from("covers").upload(path, file, { contentType: file.type, cacheControl: "31536000" });
-      if (upError) { setErr("The photo didn't upload. Try again."); return null; }
-      return path;
-    };
-    const photos: Record<string, string | null> = {};
-    if (drop.cover && !cover) Object.assign(photos, { cover_path: null, cover_x: null, cover_y: null });
-    if (drop.thumb && !thumb) Object.assign(photos, { thumb_path: null, thumb_x: null, thumb_y: null });
-    if (cover) { const path = await upload(cover); if (!path) return setBusy(false); photos.cover_path = path; }
-    if (thumb) { const path = await upload(thumb); if (!path) return setBusy(false); photos.thumb_path = path; }
-    const patch = {
-      ...photos,
-      name: v.name.trim(), host: v.host.trim(), venue: v.venue.trim(), start_date: v.start_date || null, end_date: v.end_date || v.start_date || null, level: v.level.trim() || null,
-      contact: v.contact.trim(), fee: v.fee.trim(), overview: v.overview, delegation_url: v.delegation_url.trim() || null, chair_url: v.chair_url.trim() || null, interest_url: v.interest_url.trim() || null,
-    };
-    const { error } = await supabase!.from("conferences").update(patch).eq("id", r.id);
-    setBusy(false);
-    if (error) return setErr(error.message);
-    onDone(true);
-  };
-  const f = (id: string, label: string, k: keyof typeof v, type = "text") => (
-    <div className="field"><label htmlFor={`ec-${r.id}-${id}`}>{label}</label><input id={`ec-${r.id}-${id}`} className="control" type={type} value={v[k]} onChange={set(k)} /></div>
-  );
-  return (
-    <form className={s.editForm} onSubmit={save}>
-      <div className={s.editGrid}>
-        {f("name", "Name", "name")}
-        {f("host", "Host School", "host")}
-        {f("venue", "Venue", "venue")}
-        {f("level", "Level", "level")}
-        {f("start", "Starts", "start_date", "date")}
-        {f("end", "Ends", "end_date", "date")}
-        {f("fee", "Delegate Fee", "fee")}
-        {f("contact", "Contact", "contact")}
-        {f("deleg", "Delegation Link", "delegation_url", "url")}
-        {f("chair", "Chair Link", "chair_url", "url")}
-        {f("interest", "Interest Link", "interest_url", "url")}
-      </div>
-      <div className="field"><label htmlFor={`ec-${r.id}-ov`}>Overview</label><textarea id={`ec-${r.id}-ov`} className="control" rows={4} value={v.overview} onChange={set("overview")} /></div>
-      <div className="field">
-        <label htmlFor={`ec-${r.id}-cover`}>Cover Photo</label>
-        <input id={`ec-${r.id}-cover`} className="control" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setCover(e.target.files?.[0] ?? null)} />
-        <p className="muted">{cover ? cover.name : r.cover_path ? (drop.cover ? "The photo will be removed when you save." : "A photo is set. Choose a file to replace it.") : "JPG, PNG or WebP, up to 5 MB."}</p>
-        {r.cover_path && !cover && <button type="button" className="link" style={{ alignSelf: "flex-start" }} onClick={() => setDrop((d) => ({ ...d, cover: !d.cover }))}>{drop.cover ? "Keep Photo" : "Remove Photo"}</button>}
-      </div>
-      <div className="field">
-        <label htmlFor={`ec-${r.id}-thumb`}>Photo in the Lists</label>
-        <input id={`ec-${r.id}-thumb`} className="control" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setThumb(e.target.files?.[0] ?? null)} />
-        <p className="muted">{thumb ? thumb.name : r.thumb_path ? (drop.thumb ? "The photo will be removed when you save." : "A photo is set. Choose a file to replace it.") : "A logo or square photo for the lists. Without one, the lists use the cover."}</p>
-        {r.thumb_path && !thumb && <button type="button" className="link" style={{ alignSelf: "flex-start" }} onClick={() => setDrop((d) => ({ ...d, thumb: !d.thumb }))}>{drop.thumb ? "Keep Photo" : "Remove Photo"}</button>}
-      </div>
-      {err && <p className="muted" role="alert" style={{ color: "var(--danger)" }}>{err}</p>}
-      <div className={s.actions} style={{ justifyContent: "flex-start" }}>
-        <button type="submit" className="button" disabled={busy}>Save Changes</button>
-        <button type="button" className="button secondary" onClick={() => onDone(false)}>Cancel</button>
-      </div>
-    </form>
   );
 }

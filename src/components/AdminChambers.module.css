@@ -45,3 +45,9 @@
 .json { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; }
 .raw summary { cursor: pointer; width: fit-content; font-size: 13px; color: var(--muted); padding: 4px 0; }
 .raw pre { max-height: 320px; overflow: auto; margin: 8px 0 0; padding: 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); font-size: 12px; line-height: 1.5; }
+
+/* The committees table: the procedure and the count of states on lines of their own, the time on one line, and the four
+   actions as two rows of two. */
+.lines small { display: block; }
+.when { white-space: nowrap; }
+.grid2 { display: inline-grid; grid-template-columns: repeat(2, auto); justify-content: end; }
