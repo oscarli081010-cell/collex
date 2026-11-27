@@ -189,7 +189,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     // A view-only co-organiser can open the listing's activity, not its form (the database would refuse the save anyway).
     const me = members.find((m) => m.user_id === userId);
     const viewOnly = Boolean(me && !me.is_owner && me.role === "viewer");
-    const row = members.length && !viewOnly ? (data as Editing | null) : null;
+    const row = !viewOnly ? (data as Editing | null) : null; // a row at all means it is theirs to edit (or they are an admin)
     stamp.current = (row?.updated_at as string | undefined) ?? null;
     setEditing(viewOnly ? "viewonly" : row ?? "missing");
     setFirstDay((row?.start_date as string | undefined) ?? "");
@@ -306,7 +306,7 @@ export default function ListForm({ listing }: { listing?: ListingCtx }) {
     const r = await loadForm(id);
     if (!r) return { text: "Couldn’t send it. Check your connection and try again.", conflict: false };
     const me = r.members.find((m) => m.user_id === userId);
-    if (!r.row || !r.members.length || (me && !me.is_owner && me.role === "viewer")) return { text: "You no longer have access to this listing.", conflict: false };
+    if (!r.row || (me && !me.is_owner && me.role === "viewer")) return { text: "You no longer have access to this listing.", conflict: false };
     if (String(r.row.updated_at ?? "") !== stamp.current) return { text: "Someone else changed this listing while you were editing. Reload to see their changes.", conflict: true };
     if (again && (r.row.status === "rejected" || r.row.status === "unpublished")) return { text: "This listing can’t be sent for review again yet. Try again in a few minutes.", conflict: false };
     if (r.row.status === "pending") return { text: "This listing is being reviewed and can’t be edited right now.", conflict: false };
