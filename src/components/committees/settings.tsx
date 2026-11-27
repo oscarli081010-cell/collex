@@ -295,7 +295,7 @@ export function Share({ c, cloudId, manage, signedIn, meId, say, setLocal }: {
               return (
                 <li key={m.user_id}>
                   <span className={s.avatar} data-role={r} aria-hidden="true">{Array.from(who.trim())[0]?.toUpperCase() ?? "?"}</span>
-                  <span className={s.who}>
+                  <span className={s.person}>
                     <span className={s.whoName}>{who}{m.user_id === meId && <span className={s.youTag}> (you)</span>}</span>
                     <span className={s.whoNote}>{ROLE_NOTE[r]}</span>
                   </span>

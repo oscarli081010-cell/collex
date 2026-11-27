@@ -5,6 +5,8 @@ import * as ch from "@/lib/chamber";
 import type { Chamber } from "@/lib/chamber";
 import s from "../Chambers.module.css";
 import Select from "../Select";
+import { Gavel } from "../Drawings";
+import board from "../board.module.css";
 import { Why } from "../RoomChair";
 import { uid, type Act, Duration, CardSide } from "./shared";
 
@@ -89,6 +91,13 @@ export function Motions({ c, act }: { c: Chamber; act: Act }) {
           <button type="button" className="button secondary sm" onClick={() => act(ch.sortMotions)}>Oldest First</button>
         </div>
       )}
+      {waiting.length === 0 && (
+        <div className={`${board.empty} ${s.emptyCard}`}>
+          <Gavel />
+          <p className={board.emptyTitle}>No Motions Right Now</p>
+          <p className="muted">Each one added waits here until it is put to the vote.</p>
+        </div>
+      )}
       {waiting.length > 0 && (
         <ol className={s.queue}>
           {waiting.map((m, i) => (
@@ -135,12 +144,11 @@ export function Documents({ c, act }: { c: Chamber; act: Act }) {
           {t.docs.map((d) => (
             <li key={d.id} className={`${s.card} ${s.doc}`} data-next={t.current === d.id}>
               <span className={s.cardTop}>
-                <span className={s.cardTitle}>{d.title}</span>
+                <span className={s.cardTitle}>{d.title}{!c.style && <span className={s.docSeen}> {"\u00B7"} {d.seen ? "Seen" : "Unseen"}</span>}</span>
                 {d.result
-                  ? <span className={s.chip} data-tone={d.result === "passed" ? "ok" : "bad"}>{DOC_RESULT[d.result]}</span>
-                  : t.current === d.id && <span className={s.chip} data-tone="accent">Being debated</span>}
+                  ? <span className={`${s.chip} ${s.docState}`} data-tone={d.result === "passed" ? "ok" : "bad"}>{DOC_RESULT[d.result]}</span>
+                  : t.current === d.id && <span className={`${s.chip} ${s.docState}`} data-tone="accent">Being Debated</span>}
               </span>
-              {!c.style && <span className={s.seenTag} data-seen={d.seen}>{d.seen ? "Seen" : "Unseen"}</span>}
               {d.link && <a className={s.docLink} href={d.link} target="_blank" rel="noopener noreferrer">Open the document</a>}
               {c.style && !d.result && t.current !== d.id && (
                 <span className={s.kActions}>

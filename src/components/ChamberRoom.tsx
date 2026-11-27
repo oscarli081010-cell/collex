@@ -277,7 +277,7 @@ function Requests({ c, cid, me, asks, say, refresh }: { c: Chamber; cid: string;
         </form>
       )}
       {form === "amendment" && (
-        <form className={r.form} onSubmit={(e) => { e.preventDefault(); if (text.trim() && (!c.tr || second)) void ask("amendment", { how, clause, text, seconder: second || null }, "Amendment handed in"); }}>
+        <form className={r.form} onSubmit={(e) => { e.preventDefault(); if (text.trim()) void ask("amendment", { how, clause, text, seconder: second || null }, "Amendment handed in"); }}>
           <div className={r.two}>
             <div className="field">
               <label htmlFor="rq-ah">Kind</label>
@@ -287,7 +287,7 @@ function Requests({ c, cid, me, asks, say, refresh }: { c: Chamber; cid: string;
           </div>
           {c.tr && (
             <div className="field">
-              <label htmlFor="rq-as">Seconded By</label>
+              <label htmlFor="rq-as">Seconded By (Optional)</label>
               <Select id="rq-as" className="control" value={second} onChange={(e) => setSecond(e.target.value)}>
                 <option value="">Choose a state…</option>
                 {c.delegates.filter((d) => d.id !== me).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -295,7 +295,7 @@ function Requests({ c, cid, me, asks, say, refresh }: { c: Chamber; cid: string;
             </div>
           )}
           <div className="field"><label htmlFor="rq-at">The Amendment</label><textarea id="rq-at" className="control" rows={3} value={text} maxLength={600} onChange={(e) => setText(e.target.value)} /></div>
-          <Why why={busy ? "Sending…" : !text.trim() ? "Write the amendment first" : !!c.tr && !second && "Choose who seconds it"}><button type="submit" className="button block" disabled={busy || !text.trim() || (!!c.tr && !second)}>Hand In the Amendment</button></Why>
+          <Why why={busy ? "Sending…" : !text.trim() && "Write the amendment first"}><button type="submit" className="button block" disabled={busy || !text.trim()}>Hand In the Amendment</button></Why>
         </form>
       )}
 

@@ -73,7 +73,7 @@ export type MotionKind = "mod" | "unmod" | "extend" | "closemod" | "close" | "am
 export type Motion = { id: string; kind: MotionKind; by: string | null; topic: string; total: number; per: number; ref: string | null; at: number; status: "waiting" | "passed" | "failed" | "withdrawn" };
 export type PointKind = "order" | "privilege" | "inquiry" | "clarification";
 /** A caucus in progress. A moderated one (and an amendment's debate) keeps its own clock for the whole caucus while the committee's timer times each speaker. */
-export type Caucus = { kind: "mod" | "unmod" | "amend" | "final"; /** The 5 minutes that open the debate on a resolution. */ intro?: boolean; topic: string; per: number; total: number; ext: number; clock: Timer | null };
+export type Caucus = { kind: "mod" | "unmod" | "amend" | "final"; /** The 5 minutes that open the debate on a resolution. */ intro?: boolean; /** The chair's words for the room during an unmoderated caucus, shown under its heading. */ note?: string; topic: string; per: number; total: number; ext: number; clock: Timer | null };
 export type Trin = {
   week: 1 | 2; docs: Doc[]; motions: Motion[]; opened: string[]; cauc: Caucus | null;
   /** The speakers' list kept aside while a caucus or an amendment uses the committee's own. */
@@ -810,7 +810,7 @@ export function submitAmendment(c: Chamber, id: string, by: string, clause: stri
   if (!open || !body || !has(c, by) || c.amendments.some((a) => a.id === id)) return c;
   const second = c.tr && has(c, seconder) && seconder !== by ? seconder : null;
   if (c.tr) {
-    if (!second || observing(c, by) || observing(c, second)) return c;
+    if (observing(c, by) || (second && observing(c, second))) return c; // the seconder is optional
     if (amendedClause(c, clause) && !consensus) return c;
   }
   const ids = [...new Set([...(second ? [second] : []), ...backers])].filter((b) => b !== by && has(c, b) && !observing(c, b));
@@ -1502,6 +1502,15 @@ const withClock = (c: Chamber, f: (t: Timer) => Timer): Chamber => (c.tr?.cauc?.
 export function startCauc(c: Chamber, at: number): Chamber {
   const k = clockOf(c);
   return k && !running(k) && k.left > 0 ? withClock(c, (t) => ({ ...t, endsAt: at + t.left })) : c;
+}
+/** The chair's note for the room during an unmoderated caucus (what to work on, where to be back by). Empty clears it. */
+export const CAUCUS_NOTE_MAX = 200;
+export function setCaucusNote(c: Chamber, text: string): Chamber {
+  const k = c.tr?.cauc;
+  if (c.step !== "caucus" || !k || (k.kind !== "unmod" && k.kind !== "final")) return c;
+  const note = text.slice(0, CAUCUS_NOTE_MAX);
+  if ((k.note ?? "") === note) return c;
+  return { ...c, tr: { ...c.tr!, cauc: { ...k, note: note || undefined } } };
 }
 export function pauseCauc(c: Chamber, at: number): Chamber {
   const k = clockOf(c);

@@ -103,7 +103,7 @@ function Yours({ signedIn, mine, seats, local }: { signedIn: boolean; mine: Mine
   };
   const group = (id: string, title: string, list: Mine[], emptyTitle: string, emptyText: string) => (
     <section className={`panel ${s.setupCard}`} aria-labelledby={id}>
-      <h2 id={id} className={s.groupLabel}>{title}{list.length > 0 && <span className={s.count}>{list.length}</span>}</h2>
+      <h2 id={id} className={s.groupLabel}>{title}{list.length > 0 && <span className={s.groupCount}>{list.length}</span>}</h2>
       {list.length ? <ul className={s.mine}>{list.map(card)}</ul> : (
         <div className={`${board.empty} ${s.emptyCard}`}>
           <Gavel />
@@ -145,7 +145,7 @@ function Yours({ signedIn, mine, seats, local }: { signedIn: boolean; mine: Mine
         {group("cs-shared", "Shared with You", shared, "Nothing shared yet", "When a chair adds you or you join with a code, the committee appears here.")}
         {seats && seats.length > 0 && (
           <section className={`panel ${s.setupCard}`} aria-labelledby="cs-seats">
-            <h2 id="cs-seats" className={s.groupLabel}>Joined as a Delegate<span className={s.count}>{seats.length}</span></h2>
+            <h2 id="cs-seats" className={s.groupLabel}>Joined as a Delegate<span className={s.groupCount}>{seats.length}</span></h2>
             <ul className={s.mine}>
               {seats.map((m) => (
                 <li key={m.id}>

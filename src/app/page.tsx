@@ -71,6 +71,8 @@ export default async function Home() {
           <Link href="/start" className="link">New to MUN?</Link>
           <span aria-hidden="true">·</span>
           <Link href="/list" className="link">List a Conference</Link>
+          <span aria-hidden="true">·</span>
+          <a href="https://www.instagram.com/collex.au/" className="link" target="_blank" rel="noopener noreferrer">Instagram</a>
         </p>
         {/* A quiet nudge that there is more below; it fades as soon as the page moves. */}
         <a href="#devices" className={s.scrollCue}>

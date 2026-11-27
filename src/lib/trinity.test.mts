@@ -181,9 +181,9 @@ assert.deepEqual(ch.rooms(c).labels, ["Speakers’ List Open", "Amendments Open"
 assert.equal(ch.sided(c), true);
 c = ch.addToList(c, id("Kenya"), "against"); c = ch.addToList(c, id("Mexico"), "for");
 assert.equal(ch.addToList(c, id("Mexico"), "against").debate.list.length, 2);
-// amendments need a proposer and a seconder, and as many sponsors as possible: there is no quota in 2026
+// amendments need a proposer, an optional seconder, and as many sponsors as possible: there is no quota in 2026
 const am = (x: ch.Chamber, aid: string, by: string, clause: string, backers: string[], sec: string | null, cons = false) => ch.submitAmendment(x, aid, by, clause, "Change it", backers, sec, cons);
-assert.equal(am(c, "a0", id("Egypt"), "Clause 1", [id("France")], null).amendments.length, 0, "needs a seconder");
+assert.equal(am(c, "a0", id("Egypt"), "Clause 1", [id("France")], null).amendments.length, 1, "the seconder is optional");
 assert.equal(am(c, "a0", id("Egypt"), "Clause 1", [], id("Germany")).amendments.length, 1, "a proposer and a seconder are enough");
 c = am(c, "a1", id("Egypt"), "Clause 1", [id("France"), id("Sweden")], id("Germany"));
 assert.equal(c.amendments.length, 1); assert.equal(c.amendments[0].seconder, id("Germany")); assert.equal(c.amendments[0].backers.length, 3);

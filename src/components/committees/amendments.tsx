@@ -9,6 +9,8 @@ import Select from "../Select";
 import Flag from "../Flag";
 import { Why } from "../RoomChair";
 import SearchBox from "../SearchBox";
+import { Placard } from "../Drawings";
+import board from "../board.module.css";
 import { SWAP, uid, SIDE, type Act, Seg, SideSwitch, CardSide } from "./shared";
 
 /** A name for searching: lower case, without accents, so "cote" finds Côte d'Ivoire. */
@@ -24,7 +26,6 @@ export function Lists({ c, act }: { c: Chamber; act: Act }) {
   const spokeN = ch.spokeCount(c);
   const pick = options.some((d) => d.id === who) ? who : "";
   const col = (k: Side) => c.debate.list.filter((x) => x.side === k);
-  const spoken = c.debate.run.map((x) => ch.nameOf(c, x.id));
   const plain = !ch.sided(c); // the general list and a moderated caucus are one list of states
   const heading = c.tr ? (c.step === "general" ? "General Speakers\u2019 List" : c.step === "caucus" ? "Moderated Caucus Speakers\u2019 List" : (c.step === "floor" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer") ? `${ch.resNoun(c).replace("resolution", "Resolution")} Speakers\u2019 List` : "Speakers\u2019 List") : c.step === "amend" ? "Speakers\u2019 List" : "Resolution Speakers\u2019 List";
 
@@ -67,7 +68,6 @@ export function Lists({ c, act }: { c: Chamber; act: Act }) {
           </div>
         ))}
       </div>
-      {spoken.length > 0 && <p className={s.spoken}>Has spoken: {spoken.join(", ")}.</p>}
     </>
   );
 
@@ -139,11 +139,11 @@ export function AmendmentForm({ c, act }: { c: Chamber; act: Act }) {
   const [how, setHow] = useState<ch.AmendHow>("amend");
   const [find, setFind] = useState(""); // narrows the states to tick as signatories
   const t = c.tr;
-  // Trinity (2026): a proposer and a seconder, and as many sponsors as possible. A clause already amended needs full consensus.
+  // Trinity: a proposer, a seconder if there is one, and as many sponsors as possible. A clause already amended needs full consensus.
   const signed = new Set([by, second, ...backers].filter(Boolean)).size;
   const again = !!t && ch.amendedClause(c, clause);
-  const ready = !!by && text.trim().length > 0 && (!t || (!!second && second !== by && (!again || consensus)));
-  const why = ready ? null : !by ? "Choose the state it's from" : !text.trim() ? "Describe the amendment" : t && (!second || second === by) ? "Choose a seconder" : "Confirm full consensus for this clause";
+  const ready = !!by && text.trim().length > 0 && (!t || (second !== by && (!again || consensus)));
+  const why = ready ? null : !by ? "Choose the state it's from" : !text.trim() ? "Describe the amendment" : "Confirm full consensus for this clause";
   const free = c.delegates.filter((d) => !ch.observing(c, d.id));
   const q = fold(find);
   const signable = free.filter((d) => d.id !== by && d.id !== second && (!q || fold(d.name).includes(q)));
@@ -152,7 +152,7 @@ export function AmendmentForm({ c, act }: { c: Chamber; act: Act }) {
       <div className={s.head}>
         <h2 id="ch-am-add" className={s.h2}>Add an Amendment</h2>
       </div>
-      <form className={s.panelBody} onSubmit={(e) => { e.preventDefault(); if (!ready) return; act((x) => ch.submitAmendment(x, uid(), by, clause, text, backers, t ? second : null, consensus, how)); setText(""); setClause(""); setBackers([]); setSecond(""); setConsensus(false); setFind(""); }}>
+      <form className={s.panelBody} onSubmit={(e) => { e.preventDefault(); if (!ready) return; act((x) => ch.submitAmendment(x, uid(), by, clause, text, backers, t ? second || null : null, consensus, how)); setText(""); setClause(""); setBackers([]); setSecond(""); setConsensus(false); setFind(""); }}>
         <div className={s.two}>
           <div className="field">
             <label htmlFor="am-by" className="sr-only">Amendment from</label>
@@ -170,7 +170,7 @@ export function AmendmentForm({ c, act }: { c: Chamber; act: Act }) {
           <div className="field">
             <label htmlFor="am-sec" className="sr-only">Seconder</label>
             <Select id="am-sec" className="control" value={second} onChange={(e) => { setSecond(e.target.value); setBackers((b) => b.filter((x) => x !== e.target.value)); }}>
-              <option value="">Seconder</option>
+              <option value="">Seconder (optional)</option>
               {free.filter((d) => d.id !== by).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </Select>
           </div>
@@ -255,6 +255,13 @@ export function AmendmentQueue({ c, act }: { c: Chamber; act: Act }) {
         <div className={s.sortRow} role="group" aria-label="Sort the waiting amendments">
           <button type="button" className="button secondary sm" onClick={() => act((x) => ch.sortAmendments(x, "signatories"))}>Most Signatories First</button>
           <button type="button" className="button secondary sm" onClick={() => act((x) => ch.sortAmendments(x, "oldest"))}>Oldest First</button>
+        </div>
+      )}
+      {!live && waiting.length === 0 && (
+        <div className={`${board.empty} ${s.emptyCard}`}>
+          <Placard />
+          <p className={board.emptyTitle}>No Amendments Right Now</p>
+          <p className="muted">Each one added waits here until the chair entertains it.</p>
         </div>
       )}
       {(live || waiting.length > 0) && (

@@ -65,9 +65,6 @@ export function PollBox({ c, act }: { c: Chamber; act: Act }) {
 /* The vote on the resolution, state by state. */
 export function RollCall({ c, act }: { c: Chamber; act: Act }) {
   const n = ch.count(c);
-  const t = c.tr;
-  const two = !!t && c.pass === "twothirds";
-  const need = two ? Math.max(1, Math.ceil(((n.yes + n.no) * 2) / 3)) : t ? Math.floor((n.yes + n.no) / 2) + 1 : ch.needed(c.delegates.length);
   const closed = c.step === "closed" || c.step === "ended";
   return (
     <section className={`panel ${s.side}`}>
@@ -90,10 +87,7 @@ export function RollCall({ c, act }: { c: Chamber; act: Act }) {
         { label: "Abstain", value: n.abstain },
         { label: "Still to Vote", value: n.left },
       ]} />
-      {two ? <p className={s.hint}>Two-thirds of the votes cast, so {need} For at the moment. Abstentions count for neither.</p> : t ? <p className={s.hint}>More For than Against, so {need} For at the moment. Abstentions count for neither.</p> : <p className={s.hint}>Needs at least {need} in favour</p>}
-      {closed
-        ? <p className={s.hint}>The vote is recorded, so the ballots can&rsquo;t be changed.</p>
-        : c.delegates.some((d) => ch.isHere(c, d.id) && c.roll[d.id] === "voting") && <p className={s.hint}>States marked Present &amp; Voting can&rsquo;t abstain.</p>}
+      {closed && <p className={s.hint}>The vote is recorded, so the ballots can&rsquo;t be changed.</p>}
       {c.style ? <Answers c={c} act={act} closed={closed} /> : (
       <ul className={s.ballots}>
         {c.delegates.filter((d) => ch.isHere(c, d.id)).map((d) => (

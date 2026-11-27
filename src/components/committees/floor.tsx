@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as ch from "@/lib/chamber";
 import type { Chamber, Side } from "@/lib/chamber";
 import s from "../Chambers.module.css";
@@ -8,6 +8,27 @@ import Select from "../Select";
 import Flag from "../Flag";
 import { ArmedButton, Why } from "../RoomChair";
 import { SIDE, type Act, Duration, Undo, SideSwitch, Stats } from "./shared";
+
+/** The chair's words for the room during an unmoderated caucus. Sent half a second after the typing stops (or when the
+ *  box is left), so the display follows without every key being a change of its own. */
+function CaucusNote({ value, act }: { value: string; act: Act }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const actRef = useRef(act);
+  useEffect(() => { actRef.current = act; });
+  const send = (text: string) => { void actRef.current((x) => ch.setCaucusNote(x, text), false); setDraft(null); };
+  useEffect(() => {
+    if (draft === null) return;
+    const id = setTimeout(() => send(draft), 500);
+    return () => clearTimeout(id);
+  }, [draft]);
+  return (
+    <div className="field">
+      <label htmlFor="fl-note">Note for the Display (Optional)</label>
+      <textarea id="fl-note" className="control" rows={2} value={draft ?? value} maxLength={ch.CAUCUS_NOTE_MAX} placeholder="What to work on, or when to be back"
+        onChange={(e) => setDraft(e.target.value)} onBlur={() => { if (draft !== null) send(draft); }} />
+    </div>
+  );
+}
 import { HOW, SubAmend } from "./amendments";
 import { PollBox } from "./voting";
 
@@ -71,36 +92,36 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
   const subA = c.amend?.sub ? c.amendments.find((a) => a.id === c.amend!.sub!.id) : undefined;
   if (sp) {
     if (sp.phase === "ask") { title = name(sp.asker); sub = `Point of Information for ${name(sp.who)}`; }
-    else { title = name(sp.who); sub = sp.phase === "speech" ? "Speaking" : sp.phase === "answer" ? `Replying to ${name(sp.asker)}` : points ? "" : `How does ${name(sp.who)} yield?`; }
+    else { title = name(sp.who); sub = sp.phase === "speech" ? "" : sp.phase === "answer" ? `Replying to ${name(sp.asker)}` : points ? "" : `How does ${name(sp.who)} yield?`; }
   }
   else if (ex) { title = name(ex.id); sub = `Explains their vote (${ex.side === "for" ? "Yes" : "No"} with Rights)`; }
   else if (poll?.kind === "motion") { title = "Motion"; sub = poll.title; }
-  else if (t && c.step === "statements") { title = stNext ? name(stNext) : "Opening statements"; sub = stNext ? `Next opening statement, up to ${ch.timeOf(c, "statement")} seconds` : "Every state has given its statement"; }
+  else if (t && c.step === "statements") { title = stNext ? name(stNext) : "Opening Statements"; sub = stNext ? "" : "Every state has given its statement"; }
   else if (t && c.step === "general" && !c.style) { title = "The Chair Is Choosing a Resolution"; sub = ch.drafts(c).length > 0 ? "" : "No resolutions yet. Add them in Settings."; }
-  else if (t && c.step === "general") { title = next ? name(next.id) : "General Speakers\u2019 List"; sub = next ? "Next on the general speakers\u2019 list" : "Add states to the speakers\u2019 list"; }
-  else if (c.step === "proposer") { title = name(c.roles.proposer); sub = t ? `Introduces the ${ch.resNoun(c).toLowerCase()}` : "Proposes the resolution"; }
-  else if (c.step === "seconder") { title = name(c.roles.seconder); sub = t ? `Speaks as ${ch.roleName(c, "seconder").toLowerCase()}` : "Seconds the resolution"; }
-  else if (c.step === "opposer") { title = name(c.roles.opposer); sub = t ? `Speaks against the ${ch.resNoun(c).toLowerCase()}` : "Speaks against the resolution"; }
+  else if (t && c.step === "general") { title = next ? name(next.id) : "General Speakers\u2019 List"; }
+  else if (c.step === "proposer") { title = name(c.roles.proposer); }
+  else if (c.step === "seconder") { title = name(c.roles.seconder); }
+  else if (c.step === "opposer") { title = name(c.roles.opposer); }
   else if (c.step === "caucus") { title = k?.kind === "mod" ? "Moderated Caucus" : k?.kind === "final" ? "Final Unmoderated Caucus" : t ? "Unmoderated Caucus" : "Caucus"; sub = k?.kind === "mod" ? k.topic : ""; }
   else if (c.step === "floor" && t) { title = `${ch.resNoun(c).replace("resolution", "Resolution")} Debate`; sub = ch.currentDoc(c)?.title ?? ""; }
   else if (c.step === "floor") { // Evatt: the speakers' list on the resolution comes first; amendments only when no one is listed
-    if (next) { title = name(next.id); sub = "Next on the speakers\u2019 list"; }
+    if (next) { title = name(next.id); }
     else if (waiting.length) { title = "Amendments"; sub = `${waiting.length} waiting`; }
-    else { title = "The Speakers\u2019 List Is Empty"; }
+    else { title = "Speakers\u2019 List Is Empty"; }
   }
-  else if (c.step === "closing") { title = t ? "Closing" : "Closing speeches"; sub = t && !c.closers.length ? "Final caucus, then the closing speeches" : ""; }
+  else if (c.step === "closing") { title = t ? "Closing" : "Closing speeches"; }
   else if (c.step === "vote") { title = "Roll Call Vote"; sub = ch.partText(c) ?? ""; }
-  else if (c.step === "ended") { title = "Committee Ended"; sub = "The analytics are still here."; }
+  else if (c.step === "ended") { title = "Committee Ended"; }
   else if (c.step === "closed") { title = `${t ? ch.resNoun(c).replace("resolution", "Resolution") : "Resolution"} ${c.outcome?.passed ? "Passes" : "Does Not Pass"}`; sub = c.outcome ? `${c.outcome.yes} for, ${c.outcome.no} against, ${c.outcome.abstain} abstaining` : ""; }
-  else if (c.step === "amend" && c.amend?.stage === "read") { title = `Amendment from ${name(amendment?.by ?? null)}`; sub = [amendment?.how && HOW[amendment.how], amendment?.clause].filter(Boolean).join(" \u00B7 ") || "Read it to the council"; }
+  else if (c.step === "amend" && c.amend?.stage === "read") { title = `Amendment from ${name(amendment?.by ?? null)}`; sub = [amendment?.how && HOW[amendment.how], amendment?.clause].filter(Boolean).join(" \u00B7 "); }
   else if (c.step === "amend" && c.amend?.stage === "ask") { title = "Debate This Amendment?"; }
   else if (c.step === "amend" && c.amend?.stage === "vote") { title = "Adopt This Amendment?"; }
   else if (subA && c.amend?.sub?.stage === "vote") { title = "Adopt This Amendment to the Amendment?"; }
-  else if (subA && !c.debate.run.length) { title = name(subA.by); sub = "Speaks first on their amendment to the amendment"; }
+  else if (subA && !c.debate.run.length) { title = name(subA.by); }
   else if (debateOpen) {
-    if (!c.debate.run.length) { title = name(amendment?.by ?? null); sub = "Speaks first on their amendment"; }
-    else if (next) { title = name(next.id); sub = "Next on the speakers' list"; }
-    else { title = "The Speakers\u2019 List Is Empty"; sub = spokeFromList ? "Everyone listed has spoken. Vote on the amendment." : ""; }
+    if (!c.debate.run.length) { title = name(amendment?.by ?? null); }
+    else if (next) { title = name(next.id); }
+    else { title = "Speakers\u2019 List Is Empty"; }
   }
 
   const sideless = !!t && sp && !sp.stance && !ch.sided(c) && (sp.role === "speaker" || sp.role === "statement"); // a general speaker or a statement takes no side
@@ -216,7 +237,7 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
         const readyAll = t ? ch.drafts(c).filter((d) => d.status === "approved" && !d.result) : [];
         return (
           <>
-            {!!t && readyAll.map((d, i) => <button key={d.id} type="button" className={i === 0 && !(c.style && next) ? "button" : "button secondary"} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce {d.title}</button>)}
+            {!!t && readyAll.map((d, i) => <button key={d.id} type="button" className={i === 0 && !(c.style && next) ? "button" : "button secondary"} onClick={() => act((x) => ch.introduceDraft(x, d.id))}>Introduce {c.style ? d.title : `${d.seen ? "Seen" : "Unseen"} Resolution${readyAll.filter((x) => x.seen === d.seen).length > 1 ? ` (${d.title})` : ""}`}</button>)}
             {c.style && next && <button type="button" className="button" onClick={() => act((x) => ch.callSpeaker(x, next.id, next.side))}>Call {name(next.id)}</button>}
             <div className={s.btnRow}>
               {stNext && <button type="button" className={readyAll.length ? "button secondary sm" : "button"} onClick={() => act(ch.startStatements)}>Opening Statements</button>}
@@ -248,6 +269,7 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
               onChange={(v, ok) => { if (ok && v !== null) act((x) => ch.setCaucusSecs(x, v)); }} />}
             {timerBtn("button")}
             {extend}
+            {t && k && (k.kind === "unmod" || k.kind === "final") && <CaucusNote value={typeof k.note === "string" ? k.note : ""} act={act} />}
             <button type="button" className="button secondary" onClick={() => act(ch.endCaucus)}>End Caucus</button>
           </>
         );
@@ -256,10 +278,8 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
           {waiting[0] && <button type="button" className="button" onClick={() => act((x) => ch.entertain(x, waiting[0].id))}>Entertain the Next Amendment</button>}
           {next && timeField}
           {next && <button type="button" className={waiting[0] ? "button secondary" : "button"} onClick={() => act((x) => ch.callSpeaker(x, next.id, next.side, secs))}>Call {name(next.id)}</button>}
-          <div className={s.btnRow}>
-            <button type="button" className="button secondary sm" onClick={() => act((x) => ch.callCaucus(x, 300))}>Call a Caucus</button>
-            <button type="button" className="button secondary sm" onClick={() => act(ch.closeDebate)}>Close the Debate</button>
-          </div>
+          <button type="button" className="button secondary" onClick={() => act((x) => ch.callCaucus(x, 300))}>Call a Caucus</button>
+          <button type="button" className="button" onClick={() => act(ch.closeDebate)}>Close the Debate</button>
         </>
       ) : (
         <>
@@ -299,7 +319,6 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
       case "vote": return (
         <>
           <Why why={ch.voteBlock(c) || (ch.count(c).left > 0 && `${ch.count(c).left} ${ch.count(c).left === 1 ? "state" : "states"} still to vote`)}><button type="button" className="button" disabled={!!ch.voteBlock(c) || ch.count(c).left > 0} onClick={() => act(ch.finishVote)}>Record the Result</button></Why>
-          <p className={s.hint}>{ch.count(c).left ? `${ch.count(c).left} state${ch.count(c).left === 1 ? "" : "s"} still to vote.` : "Everyone has voted."}</p>
         </>
       );
       case "closed": return t ? (
@@ -421,7 +440,7 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
             {chipSide && <span className={s.chip} data-side={chipSide}>{SIDE[chipSide]}</span>}
           </div>
         )}
-        <h2 className={`serif ${s.who} ${s.whoBig}`}>{typeof title === "string" && c.delegates.some((d) => d.name === title) ? <><Flag name={title} em />{title}</> : typeof title === "string" && title.split(" ").length >= 4 && title.length >= 22 ? <><span className={s.whoLead}>{title.split(" ").slice(0, Math.floor(title.split(" ").length / 2)).join(" ")}</span>{title.split(" ").slice(Math.floor(title.split(" ").length / 2)).join(" ")}</> : title}</h2>
+        <h2 className={`serif ${s.who} ${s.whoBig}`}>{typeof title === "string" && c.delegates.some((d) => d.name === title) ? <><Flag name={title} em />{title}</> : title}</h2>
         {sub && <p className={s.sub}>{sub}</p>}
         {sp && points && between && (
           <p className={s.sub}><strong className={s.subNum}>{sp.pois}</strong> {sp.pois === 1 ? "Point" : "Points"} of Information taken</p>

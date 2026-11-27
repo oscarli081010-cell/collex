@@ -168,7 +168,7 @@
 }
 .scrollCue:hover { color: var(--ink); }
 .heroSearch { display: flex; justify-content: center; width: min(100%, 520px); margin-top: 28px; }
-.heroLinks { display: flex; gap: 12px; align-items: center; font-size: 14px; color: var(--faint); margin-top: -4px; }
+.heroLinks { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; align-items: center; font-size: 14px; color: var(--faint); margin-top: -4px; }
 
 /* The search. At rest a quiet field; on focus it lifts, an accent ring grows in around it, a soft glow gathers
    underneath, and the icon and go button take the accent. */

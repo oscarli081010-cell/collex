@@ -450,7 +450,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .tableWrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
 .aTable { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 640px; }
 .aTable th, .aTable td { padding: 12px 14px; text-align: right; border-top: 1px solid var(--line); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.aTable thead th { border-top: 0; background: var(--surface); color: var(--muted); font-size: 13px; font-weight: 500; }
+.aTable thead th { border-top: 0; background: var(--wash); color: var(--muted); font-size: 13px; font-weight: 500; }
 .aTable thead th:first-child, .aTable tbody th { text-align: left; }
 .aTable tbody th { font-weight: 500; white-space: normal; }
 .aTable tbody tr:hover { background: var(--row-hover); }
@@ -609,30 +609,27 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .labelRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .groupPick { width: min(100%, 260px); height: 40px; }
 .dPages { margin: 18px 0 0; text-align: center; font-size: clamp(14px, 1.5vw, 22px); color: var(--faint); font-variant-numeric: tabular-nums; }
+.docSeen { color: var(--muted); font-weight: 400; }
 .seenTag { display: inline-flex; align-items: center; gap: 9px; width: fit-content; font-size: 16px; font-weight: 500; color: var(--ink); }
 .seenTag::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px var(--ok-soft); }
 .seenTag[data-seen="false"]::before { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
 
 .timesGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px 24px; }
 /* All Speeches leads the card: centred and larger, since it sets every speech at once. Space, not a rule, sets it apart. */
-.timesAll { display: flex; flex-direction: column; align-items: center; padding: 4px 0 12px; }
-.timesAll > :global(.field) { align-items: center; gap: 10px; }
-.timesAll > :global(.field) > span:first-child { font-size: 15px; font-weight: 500; color: var(--ink); }
-.timesAll .dur { gap: 10px; }
-.timesAll .dur :global(.control) { width: 92px; height: 56px; font-size: 24px; font-variant-numeric: tabular-nums; }
-.timesAll .dur span { font-size: 14px; }
+.timesAll { display: flex; flex-direction: column; gap: 8px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.timesAll > :global(.field) { width: min(100%, 280px); }
 
 /* Share tab. Narrow: People, Join Code, Add by Email, Delegates' Devices, Conference, one under another.
-   Wide: People across the top; under it the Join Code fills the left, beside a column of the other three at one height each. */
+   Wide: People across the top; under it the Join Code fills the left, beside a column of the other three, each only as tall as it needs. */
 .pair2 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .codeBody { margin-block: auto; display: flex; flex-direction: column; gap: 16px; text-align: center; }
 .codeBody > [role="img"] { justify-content: center; }
 .codeWait { min-height: 168px; border-radius: 14px; background: var(--wash); }
 @media (min-width: 861px) {
-  .manage:has(> [id="ch-share"] + .pair2) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto repeat(3, 1fr); }
+  .manage:has(> [id="ch-share"] + .pair2) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto auto auto auto 1fr; }
   .manage:has(> [id="ch-share"] + .pair2) > * { grid-column: 1 / -1; }
   .manage:has(> [id="ch-share"] + .pair2) > .pair2 { display: contents; }
-  .pair2 > .codeCard { grid-column: 1; grid-row: 2 / span 3; }
+  .pair2 > .codeCard { grid-column: 1; grid-row: 2 / span 4; }
   .pair2 > .emailCard { grid-column: 2; grid-row: 2; }
   .manage:has(> [id="ch-share"] + .pair2) > [aria-labelledby="st-dev"] { grid-column: 2; grid-row: 3; }
   .manage:has(> [id="ch-share"] + .pair2) > [aria-labelledby="cl-h"] { grid-column: 2; grid-row: 4; }
@@ -644,7 +641,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .people li:last-child { padding-bottom: 0; }
 .avatar { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--surface); color: var(--muted); font-size: 14px; font-weight: 500; }
 .avatar[data-role="admin"] { background: var(--accent-soft); color: var(--accent); }
-.who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.person { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .whoName { font-size: 14.5px; font-weight: 500; overflow-wrap: anywhere; }
 .youTag { font-weight: 400; color: var(--muted); }
 .whoNote { font-size: 13px; color: var(--muted); }
@@ -662,7 +659,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .teamGap { flex: none; width: 40px; }
 
 /* Your Committees: one card per committee, with where it is at a glance. */
-.count { margin-left: 8px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.groupCount { margin-left: 8px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 /* Like a conference's row: it lifts on hover, with an arrow that moves toward where it opens, and a thin accent down its left edge. */
 .yourCard {
   position: relative; width: 100%; display: flex; flex-direction: column; gap: 6px; align-items: stretch; padding: 16px 18px 16px 22px; cursor: pointer; text-align: left; color: inherit; font: inherit;
@@ -712,14 +709,14 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .undo :global(.iconbtn) svg { width: 16px; height: 16px; }
 /* Whoever has the floor, large. */
 .whoBig { font-size: clamp(40px, 4.8vw, 64px); line-height: 1.02; }
-/* A longer title (The Speakers’ List Is Empty) a size down, so it reads as one line. */
-.whoLead { display: block; font-size: 0.5em; font-style: italic; line-height: 1.1; margin-bottom: 0.1em; color: var(--muted); }
 .subNum { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* The groups under Your Committees are named in the same size as the labels on the Start form beside them. */
 .groupLabel { font-size: 13px; font-weight: 500; }
-/* Try a Practice Committee: the console's card heading (.h2) and body text at the page's own size, kept close together over the button. */
+/* Try a Practice Committee: written at the sizes of the form above it, the heading like a field's label and the text like its boxes. */
 .practiceIntro { display: flex; flex-direction: column; gap: 6px; }
+.practiceIntro > h2 { font-size: 13px; font-weight: 500; }
+.practiceIntro > p { font-size: 14px; line-height: 1.5; }
 
 /* Something the chair must read about their changes (replaced by another chair's, or refused), until they dismiss it. */
 .noticeRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -751,3 +748,20 @@ details > summary.head::-webkit-details-marker { display: none; }
 /* A choice a state can't make (Present and Voting can't abstain): greyed, with its reason on hover. */
 .seg3 button:disabled:not([aria-pressed="true"]) { opacity: 0.4; }
 .seg3 > :global(.tip) { display: grid; }
+
+/* The counts beside a card's heading, across a committee: light blue, like the other boxes that hold its content. */
+.page :global(.badge), .setup :global(.badge) { background: var(--accent-soft); color: var(--accent); }
+/* An empty Amendments or Motions card fills the height its neighbour gives it, with the note in the middle. */
+.list > .emptyCard { margin-top: 0; flex: 1; justify-content: center; }
+/* What a resolution is now (being debated, passed or failed): a larger pill, in the middle of the card's right side. */
+.queue li.doc { position: relative; padding-right: 160px; }
+.docState { position: absolute; right: 16px; top: 50%; translate: 0 -50%; height: 32px; padding: 0 16px; font-size: 14px; }
+@media (max-width: 560px) { .queue li.doc { padding-right: 14px; } .docState { position: static; translate: none; align-self: flex-start; } }
+
+/* The display: an amendment's own words, set as a quotation with the marks in a faded accent; the chair's note under an
+   unmoderated caucus, smaller than its heading; and the caucus's time left at the bottom right while someone speaks. */
+.dQuote { max-width: min(100%, 1500px); text-wrap: balance; }
+.dQ { color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.dCaucNote { margin: 0; color: var(--ink); max-width: min(100%, 1300px); text-wrap: balance; white-space: pre-wrap; }
+.dEnd { display: flex; align-items: flex-end; gap: 16px 32px; margin-left: auto; }
+.dCauc { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }

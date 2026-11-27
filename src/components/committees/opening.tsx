@@ -139,7 +139,7 @@ export function TrinityPick({ c, act }: { c: Chamber; act: Act }) {
       </div>
       {d && (
         <div className={s.resBox}>
-          <span className={s.tag}>{ch.resNoun(c)}</span>
+          <span className={s.tag}>{c.tr && !c.style ? `${d.seen ? "Seen" : "Unseen"} Resolution` : ch.resNoun(c)}</span>
           <p className={`serif ${s.resText}`}>{d.title}</p>
         </div>
       )}
