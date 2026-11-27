@@ -42,6 +42,6 @@
 .logCount { font-size: 13.5px; font-variant-numeric: tabular-nums; }
 .pager { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; padding-top: 4px; font-size: 14px; font-variant-numeric: tabular-nums; }
 .pager > * { width: 100%; min-width: 0; } /* Previous and Next each fill their side, wrapped in a reason (when they can't be pressed) or not */
-.pager .button { width: 100%; }
+.pager :global(.button) { width: 100%; }
 @media (max-width: 480px) { .pager { gap: 8px; } }
 .undo { margin-left: auto; flex: none; align-self: flex-start; }
