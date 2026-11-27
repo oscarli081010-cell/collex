@@ -132,6 +132,23 @@
 /* Stretchy space around the block keeps it centred. With a notice, the notice sits a third of the way from the top bar
    to the headline: one share of space above it, two below it (the notice's row takes those two, the pill at its top),
    and three under the block to balance. */
+/* Behind the headline: a faint globe of latitude and longitude lines in the accent, fading out downwards, over a soft
+   navy glow. Drawn as pseudo-elements so the hero's children (and their staggered entrance) are untouched. */
+.hero { isolation: isolate; }
+.hero::before, .hero::after { content: ""; position: absolute; z-index: -1; pointer-events: none; left: 50%; top: 50%; translate: -50% -50%; }
+.hero::after {
+  width: min(92vw, 720px); aspect-ratio: 1; background: var(--accent);
+  opacity: 0.2;
+  mask: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="-100 -100 200 200" fill="none" stroke="%23000" stroke-width="0.4"%3E%3Ccircle r="96"/%3E%3Cpath d="M-48 77.08A48 17.98 0 0 0 48 77.08"/%3E%3Cpath d="M-83.14 44.5A83.14 31.14 0 0 0 83.14 44.5"/%3E%3Cpath d="M-96 0A96 35.96 0 0 0 96 0"/%3E%3Cpath d="M-83.14 -44.5A83.14 31.14 0 0 0 83.14 -44.5"/%3E%3Cpath d="M-48 -77.08A48 17.98 0 0 0 48 -77.08"/%3E%3Cellipse rx="48" ry="96"/%3E%3Cellipse rx="83.14" ry="96"/%3E%3Cpath d="M0-96V96"/%3E%3C/svg%3E') center / contain no-repeat, linear-gradient(to bottom, #000 25%, transparent 88%);
+  mask-composite: intersect;
+  animation: globeIn 1600ms var(--ease-smooth-out) 200ms backwards;
+}
+.hero::before {
+  width: min(130vw, 1200px); aspect-ratio: 1.6;
+  background: radial-gradient(closest-side, color-mix(in srgb, #5b7fd1 16%, transparent), transparent);
+}
+@keyframes globeIn { from { opacity: 0; scale: 0.96; } }
+@media (prefers-reduced-motion: reduce) { .hero::after { animation: none; } }
 .hero > .title { grid-row: 2; }
 .hero > .heroSearch { grid-row: 3; }
 .hero > .heroLinks { grid-row: 4; }
