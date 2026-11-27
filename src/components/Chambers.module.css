@@ -404,6 +404,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .statMain small { font-size: 13px; color: var(--muted); line-height: 1.4; }
 .statTime { flex: none; font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .pager { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding-top: 4px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.pager > * { width: 100%; min-width: 0; } /* Previous and Next each fill their side, wrapped in a reason (when they can't be pressed) or not */
 .pager .button { width: 100%; }
 @media (max-width: 480px) { .pager { gap: 8px; } }
 
