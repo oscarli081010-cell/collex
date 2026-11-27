@@ -42,7 +42,7 @@ import { MONITOR, SLIDERS, LEFT, useNow, chime, BackCtx } from "./committees/sha
 import { Setup } from "./committees/setup";
 import { Rail, Welcome, RollCallOpen, Pick, TrinityPick } from "./committees/opening";
 import { Floor } from "./committees/floor";
-import { Lists, AmendmentForm, AmendmentQueue } from "./committees/amendments";
+import { Lists, AmendmentForm, AmendmentQueue, DecidedAmendments } from "./committees/amendments";
 import { RollCall } from "./committees/voting";
 import { Motions, Documents } from "./committees/motions";
 import { Resolutions, RollPanel, Shortcuts, OfflineNote, Sound, DisplaySounds, Times, Background, Share } from "./committees/settings";
@@ -272,6 +272,7 @@ export default function Chambers() {
           {amendOpen && <div className={s.pair}><AmendmentForm c={c} act={act} /><AmendmentQueue c={c} act={act} /></div>}
           {(c.step === "vote" || c.step === "closed" || c.step === "ended") && <RollCall c={c} act={act} />}
           {trWork && (ch.motionsOpen(c) || c.poll?.kind === "motion" || t.motions.some((m) => m.status === "waiting")) && <Motions c={c} act={act} />}
+          {c.step !== "welcome" && c.step !== "roll" && <DecidedAmendments c={c} />}
           {trWork && c.step !== "statements" && <Documents c={c} act={act} />}
           {c.step !== "welcome" && c.step !== "roll" && <RollPanel c={c} act={act} />}
         </div>

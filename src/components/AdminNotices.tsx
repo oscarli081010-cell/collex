@@ -118,7 +118,6 @@ export default function AdminNotices({ say }: { say: (t: string) => void }) {
         {whyNot
           ? <span className="tip" data-tip={whyNot} style={{ display: "flex" }}><button type="button" className="button block" disabled>Post to Home Page</button></span>
           : <button type="button" className="button block" disabled={busy === "post"} onClick={() => void post()}>{busy === "post" ? "Posting…" : "Post to Home Page"}</button>}
-        <p className={n.hint}>Posting replaces the announcement that&rsquo;s showing now. Only one shows at a time.</p>
       </section>
 
       <section aria-labelledby="notice-list-h">

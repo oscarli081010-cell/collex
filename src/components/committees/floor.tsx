@@ -9,23 +9,36 @@ import Flag from "../Flag";
 import { ArmedButton, Why } from "../RoomChair";
 import { SIDE, type Act, Duration, Undo, SideSwitch, Stats } from "./shared";
 
-/** The chair's words for the room during an unmoderated caucus. Sent half a second after the typing stops (or when the
- *  box is left), so the display follows without every key being a change of its own. */
+/** The chair's words for the room during an unmoderated caucus. Sent a moment after the typing stops (and at once when
+ *  the box is left or closed), so the display follows without every key being a change of its own. While the chair is
+ *  typing, the box keeps their own text: a copy of the committee arriving from elsewhere never overwrites it mid-word. */
 function CaucusNote({ value, act }: { value: string; act: Act }) {
-  const [draft, setDraft] = useState<string | null>(null);
+  const [text, setText] = useState(value);
+  const typing = useRef(false);
+  const unsent = useRef<string | null>(null);
   const actRef = useRef(act);
   useEffect(() => { actRef.current = act; });
-  const send = (text: string) => { void actRef.current((x) => ch.setCaucusNote(x, text), false); setDraft(null); };
+  // Someone else's change (another chair, Back) shows here, but only while this chair isn't typing.
+  useEffect(() => { if (!typing.current && unsent.current === null) setText(value); }, [value]);
+  const flush = () => {
+    const t = unsent.current;
+    if (t === null) return;
+    unsent.current = null;
+    void actRef.current((x) => ch.setCaucusNote(x, t), false);
+  };
   useEffect(() => {
-    if (draft === null) return;
-    const id = setTimeout(() => send(draft), 500);
+    if (unsent.current === null) return;
+    const id = setTimeout(flush, 400);
     return () => clearTimeout(id);
-  }, [draft]);
+  }, [text]);
+  useEffect(() => () => flush(), []); // closing the caucus mid-word still sends what was written
   return (
     <div className="field">
       <label htmlFor="fl-note">Note for the Display (Optional)</label>
-      <textarea id="fl-note" className="control" rows={2} value={draft ?? value} maxLength={ch.CAUCUS_NOTE_MAX} placeholder="What to work on, or when to be back"
-        onChange={(e) => setDraft(e.target.value)} onBlur={() => { if (draft !== null) send(draft); }} />
+      <textarea id="fl-note" className="control" rows={2} value={text} maxLength={ch.CAUCUS_NOTE_MAX} placeholder="What to work on, or when to be back"
+        onFocus={() => { typing.current = true; }}
+        onChange={(e) => { unsent.current = e.target.value; setText(e.target.value); }}
+        onBlur={() => { typing.current = false; flush(); }} />
     </div>
   );
 }
@@ -92,7 +105,7 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
   const subA = c.amend?.sub ? c.amendments.find((a) => a.id === c.amend!.sub!.id) : undefined;
   if (sp) {
     if (sp.phase === "ask") { title = name(sp.asker); sub = `Point of Information for ${name(sp.who)}`; }
-    else { title = name(sp.who); sub = sp.phase === "speech" ? "" : sp.phase === "answer" ? `Replying to ${name(sp.asker)}` : points ? "" : `How does ${name(sp.who)} yield?`; }
+    else { title = name(sp.who); sub = sp.phase === "speech" ? "" : sp.phase === "answer" ? `Replying to ${name(sp.asker)}` : ""; }
   }
   else if (ex) { title = name(ex.id); sub = `Explains their vote (${ex.side === "for" ? "Yes" : "No"} with Rights)`; }
   else if (poll?.kind === "motion") { title = "Motion"; sub = poll.title; }
@@ -121,7 +134,7 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
   else if (debateOpen) {
     if (!c.debate.run.length) { title = name(amendment?.by ?? null); }
     else if (next) { title = name(next.id); }
-    else { title = "Speakers\u2019 List Is Empty"; }
+    else { title = "Amendment Speakers\u2019 List Is Empty"; }
   }
 
   const sideless = !!t && sp && !sp.stance && !ch.sided(c) && (sp.role === "speaker" || sp.role === "statement"); // a general speaker or a statement takes no side
@@ -132,6 +145,8 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
     const pick = document.getElementById("ch-add");
     const box = pick?.closest("section");
     if (!pick || !box) return;
+    const bar = document.querySelector(".topbar")?.getBoundingClientRect().height ?? 0; // land below the sticky top bar, not under it
+    box.style.scrollMarginTop = `${Math.round(bar) + 16}px`;
     box.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
     pick.focus({ preventScroll: true });
   };
@@ -269,8 +284,8 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
               onChange={(v, ok) => { if (ok && v !== null) act((x) => ch.setCaucusSecs(x, v)); }} />}
             {timerBtn("button")}
             {extend}
-            {t && k && (k.kind === "unmod" || k.kind === "final") && <CaucusNote value={typeof k.note === "string" ? k.note : ""} act={act} />}
             <button type="button" className="button secondary" onClick={() => act(ch.endCaucus)}>End Caucus</button>
+            {t && k && (k.kind === "unmod" || k.kind === "final") && <CaucusNote value={typeof k.note === "string" ? k.note : ""} act={act} />}
           </>
         );
       case "floor": return t ? (
@@ -441,16 +456,16 @@ export function Floor({ c, act, left, now, state, toggle }: { c: Chamber; act: A
           </div>
         )}
         <h2 className={`serif ${s.who} ${s.whoBig}`}>{typeof title === "string" && c.delegates.some((d) => d.name === title) ? <><Flag name={title} em />{title}</> : title}</h2>
-        {sub && <p className={s.sub}>{sub}</p>}
+        {sub && <p className={s.subBox}>{sub}</p>}
         {sp && points && between && (
-          <p className={s.sub}><strong className={s.subNum}>{sp.pois}</strong> {sp.pois === 1 ? "Point" : "Points"} of Information taken</p>
+          <p className={s.subBox}><strong className={s.subNum}>{sp.pois}</strong> {sp.pois === 1 ? "Point" : "Points"} of Information taken</p>
         )}
         {t && c.step === "general" && !sp && (() => {
           const all = ch.drafts(c);
           const done = all.filter((d) => d.result).length;
           return <Stats label="Resolutions" items={[{ label: "Debated", value: done, tone: "ok" }, { label: "Still to Debate", value: all.length - done }]} />;
         })()}
-        {amendment && c.step === "amend" && <p className={s.sub}>{amendment.text}</p>}
+        {amendment && c.step === "amend" && <p className={s.subBox}>{amendment.text}</p>}
         {c.result && !c.poll && <p className={s.result} data-pass={c.result.passed}><strong>{c.result.passed ? "Passed" : "Failed"}:</strong> {c.result.yes} For, {c.result.no} Against, {c.result.abstain} Abstaining</p>}
         {c.timer && !between && (c.explain?.who || (c.step !== "closed" && c.step !== "ended")) && <div className={s.time} data-state={state} data-over={ch.overtime(c.timer, now) > 0 || undefined} role="timer">{ch.timerText(c.timer, now)}</div>}
         {k?.clock && (

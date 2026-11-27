@@ -17,3 +17,7 @@
 .toolbar :global(.button).danger { color: var(--danger); }
 .toolbar :global(.button).danger:hover { background: var(--danger-soft); border-color: var(--danger); }
 .toolbar :global(.button).danger[data-armed] { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* The visit figures and the chart, in a white card. */
+.box { padding: 22px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 20px; }
+.box > .figures, .box > .chartWrap { margin: 0; }

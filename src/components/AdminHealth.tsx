@@ -71,16 +71,21 @@ export default function AdminHealth() {
   return (
     <>
       <div className={h.banner} data-state={warn ? "warn" : "ok"} role="status">
-        <p className={h.bannerTitle}>{warn ? "Needs a Look" : "All Good"}</p>
-        <span className="muted">{warn ? `${reasons.join("; ")}.` : "Emails are going out and every scheduled job ran."}</span>
+        <span className={h.bannerMark} aria-hidden="true" />
+        <div className={h.bannerText}>
+          <p className={h.bannerTitle}>{warn ? "Needs a Look" : "All Good"}</p>
+          <span className="muted">{warn ? `${reasons.join("; ")}.` : "Emails are going out and every scheduled job ran."}</span>
+        </div>
+        <button type="button" className="button secondary" onClick={load}>Refresh</button>
       </div>
-      <div className={h.toolbar}><button type="button" className="button secondary" onClick={load}>Refresh</button></div>
 
+      <section className={`panel ${h.box}`}>
       <h2 className={h.heading}>Emails</h2>
       <dl className={h.figures}>
         <div className={h.figure} data-warn={stuck}><dd><b>{data.mail_waiting}</b></dd><dt>Waiting{data.mail_waiting > 0 ? `, oldest ${age(data.oldest_waiting_minutes)}` : ""}</dt></div>
         <div className={h.figure} data-warn={data.mail_failed > 0}><dd><b>{data.mail_failed}</b></dd><dt>Failed</dt></div>
       </dl>
+      </section>
 
       <h2 className={h.heading}>Scheduled Jobs</h2>
       {data.cron.length === 0 ? (
@@ -102,11 +107,13 @@ export default function AdminHealth() {
         </div>
       )}
 
+      <section className={`panel ${h.box}`}>
       <h2 className={h.heading}>Last 30 Days</h2>
       <dl className={h.figures}>
         <div className={h.figure}><dd><b>{data.signups_30d}</b></dd><dt>Sign-ups</dt></div>
         <div className={h.figure}><dd><b>{data.committees_started_30d}</b></dd><dt>Committees Started</dt></div>
       </dl>
+      </section>
 
       <h2 className={h.heading}>Each Conference, Views to Check-in</h2>
       {data.funnel.length === 0 ? (

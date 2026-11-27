@@ -89,14 +89,16 @@ function Yours({ signedIn, mine, seats, local }: { signedIn: boolean; mine: Mine
     return (
       <li key={m.id}>
         <button type="button" className={s.yourCard} onClick={() => router.push(`/chambers?c=${m.id}`, { scroll: false })}>
-          <span className={s.yourTop}>
+          <span className={s.yourMain}>
             <span className={s.yourName}>{m.name}</span>
+            {m.topic ? <span className={s.yourTopic}>{m.topic}</span> : null}
+            <span className={s.yourFacts}>{stage && <span className={s.yourStage}>{stage}</span>}{facts.map((f) => <span key={f}>{f}</span>)}</span>
+            {!m.is_owner && <small>Run by {m.owner_name}</small>}
+          </span>
+          <span className={s.yourEnd}>
             <span className={`badge${r === "admin" ? " accent" : ""}`}>{ROLE[r]}</span>
             <span className={s.yourGo} aria-hidden="true">→</span>
           </span>
-          {m.topic ? <span className={s.yourTopic}>{m.topic}</span> : null}
-          <span className={s.yourFacts}>{stage && <span className={s.yourStage}>{stage}</span>}{facts.map((f) => <span key={f}>{f}</span>)}</span>
-          {!m.is_owner && <small>Run by {m.owner_name}</small>}
         </button>
       </li>
     );
@@ -121,9 +123,12 @@ function Yours({ signedIn, mine, seats, local }: { signedIn: boolean; mine: Mine
           <ul className={s.mine}>
             <li>
               <button type="button" className={s.yourCard} onClick={() => router.push("/chambers", { scroll: false })}>
-                <span className={s.yourTop}><span className={s.yourName}>{local.name}</span><span className="badge">This browser</span><span className={s.yourGo} aria-hidden="true">→</span></span>
-                {local.topic ? <span className={s.yourTopic}>{local.topic}</span> : null}
-                <span className={s.yourFacts}>{[ch.procedureName(local), ch.substep(local), `${local.delegates.length} ${local.delegates.length === 1 ? "state" : "states"}`].map((f) => <span key={f}>{f}</span>)}</span>
+                <span className={s.yourMain}>
+                  <span className={s.yourName}>{local.name}</span>
+                  {local.topic ? <span className={s.yourTopic}>{local.topic}</span> : null}
+                  <span className={s.yourFacts}>{[ch.procedureName(local), ch.substep(local), `${local.delegates.length} ${local.delegates.length === 1 ? "state" : "states"}`].map((f) => <span key={f}>{f}</span>)}</span>
+                </span>
+                <span className={s.yourEnd}><span className="badge">This browser</span><span className={s.yourGo} aria-hidden="true">→</span></span>
               </button>
             </li>
           </ul>
@@ -150,8 +155,11 @@ function Yours({ signedIn, mine, seats, local }: { signedIn: boolean; mine: Mine
               {seats.map((m) => (
                 <li key={m.id}>
                   <button type="button" className={s.yourCard} onClick={() => router.push(`/chambers/room?c=${m.id}`, { scroll: false })}>
-                    <span className={s.yourTop}><span className={s.yourName}>{m.name}</span><span className="badge"><Flag name={m.delegate} size={16} />{m.delegate || "Delegate"}</span><span className={s.yourGo} aria-hidden="true">→</span></span>
-                    {m.topic ? <span className={s.yourTopic}>{m.topic}</span> : null}
+                    <span className={s.yourMain}>
+                      <span className={s.yourName}>{m.name}</span>
+                      {m.topic ? <span className={s.yourTopic}>{m.topic}</span> : null}
+                    </span>
+                    <span className={s.yourEnd}><span className="badge"><Flag name={m.delegate} size={16} />{m.delegate || "Delegate"}</span><span className={s.yourGo} aria-hidden="true">→</span></span>
                   </button>
                 </li>
               ))}
@@ -283,8 +291,8 @@ export function Setup({ onCreate, signedIn, local }: { onCreate: (c: Chamber, de
         </form>
         <section className={`panel ${s.setupCard}`} aria-labelledby="cs-practice">
           <div className={s.practiceIntro}>
-            <h2 id="cs-practice" className={s.h2}>Try a Practice Committee</h2>
-            <p className="muted">A practice run with a sample topic and 12 member states, in the {PROC_LABEL[proc]} procedure chosen above. It counts as one of your committees.</p>
+            <h2 id="cs-practice" className={s.practiceTitle}>Try a Practice Committee</h2>
+            <p className={`muted ${s.practiceText}`}>A practice run with a sample topic and 12 member states, in the {PROC_LABEL[proc]} procedure chosen above. It counts as one of your committees.</p>
           </div>
           <button type="button" className="button secondary block" onClick={() => { onCreate(ch.createPractice(proc, Array.from({ length: ch.PRACTICE.states.length }, () => uid()), pass), false); if (supabase) void supabase.rpc("note_chamber_started", { label: ch.PRACTICE.name, procedure: PROC_LABEL[proc] }); }}>Try a Practice Committee</button>
         </section>

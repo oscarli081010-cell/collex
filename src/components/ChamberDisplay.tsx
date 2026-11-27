@@ -243,7 +243,7 @@ export default function ChamberDisplay() {
 
   const open = c ? ch.rooms(c) : null;
   const openNow = open ? (open.labels ?? [
-    open.negotiation && open.notes ? "Negotiation Chamber and Notes Open" : open.negotiation ? "Negotiation Chamber Open" : open.notes && "Notes Open",
+    open.negotiation && "Negotiation Chamber Open", open.notes && "Notepassing Open",
     open.amendments && "Amendments Open", open.speakers && "Speakers\u2019 List Open",
   ]).filter(Boolean).join(" \u00B7 ") : "";
   // Two round buttons with only an icon each; the name appears on hover or focus.

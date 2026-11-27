@@ -284,9 +284,9 @@ export default function Admin() {
                   <option value="all">All</option>
                 </Select>
               )}
-              <span key={`${tab}${q}${statusFilter}${reportFilter}`} className={`t-swap muted ${s.searchCount}`} aria-live="polite">
-                {searching ? `${tab === "Conferences" ? shownConfs.length : tab === "Reports" ? shownReports.length : tab === "Committees" ? (chambers ?? []).filter((x) => `${x.name} ${x.owner_email} ${x.owner_name}`.toLowerCase().includes(q)).length : tab === "Users" ? shownUsers.length : tab === "Errors" ? (errors ?? []).filter((x) => `${x.message} ${x.path}`.toLowerCase().includes(q)).length : shownLog.length} shown` : ""}
-              </span>
+              {searching && <span key={`${tab}${q}${statusFilter}${reportFilter}`} className={`t-swap muted ${s.searchCount}`} aria-live="polite">
+                { `${tab === "Conferences" ? shownConfs.length : tab === "Reports" ? shownReports.length : tab === "Committees" ? (chambers ?? []).filter((x) => `${x.name} ${x.owner_email} ${x.owner_name}`.toLowerCase().includes(q)).length : tab === "Users" ? shownUsers.length : tab === "Errors" ? (errors ?? []).filter((x) => `${x.message} ${x.path}`.toLowerCase().includes(q)).length : shownLog.length} shown`}
+              </span>}
             </div>
           )}
           {tab === "Review" && <AdminClaims say={say} />}
@@ -414,6 +414,7 @@ export default function Admin() {
             <Empty title="No activity yet" body="Every new account, listing, committee, approval and access change is recorded here." />
           ) : shownLog.length === 0 ? noMatches : (
             <>
+              <div className={`panel ${s.logBox}`}>
               <ol id="audit-list" className={act.history} style={{ scrollMarginTop: 140 }}>
                 {shownLog.slice(logAt * LOG_PER_PAGE, (logAt + 1) * LOG_PER_PAGE).map((e) => (
                   <li key={e.id}>
@@ -433,6 +434,7 @@ export default function Admin() {
                   {logAt === logPages - 1 ? <span className="tip" data-tip="You’re on the last page"><button type="button" className="button secondary" onClick={() => goLog(logAt + 1)} disabled={logAt === logPages - 1}>Next</button></span> : <button type="button" className="button secondary" onClick={() => goLog(logAt + 1)} disabled={logAt === logPages - 1}>Next</button>}
                 </nav>
               )}
+              </div>
             </>
           ))}
         </div>

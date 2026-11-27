@@ -27,7 +27,7 @@ export function Lists({ c, act }: { c: Chamber; act: Act }) {
   const pick = options.some((d) => d.id === who) ? who : "";
   const col = (k: Side) => c.debate.list.filter((x) => x.side === k);
   const plain = !ch.sided(c); // the general list and a moderated caucus are one list of states
-  const heading = c.tr ? (c.step === "general" ? "General Speakers\u2019 List" : c.step === "caucus" ? "Moderated Caucus Speakers\u2019 List" : (c.step === "floor" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer") ? `${ch.resNoun(c).replace("resolution", "Resolution")} Speakers\u2019 List` : "Speakers\u2019 List") : c.step === "amend" ? "Speakers\u2019 List" : "Resolution Speakers\u2019 List";
+  const heading = c.tr ? (c.step === "general" ? "General Speakers\u2019 List" : c.step === "caucus" ? "Moderated Caucus Speakers\u2019 List" : (c.step === "floor" || c.step === "proposer" || c.step === "seconder" || c.step === "opposer") ? `${ch.resNoun(c).replace("resolution", "Resolution")} Speakers\u2019 List` : c.step === "amend" ? "Amendment Speakers\u2019 List" : "Speakers\u2019 List") : c.step === "amend" ? "Amendment Speakers\u2019 List" : "Resolution Speakers\u2019 List";
 
   const form = (
     <>
@@ -241,7 +241,6 @@ export function AmendmentQueue({ c, act }: { c: Chamber; act: Act }) {
   const waiting = ch.waitingAmendments(c);
   const live = c.amendments.find((a) => a.id === c.amend?.id);
   const subLive = c.amendments.find((a) => a.id === c.amend?.sub?.id);
-  const done = c.amendments.filter((a) => a.status !== "waiting" && a.status !== "entertained");
   const name = (id: string) => ch.nameOf(c, id);
   const canEntertain = c.step === "floor" && !c.speech && !c.amend;
   const entertainWhy = canEntertain ? null : c.amend ? "Finish the amendment being considered" : c.speech ? "Wait until the speech is over" : "Only during debate on the resolution";
@@ -295,11 +294,25 @@ export function AmendmentQueue({ c, act }: { c: Chamber; act: Act }) {
           ))}
         </ol>
       )}
-      {done.length > 0 && (
-        <ul className={s.states}>
-          {done.map((a) => <li key={a.id}><span>{name(a.by)}{a.clause && ` · ${a.clause}`}{a.to && " · To an amendment"}</span><span className={s.chip} data-tone={a.status === "passed" ? "ok" : a.status === "failed" || a.status === "invalid" ? "bad" : undefined}>{STATUS[a.status]}</span></li>)}
-        </ul>
-      )}
+    </section>
+  );
+}
+
+/** The amendments already settled on this resolution (passed, failed, ruled invalid or withdrawn), in a card of their own
+ *  below the floor so the queue above holds only what is still to come. */
+export function DecidedAmendments({ c }: { c: Chamber }) {
+  const done = c.amendments.filter((a) => a.status !== "waiting" && a.status !== "entertained");
+  if (!done.length) return null;
+  const name = (id: string) => ch.nameOf(c, id);
+  return (
+    <section className={`panel ${s.list}`} aria-labelledby="ch-am-done">
+      <div className={s.head}>
+        <h2 id="ch-am-done" className={s.h2}>Decided Amendments</h2>
+        <span className="badge">{done.length}</span>
+      </div>
+      <ul className={s.states}>
+        {done.map((a) => <li key={a.id}><span>{name(a.by)}{a.clause && ` · ${a.clause}`}{a.to && " · To an amendment"}</span><span className={s.chip} data-tone={a.status === "passed" ? "ok" : a.status === "failed" || a.status === "invalid" ? "bad" : undefined}>{STATUS[a.status]}</span></li>)}
+      </ul>
     </section>
   );
 }

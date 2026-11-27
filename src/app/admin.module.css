@@ -189,3 +189,6 @@
 .confirmDel :global(.actions) { display: flex; flex-wrap: wrap; gap: 8px; }
 .dangerBtn { color: var(--danger); }
 .dangerBtn:hover:not([disabled]) { background: var(--danger-soft); border-color: var(--danger); }
+
+/* The audit log in a white card, its pager under the entries. */
+.logBox { padding: 22px; display: flex; flex-direction: column; gap: 24px; }

@@ -84,6 +84,7 @@ export function AdminVisitors() {
   return (
     <>
       {picker}
+      <section className={`panel ${p.box}`}>
       <dl className={p.figures}>
         <div className={p.figure}><dd><b>{visits}</b></dd><dt>Visits</dt></div>
         <div className={p.figure}><dd><b>{views}</b></dd><dt>Page Views</dt></div>
@@ -102,6 +103,7 @@ export function AdminVisitors() {
           <tbody>{data.days.map((d) => <tr key={d.day}><td>{short(d.day)}</td><td>{d.visits}</td></tr>)}</tbody>
         </table>
       </figure>
+      </section>
       <div className={s.tableWrap}>
         <table className={s.table}>
           <thead><tr><th>Page</th><th className={p.num}>Views</th><th className={p.num}>Visits</th></tr></thead>
