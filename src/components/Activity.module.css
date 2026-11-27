@@ -13,7 +13,7 @@
 .statusDot[data-status="pending"] { background: var(--warn); box-shadow: 0 0 0 4px var(--warn-soft); }
 .statusDot[data-status="rejected"] { background: var(--danger); box-shadow: 0 0 0 4px var(--danger-soft); }
 
-.note { font-size: 14px; padding: 12px 14px; border-radius: 10px; background: var(--surface); color: var(--muted); }
+.note { font-size: 14px; padding: 12px 14px; border-radius: 10px; background: var(--wash); color: var(--muted); }
 
 /* History: a quiet timeline, newest first. */
 .history { display: flex; flex-direction: column; }
@@ -29,7 +29,7 @@
 .what { font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; }
 .what strong { font-weight: 500; }
 .when { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
-.quote { display: block; margin-top: 6px; padding: 8px 12px; border-radius: 8px; background: var(--surface); font-size: 13.5px; color: var(--muted); }
+.quote { display: block; margin-top: 6px; padding: 8px 12px; border-radius: 8px; background: var(--wash); font-size: 13.5px; color: var(--muted); }
 
 @media (max-width: 640px) {
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }

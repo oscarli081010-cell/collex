@@ -10,7 +10,9 @@ import s from "../Chambers.module.css";
 import Select from "../Select";
 import Flag from "../Flag";
 import { ArmedButton, Why } from "../RoomChair";
-import { COPY, type Act, Stats } from "./shared";
+import { Bars } from "../Drawings";
+import board from "../board.module.css";
+import { type Act, Stats } from "./shared";
 
 const PER_PAGE = 10;
 // The activity can be narrowed to what is worth looking at when marking; the three opening speeches and the closing ones are already in the table.
@@ -33,17 +35,11 @@ export function Analytics({ c, say, act, cloudId }: { c: Chamber; say: (t: strin
   const ap = Math.min(aat, aPages - 1);
   const when = (t: number) => new Date(t).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
   const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
-  const csv = () => {
-    const q = (v: string) => `"${v.replace(/"/g, '""')}"`;
-    const lines = [["Time", "State", "What", "Seconds", "With", "Resolution"].join(","), ...c.stats.map((x) => [when(x.at), q(name(x.who)), q(ch.statLabel(c, x.kind)), x.secs, q(x.with ? name(x.with) : ""), q(x.res)].join(","))];
-    navigator.clipboard?.writeText(lines.join("\n")).then(() => say("Copied as CSV"), () => say("Couldn't copy"));
-  };
 
   return (
     <section id="chv-panel-analytics" role="tabpanel" aria-labelledby="chv-tab-analytics" className={`panel ${s.log}`}>
       <div className={s.head}>
         <h2 className={s.h2}>Analytics</h2>
-        <Why why={!c.stats.length && "Nothing recorded yet"}><button type="button" className={`button secondary ${s.csvBtn}`} onClick={csv} disabled={!c.stats.length}>{COPY}Copy as CSV</button></Why>
       </div>
       <PanelTabs idPrefix="cha" label="Analytics Views" tab={tab} setTab={setTab}
         tabs={[{ id: "states", label: "By State", icon: ICONS.chart }, { id: "activity", label: "Activity", icon: ICONS.clock }, { id: "scores", label: "Scores", icon: ICONS.verify }]} />
@@ -89,7 +85,13 @@ export function Analytics({ c, say, act, cloudId }: { c: Chamber; say: (t: strin
               {FILTERS.map((k) => <option key={k} value={k}>{ch.statLabel(c, k)}</option>)}
             </Select>
           </div>
-          {feed.length === 0 ? <p className={s.empty}>Nothing yet.</p> : (
+          {feed.length === 0 ? (
+            <div className={`${board.empty} ${s.emptyCard}`}>
+              <Bars />
+              <p className={board.emptyTitle}>{kind ? "None of these yet" : "No activity yet"}</p>
+              <p className="muted">{kind ? `Nothing has been recorded as ${ch.statLabel(c, kind)} so far. Choose Everything to see the rest.` : "Speeches, Points of Information and amendments appear here as the committee runs."}</p>
+            </div>
+          ) : (
             <ol className={s.entries}>
               {feed.slice(ap * PER_PAGE, (ap + 1) * PER_PAGE).map((x, i) => (
                 <li key={`${x.at}-${i}`} className={s.statRow}>

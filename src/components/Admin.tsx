@@ -255,7 +255,7 @@ export default function Admin() {
             <ul className={s.groupList}>
               {g.tabs.map((t) => (
                 <li key={t}>
-                  <button type="button" className={s.sideLink} aria-current={tab === t ? "true" : undefined} onClick={() => { clearSel(); setTab(t); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                  <button type="button" className={s.sideLink} aria-current={tab === t ? "true" : undefined} onClick={() => { clearSel(); setTab(t); }}>
                     <span>{t}</span>{counts[t] ? <span className={s.count}>{counts[t]}</span> : null}
                   </button>
                 </li>

@@ -220,7 +220,7 @@
 /* Cover photo picker: a wide drop area that becomes the preview once a photo is picked. */
 .coverPick {
   position: relative; display: grid; place-items: center; aspect-ratio: 16 / 5; border-radius: 12px; overflow: hidden; cursor: pointer;
-  border: 1px dashed var(--line-strong); background: var(--surface); color: var(--muted);
+  border: 1px dashed var(--line-strong); background: var(--wash); color: var(--muted);
   transition: border-color var(--duration-quick), color var(--duration-quick);
 }
 .coverPick:hover { border-color: var(--faint); color: var(--ink); }
@@ -275,7 +275,7 @@
 /* A past conference: one calm line in place of the apply buttons. */
 .finished {
   display: flex; flex-direction: column; gap: 6px; padding: 22px; margin-bottom: 28px;
-  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--wash);
 }
 .finishedTitle { font-family: var(--serif); font-weight: 400; font-size: 28px; line-height: 1.1; text-wrap: balance; }
 
@@ -294,7 +294,7 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 .rowsList { display: flex; flex-direction: column; gap: 10px; }
 .editRow {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: start;
-  padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--wash);
 }
 .editFields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .editFields label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 500; color: var(--muted); min-width: 0; }
@@ -326,7 +326,7 @@ fieldset:global(.field) > legend { font-size: 13px; font-weight: 500; padding: 0
 .photoField { position: relative; align-self: end; width: 44px; height: 44px; }
 .photoPick {
   position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; cursor: pointer;
-  background: var(--surface); border: 1px solid var(--line-strong); color: var(--muted); font-size: 13px; font-weight: 500; line-height: 1;
+  background: var(--wash); border: 1px solid var(--line-strong); color: var(--muted); font-size: 13px; font-weight: 500; line-height: 1;
   transition: border-color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out);
 }
 .editFields .photoPick { display: grid; place-items: center; gap: 0; font-size: 13px; }

@@ -39,7 +39,7 @@ const ORGANIZATION = {
 const TOOLS: { title: string; text: string; art: React.ReactNode; wide?: boolean }[] = [
   { title: "The speakers’ list", text: "Add states as placards go up. One key calls the next speaker, and the timer runs on the display.", art: <Icon d="M9 11a3 3 0 100-6 3 3 0 000 6zM3 20c.8-3.4 3.2-5 6-5s5.2 1.6 6 5M16.5 6.5a4 4 0 010 5M19 4a7.5 7.5 0 010 10" />, wide: true },
   { title: "Motions and votes", text: "Put a motion to the vote, count placards or take a roll call, and record the result.", art: <Icon d="M4 12l5 5L20 6" /> },
-  { title: "Analytics", text: "How long each state spoke, every speech, POI and amendment, and the chairs’ marks. Copy it all as a CSV.", art: <Icon d="M4 20h16M7 16v-4M12 16V6M17 16v-7" /> },
+  { title: "Analytics", text: "How long each state spoke, every speech, POI and amendment, and the chairs’ marks.", art: <Icon d="M4 20h16M7 16v-4M12 16V6M17 16v-7" /> },
   { title: "Two chairs, one committee", text: "Share a join code and run the console from two laptops at once.", art: <Icon d="M8 11a3 3 0 100-6 3 3 0 000 6zM16 11a3 3 0 100-6 3 3 0 000 6zM2.5 19c.8-3 3-4.5 5.5-4.5s4.7 1.5 5.5 4.5M13.8 15c.7-.3 1.4-.5 2.2-.5 2.5 0 4.7 1.5 5.5 4.5" /> },
   { title: "If the wifi drops", text: "The laptop keeps running the committee, and its display keeps up. Changes are sent when it reconnects.", art: <Icon d="M2 9a15 15 0 0120 0M5.5 12.5a10 10 0 0113 0M9 16a5 5 0 016 0M12 19.5h.01" /> },
 ];

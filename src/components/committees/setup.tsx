@@ -40,7 +40,7 @@ function Join({ signedIn, initial }: { signedIn: boolean; initial: string }) {
       if (seat.data) { router.push(`/chambers/room?join=${typed}`); return; }
       setErr(seat.error?.message ?? "No committee has that code. Check it with the chair."); setWrong((n) => n + 1); return;
     }
-    router.push(`/chambers?c=${data}`);
+    router.push(`/chambers?c=${data}`, { scroll: false });
   };
   return (
     <div id="cs-panel-join" role="tabpanel" aria-labelledby="cs-tab-join" className={s.setupStack}>
@@ -83,17 +83,19 @@ function Yours({ signedIn, mine, seats, local }: { signedIn: boolean; mine: Mine
   const shared = (mine ?? []).filter((m) => !m.is_owner);
   const card = (m: Mine) => {
     const r = m.role ?? (m.is_owner ? "owner" : "chair");
-    const facts = [procName(m.rules), m.step ? STEP[m.step] ?? m.step : "", m.delegates != null ? `${m.delegates} ${m.delegates === 1 ? "state" : "states"}` : "",
+    const stage = m.step ? STEP[m.step] ?? m.step : "";
+    const facts = [procName(m.rules), m.delegates != null ? `${m.delegates} ${m.delegates === 1 ? "state" : "states"}` : "",
       m.members != null ? `${m.members + 1} ${m.members === 0 ? "person" : "people"}` : "", m.updated_at ? `Updated ${ago(m.updated_at).replace(/^Just now$/, "just now")}` : ""].filter(Boolean);
     return (
       <li key={m.id}>
-        <button type="button" className={s.yourCard} onClick={() => router.push(`/chambers?c=${m.id}`)}>
+        <button type="button" className={s.yourCard} onClick={() => router.push(`/chambers?c=${m.id}`, { scroll: false })}>
           <span className={s.yourTop}>
             <span className={s.yourName}>{m.name}</span>
             <span className={`badge${r === "admin" ? " accent" : ""}`}>{ROLE[r]}</span>
+            <span className={s.yourGo} aria-hidden="true">→</span>
           </span>
           {m.topic ? <span className={s.yourTopic}>{m.topic}</span> : null}
-          <span className={s.yourFacts}>{facts.map((f) => <span key={f}>{f}</span>)}</span>
+          <span className={s.yourFacts}>{stage && <span className={s.yourStage}>{stage}</span>}{facts.map((f) => <span key={f}>{f}</span>)}</span>
           {!m.is_owner && <small>Run by {m.owner_name}</small>}
         </button>
       </li>
@@ -118,8 +120,8 @@ function Yours({ signedIn, mine, seats, local }: { signedIn: boolean; mine: Mine
           <h2 id="cs-local" className={s.groupLabel}>Open in This Browser</h2>
           <ul className={s.mine}>
             <li>
-              <button type="button" className={s.yourCard} onClick={() => router.push("/chambers")}>
-                <span className={s.yourTop}><span className={s.yourName}>{local.name}</span><span className="badge">This browser</span></span>
+              <button type="button" className={s.yourCard} onClick={() => router.push("/chambers", { scroll: false })}>
+                <span className={s.yourTop}><span className={s.yourName}>{local.name}</span><span className="badge">This browser</span><span className={s.yourGo} aria-hidden="true">→</span></span>
                 {local.topic ? <span className={s.yourTopic}>{local.topic}</span> : null}
                 <span className={s.yourFacts}>{[ch.procedureName(local), ch.substep(local), `${local.delegates.length} ${local.delegates.length === 1 ? "state" : "states"}`].map((f) => <span key={f}>{f}</span>)}</span>
               </button>
@@ -147,8 +149,8 @@ function Yours({ signedIn, mine, seats, local }: { signedIn: boolean; mine: Mine
             <ul className={s.mine}>
               {seats.map((m) => (
                 <li key={m.id}>
-                  <button type="button" className={s.yourCard} onClick={() => router.push(`/chambers/room?c=${m.id}`)}>
-                    <span className={s.yourTop}><span className={s.yourName}>{m.name}</span><span className="badge"><Flag name={m.delegate} size={16} />{m.delegate || "Delegate"}</span></span>
+                  <button type="button" className={s.yourCard} onClick={() => router.push(`/chambers/room?c=${m.id}`, { scroll: false })}>
+                    <span className={s.yourTop}><span className={s.yourName}>{m.name}</span><span className="badge"><Flag name={m.delegate} size={16} />{m.delegate || "Delegate"}</span><span className={s.yourGo} aria-hidden="true">→</span></span>
                     {m.topic ? <span className={s.yourTopic}>{m.topic}</span> : null}
                   </button>
                 </li>
@@ -280,9 +282,11 @@ export function Setup({ onCreate, signedIn, local }: { onCreate: (c: Chamber, de
           <Why why={why}><button type="submit" className="button lg block" disabled={!!why}>Open Committee</button></Why>
         </form>
         <section className={`panel ${s.setupCard}`} aria-labelledby="cs-practice">
-          <h2 id="cs-practice" className={s.groupLabel}>Try a Practice Committee</h2>
-          <p className={`muted ${s.practiceNote}`}>A practice run with a sample topic and 12 member states, in the {PROC_LABEL[proc]} procedure chosen above. It counts as one of your committees.</p>
-          <button type="button" className="button secondary lg block" onClick={() => { onCreate(ch.createPractice(proc, Array.from({ length: ch.PRACTICE.states.length }, () => uid()), pass), false); if (supabase) void supabase.rpc("note_chamber_started", { label: ch.PRACTICE.name, procedure: PROC_LABEL[proc] }); }}>Try a Practice Committee</button>
+          <div className={s.practiceIntro}>
+            <h2 id="cs-practice" className={s.h2}>Try a Practice Committee</h2>
+            <p className="muted">A practice run with a sample topic and 12 member states, in the {PROC_LABEL[proc]} procedure chosen above. It counts as one of your committees.</p>
+          </div>
+          <button type="button" className="button secondary block" onClick={() => { onCreate(ch.createPractice(proc, Array.from({ length: ch.PRACTICE.states.length }, () => uid()), pass), false); if (supabase) void supabase.rpc("note_chamber_started", { label: ch.PRACTICE.name, procedure: PROC_LABEL[proc] }); }}>Try a Practice Committee</button>
         </section>
         </>}
       </div>

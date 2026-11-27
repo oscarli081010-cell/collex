@@ -92,7 +92,7 @@ export function MyApplications({ userId }: { userId: string }) {
         <h2 id="myapps-h" className={au.cardTitle}>Your applications</h2>
       </div>
       {rows !== null && rows.length === 0 && (
-        <div className={board.empty}><Gavel /><p className={board.emptyTitle}>No applications yet</p><p className="muted">Apply to a conference as a delegate or chair and it shows here.</p><Link href="/conferences" className="button secondary">Find a Conference</Link></div>
+        <div className={`${board.empty} ${h.flush}`}><Gavel /><p className={board.emptyTitle}>No applications yet</p><p className="muted">Apply to a conference as a delegate or chair and it shows here.</p></div>
       )}
       {rows && rows.length > 0 && (
         <ul className={h.rows}>
@@ -124,11 +124,11 @@ export function MyApplications({ userId }: { userId: string }) {
           })}
         </ul>
       )}
-      <div className="field">
-        <label className="check">
-          <input type="checkbox" checked={Boolean(pub)} disabled={pub === null} onChange={(e) => void toggle(e.target.checked)} />
-          <span>Make my MUN record public</span>
-        </label>
+      {/* The same switch row as the weekly email */}
+      <div className={h.setting}>
+        <label htmlFor="record-switch">Make my MUN record public</label>
+        <button type="button" id="record-switch" role="switch" aria-checked={Boolean(pub)} className={h.switch}
+          disabled={pub === null} onClick={() => void toggle(!pub)} />
       </div>
       <div className={h.btnRow}>
         <Link href={`/delegates/${userId}`} className="button secondary">See My Record</Link>

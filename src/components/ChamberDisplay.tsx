@@ -353,7 +353,7 @@ export default function ChamberDisplay() {
   } else if (c.step === "statements") {
     const next3 = ch.upcomingStatements(c, 3);
     mid = (
-      <Screen heading="Opening Statements" foot={next3.length > 0 && <div className={s.dSigs}><Flanked className={s.dCaps}>Up next</Flanked><ul>{next3.map((id) => <li key={id}>{name(id)}</li>)}</ul></div>} />
+      <Screen heading="Opening Statements" ornate foot={next3.length > 0 && <div className={s.dSigs}><Flanked className={s.dCaps}>Up next</Flanked><ul>{next3.map((id) => <li key={id}><Flag name={name(id)} em />{name(id)}</li>)}</ul></div>} />
     );
   } else if (c.step === "general") {
     const m = c.result?.kind === "motion" ? motionOf(c.result.motion) : undefined;

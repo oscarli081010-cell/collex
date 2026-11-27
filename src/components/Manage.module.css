@@ -1,7 +1,7 @@
 .card { padding: 22px; display: flex; flex-direction: column; gap: 18px; }
 .cardHead { display: flex; flex-direction: column; gap: 6px; }
 .cardTitle { font-family: var(--serif); font-weight: 400; font-size: 26px; line-height: 1.1; scroll-margin-top: 96px; }
-.note { font-size: 14px; padding: 12px 14px; border-radius: 10px; background: var(--surface); color: var(--muted); }
+.note { font-size: 14px; padding: 12px 14px; border-radius: 10px; background: var(--wash); color: var(--muted); }
 
 /* The title with the on/off button beside it. */
 .cardTop { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; }
@@ -32,7 +32,7 @@
 .regMain { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 280px; }
 .regSchool { font-size: 16px; font-weight: 500; overflow-wrap: anywhere; }
 .regMeta { font-size: 13.5px; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; }
-.quote { display: block; margin-top: 4px; padding: 8px 12px; border-radius: 8px; background: var(--surface); font-size: 13.5px; color: var(--muted); overflow-wrap: anywhere; }
+.quote { display: block; margin-top: 4px; padding: 8px 12px; border-radius: 8px; background: var(--wash); font-size: 13.5px; color: var(--muted); overflow-wrap: anywhere; }
 .regActions { display: flex; gap: 10px; flex: 0 1 auto; }
 /* A round button holding one emoji; the chosen answer is tinted in its own colour. */
 .face {

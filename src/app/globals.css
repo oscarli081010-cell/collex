@@ -12,6 +12,7 @@
   --control-line: var(--line-strong); /* borders of inputs and checkboxes: the soft line, as before */
   --accent: #213a73;
   --accent-soft: #e8ecf5;
+  --wash: #edf1f8; /* the washed-out blue behind boxes of content: empty states, notes, editor rows, drop areas */
   --on-accent: #ffffff;
   --on-ink: #ffffff;
   --ink-hover: #2a2c33;
@@ -53,6 +54,7 @@
   --control-line: var(--line-strong);
   --accent: #9fb5ec;
   --accent-soft: #212a42;
+  --wash: #1c2131;
   --on-accent: #0f1424;
   --on-ink: #15161a;
   --ink-hover: #d4d3ce;
@@ -83,6 +85,7 @@
     --control-line: var(--line-strong);
     --accent: #9fb5ec;
     --accent-soft: #212a42;
+    --wash: #1c2131;
     --on-accent: #0f1424;
     --on-ink: #15161a;
     --ink-hover: #d4d3ce;
@@ -443,7 +446,8 @@ h1, h2, h3, .serif { text-wrap: balance; }
 p, li, dd, small, figcaption { text-wrap: pretty; }
 
 /* Line drawings (Drawings.tsx) in empty and lost states. */
-.drawing { color: var(--muted); opacity: 0.75; flex: none; }
+.drawing { color: var(--muted); flex: none; }
+.drawingDisc { fill: var(--panel); stroke: var(--line); stroke-width: 1; }
 
 /* Icon buttons (IconButton.tsx): round and quiet; the tooltip names the action after a short hover. */
 .iconbtn { width: 40px; height: 40px; padding: 0 !important; border-radius: 50% !important; justify-content: center; flex: none; }

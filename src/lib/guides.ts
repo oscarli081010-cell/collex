@@ -36,7 +36,7 @@ export const GUIDES: Guide[] = [
       ] },
       { id: "display", title: "The display", text: [
         "The display shows the timer, speakers and results for the room. To put the delegates’ join code and a QR code on it, turn on Delegates’ Devices in the Share tab, then press Show Join Code. Hide Join Code takes it off.",
-        "Display Sounds, in Settings, are off until you turn them on: a chime when a speech ends and again 10 seconds later, and a warning tone 10 seconds before the end. A browser needs one click on the display before it can play sound. The separate Sound setting plays a chime on your own laptop.",
+        "Display Sounds, in Settings, are off until you turn them on: a chime when a speech ends and again 10 seconds later, and a warning tone 10 seconds before the end. A browser needs one click on the display before it can play sound. The separate Device Sounds setting plays a chime on your own laptop.",
       ] },
       { id: "marks", title: "Marks", text: [
         "Analytics counts every speech, point and amendment for you. In Analytics, open Scores and press Mark on a state. Mark it *out of 10* for Speaking, Diplomacy, Knowledge and Procedure, and keep a private Chair’s Note. Only the chairs on the committee see the marks.",

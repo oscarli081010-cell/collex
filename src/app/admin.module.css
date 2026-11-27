@@ -64,7 +64,7 @@
 .reviewHead { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
 .reviewTitle { font-family: var(--serif); font-weight: 400; font-size: 30px; line-height: 1.1; }
 .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
-.facts > div { padding: 10px 12px; border-radius: 8px; background: var(--surface); font-size: 14px; }
+.facts > div { padding: 10px 12px; border-radius: 8px; background: var(--wash); font-size: 14px; }
 .facts dt { font-size: 12px; color: var(--muted); }
 .facts dd { font-weight: 500; overflow-wrap: anywhere; }
 .overview { max-width: 70ch; }
@@ -80,7 +80,7 @@
 /* Tables */
 .tableWrap { border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto; background: var(--panel); }
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.table th { text-align: left; font-weight: 500; font-size: 12.5px; color: var(--muted); padding: 12px 18px; background: var(--surface); }
+.table th { text-align: left; font-weight: 500; font-size: 12.5px; color: var(--muted); padding: 12px 18px; background: var(--wash); }
 .table td { padding: 16px 18px; border-top: 1px solid var(--line); vertical-align: middle; }
 .table td strong { display: block; font-weight: 500; }
 .table td small { color: var(--muted); font-size: 12.5px; }
@@ -109,7 +109,7 @@
 }
 
 /* The cover photo a listing was sent with, so it can be checked before it goes live. */
-.reviewCover { width: 100%; aspect-ratio: 16 / 5; object-fit: cover; border-radius: 12px; background: var(--surface); }
+.reviewCover { width: 100%; aspect-ratio: 16 / 5; object-fit: cover; border-radius: 12px; background: var(--wash); }
 .actions :global(.iconbtn) { width: 36px; height: 36px; }
 @media (pointer: coarse) { .actions :global(.iconbtn) { width: 44px; height: 44px; } }
 
@@ -176,7 +176,7 @@
 @keyframes bulkInMobile { from { opacity: 0; transform: translateY(12px); } }
 @media (prefers-reduced-motion: reduce) { .bulk { animation: none; } }
 
-.editCell { background: var(--surface); padding: 20px 22px !important; }
+.editCell { background: var(--wash); padding: 20px 22px !important; }
 .editForm { display: flex; flex-direction: column; gap: 14px; }
 .editGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
 

@@ -8,7 +8,7 @@
 .still { display: grid; place-items: center; user-select: all; }
 .box:not(.still):hover { border-color: var(--faint); }
 .box:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); transform: translateY(-1px); }
-.box[data-filled="true"] { background: var(--surface); border-color: var(--control-line, var(--line-strong)); }
+.box[data-filled="true"] { background: var(--wash); border-color: var(--control-line, var(--line-strong)); }
 .box[data-error] { border-color: var(--danger); }
 .box:disabled { opacity: 0.6; }
 /* The third and fourth boxes sit a little further apart, so six digits read as two groups of three. */

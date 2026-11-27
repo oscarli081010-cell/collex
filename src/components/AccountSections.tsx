@@ -152,7 +152,7 @@ function Saved() {
         </p>
       )}
       {saved === null ? <RowsSkeleton rows={2} height={52} /> : list.length === 0 ? (
-        <div className={board.empty}><Placard /><p className={board.emptyTitle}>No saved conferences yet</p><p className="muted">Follow a conference and it shows here.</p><Link href="/conferences" className="button">Browse Conferences</Link></div>
+        <div className={`${board.empty} ${h.flush}`}><Placard /><p className={board.emptyTitle}>No saved conferences yet</p><p className="muted">Follow a conference and it shows here.</p></div>
       ) : (
         <ul className={s.saved}>
           {list.map((c) => {
@@ -189,11 +189,8 @@ function ListingsLink({ userId, version, onCount }: { userId: string; version: n
     <section id="account-listings" className={`panel ${s.card}`} style={{ "--i": 2 } as React.CSSProperties} aria-labelledby="listings-h">
       <div>
         <h2 id="listings-h" className={s.cardTitle}>Your conferences</h2>
-        <p className="muted">
-          {rows === null ? "\u00a0"
-            : rows.length === 0 ? "You don\u2019t run a conference yet."
-            : `You run ${rows.length} ${rows.length === 1 ? "conference" : "conferences"}.`}
-        </p>
+        {rows === null ? <p className="muted">{"\u00a0"}</p>
+          : rows.length > 0 && <p className="muted">{`You run ${rows.length} ${rows.length === 1 ? "conference" : "conferences"}.`}</p>}
       </div>
       <Link href="/listings" className="button block">{ICONS.view}See my conferences</Link>
     </section>
@@ -354,7 +351,8 @@ function DeleteAccount({ userId }: { userId: string }) {
   return (
     <section id="account-delete" className={`panel ${s.card}`} style={{ "--i": 4 } as React.CSSProperties} aria-labelledby="delete-h">
       <h2 id="delete-h" className={s.cardTitle}>Delete My Account</h2>
-      <div className={h.note}>
+      {/* Same size and colour as the weekly email's text */}
+      <div className="muted">
         <p>This deletes, straight away and for good:</p>
         <ul style={{ listStyle: "disc", paddingLeft: 20, marginTop: 6 }}>
           <li>Your account: your name, email, school and settings.</li>
@@ -369,9 +367,10 @@ function DeleteAccount({ userId }: { userId: string }) {
         <label htmlFor="delete-confirm">Type DELETE to confirm</label>
         <input id="delete-confirm" className="control" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} disabled={busy} />
       </div>
-      {ready
-        ? <button type="button" className="button block" style={{ background: "var(--danger)", borderColor: "var(--danger)", color: "var(--on-ink)" }} disabled={busy} onClick={() => void remove()}>{busy ? "Deleting\u2026" : "Delete My Account"}</button>
-        : <span className="tip" data-tip="Type DELETE in the box first" data-tip-align="start" style={{ display: "flex" }}><button type="button" className="button block" disabled>Delete My Account</button></span>}
+      {/* One button throughout, so the grey-to-red change can fade instead of swapping elements */}
+      <span className={ready ? undefined : "tip"} data-tip={ready ? undefined : "Type DELETE in the box first"} data-tip-align="start" style={{ display: "flex" }}>
+        <button type="button" className={`button block ${h.dangerBtn}`} style={ready ? { background: "var(--danger)", borderColor: "var(--danger)", color: "var(--on-ink)" } : undefined} disabled={!ready || busy} onClick={() => void remove()}>{busy ? "Deleting\u2026" : "Delete My Account"}</button>
+      </span>
       {err && <p className={h.err} role="alert">{err}</p>}
     </section>
   );

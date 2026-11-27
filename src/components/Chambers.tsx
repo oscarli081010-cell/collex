@@ -13,11 +13,16 @@ import { Gavel } from "./Drawings";
 import board from "./board.module.css";
 import PanelTabs from "./PanelTabs";
 
-/** Back to the top of the page in about a quarter of a second, easing out; straight there when motion is reduced. */
+/** Back to the top of the page in about a quarter of a second, easing out; straight there when motion is reduced.
+    With the smooth scroller running, it does the scrolling: a page scrolled behind its back is pulled back to where the
+    scroller was still heading (a wheel scroll a moment before the click), which looked like a jump back down. */
 function scrollToTop() {
+  const lenis = (window as unknown as { __lenis?: { scrollTo: (to: number, o?: { duration?: number; easing?: (t: number) => number; immediate?: boolean; force?: boolean }) => void } }).__lenis;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (lenis) { lenis.scrollTo(0, reduce ? { immediate: true, force: true } : { duration: 0.3, easing: (k) => 1 - Math.pow(1 - k, 3), force: true }); return; }
   const from = window.scrollY;
   if (from < 8) return;
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { window.scrollTo(0, 0); return; }
+  if (reduce) { window.scrollTo(0, 0); return; }
   const t0 = performance.now();
   const step = (t: number) => {
     const k = Math.min(1, (t - t0) / 260);

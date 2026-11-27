@@ -3,7 +3,7 @@
 /* The whole photo, no taller than 340px, with what the page crops away dimmed. */
 .stage {
   position: relative; width: 100%; margin-inline: auto; overflow: hidden; border-radius: 12px;
-  background: var(--surface); border: 1px solid var(--control-line, var(--line-strong)); touch-action: none; user-select: none;
+  background: var(--wash); border: 1px solid var(--control-line, var(--line-strong)); touch-action: none; user-select: none;
 }
 .stage[data-loading] { aspect-ratio: 16 / 9; max-height: 340px; }
 .stage[data-loading] img { opacity: 0; }
@@ -31,7 +31,7 @@
 /* What it will look like, centred under the photo. */
 .preview { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 0; }
 .preview figcaption { font-size: 12.5px; color: var(--muted); }
-.shot { display: block; overflow: hidden; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+.shot { display: block; overflow: hidden; border-radius: 10px; border: 1px solid var(--line); background: var(--wash); }
 .shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
 @media (prefers-reduced-motion: reduce) { .frame, .stage:not([data-dragging]) .frame { transition: none; } }

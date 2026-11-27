@@ -39,7 +39,6 @@ export function Resolutions({ c, act }: { c: Chamber; act: Act }) {
             </div>
           ))}
         </div>
-        <small className="muted">A resolution can be changed until it has been debated.</small>
       </div>
     </section>
   );
@@ -86,7 +85,7 @@ export function Sound() {
   useEffect(() => { setOn(soundOn()); }, []);
   return (
     <section className={`panel ${s.share}`} aria-labelledby="st-sound">
-      <h2 id="st-sound" className={s.h2}>Sound</h2>
+      <h2 id="st-sound" className={s.h2}>Device Sounds</h2>
       <label className="check">
         <input type="checkbox" checked={on} onChange={(e) => { setOn(e.target.checked); try { localStorage.setItem(SOUND_KEY, e.target.checked ? "on" : "off"); } catch { /* private window */ } if (e.target.checked) chime(true); }} />
         <span>Play a chime on this device when a speaker&rsquo;s time is up</span>
@@ -119,10 +118,10 @@ export function Times({ c, act }: { c: Chamber; act: Act }) {
   const t = !!c.tr;
   const rows: { k: ch.TimeKey; label: string; min: number; max: number }[] = [
     ...(t ? [{ k: "statement" as const, label: "Opening Statement", min: 5, max: 3600 }] : []),
-    { k: "proposer", label: `Proposer, ${ch.roleName(c, "seconder")}, Opposer and Closing`, min: 5, max: 3600 },
+    { k: "proposer", label: `Proposer, ${ch.roleName(c, "seconder")}, Opposer & Closing`, min: 5, max: 3600 },
     { k: "speaker", label: t ? "Speaker from the List" : "Speaker from the List", min: 5, max: 3600 },
     ...(t ? [{ k: "amendPer" as const, label: "Amendment Debate, per Speaker", min: 5, max: ch.TR.maxCaucus }, { k: "amendTotal" as const, label: "Amendment Debate, Total", min: 10, max: ch.TR.maxCaucus }] : [{ k: "amender" as const, label: "Amendment Proposer\u2019s Speech", min: 5, max: 3600 }]),
-    { k: "poi", label: "Point of Information, Question and Reply", min: 5, max: 300 },
+    { k: "poi", label: "POI, Question & Reply", min: 5, max: 300 },
   ];
   const set = Object.keys(c.times ?? {}).length > 0;
   return (
@@ -174,7 +173,7 @@ export function Background({ c, act, say, userId }: { c: Chamber; act: Act; say:
       <h2 id="st-bg" className={s.h2}>Display Background</h2>
       {c.background ? (
         <CoverFrame src={c.background} ratio={16 / 9} label="On the display" x={at[0]} y={at[1]} onChange={(x, y) => setAt([x, y])} />
-      ) : <div className={s.bgPreview} data-empty><span>No photo</span></div>}
+      ) : <div className={s.bgPreview} data-empty><span className="sr-only">No photo</span></div>}
       <div className={s.bgActions} data-one={!c.background}>
         <label className={`button ${s.fileBtn}`} aria-disabled={busy}>
           {busy ? "Uploading…" : c.background ? "Change Photo" : "Choose a Photo"}
@@ -198,6 +197,12 @@ export function Background({ c, act, say, userId }: { c: Chamber; act: Act; say:
 
 type Member = { user_id: string; name: string; email: string; is_owner: boolean; role?: "owner" | "admin" | "chair" };
 export const ROLE = { owner: "Owner", admin: "Admin", chair: "Chair" } as const;
+// The line under each name in People: what the role means, so the pill beside it isn't said twice.
+const ROLE_NOTE = { owner: "Shared this committee", admin: "Collex site admin, not one of the 10 places", chair: "Can run the console" } as const;
+// The last join code and team seen for each committee. Share unmounts on every tab change; without these it would
+// show "Make a Join Code" (and an empty People list) for a moment each time, until the database answers again.
+const codeSeen = new Map<string, string | null>();
+const teamSeen = new Map<string, Member[]>();
 
 // Who can run this committee. A committee kept in this browser can be shared, which moves it to Collex so the people
 // added (by the email on their account) can open the console and the display from their own devices.
@@ -205,7 +210,8 @@ export function Share({ c, cloudId, manage, signedIn, meId, say, setLocal }: {
   c: Chamber; cloudId: string | null; manage: boolean; signedIn: boolean; meId?: string; say: (t: string) => void; setLocal: (c: Chamber | null) => void;
 }) {
   const router = useRouter();
-  const [team, setTeam] = useState<Member[] | null>(null);
+  const [team, setTeamState] = useState<Member[] | null>(() => (cloudId ? teamSeen.get(cloudId) ?? null : null));
+  const setTeam = (m: Member[]) => { if (cloudId) teamSeen.set(cloudId, m); setTeamState(m); };
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const load = async () => {
@@ -246,10 +252,12 @@ export function Share({ c, cloudId, manage, signedIn, meId, say, setLocal }: {
     supabase.functions.invoke("chamber-invite").catch(() => {});
     void load();
   };
-  const [code, setCode] = useState<string | null>(null);
+  // undefined: not known yet, so the card holds its place instead of offering to make a code that may already exist.
+  const [code, setCodeState] = useState<string | null | undefined>(() => (cloudId && supabase ? codeSeen.get(cloudId) : null));
+  const setCode = (v: string | null) => { if (cloudId) codeSeen.set(cloudId, v); setCodeState(v); };
   useEffect(() => {
     if (!cloudId || !supabase) return;
-    supabase.rpc("chamber_code", { cid: cloudId, action: "get" }).then(({ data }) => setCode((data as string | null) ?? null));
+    supabase.rpc("chamber_code", { cid: cloudId, action: "get" }).then(({ data }) => { codeSeen.set(cloudId, (data as string | null) ?? null); setCodeState((data as string | null) ?? null); });
   }, [cloudId]);
   const codeDo = async (action: "new" | "off") => {
     if (!supabase || !cloudId) return;
@@ -280,15 +288,20 @@ export function Share({ c, cloudId, manage, signedIn, meId, say, setLocal }: {
         </>
       ) : (
         <>
-          <ul className={s.team}>
+          <ul className={s.people}>
             {(team ?? []).map((m) => {
               const r = m.role ?? (m.is_owner ? "owner" : "chair");
+              const who = m.name || m.email;
               return (
                 <li key={m.user_id}>
-                  <span className={s.tname}>{m.name || m.email}{m.user_id === meId && " (you)"}</span>
+                  <span className={s.avatar} data-role={r} aria-hidden="true">{Array.from(who.trim())[0]?.toUpperCase() ?? "?"}</span>
+                  <span className={s.who}>
+                    <span className={s.whoName}>{who}{m.user_id === meId && <span className={s.youTag}> (you)</span>}</span>
+                    <span className={s.whoNote}>{ROLE_NOTE[r]}</span>
+                  </span>
                   <span className={`badge${r === "admin" ? " accent" : ""}`} title={r === "admin" ? "A Collex admin. Can do everything the owner can, and doesn't take one of the 10 places." : undefined}>{ROLE[r]}</span>
                   {/* An admin leaves on their own, from the Admin page or with Leave; nobody else removes them. */}
-                  {manage && r === "chair" ? <IconButton label={`Remove ${m.name || m.email}`} icon={ICONS.close} onClick={() => drop(m.user_id)} /> : manage ? <span className={s.teamGap} aria-hidden="true" /> : null}
+                  {manage && r === "chair" ? <IconButton label={`Remove ${who}`} icon={ICONS.close} danger onClick={() => drop(m.user_id)} /> : manage ? <span className={s.peopleGap} aria-hidden="true" /> : null}
                 </li>
               );
             })}
@@ -298,9 +311,12 @@ export function Share({ c, cloudId, manage, signedIn, meId, say, setLocal }: {
     </section>
     {cloudId && (
       <div className={s.pair2}>
-          <section className={`panel ${s.share}`} aria-labelledby="st-code">
+          <section className={`panel ${s.share} ${s.codeCard}`} aria-labelledby="st-code">
             <h2 id="st-code" className={s.h2}>Join Code</h2>
-            {code ? (
+            <div className={s.codeBody}>
+            {code === undefined ? (
+              <div className={s.codeWait} role="status"><span className="sr-only">Loading the join code</span></div>
+            ) : code ? (
               <>
                 <CodeBoxes code={code} label="Join code" />
                 <p className="muted">Other chairs go to Committees, choose Join, and type this code. They need to be logged in.</p>
@@ -316,8 +332,9 @@ export function Share({ c, cloudId, manage, signedIn, meId, say, setLocal }: {
                 <Why why={busy && "Saving…"}><button type="button" className="button block" disabled={busy} onClick={() => codeDo("new")}>Make a Join Code</button></Why>
               </>
             ) : <p className="muted">There is no join code. The person who shared it can make one.</p>}
+            </div>
           </section>
-          <section className={`panel ${s.share}`} aria-labelledby="st-email">
+          <section className={`panel ${s.share} ${s.emailCard}`} aria-labelledby="st-email">
             <h2 id="st-email" className={s.h2}>Add by Email</h2>
           {manage ? (<>
             <form className={s.addRow2} onSubmit={add}>

@@ -152,7 +152,7 @@
 .verdict { font-size: 13.5px; color: var(--muted); }
 .verdict strong[data-pass="true"] { color: var(--ok); }
 .verdict strong[data-pass="false"] { color: var(--danger); }
-.result { padding: 12px 14px; border-radius: 10px; background: var(--surface); font-size: 14px; line-height: 1.5; }
+.result { padding: 12px 14px; border-radius: 10px; background: var(--wash); font-size: 14px; line-height: 1.5; }
 .result[data-pass="true"] { background: var(--ok-soft); color: var(--ok); }
 .result[data-pass="false"] { background: var(--danger-soft); color: var(--danger); }
 
@@ -189,7 +189,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .ballots { columns: 380px; column-gap: 28px; }
 .ballot { break-inside: avoid; }
 .tally { display: flex; gap: 8px; flex-wrap: wrap; }
-.banner { padding: 16px; border-radius: 12px; font-size: 15px; line-height: 1.5; background: var(--surface); }
+.banner { padding: 16px; border-radius: 12px; font-size: 15px; line-height: 1.5; background: var(--wash); }
 .banner[data-pass="true"] { background: var(--ok-soft); color: var(--ok); }
 .banner[data-pass="false"] { background: var(--danger-soft); color: var(--danger); }
 .banner strong { font-size: 18px; display: block; font-weight: 500; }
@@ -332,7 +332,9 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 /* The states that signed an amendment: tiles under a label, like the votes. */
 .dSigs { display: flex; flex-direction: column; align-items: center; gap: 0.7em; max-width: min(100%, 1300px); }
 .dSigs ul { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(8px, 1vw, 14px); }
-.dSigs li { padding: 0.3em 0.9em; border-radius: 999px; background: var(--surface); font-size: clamp(16px, min(2vw, 3.2vh), 30px); font-weight: 500; }
+.dSigs li { display: inline-flex; align-items: center; gap: 0.4em; padding: 0.3em 0.9em; border-radius: 999px; background: var(--surface); font-size: clamp(16px, min(2vw, 3.2vh), 30px); font-weight: 500; }
+/* A flag before the name (Up next): the cap height of the text, centred on it; the gap alone sits between them. */
+.dSigs li > img { height: 0.7em !important; margin-right: 0 !important; }
 /* The three chosen speakers: a label over a tile, like the signatories. */
 .dRoles { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(20px, 4vw, 64px); margin-top: var(--group); }
 .dRole { display: flex; flex-direction: column; align-items: center; gap: 0.5em; }
@@ -381,7 +383,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 /* Welcome, roll call, choosing the speakers */
 .welcome { padding: clamp(26px, 5vw, 56px); display: flex; flex-direction: column; gap: 22px; align-items: stretch; }
 .welcomeTitle { font-size: clamp(34px, 5vw, 60px); line-height: 1.04; overflow-wrap: anywhere; }
-.resBox { display: flex; flex-direction: column; gap: 8px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.resBox { display: flex; flex-direction: column; gap: 8px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--wash); }
 .resText { font-size: clamp(22px, 2.6vw, 32px); line-height: 1.2; overflow-wrap: anywhere; }
 .three { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
 .nextRes { display: flex; flex-direction: column; gap: 10px; }
@@ -408,6 +410,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 /* Settings: the display's background photo */
 .strong { font-size: 15px; font-weight: 500; }
 .bgPreview { width: 100%; aspect-ratio: 16 / 9; max-height: 380px; border-radius: 14px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); display: grid; place-items: center; color: var(--faint); font-size: 14px; }
+.bgPreview[data-empty] { background: repeating-linear-gradient(-45deg, transparent 0 12px, color-mix(in srgb, var(--accent) 6%, transparent) 12px 13px), var(--accent-soft); }
 .bgPreview img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .bgActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .bgActions[data-one="true"] { grid-template-columns: minmax(0, 1fr); }
@@ -444,8 +447,6 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 @media (pointer: coarse) { .range { height: 44px; } }
 
 /* Analytics: a table, with the role a state has this resolution next to its name. */
-.csvBtn { height: 44px; padding: 0 18px; gap: 9px; font-weight: 500; }
-.csvBtn svg { width: 16px; height: 16px; }
 .tableWrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
 .aTable { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 640px; }
 .aTable th, .aTable td { padding: 12px 14px; text-align: right; border-top: 1px solid var(--line); white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -510,7 +511,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .nameBox .name { flex: none; }
 .procTag { display: flex; gap: 6px; flex-wrap: wrap; margin: 0; }
 .fixedVal { margin: 0; min-height: 44px; display: flex; align-items: center; font-weight: 500; }
-.caucClock { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding: 10px 14px; border-radius: 12px; background: var(--surface); }
+.caucClock { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding: 10px 14px; border-radius: 12px; background: var(--wash); }
 .caucClock span { font-size: 12.5px; color: var(--muted); }
 .caucClock b { font-size: 28px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .caucClock[data-state="up"] b { color: var(--danger); }
@@ -526,7 +527,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 /* Figures: one row of tiles, a big number over its label, and a bar of how it splits. The same for every count in the chamber. */
 .statsBox { display: flex; flex-direction: column; gap: 10px; }
 .stats { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 10px; }
-.stat { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border-radius: 14px; background: var(--surface); min-width: 0; }
+.stat { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border-radius: 14px; background: var(--wash); min-width: 0; }
 .stat b { font-size: 28px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .stat span { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
 .stat[data-tone="ok"] { background: var(--ok-soft); }
@@ -555,7 +556,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .docMeta { font-size: 12.5px; color: var(--muted); }
 .kSigner { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font-size: 13.5px; font-weight: 500; }
 .kSigner small { font-size: 11.5px; font-weight: 400; color: var(--muted); }
-.signBox { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 12px; background: color-mix(in srgb, var(--surface) 70%, transparent); }
+.signBox { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 12px; background: color-mix(in srgb, var(--wash) 70%, transparent); }
 .kSigners { display: flex; flex-wrap: wrap; gap: 6px; }
 .kMeter { display: flex; align-items: center; gap: 10px; }
 .kMeterBar { flex: 1; height: 5px; border-radius: 999px; background: var(--line); overflow: hidden; }
@@ -595,7 +596,7 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .cardLine strong { color: var(--ink); font-weight: 500; }
 .queue li.amend { gap: 10px; }
 .queue li.amend :global(.button.block) { width: 100%; }
-.sigMeter { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--surface) 70%, transparent); }
+.sigMeter { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--wash) 70%, transparent); }
 .sigMeter small { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
 .sigMeter .kMeterText b { color: var(--ink); font-weight: 500; }
 .sigMeter[data-met="true"] .kMeterBar i { background: var(--ok); }
@@ -613,16 +614,46 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 .seenTag[data-seen="false"]::before { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
 
 .timesGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px 24px; }
-.timesAll { display: flex; flex-direction: column; gap: 8px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
-.timesAll > :global(.field) { width: min(100%, 280px); }
+/* All Speeches leads the card: centred and larger, since it sets every speech at once. Space, not a rule, sets it apart. */
+.timesAll { display: flex; flex-direction: column; align-items: center; padding: 4px 0 12px; }
+.timesAll > :global(.field) { align-items: center; gap: 10px; }
+.timesAll > :global(.field) > span:first-child { font-size: 15px; font-weight: 500; color: var(--ink); }
+.timesAll .dur { gap: 10px; }
+.timesAll .dur :global(.control) { width: 92px; height: 56px; font-size: 24px; font-variant-numeric: tabular-nums; }
+.timesAll .dur span { font-size: 14px; }
 
-/* Share tab: join code */
-/* Join Code and Add by Email, side by side under People; their actions sit at the bottom so the two line up. */
-.pair2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-@media (max-width: 860px) { .pair2 { grid-template-columns: minmax(0, 1fr); } }
-.pair2 > .share > :last-child { margin-top: auto; }
-/* Sound and Display Sounds side by side in Settings, each keeping its own height. */
-.pairTop { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+/* Share tab. Narrow: People, Join Code, Add by Email, Delegates' Devices, Conference, one under another.
+   Wide: People across the top; under it the Join Code fills the left, beside a column of the other three at one height each. */
+.pair2 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.codeBody { margin-block: auto; display: flex; flex-direction: column; gap: 16px; text-align: center; }
+.codeBody > [role="img"] { justify-content: center; }
+.codeWait { min-height: 168px; border-radius: 14px; background: var(--wash); }
+@media (min-width: 861px) {
+  .manage:has(> [id="ch-share"] + .pair2) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto repeat(3, 1fr); }
+  .manage:has(> [id="ch-share"] + .pair2) > * { grid-column: 1 / -1; }
+  .manage:has(> [id="ch-share"] + .pair2) > .pair2 { display: contents; }
+  .pair2 > .codeCard { grid-column: 1; grid-row: 2 / span 3; }
+  .pair2 > .emailCard { grid-column: 2; grid-row: 2; }
+  .manage:has(> [id="ch-share"] + .pair2) > [aria-labelledby="st-dev"] { grid-column: 2; grid-row: 3; }
+  .manage:has(> [id="ch-share"] + .pair2) > [aria-labelledby="cl-h"] { grid-column: 2; grid-row: 4; }
+}
+/* People: a letter, the name with what the role means under it, the role, and a quiet remove. */
+.people { display: flex; flex-direction: column; }
+.people li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.people li:first-child { border-top: 0; padding-top: 0; }
+.people li:last-child { padding-bottom: 0; }
+.avatar { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--surface); color: var(--muted); font-size: 14px; font-weight: 500; }
+.avatar[data-role="admin"] { background: var(--accent-soft); color: var(--accent); }
+.who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.whoName { font-size: 14.5px; font-weight: 500; overflow-wrap: anywhere; }
+.youTag { font-weight: 400; color: var(--muted); }
+.whoNote { font-size: 13px; color: var(--muted); }
+.people :global(.iconbtn) { width: 32px; height: 32px; }
+.people :global(.iconbtn) svg { width: 14px; height: 14px; }
+.peopleGap { flex: none; width: 32px; }
+@media (pointer: coarse) { .people :global(.iconbtn) { width: 44px; height: 44px; } .peopleGap { width: 44px; } }
+/* Device Sounds and Display Sounds side by side in Settings, at one height. */
+.pairTop { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 @media (max-width: 860px) { .pairTop { grid-template-columns: minmax(0, 1fr); } }
 .codeActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .codeActions :global(.button) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
@@ -632,24 +663,36 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 
 /* Your Committees: one card per committee, with where it is at a glance. */
 .count { margin-left: 8px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Like a conference's row: it lifts on hover, with an arrow that moves toward where it opens, and a thin accent down its left edge. */
 .yourCard {
-  width: 100%; display: flex; flex-direction: column; gap: 6px; align-items: stretch; padding: 14px 16px; cursor: pointer; text-align: left; color: inherit; font: inherit;
+  position: relative; width: 100%; display: flex; flex-direction: column; gap: 6px; align-items: stretch; padding: 16px 18px 16px 22px; cursor: pointer; text-align: left; color: inherit; font: inherit;
   background: var(--panel); border: 1px solid var(--line-strong); border-radius: 12px;
-  transition: border-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out);
+  transition: border-color var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-fast) var(--ease-smooth-out), transform var(--duration-fast) var(--ease-smooth-out);
 }
-.yourCard:hover { border-color: var(--faint); }
-.yourCard:active { transform: scale(0.99); }
+.yourCard::before { content: ""; position: absolute; left: -1px; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: color-mix(in srgb, var(--accent) 45%, transparent); transition: background-color var(--duration-quick) var(--ease-smooth-out); }
+.yourCard:hover { border-color: var(--faint); box-shadow: 0 10px 28px rgba(var(--shadow-rgb), 0.07); transform: translateY(-2px); }
+.yourCard:hover::before { background: var(--accent); }
+.yourCard:active { transform: translateY(0) scale(0.995); }
 .yourCard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .yourCard:hover, .yourCard:active { transform: none; } }
 .yourCard small { color: var(--muted); font-size: 13px; }
-.yourTop { display: flex; align-items: center; gap: 12px; }
+.yourTop { display: flex; align-items: center; gap: 10px; }
 .yourName { flex: 1; min-width: 0; font-family: var(--serif); font-weight: 400; font-size: 24px; line-height: 1.1; letter-spacing: -0.01em; overflow-wrap: anywhere; }
-.yourTopic { font-size: 13.5px; color: var(--ink); opacity: 0.85; overflow-wrap: anywhere; }
-.yourFacts { display: flex; flex-wrap: wrap; gap: 4px 0; font-size: 13px; color: var(--muted); }
+.yourGo { flex: none; color: var(--faint); font-size: 18px; line-height: 1; padding-left: 4px; transition: transform var(--duration-fast) var(--ease-smooth-out), color var(--duration-quick); }
+.yourCard:hover .yourGo { transform: translateX(4px); color: var(--ink); }
+.yourTopic { font-size: 14px; color: var(--ink); opacity: 0.85; overflow-wrap: anywhere; }
+.yourFacts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 0; margin-top: 4px; font-size: 13px; color: var(--muted); }
 .yourFacts > span + span::before { content: "·"; margin-inline: 8px; color: var(--faint); }
+/* Where the committee is (Welcome, Debate…): a small pill with a dot, ahead of the rest of the facts. */
+.yourFacts > .yourStage { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; margin-right: 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 500; white-space: nowrap; }
+.yourFacts > .yourStage::before { content: ""; width: 6px; height: 6px; margin: 0; border-radius: 50%; background: currentColor; }
+.yourFacts > .yourStage + span::before { content: none; }
 .setupCard > .emptyCard { margin-top: 0; padding-block: 36px; }
+/* Analytics' empty box sits in its tab's own stack, so the list's 28px above it would double the gap. */
+.panelBody > .emptyCard { margin-top: 0; }
 
 /* A vote taken by placard or by roll call; the chairs' marks. */
-.scoreBox { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); gap: 14px; }
+.scoreBox { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--wash); gap: 14px; }
 .scoreGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 14px 20px; }
 .scoreGrid label { display: flex; justify-content: space-between; gap: 10px; }
 .scoreGrid input[type="range"] { width: 100%; accent-color: var(--accent); }
@@ -675,8 +718,8 @@ button.pbadge[aria-pressed="true"] { border: 0; background: var(--accent-soft); 
 
 /* The groups under Your Committees are named in the same size as the labels on the Start form beside them. */
 .groupLabel { font-size: 13px; font-weight: 500; }
-/* Try a Practice Committee: its heading and note in the same sizes as the labels and notes on the Start form above it. */
-.practiceNote { font-size: 13px; line-height: 1.5; margin-top: -8px; }
+/* Try a Practice Committee: the console's card heading (.h2) and body text at the page's own size, kept close together over the button. */
+.practiceIntro { display: flex; flex-direction: column; gap: 6px; }
 
 /* Something the chair must read about their changes (replaced by another chair's, or refused), until they dismiss it. */
 .noticeRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

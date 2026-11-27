@@ -69,6 +69,13 @@
 .switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .switch, .switch::after { transition: none; } }
 
+/* An empty box straight under a card's heading: the card's own gap is the room, not the box's usual top margin. */
+div.flush { margin-top: 0; }
+
+/* Delete My Account fades from its grey look to red when DELETE is typed. */
+.dangerBtn { transition: background-color 240ms var(--ease-smooth-out), border-color 240ms var(--ease-smooth-out), color 240ms var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
+@media (prefers-reduced-motion: reduce) { .dangerBtn { transition: none; } }
+
 /* The account page with its side menu (AccountNav): on a wide screen the tabs and cards sit in the middle of the page
    with the menu at the left edge (the empty third column matches the first, so the middle stays centred); on a narrow
    one the menu is a row of chips above them, like a listing's sections. */
